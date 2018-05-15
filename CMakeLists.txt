@@ -1,0 +1,8 @@
+cmake_minimum_required (VERSION 3.0)
+include_directories(".")
+add_subdirectory(katran)
+if(DEFINED ENV{CMAKE_BUILD_EXAMPLE})
+    message("Building example of thrift and grpc based katran server")
+    add_subdirectory(example)
+    add_subdirectory(example_grpc)
+endif()

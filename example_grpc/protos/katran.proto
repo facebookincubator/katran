@@ -1,0 +1,136 @@
+syntax = "proto3";
+package lb.katran;
+
+message Empty {}
+
+enum Action {
+  ADD = 0;
+  DEL = 1;
+}
+
+message Bool {
+    bool success = 1;
+}
+
+message Vip {
+  string address = 1;
+  int32 port = 2;
+  int32 protocol = 3;
+}
+
+message VipMeta {
+  Vip vip = 1;
+  int64 flags = 2;
+  /*
+   * setFlag controls if we setting this flags or removing it from the VIP
+   */
+  bool setFlag = 3;
+}
+
+message Real {
+  string address = 1;
+  int32 weight = 2;
+}
+
+message QuicReal {
+  string address = 1;
+  int32 id = 2;
+}
+
+message Mac {
+  string mac = 1;
+}
+
+message Stats {
+  uint64 v1 = 1;
+  uint64 v2 = 2;
+}
+
+message Healthcheck {
+  uint32 somark = 1;
+  string address = 2;
+}
+
+message hcMap {
+    map<int32, string> healthchecks = 1;
+}
+
+message Reals {
+    repeated Real reals = 1;
+}
+
+message Vips {
+    repeated Vip vips = 1;
+}
+
+message QuicReals {
+    repeated QuicReal qreals = 1;
+}
+
+message modifiedRealsForVip {
+    Action action = 1;
+    Reals real = 2;
+    Vip vip = 3;
+}
+
+message modifiedQuicReals {
+    Action action = 1;
+    QuicReals reals = 2;
+}
+
+message realForVip {
+    Real real = 1;
+    Vip vip = 2;
+}
+
+message Flags {
+    uint64 flags = 1;
+}
+
+message Somark {
+    uint32 somark = 1;
+}
+
+service KatranService {
+
+  rpc changeMac (Mac) returns (Bool);
+
+  rpc getMac (Empty) returns (Mac);
+
+  rpc addVip (VipMeta) returns (Bool);
+
+  rpc delVip (Vip) returns (Bool);
+
+  rpc getAllVips (Empty) returns (Vips);
+
+  rpc modifyVip (VipMeta) returns (Bool);
+
+  rpc getVipFlags (Vip) returns (Flags);
+
+  rpc addRealForVip (realForVip) returns (Bool);
+
+  rpc delRealForVip (realForVip) returns (Bool);
+
+  rpc modifyRealsForVip (modifiedRealsForVip) returns (Bool);
+
+  rpc getRealsForVip (Vip) returns (Reals);
+
+  rpc modifyQuicRealsMapping (modifiedQuicReals) returns (Bool);
+
+  rpc getQuicRealsMapping (Empty) returns (QuicReals);
+
+  rpc getStatsForVip (Vip) returns (Stats);
+
+  rpc getLruStats (Empty) returns (Stats);
+
+  rpc getLruMissStats (Empty) returns (Stats);
+
+  rpc getLruFallbackStats (Empty) returns (Stats);
+
+  rpc addHealthcheckerDst (Healthcheck) returns (Bool);
+
+  rpc delHealthcheckerDst (Somark) returns (Bool);
+
+  rpc getHealthcheckersDst (Empty) returns (hcMap);
+
+}
