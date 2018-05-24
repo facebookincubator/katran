@@ -1,4 +1,7 @@
 # katran
+
+[![Build Status](https://travis-ci.org/facebookincubator/katran.svg?branch=master)](https://travis-ci.org/facebookincubator/katran)
+
 katran is a cpp library and bpf program to build high performance
 layer 4 load balancing forwarding plane. katran leverages [XDP infrastructure](https://www.iovisor.org/technology/xdp)
 from the kernel to provide in-kernel facility for fast packet's processing.
