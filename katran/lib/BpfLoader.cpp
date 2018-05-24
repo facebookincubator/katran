@@ -67,6 +67,8 @@ extern "C" {
 #include "linux_includes/libbpf.h"
 }
 
+#include <folly/ScopeGuard.h>
+
 namespace katran {
 
 namespace {
@@ -602,6 +604,13 @@ int BpfLoader::loadBpfProgs() {
 
 int BpfLoader::loadBpfFile(const std::string& path, const bpf_prog_type type) {
   initializeTempVars();
+  int fd = -1;
+  SCOPE_EXIT {
+    elf_end(elf_);
+    if (0 < fd) {
+      ::close(fd);
+    }
+  };
   progType_ = type;
 
   if (elf_version(EV_CURRENT) == EV_NONE) {
@@ -609,7 +618,7 @@ int BpfLoader::loadBpfFile(const std::string& path, const bpf_prog_type type) {
     return 1;
   }
 
-  auto fd = ::open(path.c_str(), O_RDONLY, 0);
+  fd = ::open(path.c_str(), O_RDONLY, 0);
   if (fd < 0) {
     LOG(ERROR) << "Can't open file w/ BPF program: " << path
                << "Error: " << std::strerror(errno);
