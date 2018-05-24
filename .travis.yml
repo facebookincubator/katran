@@ -1,0 +1,11 @@
+sudo: required
+
+services:
+  - docker
+
+before_install:
+  - docker pull ubuntu:18.04
+  - docker run ubuntu:18.04 /bin/sh -c "apt-get update; apt-get install -y git sudo wget; git clone --depth 1 https://github.com/tehnerd/katran ; cd katran; ./build_katran.sh"
+
+script:
+  - echo "DONE"
