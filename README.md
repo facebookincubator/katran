@@ -31,14 +31,15 @@ We provide shell script that automates the build of katran for Ubuntu 18.04.
 To build and install katran library and thrift/grpc examples - you need to run
 build_katran.sh script. It should take care of all the required dependencies.
 If you need to build it for other linux distributions, yon need to make sure that
+
 1. it runs on recent linux kernel (4.13+)
 2. you have installed:
-  1. [folly](https://github.com/facebook/folly)
-  2. recent version of clang compiler (6.0+)
-  3. glog/gtest/gflags/elf libraries
-  4. [wangle](https://github.com/facebook/wangle)
-  5. recent version of [linux kernel src](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git)
-  6. if you want to build examples [fbthrift](https://github.com/facebook/fbthrift) and [grpc](https://github.com/grpc/grpc) must be installed as well
+  - [folly](https://github.com/facebook/folly)
+  - recent version of clang compiler (6.0+)
+  - glog/gtest/gflags/elf libraries
+  - [wangle](https://github.com/facebook/wangle)
+  - recent version of [linux kernel src](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git)
+  - if you want to build examples [fbthrift](https://github.com/facebook/fbthrift) and [grpc](https://github.com/grpc/grpc) must be installed as well
 
 # motivation behind layer 4 load balancing
 Layer 4 load balancer (lb) enables to easily scale out Layer7 load balancers (the
