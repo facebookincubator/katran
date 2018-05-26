@@ -182,16 +182,16 @@ lb.addVip(vip);
 The same function can be called w/ optional "flag" parameter.
 ‘flag’ can be used to specify some special conditions of this VIP. Currently the supported options are:
 
-0 - default value. Default vip uses connection table and use
+- 0 - default value. Default vip uses connection table and use
 src port and src addresses of the packet for hashing
-1 - HASH_NO_SRC_PORT, this flag removes src port from hashing calculation. This
+- 1 - HASH_NO_SRC_PORT, this flag removes src port from hashing calculation. This
 allows packets from same source address, but different ports to end up on the
 same destination server (some applications requires this: e.g. nfs or gfs)
-2 - LRU_BYPASS - disable connection table lookup/update for this VIP
-4 - QUIC_VIP - this is a VIP for QUIC protocol. Load balancing is going to be
+- 2 - LRU_BYPASS - disable connection table lookup/update for this VIP
+- 4 - QUIC_VIP - this is a VIP for QUIC protocol. Load balancing is going to be
 done based on connection-id field. This is not fully stable/actively being developed codepath
 (as IETF QUIC is still in developing stage and standard has not been finalized yet)
-8 - HASH_DPORT_ONLY - use only destination port for hashing. In this case
+- 8 - HASH_DPORT_ONLY - use only destination port for hashing. In this case
 only destination port is going to be used for hashing, so different clients
 (different src address/src port) with the same destination port would end
 up on the same real server (usually VOIP based protocols needs this)
