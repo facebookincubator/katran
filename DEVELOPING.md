@@ -28,7 +28,7 @@ The result of this script will be object files w/ BPF programs, which are going
 to be located in `deps/linux/bpfprog/bpf/`. These files are:
 
 1. __`balancer_kern.o`__ - object file w/ main BPF program for forwarding
-2. __`ealthchecking_ipip.o`__ - object file w/ BPF program for the forwarding of
+2. __`healthchecking_ipip.o`__ - object file w/ BPF program for the forwarding of
 healthchecks
 
 ### C++ library
