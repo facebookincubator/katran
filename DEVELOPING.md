@@ -1,4 +1,4 @@
-# DEVELOPMING
+# DEVELOPING
 
 ### Developing of katran
 
