@@ -1,41 +1,51 @@
-# developing of katran
-This guide contains information on how you can build and test katran's
-bpf forwarding plane and cpp library to control it.
+# DEVELOPMING
 
-## formating:
-We are using clang-format for cpp code formatting. Please make sure that code is properly
+### Developing of katran
+
+This guide contains information on how you can build and test katran's
+BPF forwarding plane and cpp library to control it.
+
+### Formating:
+
+We are using clang-format for C++ code formatting. Please make sure that code is properly
 formatted before sending PR. You can format it with `clang-format -i <path/to/file>`
 (if your linux distribution does not have clang-format installed, you can use one from the 
 deps folder: `./deps/clang/clang+llvm-5.0.0-linux-x86_64-ubuntu16.04/bin/clang-format`)
 
-## build and compile.
-You can build initial version with build_katran.sh script (if you are using
+### Build and compile.
+
+You can build initial version with `build_katran.sh` script (if you are using
 ubuntu 18.04). It will download all required dependencies as build
 actual binaries. However, you can build everything separately.
 
-### bpf forwarding plane
-To be able to build bpf forwarding plane you need to run
-build_bpf_modules_opensource.sh from the root of the working dir. It assumes
+### BPF forwarding plane
+
+To be able to build BPF forwarding plane you need to run
+`build_bpf_modules_opensource.sh` from the root of the working directory. It assumes
 that you have all dependencies installed and that the linux kernel source code
-is located at deps/linux/ (Note: it is automatically installed there with the script: build_katran.sh).
-The result of this script will be object files w/ bpf programs, which are going
-to be located in deps/linux/bpfprog/bpf/. These files are:
-1. balancer_kern.o - object file w/ main bpf program for forwarding
-2. healthchecking_ipip.o - object file w/ bpf program for the forwarding of
+is located at `deps/linux/` (__Note:__ It is automatically installed there with the script: `build_katran.sh`).
+The result of this script will be object files w/ BPF programs, which are going
+to be located in `deps/linux/bpfprog/bpf/`. These files are:
+
+1. __`balancer_kern.o`__ - object file w/ main BPF program for forwarding
+2. __`healthchecking_ipip.o`__ - object file w/ BPF program for the forwarding of
 healthchecks
 
-### cpp library
-To be able to build cpp library (and examples) you need to:
-1. create (if not exists already) build dir
-2. run `cmake ..` inside this build dir
+### C++ library
 
-## testing
+To be able to build C++ library (and examples) you need to:
 
-### cpp library
-If you are adding new features into cpp library, please make sure that you also submit
-unittests for them (all bpf specific calls should be added into `if(!testing_){...}` block
+1. create (if not exists already) __`build dir`__
+2. run `cmake ..` inside this __`build dir`__
+
+## Testing
+
+### C++ library
+If you are adding new features into C++ library, please make sure that you also submit
+unittests for them (all BPF specific calls should be added into `if(!testing_){...}` block
 as they require root access (most of the time). You can run unittests manually or w/ ctest
-util
+util.
+
 ```
 $ pwd
 $HOME/katran/build/katran/lib/tests
@@ -56,14 +66,11 @@ Total Test time (real) =   0.31 sec
 $
 ```
 
+### BPF
 
-
-
-
-### bpf
-We have developed special framework for the bpf program testing. It is based on
+We have developed special framework for the BPF program testing. It is based on
 `bpf_prog_test_run`. This framework allow us to specify predefined test fixtures (input and expected output)
-to make sure that for specified input bpf program produces expected output. Test fixtures in our case contains
+to make sure that for specified input BPF program produces expected output. Test fixtures in our case contains
 base64 encoded packets. You can check `katran/lib/testing/KatranTestFixtures.h` for examples. To run this tests
 you just need to run `./os_run_tester.sh` script (this script requires root privileges)
 
