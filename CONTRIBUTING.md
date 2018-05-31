@@ -2,9 +2,6 @@
 We want to make contributing to this project as easy and transparent as
 possible.
 
-## Our Development Process
-We develop on a private branch internally at Facebook. We regularly update this github project with the changes from the internal repo. External pull requests are cherry-picked into our repo and then pushed back out.
-
 ## Pull Requests
 We actively welcome your pull requests.
 
