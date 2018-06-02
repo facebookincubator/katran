@@ -5,11 +5,8 @@ services:
 
 before_install:
   - docker pull ubuntu:18.04
-  - cd ..
-  - echo "FROM ubuntu:18.04" > Dockerfile
-  - echo "COPY katran katran" >> Dockerfile
-  - docker build -t katran_img .
-  - docker run katran_img /bin/sh -c "apt-get update; apt-get install -y git sudo wget; cd katran; ./build_katran.sh"
 
 script:
-  - echo "DONE"
+  - docker run --rm -v $PWD:/katran ubuntu:18.04 /bin/sh -c "
+    apt-get update && apt-get install -y git sudo wget;
+    cd /katran && ./build_katran.sh"
