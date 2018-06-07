@@ -16,42 +16,42 @@
 
 struct bpf_insn;
 
-int bpf_create_map_node(enum bpf_map_type map_type, const char *name,
+int ebpf_create_map_node(enum bpf_map_type map_type, const char *name,
                         int key_size, int value_size, int max_entries,
                         __u32 map_flags, int node);
-int bpf_create_map_name(enum bpf_map_type map_type, const char *name,
+int ebpf_create_map_name(enum bpf_map_type map_type, const char *name,
                         int key_size, int value_size, int max_entries,
                         __u32 map_flags);
-int bpf_create_map(enum bpf_map_type map_type, int key_size, int value_size,
+int ebpf_create_map(enum bpf_map_type map_type, int key_size, int value_size,
                    int max_entries, __u32 map_flags);
-int bpf_create_map_in_map_node(enum bpf_map_type map_type, const char *name,
+int ebpf_create_map_in_map_node(enum bpf_map_type map_type, const char *name,
                                int key_size, int inner_map_fd, int max_entries,
                                __u32 map_flags, int node);
-int bpf_create_map_in_map(enum bpf_map_type map_type, int key_size,
+int ebpf_create_map_in_map(enum bpf_map_type map_type, int key_size,
                           int inner_map_fd, int max_entries, __u32 map_flags);
 
-int bpf_update_elem(int fd, void *key, void *value, unsigned long long flags);
-int bpf_lookup_elem(int fd, void *key, void *value);
-int bpf_delete_elem(int fd, void *key);
-int bpf_get_next_key(int fd, void *key, void *next_key);
+int ebpf_update_elem(int fd, void *key, void *value, unsigned long long flags);
+int ebpf_lookup_elem(int fd, void *key, void *value);
+int ebpf_delete_elem(int fd, void *key);
+int ebpf_get_next_key(int fd, void *key, void *next_key);
 
-int bpf_prog_load(enum bpf_prog_type prog_type,
+int ebpf_prog_load(enum bpf_prog_type prog_type,
                   const struct bpf_insn *insns, int insn_len,
                   const char *license, __u32 kern_version,
                   char *buf, int buf_size);
 
-int bpf_prog_load_name(enum bpf_prog_type prog_type, const char *name,
+int ebpf_prog_load_name(enum bpf_prog_type prog_type, const char *name,
                        const struct bpf_insn *insns, int insn_len,
                        const char *license, __u32 kern_version,
                        char *buf, int buf_size);
 
-int bpf_obj_pin(int fd, const char *pathname);
-int bpf_obj_get(const char *pathname);
-int bpf_prog_attach(int prog_fd, int target_fd, enum bpf_attach_type type,
+int ebpf_obj_pin(int fd, const char *pathname);
+int ebpf_obj_get(const char *pathname);
+int ebpf_prog_attach(int prog_fd, int target_fd, enum bpf_attach_type type,
                     unsigned int flags);
-int bpf_prog_detach(int target_fd, enum bpf_attach_type type);
-int bpf_prog_detach2(int prog_fd, int target_fd, enum bpf_attach_type type);
-int bpf_prog_test_run(int prog_fd, int repeat, void *data, __u32 size,
+int ebpf_prog_detach(int target_fd, enum bpf_attach_type type);
+int ebpf_prog_detach2(int prog_fd, int target_fd, enum bpf_attach_type type);
+int ebpf_prog_test_run(int prog_fd, int repeat, void *data, __u32 size,
                       void *data_out, __u32 *size_out, __u32 *retval,
                       __u32 *duration);
 
@@ -236,6 +236,6 @@ int bpf_prog_test_run(int prog_fd, int repeat, void *data, __u32 size,
     .imm   = 0 })
 
 struct perf_event_attr;
-int perf_event_open(struct perf_event_attr *attr, int pid, int cpu,
+int ebpf_perf_event_open(struct perf_event_attr *attr, int pid, int cpu,
         int group_fd, unsigned long flags);
 #endif

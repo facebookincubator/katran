@@ -93,7 +93,7 @@ BpfAdapter::BpfAdapter(bool set_limits) {
     struct rlimit lck_mem = {};
     lck_mem.rlim_cur = RLIM_INFINITY;
     lck_mem.rlim_max = RLIM_INFINITY;
-    if(setrlimit(RLIMIT_MEMLOCK, &lck_mem)) {
+    if (setrlimit(RLIMIT_MEMLOCK, &lck_mem)) {
       LOG(ERROR) << "Can't change limit for locked memory";
       throw std::runtime_error("error while setting limit for locked memory");
     }
@@ -131,7 +131,7 @@ int BpfAdapter::createNamedBpfMap(
     int numa_node) {
   const char* name_ptr = !name.empty() ? name.c_str() : nullptr;
 
-  return bpf_create_map_node(
+  return ebpf_create_map_node(
       static_cast<enum bpf_map_type>(type),
       name_ptr,
       key_size,
@@ -154,7 +154,7 @@ int BpfAdapter::bpfUpdateMap(
     void* key,
     void* value,
     unsigned long long flags) {
-  auto bpfError = bpf_update_elem(map_fd, key, value, flags);
+  auto bpfError = ebpf_update_elem(map_fd, key, value, flags);
   if (bpfError) {
     VLOG(4) << "Error while updating value in map: " << std::strerror(errno);
   }
@@ -162,7 +162,7 @@ int BpfAdapter::bpfUpdateMap(
 }
 
 int BpfAdapter::bpfMapLookupElement(int map_fd, void* key, void* value) {
-  auto bpfError = bpf_lookup_elem(map_fd, key, value);
+  auto bpfError = ebpf_lookup_elem(map_fd, key, value);
   if (bpfError) {
     VLOG(4) << "Error while geting value from map: " << std::strerror(errno);
   }
@@ -170,7 +170,7 @@ int BpfAdapter::bpfMapLookupElement(int map_fd, void* key, void* value) {
 }
 
 int BpfAdapter::bpfMapDeleteElement(int map_fd, void* key) {
-  auto bpfError = bpf_delete_elem(map_fd, key);
+  auto bpfError = ebpf_delete_elem(map_fd, key);
   if (bpfError) {
     VLOG(4) << "Error while deleting key from map: " << std::strerror(errno);
   }
@@ -178,7 +178,7 @@ int BpfAdapter::bpfMapDeleteElement(int map_fd, void* key) {
 }
 
 int BpfAdapter::bpfMapGetNextKey(int map_fd, void* key, void* next_key) {
-  auto bpfError = bpf_get_next_key(map_fd, key, next_key);
+  auto bpfError = ebpf_get_next_key(map_fd, key, next_key);
   if (bpfError) {
     VLOG(4) << "Error getting next key from map: " << std::strerror(errno);
   }
@@ -186,11 +186,11 @@ int BpfAdapter::bpfMapGetNextKey(int map_fd, void* key, void* next_key) {
 }
 
 int BpfAdapter::pinBpfObject(int fd, const std::string& path) {
-  return bpf_obj_pin(fd, path.c_str());
+  return ebpf_obj_pin(fd, path.c_str());
 }
 
 int BpfAdapter::getPinnedBpfObject(const std::string& path) {
-  return bpf_obj_get(path.c_str());
+  return ebpf_obj_get(path.c_str());
 }
 
 int BpfAdapter::getInterfaceIndex(const std::string& interface_name) {
@@ -298,7 +298,7 @@ int BpfAdapter::testXdpProg(
     uint32_t* size_out,
     uint32_t* retval,
     uint32_t* duration) {
-  return bpf_prog_test_run(
+  return ebpf_prog_test_run(
       prog_fd, repeat, data, data_size, data_out, size_out, retval, duration);
 }
 
@@ -460,7 +460,14 @@ int BpfAdapter::modifyTcBpfFilter(
     const int prog_fd,
     const unsigned int ifindex,
     const std::string& bpf_name,
-    const int direction) {
+    const int direction)
+// TODO: T30063437 fix null-pointer-use undefined behavior
+#if defined(__has_feature)
+#if __has_feature(__address_sanitizer__)
+    __attribute__((__no_sanitize__("null")))
+#endif
+#endif
+{
   char buf[MNL_SOCKET_BUFFER_SIZE];
   struct nlmsghdr* nlh;
   struct tcmsg* tc;
@@ -572,7 +579,7 @@ int BpfAdapter::attachCgroupProg(
   SCOPE_EXIT {
     ::close(target_fd);
   };
-  return bpf_prog_attach(prog_fd, target_fd, type, flags);
+  return ebpf_prog_attach(prog_fd, target_fd, type, flags);
 }
 
 int BpfAdapter::detachCgroupProg(
@@ -585,7 +592,7 @@ int BpfAdapter::detachCgroupProg(
   SCOPE_EXIT {
     ::close(target_fd);
   };
-  return bpf_prog_detach(target_fd, type);
+  return ebpf_prog_detach(target_fd, type);
 }
 
 int BpfAdapter::detachCgroupProg(
@@ -599,7 +606,7 @@ int BpfAdapter::detachCgroupProg(
   SCOPE_EXIT {
     ::close(target_fd);
   };
-  return bpf_prog_detach2(prog_fd, target_fd, type);
+  return ebpf_prog_detach2(prog_fd, target_fd, type);
 }
 
 } // namespace katran

@@ -668,18 +668,19 @@ lb_stats KatranLb::getStatsForVip(const VipKey& vip) {
 }
 
 lb_stats KatranLb::getLruStats() {
-  uint32_t lru_cntr_pos = maxVips_ + kLruCntrOffset;
-  return getLbStats(lru_cntr_pos);
+  return getLbStats(maxVips_ + kLruCntrOffset);
 }
 
 lb_stats KatranLb::getLruMissStats() {
-  uint32_t lru_miss_pos = maxVips_ + kLruMissOffset;
-  return getLbStats(lru_miss_pos);
+  return getLbStats(maxVips_ + kLruMissOffset);
 }
 
 lb_stats KatranLb::getLruFallbackStats() {
-  uint32_t lru_fallback_pos = maxVips_ + kLruFallbackOffset;
-  return getLbStats(lru_fallback_pos);
+  return getLbStats(maxVips_ + kLruFallbackOffset);
+}
+
+lb_stats KatranLb::getIcmpTooBigStats() {
+  return getLbStats(maxVips_ + kIcmpTooBigOffset);
 }
 
 lb_stats KatranLb::getLbStats(uint32_t position) {

@@ -225,14 +225,14 @@ int BpfLoader::loadMaps(Elf* elf) {
                    << "map-in-map prototype";
         return 1;
       }
-      map_fd = bpf_create_map_in_map(
+      map_fd = ebpf_create_map_in_map(
           static_cast<enum bpf_map_type>(maps[i].type),
           maps[i].key_size,
           inner_map_fd,
           maps[i].max_entries,
           maps[i].map_flags);
     } else {
-      map_fd = bpf_create_map(
+      map_fd = ebpf_create_map(
           static_cast<enum bpf_map_type>(maps[i].type),
           maps[i].key_size,
           maps[i].value_size,
@@ -579,7 +579,7 @@ int BpfLoader::loadBpfProgs() {
             << "\nlicense: " << license_
             << "\nkernel version: " << kernelVersion_;
     std::string bpf_log_buf(kLogBufSize, '\0');
-    auto prog_fd = bpf_prog_load(
+    auto prog_fd = ebpf_prog_load(
         prog_iter.second.type,
         prog_iter.second.insns,
         prog_iter.second.size,
@@ -607,7 +607,7 @@ int BpfLoader::loadBpfFile(const std::string& path, const bpf_prog_type type) {
   int fd = -1;
   SCOPE_EXIT {
     elf_end(elf_);
-    if (0 < fd) {
+    if (fd > 0) {
       ::close(fd);
     }
   };

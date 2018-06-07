@@ -22,6 +22,7 @@
 #include <gflags/gflags.h>
 
 #include "KatranTestFixtures.h"
+#include "KatranOptionalTestFixtures.h"
 #include "XdpTester.h"
 #include "katran/lib/KatranLb.h"
 #include "katran/lib/KatranLbStructs.h"
@@ -33,6 +34,7 @@ DEFINE_string(healtchecking_prog, "", "path to healthchecking bpf prog");
 DEFINE_bool(print_base64, false, "print packets in base64 from pcap file");
 DEFINE_bool(test_from_fixtures, false, "run tests on predefined dataset");
 DEFINE_bool(perf_testing, false, "run perf tests on predefined dataset");
+DEFINE_bool(optional_tests, false, "run optional (kernel specific) tests");
 DEFINE_int32(repeat, 1000000, "perf test runs for single packet");
 DEFINE_int32(position, -1, "perf test runs for single packet");
 
@@ -143,6 +145,19 @@ void prepareLbData(katran::KatranLb& lb) {
   addReals(lb, vip, reals6);
 }
 
+void prepareOptionalLbData(katran::KatranLb& /* unused */) {
+}
+
+void testOptionalLbCounters(katran::KatranLb& lb) {
+  LOG(INFO) << "Testing optional counter's sanity";
+  auto stats = lb.getIcmpTooBigStats();
+  if (stats.v1 != 1 || stats.v2 != 1) {
+    VLOG(2) << "icmpV4 hits: " << stats.v1 << " icmpv6 hits:" << stats.v2;
+    LOG(INFO) << "icmp packet too big counter is incorrect";
+  }
+  LOG(INFO) << "Testing of optional counters is complite";
+}
+
 void testLbCounters(katran::KatranLb& lb) {
   katran::VipKey vip;
   vip.address = "10.200.1.1";
@@ -211,6 +226,15 @@ int main(int argc, char** argv) {
   } else if (FLAGS_test_from_fixtures) {
     tester.testFromFixture();
     testLbCounters(lb);
+    if (FLAGS_optional_tests) {
+      LOG(INFO) << "Running optional tests. they could fail if requirements "
+                << "are not satisfied";
+      tester.resetTestFixtures(
+        katran::testing::inputOptionalTestFixtures,
+        katran::testing::outputOptionalTestFixtures);
+      tester.testFromFixture();
+      testOptionalLbCounters(lb);
+    }
     return 0;
   } else if (FLAGS_perf_testing) {
     tester.testPerfFromFixture(FLAGS_repeat, FLAGS_position);

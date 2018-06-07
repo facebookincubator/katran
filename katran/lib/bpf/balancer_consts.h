@@ -118,13 +118,24 @@
 #define MAX_PCKT_SIZE 1514
 #endif
 
+// for v4 and v6: initial packet would be truncated to the size of eth header
+// plus ipv4/ipv6 header and few bytes of payload
+#define ICMP_TOOBIG_SIZE 98
+#define ICMP6_TOOBIG_SIZE 262
+
+
+#define ICMP6_TOOBIG_PAYLOAD_SIZE (ICMP6_TOOBIG_SIZE - 6)
+#define ICMP_TOOBIG_PAYLOAD_SIZE (ICMP_TOOBIG_SIZE - 6)
+
 #define NO_FLAGS 0
 
-// offset of the lru cache hit related cntrs
+// offset of the lru cache hit related counters
 #define LRU_CNTRS 0
 #define LRU_MISS_CNTR 1
 #define NEW_CONN_RATE_CNTR 2
 #define FALLBACK_LRU_CNTR 3
+//offset of icmp related counters
+#define ICMP_TOOBIG_CNTRS 4
 
 // max ammount of new connections per seconda per core for lru update
 // if we go beyond this value - we will bypass lru update.
@@ -153,5 +164,8 @@
 #ifndef IPIP_V6_PREFIX3
 #define IPIP_V6_PREFIX3 0
 #endif
+
+// optional features (requires kernel support. turned off by default)
+//#define ICMP_TOOBIG_GENERATION
 
 #endif // of __BALANCER_CONSTS_H

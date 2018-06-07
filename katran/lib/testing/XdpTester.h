@@ -99,12 +99,28 @@ class XdpTester {
   void testFromFixture();
 
   /**
+   * @param vector<string, string> new input fixtures
+   * @param vector<string, string> new output fixtures
+   * helper function which set test fixtures to new values
+   */
+  void resetTestFixtures(
+      const std::vector<std::pair<std::string, std::string>>& inputData,
+      const std::vector<std::pair<std::string, std::string>>& outputData);
+
+  /**
    * @param int repeat      how many time should we repeat the test
    * @param int position    of the packet if fixtures vector.
    * helper function to run perf test on specified packet from test fixtures
    * if position is negative - run perf tests on every packet in fixtures
    */
   void testPerfFromFixture(uint32_t repeat, const int position = -1);
+
+  /**
+   * @param IOBuf with packet data to write.
+   *
+   * helper function to write packet in pcap format to specified outputFilenName
+   */
+  void writePcapOutput(std::unique_ptr<folly::IOBuf>&& buf);
 
  private:
   TesterConfig config_;

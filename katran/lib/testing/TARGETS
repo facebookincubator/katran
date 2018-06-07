@@ -60,6 +60,7 @@ cpp_binary(
         "katran_tester.cpp",
     ],
     headers = [
+        "KatranOptionalTestFixtures.h",
         "KatranTestFixtures.h",
     ],
     deps = [

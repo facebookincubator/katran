@@ -28,5 +28,6 @@ cp ./katran/lib/Makefile-bpf ./deps/linux/bpfprog/Makefile
 cp -r ./katran/lib/bpf ./deps/linux/bpfprog/
 cp ./katran/lib/linux_includes/bpf_helpers.h ./deps/linux/bpfprog/include/
 cd ./deps/linux/bpfprog && LD_LIBRARY_PATH="${CLANG_PATH}/lib" make \
+  EXTRA_CFLAGS="$*" \
   LLC="${CLANG_PATH}/bin/llc" CLANG="${CLANG_PATH}/bin/clang"
 echo "BPF BUILD COMPLITED"

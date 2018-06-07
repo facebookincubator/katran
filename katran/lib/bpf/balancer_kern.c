@@ -310,7 +310,22 @@ static inline int process_packet(void *data, __u64 off, void *data_end,
   }
 
   if (data_end - data > MAX_PCKT_SIZE) {
+#ifdef ICMP_TOOBIG_GENERATION
+    __u32 stats_key = MAX_VIPS + ICMP_TOOBIG_CNTRS;
+    BUILD_BUG_ON(stats_key >= STATS_MAP_SIZE);
+    data_stats = bpf_map_lookup_elem(&stats, &stats_key);
+    if (!data_stats) {
+      return XDP_DROP;
+    }
+    if (is_ipv6) {
+      data_stats->v2 += 1;
+    } else {
+      data_stats->v1 += 1;
+    }
+    return send_icmp_too_big(xdp, is_ipv6, data_end - data);
+#else
     return XDP_DROP;
+#endif
   }
 
   __u32 stats_key = MAX_VIPS + LRU_CNTRS;

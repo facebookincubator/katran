@@ -52,7 +52,7 @@ constexpr unsigned int kBpfMapTypeHashOfMaps = 13;
  */
 class BpfAdapter {
  public:
-  explicit BpfAdapter(bool set_limits=true);
+  explicit BpfAdapter(bool set_limits = true);
 
   // BpfAdapter is not thread safe.  Discourage unsafe use by disabling copy
   // construction/assignment.

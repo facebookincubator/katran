@@ -58,6 +58,18 @@ void XdpTester::printPcktBase64() {
   }
 }
 
+void XdpTester::writePcapOutput(std::unique_ptr<folly::IOBuf>&& buf) {
+  if (config_.outputFileName.empty()) {
+    VLOG(2) << "no output file specified";
+    return;
+  }
+  auto success = parser_.writePacket(std::move(buf));
+  if (!success) {
+    LOG(INFO) << "failed to write pckt into output "
+              << "pcap file: " << config_.outputFileName;
+  }
+}
+
 void XdpTester::testPcktsFromPcap() {
   if (config_.inputFileName.empty() || config_.bpfProgFd < 0) {
     LOG(INFO) << "can't run pcap based tests. input pcap file or bpf prog fd "
@@ -96,13 +108,7 @@ void XdpTester::testPcktsFromPcap() {
     }
     // adjust IOBuf so data data_end will acount for writen data
     buf->append(output_pckt_size);
-    if (!config_.outputFileName.empty()) {
-      auto success = parser_.writePacket(buf->cloneOne());
-      if (!success) {
-        LOG(INFO) << "failed to write pckt #" << pckt_num << " into output "
-                  << "pcap file: " << config_.outputFileName;
-      }
-    }
+    writePcapOutput(buf->cloneOne());
     ++pckt_num;
   }
 }
@@ -122,6 +128,7 @@ void XdpTester::testFromFixture() {
   for (int i = 0; i < config_.inputData.size(); i++) {
     auto buf = folly::IOBuf::create(kMaxXdpPcktSize);
     auto input_pckt = parser_.getPacketFromBase64(config_.inputData[i].first);
+    writePcapOutput(input_pckt->cloneOne());
     auto res = adapter_.testXdpProg(
         config_.bpfProgFd,
         kTestRepeatCount,
@@ -142,6 +149,7 @@ void XdpTester::testFromFixture() {
     }
     // adjust IOBuf so data data_end will acount for writen data
     buf->append(output_pckt_size);
+    writePcapOutput(buf->cloneOne());
     if (ret_val_str != config_.outputData[i].second) {
       VLOG(2) << "value from test: " << ret_val_str
               << " expected: " << config_.outputData[i].second;
@@ -159,6 +167,14 @@ void XdpTester::testFromFixture() {
         "Test: {:60} result: {}", config_.inputData[i].second, test_result);
     ++pckt_num;
   }
+}
+
+void XdpTester::resetTestFixtures(
+    const std::vector<std::pair<std::string, std::string>>& inputData,
+    const std::vector<std::pair<std::string, std::string>>& outputData) {
+  //
+  config_.inputData = inputData;
+  config_.outputData = outputData;
 }
 
 void XdpTester::testPerfFromFixture(uint32_t repeat, const int position) {

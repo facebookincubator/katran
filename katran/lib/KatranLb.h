@@ -45,6 +45,7 @@ constexpr int kMainIntfPos = 3;
 constexpr uint32_t kLruCntrOffset = 0;
 constexpr uint32_t kLruMissOffset = 1;
 constexpr uint32_t kLruFallbackOffset = 3;
+constexpr uint32_t kIcmpTooBigOffset = 4;
 
 /**
  * LRU map related constants
@@ -213,7 +214,7 @@ class KatranLb {
    * @param VipKey vip
    * @return struct lb_stats w/ statistic for specified vip
    *
-   * helper function which return totall ammount of pkts and bytes which
+   * helper function which return total ammount of pkts and bytes which
    * has been sent to specified vip. it's up to external entity to calculate
    * actual speed in pps/bps
    */
@@ -222,7 +223,7 @@ class KatranLb {
   /**
    * @return struct lb_stats w/ statistics for lru misses
    *
-   * helper function which returns totall amount of processed packets and
+   * helper function which returns total amount of processed packets and
    * how much of em was lru misses (when we wasnt able to find entry in
    * connection table)
    */
@@ -231,7 +232,7 @@ class KatranLb {
   /**
    * @return struct lb_stats w/ statistic of the reasons for lru misses
    *
-   * helper function which return totall amount of tcp lru misses because of
+   * helper function which returns total amount of tcp lru misses because of
    * the tcp syns (v1) or non-syns (v2)
    */
   lb_stats getLruMissStats();
@@ -239,10 +240,19 @@ class KatranLb {
   /**
    * @return struct lb_stats w/ statistic of fallback lru hits
    *
-   * helper function which return totall amount of numbers when we fel back
+   * helper function which return total amount of numbers when we fel back
    * to fallback_lru (v1);
    */
   lb_stats getLruFallbackStats();
+
+  /**
+   * @return struct lb_stats w/ statistic of icmp packet too big packets
+   *
+   * helper function which returns how many icmpv4/icmpv6 packet too big
+   * has been generated after we have received packet, which is bigger then
+   * maximum supported size.
+   */
+  lb_stats getIcmpTooBigStats();
 
   /**
    * @param uint32_t somark of the packet
@@ -473,7 +483,7 @@ class KatranLb {
   std::vector<int> lruMapsFd_;
 
   /**
-   * totall LRUs map size; each forwarding cpu/core will have
+   * total LRUs map size; each forwarding cpu/core will have
    * total_size/forwarding_cores entries
    */
   uint64_t totalLruSize_;
