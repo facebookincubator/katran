@@ -254,7 +254,7 @@ build_katran() {
     mkdir build
     cd build
     cmake ..
-    make
+    make -j $NCPUS
     popd
      ./build_bpf_modules_opensource.sh 2>/dev/null
 }
