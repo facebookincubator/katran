@@ -1,5 +1,6 @@
 cmake_minimum_required (VERSION 3.0)
 project (katranserver-proj)
+set (CMAKE_CXX_STANDARD 14)
 
 # thrift cmake macro
 find_program(THRIFT1 thrift1)
