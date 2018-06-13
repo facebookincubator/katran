@@ -46,24 +46,21 @@ constexpr uint64_t QUIC_VIP = 4;
 constexpr uint64_t DPORT_HASH = 8;
 
 const std::map<std::string, uint64_t> flagTranslationTable = {
-    {"", DEFAULT_FLAG},
-    {"NO_SPORT", NO_SPORT},
-    {"NO_LRU", NO_LRU},
-    {"QUIC_VIP", QUIC_VIP},
-    {"DPORT_HASH", DPORT_HASH},
+    {"", DEFAULT_FLAG},     {"NO_SPORT", NO_SPORT},     {"NO_LRU", NO_LRU},
+    {"QUIC_VIP", QUIC_VIP}, {"DPORT_HASH", DPORT_HASH},
 };
 }; // namespace
 
 namespace lb {
 namespace katran {
 
-KatranSimpleClient::KatranSimpleClient(const std::string& host, int port)
+KatranSimpleClient::KatranSimpleClient(const std::string &host, int port)
     : host_(host), port_(port) {
   auto addr = folly::SocketAddress(host_, port_);
   client_ = createKatranClient(addr);
 }
 
-void KatranSimpleClient::changeMac(const std::string& mac) {
+void KatranSimpleClient::changeMac(const std::string &mac) {
   Mac newMac;
   newMac.mac = mac;
   if (client_->sync_changeMac(std::move(newMac))) {
@@ -79,15 +76,12 @@ void KatranSimpleClient::getMac() {
   LOG(INFO) << folly::sformat("Mac address is: {}", mac.mac);
 }
 
-void KatranSimpleClient::addOrModifyService(
-    const std::string& address,
-    const std::string& flags,
-    int proto,
-    bool modify,
-    bool setFlags) {
+void KatranSimpleClient::addOrModifyService(const std::string &address,
+                                            const std::string &flags, int proto,
+                                            bool modify, bool setFlags) {
   LOG(INFO) << folly::sformat("Adding service: {} {}", address, proto);
   auto vip = parseToVip(address, proto);
-  const auto& it = flagTranslationTable.find(flags);
+  const auto &it = flagTranslationTable.find(flags);
   if (it == flagTranslationTable.cend()) {
     LOG(ERROR) << folly::sformat("ERROR: unrecognized flag: {}", flags);
     return;
@@ -111,7 +105,7 @@ void KatranSimpleClient::addOrModifyService(
   }
 }
 
-void KatranSimpleClient::delService(const std::string& address, int proto) {
+void KatranSimpleClient::delService(const std::string &address, int proto) {
   LOG(INFO) << folly::sformat("Deleting service: {} {}", address, proto);
   auto vip = parseToVip(address, proto);
   if (client_->sync_delVip(std::move(vip))) {
@@ -121,12 +115,10 @@ void KatranSimpleClient::delService(const std::string& address, int proto) {
   }
 }
 
-void KatranSimpleClient::updateServerForVip(
-    const std::string& vipAddr,
-    int proto,
-    const std::string& realAddr,
-    uint64_t weight,
-    bool del) {
+void KatranSimpleClient::updateServerForVip(const std::string &vipAddr,
+                                            int proto,
+                                            const std::string &realAddr,
+                                            uint64_t weight, bool del) {
   auto vip = parseToVip(vipAddr, proto);
   auto real = parseToReal(realAddr, weight);
   Action action;
@@ -137,17 +129,16 @@ void KatranSimpleClient::updateServerForVip(
   }
   Reals reals;
   reals.push_back(real);
-  if (client_->sync_modifyRealsForVip(
-          action, std::move(reals), std::move(vip))) {
+  if (client_->sync_modifyRealsForVip(action, std::move(reals),
+                                      std::move(vip))) {
     LOG(INFO) << folly::sformat("Reals for vip: {} modified", vipAddr);
   } else {
     LOG(INFO) << folly::sformat("Reals for vip: {} not modified", vipAddr);
   }
 }
 
-void KatranSimpleClient::modifyQuicMappings(
-    const std::string& mapping,
-    bool del) {
+void KatranSimpleClient::modifyQuicMappings(const std::string &mapping,
+                                            bool del) {
   Action action;
   if (del) {
     action = Action::DEL;
@@ -176,13 +167,13 @@ hcMap KatranSimpleClient::getAllHcs() {
   return retMap;
 }
 
-Reals KatranSimpleClient::getRealsForVip(const Vip& vip) {
+Reals KatranSimpleClient::getRealsForVip(const Vip &vip) {
   Reals reals;
   client_->sync_getRealsForVip(reals, vip);
   return reals;
 }
 
-uint64_t KatranSimpleClient::getFlags(const Vip& vip) {
+uint64_t KatranSimpleClient::getFlags(const Vip &vip) {
   return client_->sync_getVipFlags(vip);
 }
 
@@ -203,15 +194,15 @@ std::string KatranSimpleClient::parseFlags(uint64_t flags) {
   return flagsStr;
 }
 
-void KatranSimpleClient::list(const std::string& address, int proto) {
+void KatranSimpleClient::list(const std::string &address, int proto) {
   auto vips = getAllVips();
   LOG(INFO) << folly::sformat("vips len: {}", vips.size());
-  for (const auto& vip : vips) {
+  for (const auto &vip : vips) {
     listVipAndReals(vip);
   }
 }
 
-void KatranSimpleClient::listVipAndReals(const Vip& vip) {
+void KatranSimpleClient::listVipAndReals(const Vip &vip) {
   Reals reals = getRealsForVip(vip);
   std::string proto;
   if (vip.protocol == ::IPPROTO_TCP) {
@@ -219,20 +210,20 @@ void KatranSimpleClient::listVipAndReals(const Vip& vip) {
   } else {
     proto = "udp";
   }
-  LOG(INFO) << folly::sformat(
-      "VIP: {:<20} Port: {:06d}, Protocol: {}", vip.address, vip.port, proto);
+  LOG(INFO) << folly::sformat("VIP: {:<20} Port: {:06d}, Protocol: {}",
+                              vip.address, vip.port, proto);
   uint64_t flags = getFlags(vip);
   LOG(INFO) << folly::sformat("Vip's flags: {}", parseFlags(flags));
   for (auto real : reals) {
-    LOG(INFO) << folly::sformat(
-        "-> {:<20} weight {}", real.address, real.weight);
+    LOG(INFO) << folly::sformat("-> {:<20} weight {}", real.address,
+                                real.weight);
   }
 }
 
 void KatranSimpleClient::clearAll() {
   LOG(INFO) << "Deleting Vips";
   auto vips = getAllVips();
-  for (auto& vip : vips) {
+  for (auto &vip : vips) {
     if (client_->sync_delVip(vip)) {
       LOG(INFO) << "All vips deleted";
     } else {
@@ -241,13 +232,13 @@ void KatranSimpleClient::clearAll() {
   }
   LOG(INFO) << "Deleting HealthChecks";
   hcMap hcs = getAllHcs();
-  for (auto& it : hcs) {
+  for (auto &it : hcs) {
     uint32_t somark = it.first;
     if (client_->sync_delHealthcheckerDst(somark)) {
       LOG(INFO) << folly::sformat("Delelted hc w/ somark: {}", somark);
     } else {
-      LOG(ERROR) << folly::sformat(
-          "error while deleting hc w/ somark: {}", somark);
+      LOG(ERROR) << folly::sformat("error while deleting hc w/ somark: {}",
+                                   somark);
     }
   }
 }
@@ -256,19 +247,19 @@ void KatranSimpleClient::listQm() {
   LOG(INFO) << "printing address to quic's connection id mapping";
   QuicReals qreals;
   client_->sync_getQuicRealsMapping(qreals);
-  for (const auto& qr : qreals) {
-    LOG(INFO) << folly::sformat(
-        "real: {} = connection id: {}", qr.address, qr.id);
+  for (const auto &qr : qreals) {
+    LOG(INFO) << folly::sformat("real: {} = connection id: {}", qr.address,
+                                qr.id);
   }
 }
 
-void KatranSimpleClient::addHc(const std::string& address, uint32_t somark) {
+void KatranSimpleClient::addHc(const std::string &address, uint32_t somark) {
   Healthcheck hc;
   hc.address = address;
   hc.somark = somark;
   if (client_->sync_addHealthcheckerDst(std::move(hc))) {
-    LOG(INFO) << folly::sformat(
-        "added hc w/ somark: {}  and addr {}", somark, address);
+    LOG(INFO) << folly::sformat("added hc w/ somark: {}  and addr {}", somark,
+                                address);
   } else {
     LOG(ERROR) << folly::sformat(
         "error while add hc w/ somark: {}  and addr {}", somark, address);
@@ -279,14 +270,14 @@ void KatranSimpleClient::delHc(uint32_t somark) {
   if (client_->sync_delHealthcheckerDst(somark)) {
     LOG(INFO) << folly::sformat("Deleted hc w/ somark: {}", somark);
   } else {
-    LOG(ERROR) << folly::sformat(
-        "error while deleting hc w/ somark: {}", somark);
+    LOG(ERROR) << folly::sformat("error while deleting hc w/ somark: {}",
+                                 somark);
   }
 }
 
 void KatranSimpleClient::listHc() {
   hcMap hcs = getAllHcs();
-  for (const auto& it : hcs) {
+  for (const auto &it : hcs) {
     LOG(INFO) << folly::sformat("somark: {} address: {}", it.first, it.second);
   }
 }
@@ -299,7 +290,7 @@ void KatranSimpleClient::showSumStats() {
   while (true) {
     uint64_t pkts = 0;
     uint64_t bytes = 0;
-    for (const auto& vip : vips) {
+    for (const auto &vip : vips) {
       Stats stats;
       client_->sync_getStatsForVip(stats, vip);
       pkts += stats.v1;
@@ -307,8 +298,8 @@ void KatranSimpleClient::showSumStats() {
     }
     auto diffPkts = pkts - oldPkts;
     auto diffBytes = bytes - oldBytes;
-    LOG(INFO) << folly::sformat(
-        "summary: {} pkts/sec, {} bytes/sec", diffPkts, diffBytes);
+    LOG(INFO) << folly::sformat("summary: {} pkts/sec, {} bytes/sec", diffPkts,
+                                diffBytes);
     oldPkts = pkts;
     oldBytes = bytes;
     std::this_thread::sleep_for(std::chrono::seconds(1));
@@ -348,16 +339,12 @@ void KatranSimpleClient::showLruStats() {
     }
     LOG(INFO) << folly::sformat(
         "summary: {:08d} pkts/sec. lru hit: {:.2f}, lru miss: {:.2f}",
-        diffTotal,
-        lruHit * 100,
-        lruMiss * 100);
+        diffTotal, lruHit * 100, lruMiss * 100);
     LOG(INFO) << folly::sformat(
-        "(tcp syn: {:.2f}, tcp non-syn: {:.2f},  udp: {:.2f})",
-        tcpMiss,
-        tcpNonSynMiss,
-        udpMiss);
-    LOG(INFO) << folly::sformat(
-        " fallback lru hit: {:08d} pkts/sec", diffFallbackLru);
+        "(tcp syn: {:.2f}, tcp non-syn: {:.2f},  udp: {:.2f})", tcpMiss,
+        tcpNonSynMiss, udpMiss);
+    LOG(INFO) << folly::sformat(" fallback lru hit: {:08d} pkts/sec",
+                                diffFallbackLru);
 
     oldTotalPkts = stats.v1;
     oldMiss = stats.v2;
@@ -372,32 +359,30 @@ void KatranSimpleClient::showPerVipStats() {
   auto vips = getAllVips();
   std::map<std::string, uint64_t> statsMap;
   // initialize per vip keys
-  for (const auto& vip : vips) {
+  for (const auto &vip : vips) {
     Stats stats;
     client_->sync_getStatsForVip(stats, vip);
-    auto pktKey = folly::to<std::string>(
-        vip.address, ":", vip.port, ":", vip.protocol, ":pkts");
-    auto bytesKey = folly::to<std::string>(
-        vip.address, ":", vip.port, ":", vip.protocol, ":bytes");
+    auto pktKey = folly::to<std::string>(vip.address, ":", vip.port, ":",
+                                         vip.protocol, ":pkts");
+    auto bytesKey = folly::to<std::string>(vip.address, ":", vip.port, ":",
+                                           vip.protocol, ":bytes");
     statsMap[pktKey] = 0;
     statsMap[bytesKey] = 0;
   }
   while (true) {
-    for (const auto& vip : vips) {
-      auto pktKey = folly::to<std::string>(
-          vip.address, ":", vip.port, ":", vip.protocol, ":pkts");
-      auto bytesKey = folly::to<std::string>(
-          vip.address, ":", vip.port, ":", vip.protocol, ":bytes");
+    for (const auto &vip : vips) {
+      auto pktKey = folly::to<std::string>(vip.address, ":", vip.port, ":",
+                                           vip.protocol, ":pkts");
+      auto bytesKey = folly::to<std::string>(vip.address, ":", vip.port, ":",
+                                             vip.protocol, ":bytes");
       Stats stats;
       client_->sync_getStatsForVip(stats, vip);
 
       auto diffPkts = stats.v1 - statsMap[pktKey];
       auto diffBytes = stats.v2 - statsMap[bytesKey];
       LOG(INFO) << folly::sformat(
-          "vip: {:<20} {:08d} pkts/sec, {:08d} bytes/sec",
-          vip.address,
-          diffPkts,
-          diffBytes);
+          "vip: {:<20} {:08d} pkts/sec, {:08d} bytes/sec", vip.address,
+          diffPkts, diffBytes);
       statsMap[pktKey] = stats.v1;
       statsMap[bytesKey] = stats.v2;
     }
@@ -405,9 +390,8 @@ void KatranSimpleClient::showPerVipStats() {
   }
 }
 
-Vip KatranSimpleClient::parseToVip(
-    const std::string& address,
-    uint32_t protocol) {
+Vip KatranSimpleClient::parseToVip(const std::string &address,
+                                   uint32_t protocol) {
   Vip vip;
   // v6 address, format: [<addr>]:<port>
   std::string host;
@@ -428,8 +412,8 @@ Vip KatranSimpleClient::parseToVip(
   }
   auto parsedIPAddr = folly::IPAddress::tryFromString(host);
   if (!parsedIPAddr.hasValue()) {
-    LOG(ERROR) << folly::sformat(
-        "ERROR: Invalid IP address provided: {}", host);
+    LOG(ERROR) << folly::sformat("ERROR: Invalid IP address provided: {}",
+                                 host);
   }
   vip.protocol = protocol;
   vip.address = host;
@@ -437,16 +421,15 @@ Vip KatranSimpleClient::parseToVip(
   return vip;
 }
 
-Real KatranSimpleClient::parseToReal(
-    const std::string& address,
-    uint32_t weight) {
+Real KatranSimpleClient::parseToReal(const std::string &address,
+                                     uint32_t weight) {
   Real real;
   real.address = address;
   real.weight = weight;
   return real;
 }
 
-QuicReal KatranSimpleClient::parseToQuicReal(const std::string& mapping) {
+QuicReal KatranSimpleClient::parseToQuicReal(const std::string &mapping) {
   std::vector<std::string> mappings;
   folly::split("=", mapping, mappings);
   if (mappings.size() != 2) {
@@ -459,7 +442,7 @@ QuicReal KatranSimpleClient::parseToQuicReal(const std::string& mapping) {
 }
 
 std::unique_ptr<KatranServiceAsyncClient>
-KatranSimpleClient::createKatranClient(const folly::SocketAddress& addr) {
+KatranSimpleClient::createKatranClient(const folly::SocketAddress &addr) {
   TAsyncSocket::UniquePtr sock(new TAsyncSocket(&evb_, addr));
   sock->setZeroCopy(true);
   auto channel = HeaderClientChannel::newChannel(std::move(sock));
