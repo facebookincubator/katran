@@ -39,12 +39,14 @@ using apache::thrift::async::TAsyncSocket;
 namespace {
 constexpr uint64_t IPPROTO_TCP = 6;
 constexpr uint64_t IPPROTO_UDP = 17;
+constexpr uint64_t DEFAULT_FLAG = 0;
 constexpr uint64_t NO_SPORT = 1;
 constexpr uint64_t NO_LRU = 2;
 constexpr uint64_t QUIC_VIP = 4;
 constexpr uint64_t DPORT_HASH = 8;
 
 const std::map<std::string, uint64_t> flagTranslationTable = {
+    {"", DEFAULT_FLAG},
     {"NO_SPORT", NO_SPORT},
     {"NO_LRU", NO_LRU},
     {"QUIC_VIP", QUIC_VIP},
