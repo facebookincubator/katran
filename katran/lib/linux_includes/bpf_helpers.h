@@ -72,8 +72,10 @@ static int (*bpf_sk_redirect_map)(void *map, int key, int flags) =
 static int (*bpf_getsockopt)(void *ctx, int level, int optname, void *optval,
                              int optlen) =
   (void *) BPF_FUNC_getsockopt;
+#ifdef KERNEL_417_PLUS
 static int (*bpf_sock_ops_cb_flags_set)(void *ctx, int flags) =
   (void *) BPF_FUNC_sock_ops_cb_flags_set;
+#endif
 static int (*bpf_sock_map_update)(void *map, void *key, void *value,
           unsigned long long flags) =
   (void *) BPF_FUNC_sock_map_update;
@@ -83,9 +85,9 @@ static int (*bpf_perf_event_read_value)(void *map, unsigned long long flags,
 static int (*bpf_perf_prog_read_value)(void *ctx, void *buf,
                unsigned int buf_size) =
   (void *) BPF_FUNC_perf_prog_read_value;
+#ifdef KERNEL_417_PLUS
 static int (*bpf_override_return)(void *ctx, unsigned long rc) =
   (void *) BPF_FUNC_override_return;
-#ifdef KERNEL_417_PLUS
 static int (*bpf_bind)(void *ctx, void *addr, int addr_len) =
   (void *) BPF_FUNC_bind;
 static int (*bpf_xdp_adjust_tail)(void *ctx, int offset) =
