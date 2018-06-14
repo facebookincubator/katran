@@ -237,6 +237,40 @@ exiting
 Now let’s open second screen and run tcpdump program there with filter "proto 4 or proto 41"
 this filter will match all ipip or ip6ip6 packets.
 
+lets use this simple python script to emulate a program which is doing healthchecks (hc_it_client.py)
+
+```python
+#!/usr/bin/env python
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+from __future__ import unicode_literals
+import socket
+import sys
+import time
+
+SO_MARK = 36
+
+
+def send_packet(fam, num, dst, fwmark):
+    if fam == "4":
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    else:
+        s = socket.socket(socket.AF_INET6, socket.SOCK_DGRAM)
+    s.setsockopt(socket.SOL_SOCKET, SO_MARK, int(fwmark))
+    for _i in range(0, int(num)):
+        s.sendto("PING", (dst, 1337))
+        time.sleep(1)
+
+
+def main():
+    send_packet(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4])
+
+
+if __name__ == "__main__":
+    main()
+```
+
 In the first screen lets run our helper python program to generate udp packets toward 10.100.1.1 and fc00:100::1 (our VIPs)
 
 ```
