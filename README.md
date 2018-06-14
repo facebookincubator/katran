@@ -24,7 +24,7 @@ See the detailed features' description below -
 ### Examples of usage:
 
 We provide simple examples of katran library usage w/ thrift and gRPC endpoints. 
-Please refer to [`Examples`](EXAMPLES.md) for more detailed information.
+Please refer to [`Examples`](EXAMPLE.md) for more detailed information.
 
 ### Installation:
 
