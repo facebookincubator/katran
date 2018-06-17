@@ -289,6 +289,15 @@ void KatranSimpleServiceHandler::getLruFallbackStats(
   _return.v2 = stats.v2;
 }
 
+void KatranSimpleServiceHandler::getIcmpTooBigStats(
+    ::lb::katran::Stats& _return) {
+  Guard lock(giant_);
+  auto stats = lb_.getIcmpTooBigStats();
+
+  _return.v1 = stats.v1;
+  _return.v2 = stats.v2;
+}
+
 bool KatranSimpleServiceHandler::addHealthcheckerDst(
     std::unique_ptr<::lb::katran::Healthcheck> healthcheck) {
   if (!hcForwarding_) {

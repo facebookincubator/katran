@@ -83,6 +83,8 @@ class KatranSimpleServiceHandler : virtual public KatranServiceSvIf {
 
   void getLruFallbackStats(::lb::katran::Stats& _return) override;
 
+  void getIcmpTooBigStats(::lb::katran::Stats& _return) override;
+
   bool addHealthcheckerDst(
       std::unique_ptr<::lb::katran::Healthcheck> healthcheck) override;
 

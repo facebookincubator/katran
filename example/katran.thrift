@@ -92,6 +92,8 @@ service KatranService {
 
   Stats getLruFallbackStats();
 
+  Stats getIcmpTooBigStats();
+
   bool addHealthcheckerDst(1: Healthcheck healthcheck);
 
   bool delHealthcheckerDst(1: i32 somark);

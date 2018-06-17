@@ -306,6 +306,23 @@ void KatranSimpleClient::showSumStats() {
   }
 }
 
+void KatranSimpleClient::showIcmpStats() {
+  int64_t oldIcmpV4 = 0;
+  int64_t oldIcmpV6 = 0;
+  while (true) {
+    Stats stats;
+    client_->sync_getIcmpTooBigStats(stats);
+    auto IcmpV4 = stats.v1 - oldIcmpV4;
+    auto IcmpV6 = stats.v2 - oldIcmpV6;
+    LOG(INFO) << folly::sformat(
+        "ICMP \"packet too big\": v4 {} pkts/sec, v6 {} pkts/sec", IcmpV4,
+        IcmpV6);
+    oldIcmpV4 = IcmpV4;
+    oldIcmpV6 = IcmpV6;
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+  }
+}
+
 void KatranSimpleClient::showLruStats() {
   uint64_t oldTotalPkts = 0;
   uint64_t oldMiss = 0;
