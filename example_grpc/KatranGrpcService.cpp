@@ -31,7 +31,7 @@ using Guard = std::lock_guard<std::mutex>;
 
 // translation helpers
 
-::katran::VipKey translateVipObject(const Vip& vip) {
+::katran::VipKey translateVipObject(const Vip &vip) {
   ::katran::VipKey vk;
   vk.address = vip.address();
   vk.port = vip.port();
@@ -39,14 +39,14 @@ using Guard = std::lock_guard<std::mutex>;
   return vk;
 }
 
-::katran::NewReal translateRealObject(const Real& real) {
+::katran::NewReal translateRealObject(const Real &real) {
   ::katran::NewReal nr;
   nr.address = real.address();
   nr.weight = real.weight();
   return nr;
 }
 
-::katran::QuicReal translateQuicRealObject(const QuicReal& real) {
+::katran::QuicReal translateQuicRealObject(const QuicReal &real) {
   ::katran::QuicReal qr;
   qr.address = real.address();
   qr.id = real.id();
@@ -61,17 +61,16 @@ Status returnStatus(bool result) {
   }
 }
 
-KatranGrpcService::KatranGrpcService(
-  const ::katran::KatranConfig& config):
-  lb_(config), hcForwarding_(config.enableHc) {
+KatranGrpcService::KatranGrpcService(const ::katran::KatranConfig &config)
+    : lb_(config), hcForwarding_(config.enableHc) {
 
   LOG(INFO) << "Starting Katran";
   lb_.loadBpfProgs();
   lb_.attachBpfProgs();
 }
 
-Status KatranGrpcService::changeMac(
-  ServerContext* context, const Mac* request, Bool* response) {
+Status KatranGrpcService::changeMac(ServerContext *context, const Mac *request,
+                                    Bool *response) {
 
   Guard lock(giant_);
   auto mac = ::katran::convertMacToUint(request->mac());
@@ -80,8 +79,8 @@ Status KatranGrpcService::changeMac(
   return returnStatus(res);
 }
 
-Status KatranGrpcService::getMac(
-  ServerContext* context, const Empty* request, Mac* response) {
+Status KatranGrpcService::getMac(ServerContext *context, const Empty *request,
+                                 Mac *response) {
 
   Guard lock(giant_);
   auto mac = lb_.getMac();
@@ -89,8 +88,8 @@ Status KatranGrpcService::getMac(
   return Status::OK;
 }
 
-Status KatranGrpcService::addVip(
-  ServerContext* context, const VipMeta* request, Bool* response) {
+Status KatranGrpcService::addVip(ServerContext *context, const VipMeta *request,
+                                 Bool *response) {
 
   bool res;
   auto vk = translateVipObject(request->vip());
@@ -98,7 +97,7 @@ Status KatranGrpcService::addVip(
   try {
     Guard lock(giant_);
     res = lb_.addVip(vk, request->flags());
-  } catch (const std::exception& e) {
+  } catch (const std::exception &e) {
     LOG(INFO) << "Exception while adding new vip: " << e.what();
     res = false;
   }
@@ -106,8 +105,8 @@ Status KatranGrpcService::addVip(
   return returnStatus(res);
 }
 
-Status KatranGrpcService::delVip(
-  ServerContext* context, const Vip* request, Bool* response) {
+Status KatranGrpcService::delVip(ServerContext *context, const Vip *request,
+                                 Bool *response) {
 
   auto vk = translateVipObject(*request);
   Guard lock(giant_);
@@ -116,13 +115,13 @@ Status KatranGrpcService::delVip(
   return returnStatus(res);
 }
 
-Status KatranGrpcService::getAllVips(
-  ServerContext* context, const Empty* request, Vips* response) {
+Status KatranGrpcService::getAllVips(ServerContext *context,
+                                     const Empty *request, Vips *response) {
 
   Vip vip;
   Guard lock(giant_);
   auto vips = lb_.getAllVips();
-  for (auto& v: vips) {
+  for (auto &v : vips) {
     vip.set_address(v.address);
     vip.set_port(v.port);
     vip.set_protocol(v.proto);
@@ -133,8 +132,8 @@ Status KatranGrpcService::getAllVips(
   return Status::OK;
 }
 
-Status KatranGrpcService::modifyVip(
-  ServerContext* context, const VipMeta* request, Bool* response) {
+Status KatranGrpcService::modifyVip(ServerContext *context,
+                                    const VipMeta *request, Bool *response) {
 
   auto vk = translateVipObject(request->vip());
   Guard lock(giant_);
@@ -143,8 +142,8 @@ Status KatranGrpcService::modifyVip(
   return returnStatus(res);
 }
 
-Status KatranGrpcService::getVipFlags(
-  ServerContext* context, const Vip* request, Flags* response) {
+Status KatranGrpcService::getVipFlags(ServerContext *context,
+                                      const Vip *request, Flags *response) {
 
   int64_t flags = -1;
   auto vk = translateVipObject(*request);
@@ -152,15 +151,16 @@ Status KatranGrpcService::getVipFlags(
   try {
     Guard lock(giant_);
     flags = lb_.getVipFlags(vk);
-  } catch (const std::exception& e) {
+  } catch (const std::exception &e) {
     LOG(INFO) << "Exception while getting flags for vip" << e.what();
   }
   response->set_flags(flags);
   return Status::OK;
 }
 
-Status KatranGrpcService::addRealForVip(
-  ServerContext* context, const realForVip* request, Bool* response) {
+Status KatranGrpcService::addRealForVip(ServerContext *context,
+                                        const realForVip *request,
+                                        Bool *response) {
 
   bool res;
   auto vk = translateVipObject(request->vip());
@@ -168,15 +168,16 @@ Status KatranGrpcService::addRealForVip(
   try {
     Guard lock(giant_);
     res = lb_.addRealForVip(nr, vk);
-  } catch (const std::exception& e) {
+  } catch (const std::exception &e) {
     res = false;
   }
   response->set_success(res);
   return returnStatus(res);
 }
 
-Status KatranGrpcService::delRealForVip(
-  ServerContext* context, const realForVip* request, Bool* response) {
+Status KatranGrpcService::delRealForVip(ServerContext *context,
+                                        const realForVip *request,
+                                        Bool *response) {
 
   auto vk = translateVipObject(request->vip());
   auto nr = translateRealObject(request->real());
@@ -186,24 +187,23 @@ Status KatranGrpcService::delRealForVip(
   return returnStatus(res);
 }
 
-Status KatranGrpcService::modifyRealsForVip(
-  ServerContext* context,
-  const modifiedRealsForVip* request,
-  Bool* response) {
+Status KatranGrpcService::modifyRealsForVip(ServerContext *context,
+                                            const modifiedRealsForVip *request,
+                                            Bool *response) {
 
   ::katran::ModifyAction a;
   std::vector<::katran::NewReal> nreals;
   bool res;
 
   switch (request->action()) {
-    case Action::ADD:
-      a = ::katran::ModifyAction::ADD;
-      break;
-    case Action::DEL:
-      a = ::katran::ModifyAction::DEL;
-      break;
-    default:
-      break;
+  case Action::ADD:
+    a = ::katran::ModifyAction::ADD;
+    break;
+  case Action::DEL:
+    a = ::katran::ModifyAction::DEL;
+    break;
+  default:
+    break;
   }
 
   auto vk = translateVipObject(request->vip());
@@ -215,7 +215,7 @@ Status KatranGrpcService::modifyRealsForVip(
   try {
     Guard lock(giant_);
     res = lb_.modifyRealsForVip(a, nreals, vk);
-  } catch (const std::exception& e) {
+  } catch (const std::exception &e) {
     LOG(INFO) << "Exception while modifying vip: " << e.what();
     res = false;
   }
@@ -224,8 +224,8 @@ Status KatranGrpcService::modifyRealsForVip(
   return returnStatus(res);
 }
 
-Status KatranGrpcService::getRealsForVip(
-  ServerContext* context, const Vip* request, Reals* response) {
+Status KatranGrpcService::getRealsForVip(ServerContext *context,
+                                         const Vip *request, Reals *response) {
   //
   Real r;
   std::vector<::katran::NewReal> reals;
@@ -233,11 +233,11 @@ Status KatranGrpcService::getRealsForVip(
   try {
     Guard lock(giant_);
     reals = lb_.getRealsForVip(vk);
-  } catch (const std::exception& e) {
+  } catch (const std::exception &e) {
     LOG(INFO) << "Exception while getting reals from vip: " << e.what();
     return Status::CANCELLED;
   }
-  for (auto& real: reals) {
+  for (auto &real : reals) {
     r.set_address(real.address);
     r.set_weight(real.weight);
     auto rr = response->add_reals();
@@ -247,22 +247,20 @@ Status KatranGrpcService::getRealsForVip(
 }
 
 Status KatranGrpcService::modifyQuicRealsMapping(
-  ServerContext* context,
-  const modifiedQuicReals* request,
-  Bool* response) {
+    ServerContext *context, const modifiedQuicReals *request, Bool *response) {
 
   ::katran::ModifyAction a;
   std::vector<::katran::QuicReal> qreals;
   bool res{true};
   switch (request->action()) {
-    case Action::ADD:
-      a = ::katran::ModifyAction::ADD;
-      break;
-    case Action::DEL:
-      a = ::katran::ModifyAction::DEL;
-      break;
-    default:
-      break;
+  case Action::ADD:
+    a = ::katran::ModifyAction::ADD;
+    break;
+  case Action::DEL:
+    a = ::katran::ModifyAction::DEL;
+    break;
+  default:
+    break;
   }
   for (int i = 0; i < request->reals().qreals_size(); i++) {
     auto qr = translateQuicRealObject(request->reals().qreals(i));
@@ -271,7 +269,7 @@ Status KatranGrpcService::modifyQuicRealsMapping(
   try {
     Guard lock(giant_);
     lb_.modifyQuicRealsMapping(a, qreals);
-  } catch (const std::exception& e) {
+  } catch (const std::exception &e) {
     LOG(INFO) << "Exception while modifying quic real: " << e.what();
     res = false;
   }
@@ -279,21 +277,20 @@ Status KatranGrpcService::modifyQuicRealsMapping(
   return returnStatus(res);
 }
 
-Status KatranGrpcService::getQuicRealsMapping(
-  ServerContext* context,
-  const Empty* request,
-  QuicReals* response) {
+Status KatranGrpcService::getQuicRealsMapping(ServerContext *context,
+                                              const Empty *request,
+                                              QuicReals *response) {
 
   QuicReal qr;
   std::vector<::katran::QuicReal> qreals;
   try {
     Guard lock(giant_);
     qreals = lb_.getQuicRealsMapping();
-  } catch (const std::exception& e) {
+  } catch (const std::exception &e) {
     LOG(INFO) << "Exception while getting reals from vip: " << e.what();
     return Status::CANCELLED;
   }
-  for (auto& real: qreals) {
+  for (auto &real : qreals) {
     qr.set_address(real.address);
     qr.set_id(real.id);
     auto rqr = response->add_qreals();
@@ -303,10 +300,8 @@ Status KatranGrpcService::getQuicRealsMapping(
   return Status::OK;
 }
 
-Status KatranGrpcService::getStatsForVip(
-  ServerContext* context,
-  const Vip* request,
-  Stats* response) {
+Status KatranGrpcService::getStatsForVip(ServerContext *context,
+                                         const Vip *request, Stats *response) {
 
   auto vk = translateVipObject(*request);
   Guard lock(giant_);
@@ -318,8 +313,8 @@ Status KatranGrpcService::getStatsForVip(
   return Status::OK;
 }
 
-Status KatranGrpcService::getLruStats(
-  ServerContext* context, const Empty* request, Stats* response) {
+Status KatranGrpcService::getLruStats(ServerContext *context,
+                                      const Empty *request, Stats *response) {
 
   Guard lock(giant_);
   auto stats = lb_.getLruStats();
@@ -330,8 +325,9 @@ Status KatranGrpcService::getLruStats(
   return Status::OK;
 }
 
-Status KatranGrpcService::getLruMissStats(
-  ServerContext* context, const Empty* request, Stats* response) {
+Status KatranGrpcService::getLruMissStats(ServerContext *context,
+                                          const Empty *request,
+                                          Stats *response) {
 
   Guard lock(giant_);
   auto stats = lb_.getLruMissStats();
@@ -342,8 +338,9 @@ Status KatranGrpcService::getLruMissStats(
   return Status::OK;
 }
 
-Status KatranGrpcService::getLruFallbackStats(
-  ServerContext* context, const Empty* request, Stats* response) {
+Status KatranGrpcService::getLruFallbackStats(ServerContext *context,
+                                              const Empty *request,
+                                              Stats *response) {
 
   Guard lock(giant_);
   auto stats = lb_.getLruFallbackStats();
@@ -354,10 +351,22 @@ Status KatranGrpcService::getLruFallbackStats(
   return Status::OK;
 }
 
-Status KatranGrpcService::addHealthcheckerDst(
-  ServerContext* context,
-  const Healthcheck* request,
-  Bool* response) {
+Status KatranGrpcService::getIcmpTooBigStats(ServerContext *context,
+                                             const Empty *request,
+                                             Stats *response) {
+
+  Guard lock(giant_);
+  auto stats = lb_.getIcmpTooBigStats();
+
+  response->set_v1(stats.v1);
+  response->set_v2(stats.v2);
+
+  return Status::OK;
+}
+
+Status KatranGrpcService::addHealthcheckerDst(ServerContext *context,
+                                              const Healthcheck *request,
+                                              Bool *response) {
 
   if (!hcForwarding_) {
     response->set_success(false);
@@ -367,7 +376,7 @@ Status KatranGrpcService::addHealthcheckerDst(
   try {
     Guard lock(giant_);
     res = lb_.addHealthcheckerDst(request->somark(), request->address());
-  } catch (const std::exception& e) {
+  } catch (const std::exception &e) {
     LOG(INFO) << "Exception while adding healthcheck: " << e.what();
     res = false;
   }
@@ -376,8 +385,9 @@ Status KatranGrpcService::addHealthcheckerDst(
   return returnStatus(res);
 }
 
-Status KatranGrpcService::delHealthcheckerDst(
-  ServerContext* context, const Somark* request, Bool* response) {
+Status KatranGrpcService::delHealthcheckerDst(ServerContext *context,
+                                              const Somark *request,
+                                              Bool *response) {
 
   if (!hcForwarding_) {
     response->set_success(false);
@@ -389,8 +399,9 @@ Status KatranGrpcService::delHealthcheckerDst(
   return returnStatus(res);
 }
 
-Status KatranGrpcService::getHealthcheckersDst(
-  ServerContext* context, const Empty* request, hcMap* response) {
+Status KatranGrpcService::getHealthcheckersDst(ServerContext *context,
+                                               const Empty *request,
+                                               hcMap *response) {
 
   if (!hcForwarding_) {
     return Status::CANCELLED;
@@ -398,11 +409,11 @@ Status KatranGrpcService::getHealthcheckersDst(
   Guard lock(giant_);
   auto hcs = lb_.getHealthcheckersDst();
   auto rhcs = response->mutable_healthchecks();
-  for (auto& hc: hcs) {
+  for (auto &hc : hcs) {
     (*rhcs)[hc.first] = hc.second;
   }
   return Status::OK;
 }
 
-}
-}
+} // namespace katran
+} // namespace lb

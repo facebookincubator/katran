@@ -20,10 +20,9 @@
 #include <string>
 #include <vector>
 
-#include <grpc++/grpc++.h>
 #include "katran.grpc.pb.h"
 #include "katran/lib/KatranLb.h"
-
+#include <grpc++/grpc++.h>
 
 using grpc::Server;
 using grpc::ServerContext;
@@ -33,89 +32,83 @@ namespace lb {
 namespace katran {
 
 class KatranGrpcService final : public KatranService::Service {
-  public:
-    KatranGrpcService() =delete;
+public:
+  KatranGrpcService() = delete;
 
-    explicit KatranGrpcService(
-      const ::katran::KatranConfig& config);
+  explicit KatranGrpcService(const ::katran::KatranConfig &config);
 
-    Status changeMac(
-      ServerContext* context, const Mac* request, Bool* response) override;
+  Status changeMac(ServerContext *context, const Mac *request,
+                   Bool *response) override;
 
-    Status getMac(
-      ServerContext* context, const Empty* request, Mac* response) override;
+  Status getMac(ServerContext *context, const Empty *request,
+                Mac *response) override;
 
-    Status addVip(
-      ServerContext* context, const VipMeta* request, Bool* response) override;
+  Status addVip(ServerContext *context, const VipMeta *request,
+                Bool *response) override;
 
-    Status delVip(
-      ServerContext* context, const Vip* request, Bool* response) override;
+  Status delVip(ServerContext *context, const Vip *request,
+                Bool *response) override;
 
-    Status getAllVips(
-      ServerContext* context, const Empty* request, Vips* response) override;
+  Status getAllVips(ServerContext *context, const Empty *request,
+                    Vips *response) override;
 
-    Status modifyVip(
-      ServerContext* context, const VipMeta* request, Bool* response) override;
+  Status modifyVip(ServerContext *context, const VipMeta *request,
+                   Bool *response) override;
 
-    Status getVipFlags(
-      ServerContext* context, const Vip* request, Flags* response) override;
+  Status getVipFlags(ServerContext *context, const Vip *request,
+                     Flags *response) override;
 
-    Status addRealForVip(
-      ServerContext* context, const realForVip* request, Bool* response) override;
+  Status addRealForVip(ServerContext *context, const realForVip *request,
+                       Bool *response) override;
 
-    Status delRealForVip(
-      ServerContext* context, const realForVip* request, Bool* response) override;
+  Status delRealForVip(ServerContext *context, const realForVip *request,
+                       Bool *response) override;
 
-    Status modifyRealsForVip(
-      ServerContext* context,
-      const modifiedRealsForVip* request,
-      Bool* response) override;
+  Status modifyRealsForVip(ServerContext *context,
+                           const modifiedRealsForVip *request,
+                           Bool *response) override;
 
-    Status getRealsForVip(
-      ServerContext* context, const Vip* request, Reals* response) override;
+  Status getRealsForVip(ServerContext *context, const Vip *request,
+                        Reals *response) override;
 
-    Status modifyQuicRealsMapping(
-      ServerContext* context,
-      const modifiedQuicReals* request,
-      Bool* response) override;
+  Status modifyQuicRealsMapping(ServerContext *context,
+                                const modifiedQuicReals *request,
+                                Bool *response) override;
 
-    Status getQuicRealsMapping(
-      ServerContext* context,
-      const Empty* request,
-      QuicReals* response) override;
+  Status getQuicRealsMapping(ServerContext *context, const Empty *request,
+                             QuicReals *response) override;
 
-    Status getStatsForVip(
-      ServerContext* context,
-      const Vip* request,
-      Stats* response) override;
+  Status getStatsForVip(ServerContext *context, const Vip *request,
+                        Stats *response) override;
 
-    Status getLruStats(
-      ServerContext* context, const Empty* request, Stats* response) override;
+  Status getLruStats(ServerContext *context, const Empty *request,
+                     Stats *response) override;
 
-    Status getLruMissStats(
-      ServerContext* context, const Empty* request, Stats* response) override;
+  Status getLruMissStats(ServerContext *context, const Empty *request,
+                         Stats *response) override;
 
-    Status getLruFallbackStats(
-      ServerContext* context, const Empty* request, Stats* response) override;
+  Status getLruFallbackStats(ServerContext *context, const Empty *request,
+                             Stats *response) override;
 
-    Status addHealthcheckerDst(
-      ServerContext* context,
-      const Healthcheck* request,
-      Bool* response) override;
+  Status getIcmpTooBigStats(ServerContext *context, const Empty *request,
+                            Stats *response) override;
 
-    Status delHealthcheckerDst(
-      ServerContext* context, const Somark* request, Bool* response) override;
+  Status addHealthcheckerDst(ServerContext *context, const Healthcheck *request,
+                             Bool *response) override;
 
-    Status getHealthcheckersDst(
-      ServerContext* context, const Empty* request, hcMap* response) override;
+  Status delHealthcheckerDst(ServerContext *context, const Somark *request,
+                             Bool *response) override;
 
-  private:
-    ::katran::KatranLb lb_;
+  Status getHealthcheckersDst(ServerContext *context, const Empty *request,
+                              hcMap *response) override;
 
-    std::mutex giant_;
+private:
+  ::katran::KatranLb lb_;
 
-    bool hcForwarding_;
+  std::mutex giant_;
+
+  bool hcForwarding_;
 };
 
-} // end of katran::
-}
+} // namespace katran
+} // namespace lb

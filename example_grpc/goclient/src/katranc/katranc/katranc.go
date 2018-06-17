@@ -479,3 +479,21 @@ func (kc *KatranClient) ShowPerVipStats() {
 		time.Sleep(1 * time.Second)
 	}
 }
+
+func (kc *KatranClient) ShowIcmpStats() {
+	oldIcmpV4 := uint64(0)
+	oldIcmpV6 := uint64(0)
+	for true {
+		icmps, err := kc.client.GetIcmpTooBigStats(
+			context.Background(), &lb_katran.Empty{})
+		checkError(err)
+		diffIcmpV4 := icmps.V1 - oldIcmpV4
+		diffIcmpV6 := icmps.V2 - oldIcmpV6
+		fmt.Printf(
+			"ICMP \"packet too big\": v4 %v pkts/sec v6: %v pkts/sec\n",
+			diffIcmpV4, diffIcmpV6)
+		oldIcmpV4 = icmps.V1
+		oldIcmpV6 = icmps.V2
+		time.Sleep(1 * time.Second)
+	}
+}

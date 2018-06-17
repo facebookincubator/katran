@@ -127,6 +127,8 @@ service KatranService {
 
   rpc getLruFallbackStats (Empty) returns (Stats);
 
+  rpc getIcmpTooBigStats (Empty) returns (Stats);
+
   rpc addHealthcheckerDst (Healthcheck) returns (Bool);
 
   rpc delHealthcheckerDst (Somark) returns (Bool);

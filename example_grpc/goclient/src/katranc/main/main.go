@@ -38,13 +38,14 @@ var (
 		"Tcp service address. must be in format: <addr>:<port>")
 	udpService = flag.String("u", "",
 		"Udp service addr. must be in format: <addr>:<port>")
-	realServer   = flag.String("r", "", "Address of the real server")
-	realWeight   = flag.Int64("w", 1, "Weight (capacity) of real server")
-	showStats    = flag.Bool("s", false, "Show stats/counters")
-	showSumStats = flag.Bool("sum", false, "Show summary stats")
-	showLruStats = flag.Bool("lru", false, "Show LRU related stats")
-	listServices = flag.Bool("l", false, "List configured services")
-	changeFlags  = flag.String("f", "",
+	realServer    = flag.String("r", "", "Address of the real server")
+	realWeight    = flag.Int64("w", 1, "Weight (capacity) of real server")
+	showStats     = flag.Bool("s", false, "Show stats/counters")
+	showSumStats  = flag.Bool("sum", false, "Show summary stats")
+	showLruStats  = flag.Bool("lru", false, "Show LRU related stats")
+	showIcmpStats = flag.Bool("icmp", false, "Show ICMP 'packet too big' related stats")
+	listServices  = flag.Bool("l", false, "List configured services")
+	changeFlags   = flag.String("f", "",
 		"change flags. Possible values: NO_SPORT, NO_LRU, QUIC_VIP, DPORT_HASH")
 	unsetFlags = flag.Bool("unset", false, "Unset specified flags")
 	newHc      = flag.String("new_hc", "", "Address of new backend to healtcheck")
@@ -112,6 +113,8 @@ func main() {
 			kc.ShowSumStats()
 		} else if *showLruStats {
 			kc.ShowLruStats()
+		} else if *showIcmpStats {
+			kc.ShowIcmpStats()
 		} else {
 			kc.ShowPerVipStats()
 		}
