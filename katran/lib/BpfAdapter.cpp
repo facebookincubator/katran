@@ -16,7 +16,9 @@
 
 #include "BpfAdapter.h"
 
+#include <folly/FileUtil.h>
 #include <folly/ScopeGuard.h>
+#include <folly/String.h>
 #include <glog/logging.h>
 #include <libmnl/libmnl.h>
 #include <cerrno>
@@ -52,6 +54,8 @@ constexpr int TC_ACTION_OK = TC_ACT_OK;
 std::array<const char, 4> kBpfKind = {"bpf"};
 std::array<const char, 5> kTcActKind = {"gact"};
 constexpr int kMaxPathLen = 255;
+constexpr folly::StringPiece kPossibleCpusFile(
+  "/sys/devices/system/cpu/possible");
 
 // from linux/pkt_cls.h bpf specific constants
 /* BPF classifier */
@@ -84,6 +88,9 @@ enum {
 
 namespace {
 constexpr int kNoMap = -1;
+constexpr int kError = -1;
+constexpr int kMaxIndex = 1;
+constexpr int kMinIndex = 0;
 }
 
 namespace katran {
@@ -147,6 +154,10 @@ int BpfAdapter::updateInnerMapsArray(int pos, int map_fd) {
 
 int BpfAdapter::getProgFdByName(const std::string& name) {
   return loader_.getProgFdByName(name);
+}
+
+int BpfAdapter::updateSharedMap(const std::string& name, int fd) {
+  return loader_.updateSharedMap(name, fd);
 }
 
 int BpfAdapter::bpfUpdateMap(
@@ -607,6 +618,23 @@ int BpfAdapter::detachCgroupProg(
     ::close(target_fd);
   };
   return ebpf_prog_detach2(prog_fd, target_fd, type);
+}
+
+int BpfAdapter::getPossibleCpus() {
+  std::string cpus;
+  auto res = folly::readFile(kPossibleCpusFile.data(), cpus);
+  if (!res) {
+    LOG(ERROR) << "Can't read number of possible cpus";
+    return kError;
+  }
+  VLOG(2) << "possible cpus file content: " << cpus;
+  std::vector<uint32_t> range;
+  folly::split("-", cpus, range);
+  if (range.size() != 2) {
+    LOG(ERROR) << "unsupported format of cpus file: " << cpus;
+    return kError;
+  }
+  return range[kMinIndex] == 0 ? range[kMaxIndex] + 1 : kError;
 }
 
 } // namespace katran

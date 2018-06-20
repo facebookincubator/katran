@@ -75,6 +75,7 @@ set(BPFADAPTER_DEPS
     "${LIBZ}"
     "${LIBMNL}"
     "${FOLLY}"
+    "${LIBDC}"
 )
 
 target_link_libraries(bpfadapter "${BPFADAPTER_DEPS}")

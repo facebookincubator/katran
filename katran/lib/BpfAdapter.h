@@ -394,6 +394,24 @@ class BpfAdapter {
       const std::string& cgroup,
       enum bpf_attach_type type);
 
+  /**
+   * @param string name of the shared map
+   * @param int fd of the shared map
+   * @return 0 on success
+   *
+   * helper function to update shared map's dictionary
+   */
+  int updateSharedMap(const std::string& name, int fd);
+
+  /**
+   * @return number of possible cpus used for percpu maps
+   *
+   * helper function which retrieves number of cpus which have allocated
+   * resources in running system. return -1 on failure, number of CPUs
+   * otherwise.
+   */
+  static int getPossibleCpus();
+
  private:
   /**
    * helper function to modify (add/delete/replace) tc's bpf prog.

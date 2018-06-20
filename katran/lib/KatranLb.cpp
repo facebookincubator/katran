@@ -684,7 +684,11 @@ lb_stats KatranLb::getIcmpTooBigStats() {
 }
 
 lb_stats KatranLb::getLbStats(uint32_t position) {
-  unsigned int nr_cpus = sysconf(_SC_NPROCESSORS_CONF);
+  unsigned int nr_cpus = BpfAdapter::getPossibleCpus();
+  if (nr_cpus < 0) {
+    LOG(ERROR) << "Error while getting number of possible cpus";
+    return lb_stats();
+  }
   lb_stats stats[nr_cpus];
   lb_stats sum_stat = {};
 
