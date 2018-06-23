@@ -419,7 +419,7 @@ int BpfLoader::collectReloc() {
   return 0;
 }
 
-int BpfLoader::collectElfData(const std::string& path) {
+int BpfLoader::collectElfData(const std::string& name) {
   Elf_Data* data;
   GElf_Shdr shdr;
   char* shname;
@@ -431,7 +431,7 @@ int BpfLoader::collectElfData(const std::string& path) {
     }
     // scanning over all elf sections to get license and map info
     if (getSection(elf_, i, &shname, &shdr, &data)) {
-      LOG(INFO) << "Skipping section: " << i << " of file: " << path;
+      LOG(INFO) << "Skipping section: " << i << " of file: " << name;
       continue;
     }
     std::string section_name(shname);
@@ -444,7 +444,7 @@ int BpfLoader::collectElfData(const std::string& path) {
       VLOG(2) << "license is: " << license_;
     } else if (section_name == "version") {
       if (data->d_size != sizeof(int)) {
-        LOG(ERROR) << "Invalid size of version section for file: " << path;
+        LOG(ERROR) << "Invalid size of version section for file: " << name;
         return 1;
       }
       kernelVersion_ = *reinterpret_cast<int*>(data->d_buf);
@@ -630,13 +630,38 @@ int BpfLoader::loadBpfFile(const std::string& path, const bpf_prog_type type) {
     LOG(ERROR) << "Can't allocate new elf descriptor for file: " << path;
     return 1;
   }
+  return parseElf(path);
+}
 
-  if (gelf_getehdr(elf_, &ehdr_) != &ehdr_) {
-    LOG(ERROR) << "Can't read elf header for file: " << path;
+int BpfLoader::loadBpfFromBuffer(
+  char* buf, int buf_size, const bpf_prog_type type) {
+  //
+  initializeTempVars();
+  SCOPE_EXIT {
+    elf_end(elf_);
+  };
+  progType_ = type;
+
+  if (elf_version(EV_CURRENT) == EV_NONE) {
+    LOG(ERROR) << "Elf library is too old. Exiting.";
     return 1;
   }
 
-  if (collectElfData(path)) {
+  elf_ = elf_memory(buf, buf_size);
+  if (!elf_) {
+    LOG(ERROR) << "Can't allocate new elf descriptor from specified buffer";
+    return 1;
+  }
+  return parseElf("buffer");
+}
+
+int BpfLoader::parseElf(const std::string& name) {
+  if (gelf_getehdr(elf_, &ehdr_) != &ehdr_) {
+    LOG(ERROR) << "Can't read elf header for file: " << name;
+    return 1;
+  }
+
+  if (collectElfData(name)) {
     return 1;
   }
 

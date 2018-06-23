@@ -37,7 +37,12 @@ class KatranLbTest : public ::testing::Test {
                         512,
                         4096,
                         65537,
-                        true}){};
+                        true,
+                        1,
+                        {},
+                        {},
+                        10,
+                        4}){};
 
   void SetUp() override {
     v1.address = "fc01::1";
@@ -102,28 +107,37 @@ TEST_F(KatranLbTest, testVipHelpers) {
   v.port = 0;
   v.proto = 6;
   // trying to delete non-existing vip.
-  ASSERT_EQ(lb.delVip(v1), false);
+  ASSERT_FALSE(lb.delVip(v1));
   // addding and removing vip;
-  ASSERT_EQ(lb.addVip(v2), true);
-  ASSERT_EQ(lb.delVip(v2), true);
+  ASSERT_TRUE(lb.addVip(v2));
+  ASSERT_TRUE(lb.delVip(v2));
   for (int i = 0; i < 512; i++) {
     v.port = i;
-    ASSERT_EQ(lb.addVip(v), true);
+    ASSERT_TRUE(lb.addVip(v));
   }
   // trying to add more than 512 vips
   v.port = 1000;
-  ASSERT_EQ(lb.addVip(v), false);
+  ASSERT_FALSE(lb.addVip(v));
+};
+
+TEST_F(KatranLbTest, testAddingInvalidVip) {
+  VipKey v;
+  v.address = "fc00::/64";
+  v.port = 0;
+  v.proto = 6;
+  // adding vip which is an network address, not a host.
+  ASSERT_FALSE(lb.addVip(v));
 };
 
 TEST_F(KatranLbTest, testRealHelpers) {
   lb.addVip(v1);
 
   // deleting non-existing real; true because it's nop and not an error
-  ASSERT_EQ(lb.delRealForVip(r1, v1), true);
+  ASSERT_TRUE(lb.delRealForVip(r1, v1));
   // adding new real to non-existing vip
-  ASSERT_EQ(lb.addRealForVip(r1, v2), false);
+  ASSERT_FALSE(lb.addRealForVip(r1, v2));
   // adding real to existing vip
-  ASSERT_EQ(lb.addRealForVip(r1, v1), true);
+  ASSERT_TRUE(lb.addRealForVip(r1, v1));
 };
 
 TEST_F(KatranLbTest, testVipStatsHelper) {
@@ -147,9 +161,9 @@ TEST_F(KatranLbTest, testLruMissStatsHelper) {
 
 TEST_F(KatranLbTest, testHcHelpers) {
   // deleting non-existing healthcheck
-  ASSERT_EQ(lb.delHealthcheckerDst(1000), false);
-  ASSERT_EQ(lb.addHealthcheckerDst(1000, "192.168.1.1"), true);
-  ASSERT_EQ(lb.delHealthcheckerDst(1000), true);
+  ASSERT_FALSE(lb.delHealthcheckerDst(1000));
+  ASSERT_TRUE(lb.addHealthcheckerDst(1000, "192.168.1.1"));
+  ASSERT_TRUE(lb.delHealthcheckerDst(1000));
 };
 
 TEST_F(KatranLbTest, getVipFlags) {
@@ -168,23 +182,23 @@ TEST_F(KatranLbTest, testUpdateRealsHelper) {
   lb.addVip(v2);
   ModifyAction action = ModifyAction::ADD;
   // ading max amount (4096) of reals
-  ASSERT_EQ(lb.modifyRealsForVip(action, newReals1, v1), true);
-  ASSERT_EQ(lb.modifyRealsForVip(action, newReals2, v2), true);
+  ASSERT_TRUE(lb.modifyRealsForVip(action, newReals1, v1));
+  ASSERT_TRUE(lb.modifyRealsForVip(action, newReals2, v2));
   // v1 has all reals;
   ASSERT_EQ(lb.getRealsForVip(v1).size(), 4096);
   // v2 has 0 reals because when we were trying to add new ones there was no
   // more space for new reals.
   ASSERT_EQ(lb.getRealsForVip(v2).size(), 0);
   // but if we add same reals as for v1 - everything must works
-  ASSERT_EQ(lb.modifyRealsForVip(action, newReals1, v2), true);
+  ASSERT_TRUE(lb.modifyRealsForVip(action, newReals1, v2));
   ASSERT_EQ(lb.getRealsForVip(v2).size(), 4096);
   action = ModifyAction::DEL;
   // deleting 4k reals
-  ASSERT_EQ(lb.modifyRealsForVip(action, newReals1, v1), true);
-  ASSERT_EQ(lb.modifyRealsForVip(action, newReals1, v2), true);
+  ASSERT_TRUE(lb.modifyRealsForVip(action, newReals1, v1));
+  ASSERT_TRUE(lb.modifyRealsForVip(action, newReals1, v2));
   // retrying to add new rels to v2.
   action = ModifyAction::ADD;
-  ASSERT_EQ(lb.modifyRealsForVip(action, newReals2, v2), true);
+  ASSERT_TRUE(lb.modifyRealsForVip(action, newReals2, v2));
   ASSERT_EQ(lb.getRealsForVip(v2).size(), 4096);
 };
 
@@ -194,8 +208,8 @@ TEST_F(KatranLbTest, testUpdateQuicRealsHelper) {
   ModifyAction action = ModifyAction::ADD;
   // ading max amount (4096) of reals
   lb.modifyQuicRealsMapping(action, qReals2);
-  ASSERT_EQ(lb.modifyRealsForVip(action, newReals1, v1), true);
-  ASSERT_EQ(lb.modifyRealsForVip(action, newReals2, v2), true);
+  ASSERT_TRUE(lb.modifyRealsForVip(action, newReals1, v1));
+  ASSERT_TRUE(lb.modifyRealsForVip(action, newReals2, v2));
   // v1 has no reals, because quic consumed all of em;
   ASSERT_EQ(lb.getRealsForVip(v1).size(), 0);
   // v2 has same reals addresses as quic, so all of was added as well.
@@ -203,12 +217,12 @@ TEST_F(KatranLbTest, testUpdateQuicRealsHelper) {
   ASSERT_EQ(lb.getQuicRealsMapping().size(), 4096);
   action = ModifyAction::DEL;
   // deleting 4k reals
-  ASSERT_EQ(lb.modifyRealsForVip(action, newReals2, v2), true);
+  ASSERT_TRUE(lb.modifyRealsForVip(action, newReals2, v2));
   lb.modifyQuicRealsMapping(action, qReals2);
   ASSERT_EQ(lb.getQuicRealsMapping().size(), 0);
   // retrying to add new rels to v1.
   action = ModifyAction::ADD;
-  ASSERT_EQ(lb.modifyRealsForVip(action, newReals1, v1), true);
+  ASSERT_TRUE(lb.modifyRealsForVip(action, newReals1, v1));
   ASSERT_EQ(lb.getRealsForVip(v1).size(), 4096);
 };
 
@@ -254,5 +268,132 @@ TEST_F(KatranLbTest, getHealthcheckersDst) {
   auto hcs = lb.getHealthcheckersDst();
   ASSERT_EQ(hcs.size(), 2);
 };
+
+TEST_F(KatranLbTest, invalidAddressHandling) {
+  VipKey v;
+  v.address = "aaa";
+  v.port = 0;
+  v.proto = 6;
+  NewReal r;
+  r.address = "bbb";
+  r.weight = 1;
+
+  int res;
+  // adding incorrect vip
+  res = lb.addVip(v);
+  ASSERT_FALSE(res);
+  // adding correct vip
+  res = lb.addVip(v1);
+  ASSERT_TRUE(res);
+  // adding incorrect real for correct vip
+  res = lb.addRealForVip(r, v1);
+  auto rnum = lb.getRealsForVip(v1);
+  ASSERT_EQ(rnum.size(), 0);
+  // adding incorrect hc dst
+  res = lb.addHealthcheckerDst(1, "bbb");
+  ASSERT_FALSE(res);
+};
+
+TEST_F(KatranLbTest, addInvalidSrcRoutingRule) {
+  std::vector<std::string> srcsv4 = {"10.0.0.0/24", "10.0.1.0/24"};
+  auto res = lb.addSrcRoutingRule(srcsv4, "asd");
+  ASSERT_EQ(res, -1);
+  res = lb.addSrcRoutingRule(srcsv4, "fc00::/64");
+  ASSERT_EQ(res, -1);
+};
+
+TEST_F(KatranLbTest, addValidSrcRoutingRuleV4) {
+  std::vector<std::string> srcsv4 = {"10.0.0.0/24", "10.0.1.0/24"};
+  auto res = lb.addSrcRoutingRule(srcsv4, "fc00::1");
+  ASSERT_EQ(res, 0);
+};
+
+TEST_F(KatranLbTest, addValidSrcRoutingRuleV6) {
+  std::vector<std::string> srcsv6 = {"fc00:1::/64", "fc00:2::/64"};
+  auto res = lb.addSrcRoutingRule(srcsv6, "fc00::1");
+  ASSERT_EQ(res, 0);
+};
+
+TEST_F(KatranLbTest, addMaxSrcRules) {
+  std::vector<std::string> srcs;
+  for (int i = 0; i < 20; i++) {
+    auto prefix = folly::sformat("10.0.{}.0/24", i);
+    srcs.push_back(prefix);
+  }
+  auto res = lb.addSrcRoutingRule(srcs, "fc00::1");
+  ASSERT_EQ(res, -1);
+  auto src_rules = lb.getSrcRoutingRule();
+  ASSERT_EQ(src_rules.size(), 10);
+  auto src_iter = src_rules.find("10.0.0.0/24");
+  ASSERT_TRUE(src_iter != src_rules.end());
+  ASSERT_EQ(src_iter->second, "fc00::1");
+};
+
+TEST_F(KatranLbTest, delSrcRules) {
+  std::vector<std::string> srcs;
+  for (int i = 0; i < 10; i++) {
+    auto prefix = folly::sformat("10.0.{}.0/24", i);
+    srcs.push_back(prefix);
+  }
+  ASSERT_EQ(lb.addSrcRoutingRule(srcs, "fc00::1"), 0);
+  ASSERT_EQ(lb.getSrcRoutingRuleSize(), 10);
+  ASSERT_TRUE(lb.delSrcRoutingRule(srcs));
+  ASSERT_EQ(lb.getSrcRoutingRuleSize(), 0);
+};
+
+TEST_F(KatranLbTest, clearSrcRules) {
+  std::vector<std::string> srcs;
+  for (int i = 0; i < 10; i++) {
+    auto prefix = folly::sformat("10.0.{}.0/24", i);
+    srcs.push_back(prefix);
+  }
+  ASSERT_EQ(lb.addSrcRoutingRule(srcs, "fc00::1"), 0);
+  ASSERT_EQ(lb.getSrcRoutingRuleSize(), 10);
+  ASSERT_TRUE(lb.clearAllSrcRoutingRules());
+  ASSERT_EQ(lb.getSrcRoutingRuleSize(), 0);
+};
+
+TEST_F(KatranLbTest, addFewInvalidNets) {
+  std::vector<std::string> srcs;
+  for (int i = 0; i < 7; i++) {
+    auto prefix = folly::sformat("10.0.{}.0/24", i);
+    srcs.push_back(prefix);
+  }
+  srcs.push_back("aaa");
+  srcs.push_back("bbb");
+  auto res = lb.addSrcRoutingRule(srcs, "fc00::1");
+  ASSERT_EQ(res, 2);
+  ASSERT_EQ(lb.getSrcRoutingRuleSize(), 7);
+};
+
+TEST_F(KatranLbTest, addInvalidDecapDst) {
+  ASSERT_FALSE(lb.addInlineDecapDst("asd"));
+}
+
+TEST_F(KatranLbTest, addInvalidDecapDstNet) {
+  ASSERT_FALSE(lb.addInlineDecapDst("fc00::/64"));
+}
+
+TEST_F(KatranLbTest, addValidDecapDst) {
+  ASSERT_TRUE(lb.addInlineDecapDst("fc00::1"));
+}
+
+TEST_F(KatranLbTest, delValidDecapDst) {
+  ASSERT_TRUE(lb.addInlineDecapDst("fc00::1"));
+  ASSERT_TRUE(lb.delInlineDecapDst("fc00::1"));
+}
+
+TEST_F(KatranLbTest, delInvalidDecapDst) {
+  ASSERT_FALSE(lb.delInlineDecapDst("fc00::2"));
+}
+
+TEST_F(KatranLbTest, addMaxDecapDst) {
+  ASSERT_TRUE(lb.addInlineDecapDst("fc00::1"));
+  ASSERT_TRUE(lb.addInlineDecapDst("fc00::2"));
+  ASSERT_TRUE(lb.addInlineDecapDst("fc00::3"));
+  ASSERT_TRUE(lb.addInlineDecapDst("fc00::4"));
+  ASSERT_FALSE(lb.addInlineDecapDst("fc00::5"));
+  ASSERT_EQ(lb.getInlineDecapDst().size(), 4);
+}
 
 } // namespace katran

@@ -52,6 +52,15 @@
 #define MAX_REALS 4096
 #endif
 
+// maximum number of prefixes in lpm map for src based routing.
+#ifndef MAX_LPM_SRC
+#define MAX_LPM_SRC 3000000
+#endif
+
+#ifndef MAX_DECAP_DST
+#define MAX_DECAP_DST 6
+#endif
+
 // we are using first 12bits from quic's connection id to store real's index
 #define MAX_QUIC_REALS 4096
 
@@ -90,11 +99,15 @@
 #define F_QUIC_VIP (1 << 2)
 // use only dst port for the hash calculation
 #define F_HASH_DPORT_ONLY (1 << 3)
+// check if src based routing should be used
+#define F_SRC_ROUTING (1 << 4)
 // packet_description flags:
 // the description has been created from icmp msg
 #define F_ICMP (1 << 0)
 // tcp packet had syn flag set
 #define F_SYN_SET (1 << 1)
+// packet was decapsulated inline
+#define F_INLINE_DECAP (1 << 2)
 
 // ttl for outer ipip packet
 #ifndef DEFAULT_TTL
@@ -134,9 +147,12 @@
 #define LRU_MISS_CNTR 1
 #define NEW_CONN_RATE_CNTR 2
 #define FALLBACK_LRU_CNTR 3
-//offset of icmp related counters
+// offset of icmp related counters
 #define ICMP_TOOBIG_CNTRS 4
-
+// offset of src routing lookup counters
+#define LPM_SRC_CNTRS 5
+// offset of remote encaped packets counters
+#define REMOTE_ENCAP_CNTRS 6
 // max ammount of new connections per seconda per core for lru update
 // if we go beyond this value - we will bypass lru update.
 #ifndef MAX_CONN_RATE
@@ -165,7 +181,20 @@
 #define IPIP_V6_PREFIX3 0
 #endif
 
-// optional features (requires kernel support. turned off by default)
-//#define ICMP_TOOBIG_GENERATION
+/*
+ * optional features (requires kernel support. turned off by default)
+ * to be able to enable them, you need to define them in compile time
+ * (pass them with -D flag):
+ *
+ * ICMP_TOOBIG_GENERATION - allow to generate icmp's "packet to big"
+ * if packet's size > MAX_PCKT_SIZE
+ *
+ * LPM_SRC_LOOKUP - allow to do src based routing/dst decision override
+ *
+ * INLINE_DECAP - allow do to inline ipip decapsulation in XDP context
+ */
+#ifdef LPM_SRC_LOOKUP
+#define INLINE_DECAP
+#endif
 
 #endif // of __BALANCER_CONSTS_H

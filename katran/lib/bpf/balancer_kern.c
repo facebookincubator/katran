@@ -32,58 +32,106 @@ static inline __u32 get_packet_hash(struct packet_description *pckt,
 }
 
 __attribute__((__always_inline__))
+static inline bool is_under_flood(__u64 *cur_time) {
+  __u32 conn_rate_key = MAX_VIPS + NEW_CONN_RATE_CNTR;
+  BUILD_BUG_ON(conn_rate_key >= STATS_MAP_SIZE);
+  struct lb_stats *conn_rate_stats = bpf_map_lookup_elem(
+    &stats, &conn_rate_key);
+  if (!conn_rate_stats) {
+    return true;
+  }
+  *cur_time = bpf_ktime_get_ns();
+  // we are going to check that new connections rate is less than predefined
+  // value; conn_rate_stats.v1 contains number of new connections for the last
+  // second, v2 - when last time quanta started.
+  if ((*cur_time - conn_rate_stats->v2) > ONE_SEC) {
+    // new time quanta; reseting counters
+    conn_rate_stats->v1 = 1;
+    conn_rate_stats->v2 = *cur_time;
+  } else {
+    conn_rate_stats->v1 += 1;
+    if (conn_rate_stats->v1 > MAX_CONN_RATE) {
+      // we are exceding max connections rate. bypasing lru update and
+      // source routing lookup
+      return true;
+    }
+  }
+  return false;
+}
+
+__attribute__((__always_inline__))
 static inline bool get_packet_dst(struct real_definition **real,
                                   struct packet_description *pckt,
                                   struct vip_meta *vip_info,
                                   bool is_ipv6,
                                   void *lru_map) {
-  bool hash_16bytes = is_ipv6;
 
-  if (vip_info->flags & F_HASH_DPORT_ONLY) {
-    // service which only use dst port for hash calculation
-    // e.g. if packets has same dst port -> they will go to the same real.
-    // usually VoIP related services.
-    pckt->flow.port16[0] = pckt->flow.port16[1];
-    memset(pckt->flow.srcv6, 0, 16);
-  }
-  __u32 hash = get_packet_hash(pckt, hash_16bytes) % RING_SIZE;
-  __u32 key = RING_SIZE * (vip_info->vip_num) + hash;
-  __u32 *real_pos;
   // to update lru w/ new connection
   struct real_pos_lru new_dst_lru = {};
+  bool under_flood = false;
+  bool src_found = false;
+  __u32 *real_pos;
+  __u64 cur_time;
+  __u32 hash;
+  __u32 key;
 
-  real_pos = bpf_map_lookup_elem(&ch_rings, &key);
-  if(!real_pos) {
-    return false;
+  under_flood = is_under_flood(&cur_time);
+
+  #ifdef LPM_SRC_LOOKUP
+  if ((vip_info->flags & F_SRC_ROUTING) && !(pckt->flags & F_INLINE_DECAP) &&
+      !under_flood) {
+    __u32 *lpm_val;
+    if (is_ipv6) {
+      struct v6_lpm_key lpm_key_v6 = {};
+      lpm_key_v6.prefixlen = 128;
+      memcpy(lpm_key_v6.addr, pckt->flow.srcv6, 16);
+      lpm_val = bpf_map_lookup_elem(&lpm_src_v6, &lpm_key_v6);
+    } else {
+      struct v4_lpm_key lpm_key_v4 = {};
+      lpm_key_v4.addr = pckt->flow.src;
+      lpm_key_v4.prefixlen = 32;
+      lpm_val = bpf_map_lookup_elem(&lpm_src_v4, &lpm_key_v4);
+    }
+    if (lpm_val) {
+      src_found = true;
+      key = *lpm_val;
+    }
+    __u32 stats_key = MAX_VIPS + LPM_SRC_CNTRS;
+    BUILD_BUG_ON(stats_key >= STATS_MAP_SIZE);
+    struct lb_stats *data_stats = bpf_map_lookup_elem(&stats, &stats_key);
+    if (data_stats) {
+      if (src_found) {
+        data_stats->v2 += 1;
+      } else {
+        data_stats->v1 += 1;
+      }
+    }
   }
-  key = *real_pos;
+  #endif
+  if (!src_found) {
+    bool hash_16bytes = is_ipv6;
+
+    if (vip_info->flags & F_HASH_DPORT_ONLY) {
+      // service which only use dst port for hash calculation
+      // e.g. if packets has same dst port -> they will go to the same real.
+      // usually VoIP related services.
+      pckt->flow.port16[0] = pckt->flow.port16[1];
+      memset(pckt->flow.srcv6, 0, 16);
+    }
+    hash = get_packet_hash(pckt, hash_16bytes) % RING_SIZE;
+    key = RING_SIZE * (vip_info->vip_num) + hash;
+
+    real_pos = bpf_map_lookup_elem(&ch_rings, &key);
+    if(!real_pos) {
+      return false;
+    }
+    key = *real_pos;
+  }
   *real = bpf_map_lookup_elem(&reals, &key);
   if (!(*real)) {
     return false;
   }
-  if (!(vip_info->flags & F_LRU_BYPASS)) {
-    __u32 conn_rate_key = MAX_VIPS + NEW_CONN_RATE_CNTR;
-    BUILD_BUG_ON(conn_rate_key >= STATS_MAP_SIZE);
-    struct lb_stats *conn_rate_stats = bpf_map_lookup_elem(
-      &stats, &conn_rate_key);
-    if (!conn_rate_stats) {
-      return true;
-    }
-    __u64 cur_time = bpf_ktime_get_ns();
-    // we are going to check that new connections rate is less than predefined
-    // value; conn_rate_stats.v1 contains number of new connections for the last
-    // second, v2 - when last time quanta started.
-    if ((cur_time - conn_rate_stats->v2) > ONE_SEC) {
-      // new time quanta; reseting counters
-      conn_rate_stats->v1 = 1;
-      conn_rate_stats->v2 = cur_time;
-    } else {
-      conn_rate_stats->v1 += 1;
-      if (conn_rate_stats->v1 > MAX_CONN_RATE) {
-        // we are exceding max connections rate. bypasing lru update
-        return true;
-      }
-    }
+  if (!(vip_info->flags & F_LRU_BYPASS) && !under_flood) {
     if (pckt->flow.proto == IPPROTO_UDP) {
       new_dst_lru.atime = cur_time;
     }
@@ -265,13 +313,35 @@ static inline int process_packet(void *data, __u64 off, void *data_end,
   }
   protocol = pckt.flow.proto;
 
-  // prototype for inline decapsulation / could be used for
-  // microbenchmarks with katran_tester
-  // action = process_encaped_pckt(&data, &data_end, xdp, &is_ipv6, &pckt,
-  //                               &protocol, off, &pkt_bytes);
-  // if (action >= 0) {
-  //   return action;
-  // }
+  #ifdef INLINE_DECAP
+  if (protocol == IPPROTO_IPIP || protocol == IPPROTO_IPV6) {
+    struct address dst_addr = {};
+    if (is_ipv6) {
+      memcpy(dst_addr.addrv6, pckt.flow.dstv6, 16);
+    } else {
+      dst_addr.addr = pckt.flow.dst;
+    }
+    __u32 *decap_dst_flags = bpf_map_lookup_elem(&decap_dst, &dst_addr);
+
+    // prototype for inline decapsulation / could be used for
+    // microbenchmarks with katran_tester
+    if (decap_dst_flags) {
+      __u32 stats_key = MAX_VIPS + REMOTE_ENCAP_CNTRS;
+      BUILD_BUG_ON(stats_key >= STATS_MAP_SIZE);
+      data_stats = bpf_map_lookup_elem(&stats, &stats_key);
+      if (!data_stats) {
+        return XDP_DROP;
+      }
+      data_stats->v1 += 1;
+      action = process_encaped_pckt(&data, &data_end, xdp, &is_ipv6, &pckt,
+                                    &protocol, off, &pkt_bytes);
+      if (action >= 0) {
+        return action;
+      }
+      pckt.flags |= F_INLINE_DECAP;
+    }
+  }
+  #endif
 
   if (protocol == IPPROTO_TCP) {
     if (!parse_tcp(data, data_end, is_ipv6, &pckt)) {

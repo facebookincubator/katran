@@ -20,6 +20,7 @@
 #include <deque>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 #include "katran/lib/BalancerStructs.h"
@@ -46,6 +47,8 @@ constexpr uint32_t kLruCntrOffset = 0;
 constexpr uint32_t kLruMissOffset = 1;
 constexpr uint32_t kLruFallbackOffset = 3;
 constexpr uint32_t kIcmpTooBigOffset = 4;
+constexpr uint32_t kLpmSrcOffset = 5;
+constexpr uint32_t kInlineDecapOffset = 6;
 
 /**
  * LRU map related constants
@@ -211,6 +214,72 @@ class KatranLb {
   std::vector<QuicReal> getQuicRealsMapping();
 
   /**
+   * @param vector<string> of source prefixes
+   * @param string dst address where specified sources are going to be routed
+   * @return int 0 on success, number of errors otherwise
+   *
+   * helper function to add src prefixes to destination mapping
+   */
+  int addSrcRoutingRule(
+      const std::vector<std::string>& srcs,
+      const std::string& dst);
+
+  /**
+   * @param vector<string> of source prefixes
+   * @return bool true if there was no fatal errors
+   *
+   * helper function to delete src prefixes to destination mapping
+   */
+  bool delSrcRoutingRule(const std::vector<std::string>& srcs);
+
+  /**
+   * @param string address for inline decapsulation
+   * @return bool true on success
+   *
+   * helper function to add address, so all packets toward it would be
+   * decapsulated in bpf context.
+   */
+  bool addInlineDecapDst(const std::string& dst);
+
+  /**
+   * @param string address for inline decapsulation
+   * @return bool true on success
+   *
+   * helper function to delete address, which is used for inline
+   * decapsulation
+   */
+  bool delInlineDecapDst(const std::string& dst);
+
+  /**
+   * @return vector<string> destanations
+   *
+   * helper function to get/query currently used destanations for inline
+   * decapsulation
+   */
+  std::vector<std::string> getInlineDecapDst();
+
+  /**
+   * @return bool true if there was no fatal errors
+   *
+   * helper function to clear all source routing rules
+   */
+  bool clearAllSrcRoutingRules();
+
+  /**
+   * @return map<string,string> of src to dst mapping
+   *
+   * helper function to get all source to destination mappings
+   */
+  std::unordered_map<std::string, std::string> getSrcRoutingRule();
+
+  /**
+   * @return uint32_t number of src to dst mappings
+   *
+   * helper function to get current number of rules for source based routing
+   */
+  uint32_t getSrcRoutingRuleSize();
+
+  /**
    * @param VipKey vip
    * @return struct lb_stats w/ statistic for specified vip
    *
@@ -253,6 +322,23 @@ class KatranLb {
    * maximum supported size.
    */
   lb_stats getIcmpTooBigStats();
+
+  /**
+   * @return struct lb_stats w/ src routing related statistics
+   *
+   * helper function which returns how many packets were sent to local
+   * backends (v1) and how many matched lpm src rule and were sent to remote
+   * destination (v2)
+   */
+  lb_stats getSrcRoutingStats();
+
+  /**
+   * @return struct lb_stats w/ src inline decapsulation statistics
+   *
+   * helper function which returns how many packets were decapsulated
+   * inline (v1)
+   */
+  lb_stats getInlineDecapStats();
 
   /**
    * @param uint32_t somark of the packet
@@ -360,6 +446,46 @@ class KatranLb {
       int numaNode = kNoNuma);
 
   /**
+   * helper function which do forwarding plane feature discovering
+   */
+  void featureDiscovering();
+
+  /**
+   * helper function to validate that specified string is a valid ip address
+   * (or network prefix if allowNetAddr is equal to true)
+   */
+  AddressType validateAddress(
+      const std::string& addr,
+      bool allowNetAddr = false);
+
+  /**
+   * helper function to add or remove src (string src) to dst (rnum; id of
+   * real in numToReals_ structure) - used for source based
+   * routing) to/from forwarding plane
+   */
+  bool
+  modifyLpmSrcRule(ModifyAction action, const std::string& src, uint32_t rnum);
+
+  /**
+   * helper function to modify specified lpm map. convention is: all lpm maps
+   * are named <map_prefix>_v4 or _v6. suffix would be automatically added by
+   * this routine depending on addr's family.
+   */
+  bool modifyLpmMap(
+      const std::string& lpmMapNamePrefix,
+      ModifyAction action,
+      const std::string& addr,
+      void* value);
+
+  /**
+   * helper function to modify inline decap destanations map
+   */
+  bool modifyDecapDst(
+      ModifyAction action,
+      const std::string& dst,
+      const uint32_t flags = 0);
+
+  /**
    * maximum amount of vips, which katran supports (must be the same number as
    * in forwarding plane (compiled xdp prog))
    */
@@ -375,6 +501,16 @@ class KatranLb {
    * size of ch ring (must be the same number as in forwarding plane).
    */
   uint32_t chRingSize_;
+
+  /**
+   * size of source address lookup table for source based routing
+   */
+  uint32_t maxLpmSrcSize_;
+
+  /**
+   * size of inline decapsulation destanation lookup table
+   */
+  uint32_t maxDecapDstSize_;
 
   /**
    * bpf adapter to program forwarding plane
@@ -430,6 +566,16 @@ class KatranLb {
   std::unordered_map<VipKey, Vip, VipKeyHasher> vips_;
 
   /**
+   * map of src address to dst mapping. used for source based routing.
+   */
+  std::unordered_map<std::string, uint32_t> lpmSrcMapping_;
+
+  /**
+   * set of destantions, which are used for inline decapsulation.
+   */
+  std::unordered_set<std::string> decapDsts_;
+
+  /**
    * flag for testing. if set to true - we wont program forwarding path.
    */
   bool testing_;
@@ -463,6 +609,18 @@ class KatranLb {
    * flag which indicates that bpf progs has been attached
    */
   bool progsAttached_{false};
+
+  /**
+   * flag which indicates that source based routing feature has been
+   * enabled/compiled in bpf forwarding plane
+   */
+  bool srcRouting_{false};
+
+  /**
+   * flag which indicates that inline decapsulation feature has been
+   * enabled/compiled in bpf forwarding plane
+   */
+  bool inlineDecap_{false};
 
   /**
    * vector of forwarding CPUs (cpus/cores which are responisible for NICs

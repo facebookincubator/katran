@@ -35,6 +35,7 @@ constexpr int kCtlMapSize = 16;
 constexpr int kLruPrototypePos = 0;
 constexpr int kMaxForwardingCores = 128;
 constexpr int kFirstElem = 0;
+constexpr int kError = -1;
 constexpr uint32_t kMaxQuicId = 4095;
 } // namespace
 
@@ -42,6 +43,8 @@ KatranLb::KatranLb(const KatranConfig& config)
     : maxVips_(config.maxVips),
       maxReals_(config.maxReals),
       chRingSize_(config.chRingSize),
+      maxLpmSrcSize_(config.maxLpmSrcSize),
+      maxDecapDstSize_(config.maxDecapDst),
       bpfAdapter_(!config.testing),
       tcPriority_(config.priority),
       balancerProgPath_(config.balancerProgPath),
@@ -129,6 +132,22 @@ KatranLb::~KatranLb() {
       }
     }
   }
+}
+
+AddressType KatranLb::validateAddress(
+    const std::string& addr,
+    bool allowNetAddr) {
+  if (!folly::IPAddress::validate(addr)) {
+    if (allowNetAddr && (srcRouting_ || testing_)) {
+      auto ret = folly::IPAddress::tryCreateNetwork(addr);
+      if (ret.hasValue()) {
+        return AddressType::NETWORK;
+      }
+    }
+    LOG(ERROR) << "Invalid address: " << addr;
+    return AddressType::INVALID;
+  }
+  return AddressType::HOST;
 }
 
 void KatranLb::initialSanityChecking() {
@@ -255,6 +274,20 @@ void KatranLb::attachLrus() {
   }
 }
 
+void KatranLb::featureDiscovering() {
+  int res;
+  res = bpfAdapter_.getMapFdByName("lpm_src_v4");
+  if (res >= 0) {
+    VLOG(2) << "source based routing is supported";
+    srcRouting_ = true;
+  }
+  res = bpfAdapter_.getMapFdByName("decap_dst");
+  if (res >= 0) {
+    VLOG(2) << "inline decapsulation is supported";
+    inlineDecap_ = true;
+  }
+}
+
 void KatranLb::loadBpfProgs() {
   int res;
   initLrus();
@@ -272,6 +305,7 @@ void KatranLb::loadBpfProgs() {
   }
 
   initialSanityChecking();
+  featureDiscovering();
 
   // add values to main prog ctl_array
   std::vector<uint32_t> balancer_ctl_keys = {kMacAddrPos};
@@ -387,7 +421,7 @@ std::vector<uint8_t> KatranLb::getMac() {
 }
 
 bool KatranLb::addVip(const VipKey& vip, const uint32_t flags) {
-  if (!folly::IPAddress::validate(vip.address)) {
+  if (validateAddress(vip.address) == AddressType::INVALID) {
     LOG(ERROR) << "Invalid Vip address: " << vip.address;
     return false;
   }
@@ -505,7 +539,7 @@ bool KatranLb::modifyRealsForVip(
   }
   auto cur_reals = vip_iter->second.getReals();
   for (auto& real : reals) {
-    if (!folly::IPAddress::validate(real.address)) {
+    if (validateAddress(real.address) == AddressType::INVALID) {
       LOG(ERROR) << "Invalid real's address: " << real.address;
       continue;
     }
@@ -590,13 +624,238 @@ std::vector<NewReal> KatranLb::getRealsForVip(const VipKey& vip) {
   return reals;
 }
 
+int KatranLb::addSrcRoutingRule(
+    const std::vector<std::string>& srcs,
+    const std::string& dst) {
+  int num_errors = 0;
+  if (!srcRouting_ && !testing_) {
+    LOG(ERROR) << "Source based routing is not enabled in forwarding plane";
+    return kError;
+  }
+  if (validateAddress(dst) == AddressType::INVALID) {
+    LOG(ERROR) << "Invalid dst address for src routing: " << dst;
+    return kError;
+  }
+
+  for (auto& src : srcs) {
+    if (validateAddress(src, true) != AddressType::NETWORK) {
+      LOG(ERROR) << "trying to add incorrect addr for src routing " << src;
+      num_errors++;
+      // dont want to stop even if one addr is incorrect.
+      continue;
+    }
+    if (lpmSrcMapping_.size() + 1 > maxLpmSrcSize_) {
+      LOG(ERROR) << "source mappings map size is exhausted";
+      // no point to continue. bailing out
+      return kError;
+    }
+    auto rnum = increaseRefCountForReal(dst);
+    if (rnum == maxReals_) {
+      LOG(ERROR) << "exhausted real's space";
+      // all src using same dst. no point to continue if we can't add this dst
+      return kError;
+    }
+    lpmSrcMapping_[src] = rnum;
+    if (!testing_) {
+      modifyLpmSrcRule(ModifyAction::ADD, src, rnum);
+    }
+  }
+  return num_errors;
+}
+
+bool KatranLb::delSrcRoutingRule(const std::vector<std::string>& srcs) {
+  if (!srcRouting_ && !testing_) {
+    LOG(ERROR) << "Source based routing is not enabled in forwarding plane";
+    return false;
+  }
+  for (auto& src : srcs) {
+    auto src_iter = lpmSrcMapping_.find(src);
+    if (src_iter == lpmSrcMapping_.end()) {
+      LOG(ERROR) << "trying to delete non existing src mapping " << src;
+      continue;
+    }
+    auto dst = numToReals_[src_iter->second];
+    decreaseRefCountForReal(dst);
+    if (!testing_) {
+      modifyLpmSrcRule(ModifyAction::DEL, src, src_iter->second);
+    }
+    lpmSrcMapping_.erase(src_iter);
+  }
+  return true;
+}
+
+bool KatranLb::clearAllSrcRoutingRules() {
+  if (!srcRouting_ && !testing_) {
+    LOG(ERROR) << "Source based routing is not enabled in forwarding plane";
+    return false;
+  }
+  for (auto& rule: lpmSrcMapping_) {
+    auto dst_iter = numToReals_.find(rule.second);
+    decreaseRefCountForReal(dst_iter->second);
+    if (!testing_) {
+        modifyLpmSrcRule(ModifyAction::DEL, rule.first, rule.second);
+      }
+  }
+  lpmSrcMapping_.clear();
+  return true;
+}
+
+uint32_t KatranLb::getSrcRoutingRuleSize() {
+  return lpmSrcMapping_.size();
+}
+
+std::unordered_map<std::string, std::string> KatranLb::getSrcRoutingRule() {
+  std::unordered_map<std::string, std::string> src_mapping;
+  if (!srcRouting_ && !testing_) {
+    LOG(ERROR) << "Source based routing is not enabled in forwarding plane";
+    return src_mapping;
+  }
+  for (auto& src : lpmSrcMapping_) {
+    auto real = numToReals_[src.second];
+    src_mapping[src.first] = real;
+  }
+  return src_mapping;
+}
+
+bool KatranLb::modifyLpmSrcRule(
+    ModifyAction action,
+    const std::string& src,
+    uint32_t rnum) {
+  return modifyLpmMap("lpm_src", action, src, &rnum);
+}
+
+bool KatranLb::modifyLpmMap(
+    const std::string& lpmMapNamePrefix,
+    ModifyAction action,
+    const std::string& addr,
+    void* value) {
+  auto prefix = folly::IPAddress::createNetwork(addr);
+  auto lpm_addr = IpHelpers::parseAddrToBe(prefix.first.str());
+  if (prefix.first.isV4()) {
+    struct v4_lpm_key key_v4 = {.prefixlen = prefix.second,
+                                .addr = lpm_addr.daddr};
+    std::string mapName = lpmMapNamePrefix + "_v4";
+    if (action == ModifyAction::ADD) {
+      auto res = bpfAdapter_.bpfUpdateMap(
+          bpfAdapter_.getMapFdByName(mapName), &key_v4, value);
+      if (res != 0) {
+        LOG(INFO) << "can't add new element into " << mapName;
+        return false;
+      }
+    } else {
+      auto res = bpfAdapter_.bpfMapDeleteElement(
+          bpfAdapter_.getMapFdByName(mapName), &key_v4);
+      if (res != 0) {
+        LOG(INFO) << "can't delete element from " << mapName;
+        return false;
+      }
+    }
+  } else {
+    struct v6_lpm_key key_v6 = {
+        .prefixlen = prefix.second,
+    };
+    std::string mapName = lpmMapNamePrefix + "_v6";
+    std::memcpy(key_v6.addr, lpm_addr.v6daddr, 16);
+    if (action == ModifyAction::ADD) {
+      auto res = bpfAdapter_.bpfUpdateMap(
+          bpfAdapter_.getMapFdByName(mapName), &key_v6, value);
+      if (res != 0) {
+        LOG(INFO) << "can't add new element into " << mapName;
+        return false;
+      }
+    } else {
+      auto res = bpfAdapter_.bpfMapDeleteElement(
+          bpfAdapter_.getMapFdByName(mapName), &key_v6);
+      if (res != 0) {
+        LOG(INFO) << "can't delete element from " << mapName;
+        return false;
+      }
+    }
+  }
+  return true;
+}
+
+bool KatranLb::addInlineDecapDst(const std::string& dst) {
+  if (!inlineDecap_ && !testing_) {
+    LOG(ERROR) << "source based routing is not enabled in forwarding plane";
+    return false;
+  }
+  if (validateAddress(dst) == AddressType::INVALID) {
+    LOG(ERROR) << "invalid decap destination address: " << dst;
+    return false;
+  }
+  if (decapDsts_.find(dst) != decapDsts_.end()) {
+    LOG(ERROR) << "trying to add already existing decap dst";
+    return false;
+  }
+  if (decapDsts_.size() + 1 > maxDecapDstSize_) {
+    LOG(ERROR) << "size of decap destinations map is exhausted";
+    return false;
+  }
+  VLOG(2) << "adding decap dst " << dst;
+  decapDsts_.insert(dst);
+  if (!testing_) {
+    modifyDecapDst(ModifyAction::ADD, dst);
+  }
+  return true;
+}
+
+bool KatranLb::delInlineDecapDst(const std::string& dst) {
+  if (!inlineDecap_ && !testing_) {
+    LOG(ERROR) << "source based routing is not enabled in forwarding plane";
+    return false;
+  }
+  auto dst_iter = decapDsts_.find(dst);
+  if (dst_iter == decapDsts_.end()) {
+    LOG(ERROR) << "trying to delete non-existing decap dst " << dst;
+    return false;
+  }
+  VLOG(2) << "deleting decap dst " << dst;
+  decapDsts_.erase(dst_iter);
+  if (!testing_) {
+    modifyDecapDst(ModifyAction::DEL, dst);
+  }
+  return true;
+}
+
+std::vector<std::string> KatranLb::getInlineDecapDst() {
+  std::vector<std::string> dsts;
+  for (auto& dst : decapDsts_) {
+    dsts.push_back(dst);
+  }
+  return dsts;
+}
+
+bool KatranLb::modifyDecapDst(
+    ModifyAction action,
+    const std::string& dst,
+    uint32_t flags) {
+  auto addr = IpHelpers::parseAddrToBe(dst);
+  if (action == ModifyAction::ADD) {
+    auto res = bpfAdapter_.bpfUpdateMap(
+        bpfAdapter_.getMapFdByName("decap_dst"), &addr, &flags);
+    if (res != 0) {
+      LOG(ERROR) << "error while adding dst for inline decap " << dst;
+      return false;
+    }
+  } else {
+    auto res = bpfAdapter_.bpfMapDeleteElement(
+        bpfAdapter_.getMapFdByName("decap_dst"), &addr);
+    if (res != 0) {
+      LOG(ERROR) << "error while deleting dst for inline decap " << dst;
+      return false;
+    }
+  }
+  return true;
+}
+
 void KatranLb::modifyQuicRealsMapping(
     const ModifyAction action,
     const std::vector<QuicReal>& reals) {
   std::unordered_map<uint32_t, uint32_t> to_update;
   QuicReal qreal;
   for (auto& real : reals) {
-    if (!folly::IPAddress::validate(real.address)) {
+    if (validateAddress(real.address) == AddressType::INVALID) {
       LOG(ERROR) << "Invalid quic real's address: " << real.address;
       continue;
     }
@@ -683,6 +942,14 @@ lb_stats KatranLb::getIcmpTooBigStats() {
   return getLbStats(maxVips_ + kIcmpTooBigOffset);
 }
 
+lb_stats KatranLb::getSrcRoutingStats() {
+  return getLbStats(maxVips_ + kLpmSrcOffset);
+}
+
+lb_stats KatranLb::getInlineDecapStats() {
+  return getLbStats(maxVips_ + kInlineDecapOffset);
+}
+
 lb_stats KatranLb::getLbStats(uint32_t position) {
   unsigned int nr_cpus = BpfAdapter::getPossibleCpus();
   if (nr_cpus < 0) {
@@ -711,7 +978,7 @@ bool KatranLb::addHealthcheckerDst(
   if (!enableHc_) {
     return false;
   }
-  if (!folly::IPAddress::validate(dst)) {
+  if (validateAddress(dst) == AddressType::INVALID) {
     LOG(ERROR) << "Invalid healthcheck's destanation: " << dst;
     return false;
   }

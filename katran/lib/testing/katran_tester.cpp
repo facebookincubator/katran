@@ -47,6 +47,14 @@ const std::vector<uint8_t> kDefaultMac = {0x00, 0x00, 0xDE, 0xAD, 0xBE, 0xAF};
 constexpr uint32_t kDefaultPriority = 2307;
 constexpr uint32_t kDefaultKatranPos = 8;
 constexpr bool kNoHc = false;
+const std::vector<std::string> kReals = {
+  "10.0.0.1",
+  "10.0.0.2",
+  "10.0.0.3",
+  "fc00::1",
+  "fc00::2",
+  "fc00::3",
+};
 
 constexpr uint16_t kVipPort = 80;
 constexpr uint8_t kUdp = 17;
@@ -54,6 +62,7 @@ constexpr uint8_t kTcp = 6;
 constexpr uint32_t kDefaultWeight = 1;
 constexpr uint32_t kDportHash = 8;
 constexpr uint32_t kQuicVip = 4;
+constexpr uint32_t kSrcRouting = 16;
 } // namespace
 
 void addReals(
@@ -73,17 +82,9 @@ void addQuicMappings(katran::KatranLb& lb) {
   katran::QuicReal qreal;
   std::vector<katran::QuicReal> qreals;
   auto action = katran::ModifyAction::ADD;
-  std::vector<std::string> reals = {
-      "10.0.0.1",
-      "10.0.0.2",
-      "10.0.0.3",
-      "fc00::1",
-      "fc00::2",
-      "fc00::3",
-  };
   std::vector<uint32_t> ids = {1022, 1023, 1025, 1024, 1026, 1027};
-  for (int i = 0; i < reals.size(); i++) {
-    qreal.address = reals[i];
+  for (int i = 0; i < kReals.size(); i++) {
+    qreal.address = kReals[i];
     qreal.id = ids[i];
     qreals.push_back(qreal);
   }
@@ -145,7 +146,27 @@ void prepareLbData(katran::KatranLb& lb) {
   addReals(lb, vip, reals6);
 }
 
-void prepareOptionalLbData(katran::KatranLb& /* unused */) {
+void prepareOptionalLbData(katran::KatranLb& lb) {
+  katran::VipKey vip;
+  vip.address = "10.200.1.1";
+  vip.port = kVipPort;
+  vip.proto = kUdp;
+  lb.modifyVip(vip, kSrcRouting);
+  vip.address = "fc00:1::1";
+  vip.proto = kTcp;
+  lb.modifyVip(vip, kSrcRouting);
+  lb.addSrcRoutingRule({"192.168.0.0/17"}, "fc00::2307:1");
+  lb.addSrcRoutingRule({"192.168.100.0/24"}, "fc00::2307:2");
+  lb.addSrcRoutingRule({"fc00:2307::/32"}, "fc00::2307:3");
+  lb.addSrcRoutingRule({"fc00:2307::/64"}, "fc00::2307:4");
+  lb.addSrcRoutingRule({"fc00:2::/64"}, "fc00::2307:10");
+  lb.addInlineDecapDst("fc00:1404::1");
+}
+
+void preparePerfTestingLbData(katran::KatranLb& lb) {
+  for (auto& dst: kReals) {
+    lb.addInlineDecapDst(dst);
+  }
 }
 
 void testOptionalLbCounters(katran::KatranLb& lb) {
@@ -154,6 +175,16 @@ void testOptionalLbCounters(katran::KatranLb& lb) {
   if (stats.v1 != 1 || stats.v2 != 1) {
     VLOG(2) << "icmpV4 hits: " << stats.v1 << " icmpv6 hits:" << stats.v2;
     LOG(INFO) << "icmp packet too big counter is incorrect";
+  }
+  stats = lb.getSrcRoutingStats();
+  if (stats.v1 != 2 || stats.v2 != 4) {
+    VLOG(2) << "lpm src. local pckts: " << stats.v1 << " remote:" << stats.v2;
+    LOG(INFO) << "source based routing counter is incorrect";
+  }
+  stats = lb.getInlineDecapStats();
+  if (stats.v1 != 2) {
+    VLOG(2) << "inline decapsulated pckts: " << stats.v1;
+    LOG(INFO) << "inline decapsulated packet's counter is incorrect";
   }
   LOG(INFO) << "Testing of optional counters is complite";
 }
@@ -227,6 +258,7 @@ int main(int argc, char** argv) {
     tester.testFromFixture();
     testLbCounters(lb);
     if (FLAGS_optional_tests) {
+      prepareOptionalLbData(lb);
       LOG(INFO) << "Running optional tests. they could fail if requirements "
                 << "are not satisfied";
       tester.resetTestFixtures(
@@ -237,6 +269,8 @@ int main(int argc, char** argv) {
     }
     return 0;
   } else if (FLAGS_perf_testing) {
+    // for perf tests to work katran must be compiled w -DINLINE_DECAP
+    preparePerfTestingLbData(lb);
     tester.testPerfFromFixture(FLAGS_repeat, FLAGS_position);
   }
   return 0;

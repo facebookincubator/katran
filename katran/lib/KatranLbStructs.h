@@ -29,6 +29,8 @@ constexpr uint32_t kDefaultMaxVips = 512;
 constexpr uint32_t kDefaultMaxReals = 4096;
 constexpr uint32_t kDefaultPriority = 2307;
 constexpr uint32_t kLbDefaultChRingSize = 65537;
+constexpr uint32_t kDefaultMaxLpmSrcSize = 3000000;
+constexpr uint32_t kDefaultMaxDecapDstSize = 6;
 constexpr unsigned int kDefaultLruSize = 8000000;
 std::string kNoExternalMap = "";
 } // namespace
@@ -65,6 +67,15 @@ struct NewReal {
 struct QuicReal {
   std::string address;
   uint32_t id;
+};
+
+/**
+ * types of address
+ */
+enum class AddressType {
+  INVALID,
+  HOST,
+  NETWORK,
 };
 
 /**
@@ -120,6 +131,8 @@ struct KatranConfig {
   uint64_t LruSize = kDefaultLruSize;
   std::vector<int32_t> forwardingCores;
   std::vector<int32_t> numaNodes;
+  uint32_t maxLpmSrcSize = kDefaultMaxLpmSrcSize;
+  uint32_t maxDecapDst = kDefaultMaxDecapDstSize;
 };
 
 /**

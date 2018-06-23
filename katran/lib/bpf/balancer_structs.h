@@ -92,4 +92,24 @@ struct lb_stats {
   __u64 v2;
 };
 
+// key for ipv4 lpm lookups
+struct v4_lpm_key {
+    __u32 prefixlen;
+    __be32 addr;
+};
+
+// key for ipv6 lpm lookups
+struct v6_lpm_key {
+    __u32 prefixlen;
+    __be32 addr[4];
+};
+
+struct address {
+  union {
+    __be32 addr;
+    __be32 addrv6[4];
+  };
+};
+
+
 #endif // of _BALANCER_STRUCTS

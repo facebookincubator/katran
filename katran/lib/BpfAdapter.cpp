@@ -113,6 +113,13 @@ int BpfAdapter::loadBpfProg(
   return loader_.loadBpfFile(bpf_prog, type);
 }
 
+int BpfAdapter::loadBpfProg(
+  char *buf,
+  int buf_size,
+  const bpf_prog_type type) {
+  return loader_.loadBpfFromBuffer(buf, buf_size, type);
+}
+
 int BpfAdapter::getMapFdByName(const std::string& name) {
   return loader_.getMapFdByName(name);
 }
@@ -471,14 +478,7 @@ int BpfAdapter::modifyTcBpfFilter(
     const int prog_fd,
     const unsigned int ifindex,
     const std::string& bpf_name,
-    const int direction)
-// TODO: T30063437 fix null-pointer-use undefined behavior
-#if defined(__has_feature)
-#if __has_feature(__address_sanitizer__)
-    __attribute__((__no_sanitize__("null")))
-#endif
-#endif
-{
+    const int direction) {
   char buf[MNL_SOCKET_BUFFER_SIZE];
   struct nlmsghdr* nlh;
   struct tcmsg* tc;

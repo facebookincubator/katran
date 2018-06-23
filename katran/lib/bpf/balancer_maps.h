@@ -102,4 +102,31 @@ struct bpf_map_def SEC("maps") ctl_array = {
   .max_entries = CTL_MAP_SIZE,
   .map_flags = NO_FLAGS,
 };
+
+#ifdef LPM_SRC_LOOKUP
+struct bpf_map_def SEC("maps") lpm_src_v4 = {
+  .type = BPF_MAP_TYPE_LPM_TRIE,
+  .key_size = sizeof(struct v4_lpm_key),
+  .value_size = sizeof(__u32),
+  .max_entries = MAX_LPM_SRC,
+  .map_flags = BPF_F_NO_PREALLOC,
+};
+
+struct bpf_map_def SEC("maps") lpm_src_v6 = {
+  .type = BPF_MAP_TYPE_LPM_TRIE,
+  .key_size = sizeof(struct v6_lpm_key),
+  .value_size = sizeof(__u32),
+  .max_entries = MAX_LPM_SRC,
+  .map_flags = BPF_F_NO_PREALLOC,
+};
+#endif
+#ifdef INLINE_DECAP
+struct bpf_map_def SEC("maps") decap_dst = {
+  .type = BPF_MAP_TYPE_HASH,
+  .key_size = sizeof(struct address),
+  .value_size = sizeof(__u32),
+  .max_entries = MAX_VIPS,
+  .map_flags = NO_FLAGS,
+};
+#endif
 #endif // of _BALANCER_MAPS

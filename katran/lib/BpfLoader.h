@@ -39,6 +39,22 @@ class BpfLoader {
   BpfLoader();
 
   /**
+   * @param char* ptr to buffer with elf object
+   * @param int size of the buffer with elf object
+   * @param bpf_prog_type type of bpf program to load.
+   * @return int 0 on success
+   *
+   * helper function to load bpf program from specified buffer (in elf format).
+   * for XDP and TC bpf programs we could
+   * deduce the type from program's name (if they starts with xdp or cls)
+   * could throw if object buffer is malformed.
+   */
+  int loadBpfFromBuffer(
+      char* buf,
+      int buf_size,
+      const bpf_prog_type type = BPF_PROG_TYPE_UNSPEC);
+
+  /**
    * @param string path to bpf object file
    * @param bpf_prog_type type of bpf program to load.
    * @return int 0 on success
@@ -129,6 +145,11 @@ class BpfLoader {
   int loadBpfProgs();
 
   /**
+   * helper function to parse elf and load bpf program from it
+   */
+  int parseElf(const std::string& name);
+
+  /**
    * helper function to initialize scratch/tmp variables
    */
   void initializeTempVars();
@@ -137,7 +158,7 @@ class BpfLoader {
    * helper function to collect indexes for maps/strings/symbols/text sections
    * and populate kernel and license data
    */
-  int collectElfData(const std::string& path);
+  int collectElfData(const std::string& name);
 
   /**
    * helper function to add prog data

@@ -74,6 +74,22 @@ class BpfAdapter {
       const bpf_prog_type type = BPF_PROG_TYPE_UNSPEC);
 
   /**
+   * @param char* ptr to buffer with bpf's elf object
+   * @param int size of the buffer
+   * @param bpf_prog_type type of bpf prog to load
+   * @return int result 0 in case of success, other val otherwise
+   *
+   * helper function to load bpf program into the kernel from buffer
+   * loader could either deduct type from prog's name
+   * (supported xdp- and cls- prefixes) or by using option
+   * bpf_prog_type hint
+   */
+  int loadBpfProg(
+      char* buf,
+      int buf_size,
+      const bpf_prog_type type = BPF_PROG_TYPE_UNSPEC);
+
+  /**
    * @param string name of the map (as in bpf's .c file)
    * @return int bpf's map descriptor
    *

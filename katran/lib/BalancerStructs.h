@@ -75,4 +75,15 @@ struct real_pos_lru {
   uint64_t atime;
 };
 
+// key for longest prefix match ipv4 map
+struct v4_lpm_key {
+    uint32_t prefixlen;
+    uint32_t addr;
+};
+
+// key for longest prefix match ipv6 map
+struct v6_lpm_key {
+    uint32_t prefixlen;
+    uint32_t addr[4];
+};
 } // namespace katran
