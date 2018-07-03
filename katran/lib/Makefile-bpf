@@ -61,7 +61,7 @@ $(src)/bpf/*.c: verify_target_bpf
 # useless for BPF samples.
 $(obj)/bpf/%.o: $(src)/bpf/%.c
 	$(CLANG) $(NOSTDINC_FLAGS) $(LINUXINCLUDE) $(INCLUDEFLAGS) $(EXTRA_CFLAGS) \
-	$(DEBUGBPF) -D__KERNEL__ -D__ASM_SYSREG_H -Wno-unused-value -Wno-pointer-sign \
+	$(DEBUGBPF) -D__KERNEL__ -Wno-unused-value -Wno-pointer-sign \
 		-Wno-compare-distinct-pointer-types \
 		-O2 -emit-llvm -c -g $< -o -| $(LLC) -march=bpf -filetype=obj -o $@
 
