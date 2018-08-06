@@ -23,6 +23,8 @@
 #include <unordered_set>
 #include <vector>
 
+#include <folly/IPAddress.h>
+
 #include "katran/lib/BalancerStructs.h"
 #include "katran/lib/BpfAdapter.h"
 #include "katran/lib/CHHelpers.h"
@@ -225,12 +227,31 @@ class KatranLb {
       const std::string& dst);
 
   /**
+   * @param vector<CIDRNetwork> of source prefixes
+   * @param string dst address where specified sources are going to be routed
+   * @return int 0 on success, number of errors otherwise
+   *
+   * helper function to add src prefixes to destination mapping
+   */
+  int addSrcRoutingRule(
+      const std::vector<folly::CIDRNetwork>& srcs,
+      const std::string& dst);
+
+  /**
    * @param vector<string> of source prefixes
    * @return bool true if there was no fatal errors
    *
    * helper function to delete src prefixes to destination mapping
    */
   bool delSrcRoutingRule(const std::vector<std::string>& srcs);
+
+  /**
+   * @param vector<CIDRNetwork> of source prefixes
+   * @return bool true if there was no fatal errors
+   *
+   * helper function to delete src prefixes to destination mapping
+   */
+  bool delSrcRoutingRule(const std::vector<folly::CIDRNetwork>& srcs);
 
   /**
    * @param string address for inline decapsulation
@@ -271,6 +292,32 @@ class KatranLb {
    * helper function to get all source to destination mappings
    */
   std::unordered_map<std::string, std::string> getSrcRoutingRule();
+
+  /**
+   * @return map<CIDRNetwork,string> of src to dst mapping
+   *
+   * helper function to get all source to destination mappings
+   */
+  std::unordered_map<folly::CIDRNetwork, std::string> getSrcRoutingRuleCidr();
+
+  /**
+   * @return const map<CIDRNetwork, uint32_t>& of src to dst mapping
+   *
+   * helper function to get const reference for internal source to destination
+   * mapping.
+   */
+  const std::unordered_map<folly::CIDRNetwork, uint32_t>& getSrcRoutingMap() {
+    return lpmSrcMapping_;
+  }
+
+  /**
+   * @return const map<uint32_t, str>& of internal index to real mapping
+   *
+   * helper function to get internal index to real's ip address mapping.
+   */
+  const std::unordered_map<uint32_t, std::string>& getNumToRealMap() {
+    return numToReals_;
+  }
 
   /**
    * @return uint32_t number of src to dst mappings
@@ -374,7 +421,7 @@ class KatranLb {
    */
   int getKatranProgFd() {
     return bpfAdapter_.getProgFdByName("xdp-balancer");
-  };
+  }
 
   /**
    * @return int fd of the healthchecker's bpf program
@@ -382,7 +429,7 @@ class KatranLb {
    */
   int getHealthcheckerProgFd() {
     return bpfAdapter_.getProgFdByName("cls-hc");
-  };
+  }
 
  private:
   /**
@@ -463,8 +510,10 @@ class KatranLb {
    * real in numToReals_ structure) - used for source based
    * routing) to/from forwarding plane
    */
-  bool
-  modifyLpmSrcRule(ModifyAction action, const std::string& src, uint32_t rnum);
+  bool modifyLpmSrcRule(
+      ModifyAction action,
+      const folly::CIDRNetwork& src,
+      uint32_t rnum);
 
   /**
    * helper function to modify specified lpm map. convention is: all lpm maps
@@ -474,7 +523,7 @@ class KatranLb {
   bool modifyLpmMap(
       const std::string& lpmMapNamePrefix,
       ModifyAction action,
-      const std::string& addr,
+      const folly::CIDRNetwork& addr,
       void* value);
 
   /**
@@ -568,7 +617,7 @@ class KatranLb {
   /**
    * map of src address to dst mapping. used for source based routing.
    */
-  std::unordered_map<std::string, uint32_t> lpmSrcMapping_;
+  std::unordered_map<folly::CIDRNetwork, uint32_t> lpmSrcMapping_;
 
   /**
    * set of destantions, which are used for inline decapsulation.

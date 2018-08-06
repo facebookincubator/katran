@@ -21,7 +21,6 @@
 #include <stdexcept>
 
 #include <folly/Format.h>
-#include <folly/IPAddress.h>
 #include <folly/lang/Bits.h>
 #include <glog/logging.h>
 
@@ -200,6 +199,7 @@ int KatranLb::createLruMap(int size, int flags, int numaNode) {
 void KatranLb::initLrus() {
   bool forwarding_cores_specified{false};
   bool numa_mapping_specified{false};
+  int lru_map_flags = 0;
   int lru_proto_fd;
   int res;
   if (forwardingCores_.size() != 0) {
@@ -223,10 +223,11 @@ void KatranLb::initLrus() {
       }
       if (numa_mapping_specified) {
         numa_node = numaNodes_[i];
+        lru_map_flags |= kMapNumaNode;
       } else {
         numa_node = kNoNuma;
       }
-      lru_fd = createLruMap(per_core_lru_size, kMapNumaNode, numa_node);
+      lru_fd = createLruMap(per_core_lru_size, lru_map_flags, numa_node);
       if (lru_fd < 0) {
         LOG(FATAL) << "can't creat lru for core: " << core;
         throw std::runtime_error("cant create LRU for forwarding core");
@@ -636,7 +637,7 @@ int KatranLb::addSrcRoutingRule(
     LOG(ERROR) << "Invalid dst address for src routing: " << dst;
     return kError;
   }
-
+  std::vector<folly::CIDRNetwork> src_networks;
   for (auto& src : srcs) {
     if (validateAddress(src, true) != AddressType::NETWORK) {
       LOG(ERROR) << "trying to add incorrect addr for src routing " << src;
@@ -644,6 +645,36 @@ int KatranLb::addSrcRoutingRule(
       // dont want to stop even if one addr is incorrect.
       continue;
     }
+    if (lpmSrcMapping_.size() + src_networks.size() + 1 > maxLpmSrcSize_) {
+      LOG(ERROR) << "source mappings map size is exhausted";
+      // num errors is equal to number of routes which don't have space to be
+      // installed to
+      num_errors += (srcs.size() - src_networks.size());
+      // no point to continue. bailing out
+      break;
+    }
+    // we already validated above that this is network address so wont throw
+    src_networks.push_back(folly::IPAddress::createNetwork(src));
+  }
+  auto rval = addSrcRoutingRule(src_networks, dst);
+  if (rval == kError) {
+    num_errors = rval;
+  }
+  return num_errors;
+}
+
+int KatranLb::addSrcRoutingRule(
+    const std::vector<folly::CIDRNetwork>& srcs,
+    const std::string& dst) {
+  if (!srcRouting_ && !testing_) {
+    LOG(ERROR) << "Source based routing is not enabled in forwarding plane";
+    return kError;
+  }
+  if (validateAddress(dst) == AddressType::INVALID) {
+    LOG(ERROR) << "Invalid dst address for src routing: " << dst;
+    return kError;
+  }
+  for (auto& src : srcs) {
     if (lpmSrcMapping_.size() + 1 > maxLpmSrcSize_) {
       LOG(ERROR) << "source mappings map size is exhausted";
       // no point to continue. bailing out
@@ -660,7 +691,7 @@ int KatranLb::addSrcRoutingRule(
       modifyLpmSrcRule(ModifyAction::ADD, src, rnum);
     }
   }
-  return num_errors;
+  return 0;
 }
 
 bool KatranLb::delSrcRoutingRule(const std::vector<std::string>& srcs) {
@@ -668,10 +699,26 @@ bool KatranLb::delSrcRoutingRule(const std::vector<std::string>& srcs) {
     LOG(ERROR) << "Source based routing is not enabled in forwarding plane";
     return false;
   }
+  std::vector<folly::CIDRNetwork> src_networks;
+  for (auto& src : srcs) {
+    auto network = folly::IPAddress::tryCreateNetwork(src);
+    if (network.hasValue()) {
+      src_networks.push_back(network.value());
+    }
+  }
+  return delSrcRoutingRule(src_networks);
+}
+
+bool KatranLb::delSrcRoutingRule(const std::vector<folly::CIDRNetwork>& srcs) {
+  if (!srcRouting_ && !testing_) {
+    LOG(ERROR) << "Source based routing is not enabled in forwarding plane";
+    return false;
+  }
   for (auto& src : srcs) {
     auto src_iter = lpmSrcMapping_.find(src);
     if (src_iter == lpmSrcMapping_.end()) {
-      LOG(ERROR) << "trying to delete non existing src mapping " << src;
+      LOG(ERROR) << "trying to delete non existing src mapping " << src.first
+                 << "/" << src.second;
       continue;
     }
     auto dst = numToReals_[src_iter->second];
@@ -689,12 +736,12 @@ bool KatranLb::clearAllSrcRoutingRules() {
     LOG(ERROR) << "Source based routing is not enabled in forwarding plane";
     return false;
   }
-  for (auto& rule: lpmSrcMapping_) {
+  for (auto& rule : lpmSrcMapping_) {
     auto dst_iter = numToReals_.find(rule.second);
     decreaseRefCountForReal(dst_iter->second);
     if (!testing_) {
-        modifyLpmSrcRule(ModifyAction::DEL, rule.first, rule.second);
-      }
+      modifyLpmSrcRule(ModifyAction::DEL, rule.first, rule.second);
+    }
   }
   lpmSrcMapping_.clear();
   return true;
@@ -712,6 +759,22 @@ std::unordered_map<std::string, std::string> KatranLb::getSrcRoutingRule() {
   }
   for (auto& src : lpmSrcMapping_) {
     auto real = numToReals_[src.second];
+    auto src_network =
+        folly::sformat("{}/{}", src.first.first.str(), src.first.second);
+    src_mapping[src_network] = real;
+  }
+  return src_mapping;
+}
+
+std::unordered_map<folly::CIDRNetwork, std::string>
+KatranLb::getSrcRoutingRuleCidr() {
+  std::unordered_map<folly::CIDRNetwork, std::string> src_mapping;
+  if (!srcRouting_ && !testing_) {
+    LOG(ERROR) << "Source based routing is not enabled in forwarding plane";
+    return src_mapping;
+  }
+  for (auto& src : lpmSrcMapping_) {
+    auto real = numToReals_[src.second];
     src_mapping[src.first] = real;
   }
   return src_mapping;
@@ -719,7 +782,7 @@ std::unordered_map<std::string, std::string> KatranLb::getSrcRoutingRule() {
 
 bool KatranLb::modifyLpmSrcRule(
     ModifyAction action,
-    const std::string& src,
+    const folly::CIDRNetwork& src,
     uint32_t rnum) {
   return modifyLpmMap("lpm_src", action, src, &rnum);
 }
@@ -727,9 +790,8 @@ bool KatranLb::modifyLpmSrcRule(
 bool KatranLb::modifyLpmMap(
     const std::string& lpmMapNamePrefix,
     ModifyAction action,
-    const std::string& addr,
+    const folly::CIDRNetwork& prefix,
     void* value) {
-  auto prefix = folly::IPAddress::createNetwork(addr);
   auto lpm_addr = IpHelpers::parseAddrToBe(prefix.first.str());
   if (prefix.first.isV4()) {
     struct v4_lpm_key key_v4 = {.prefixlen = prefix.second,

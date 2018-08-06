@@ -114,14 +114,24 @@
 #define DEFAULT_TTL 64
 #endif
 
-// from draft-ietf-quic-transport-05
+// QUIC invariants from draft-ietf-quic-transport-13
 #define QUIC_LONG_HEADER 0x80
-#define QUIC_CLIENT_INITIAL 0x02
-#define QUIC_0RTT 0x06
-#define QUIC_CONN_ID_PRESENT 0x40
-#define CLIENT_GENERATED_ID (QUIC_CLIENT_INITIAL | QUIC_0RTT)
-// 1 byte public flags + 8 byte connection id
-#define QUIC_HDR_SIZE 9
+#define QUIC_SHORT_HEADER 0x00
+#define QUIC_CLIENT_INITIAL 0x7F
+#define QUIC_RETRY 0x7E
+#define QUIC_HANDSHAKE 0x7D
+#define QUIC_0RTT 0x7C
+
+// Implementation specific constants:
+// Require connection id to be of minimum length
+#ifndef QUIC_MIN_CONNID_LEN
+#define QUIC_MIN_CONNID_LEN 8
+#endif
+// explicitly version the connection id
+#ifndef QUIC_CONNID_VERSION
+#define QUIC_CONNID_VERSION 0x1
+#endif
+
 
 // max ethernet packet's size which destination is a vip
 // we need to inforce it because if origin_packet + encap_hdr > MTU

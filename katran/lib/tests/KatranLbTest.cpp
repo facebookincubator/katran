@@ -200,6 +200,7 @@ TEST_F(KatranLbTest, testUpdateRealsHelper) {
   action = ModifyAction::ADD;
   ASSERT_TRUE(lb.modifyRealsForVip(action, newReals2, v2));
   ASSERT_EQ(lb.getRealsForVip(v2).size(), 4096);
+  ASSERT_EQ(lb.getNumToRealMap().size(), 4096);
 };
 
 TEST_F(KatranLbTest, testUpdateQuicRealsHelper) {
@@ -321,9 +322,12 @@ TEST_F(KatranLbTest, addMaxSrcRules) {
     srcs.push_back(prefix);
   }
   auto res = lb.addSrcRoutingRule(srcs, "fc00::1");
-  ASSERT_EQ(res, -1);
+  ASSERT_EQ(res, 10);
   auto src_rules = lb.getSrcRoutingRule();
   ASSERT_EQ(src_rules.size(), 10);
+  ASSERT_EQ(lb.getSrcRoutingRuleCidr().size(), 10);
+  ASSERT_EQ(lb.getSrcRoutingMap().size(), 10);
+  ASSERT_EQ(lb.getNumToRealMap().size(), 1);
   auto src_iter = src_rules.find("10.0.0.0/24");
   ASSERT_TRUE(src_iter != src_rules.end());
   ASSERT_EQ(src_iter->second, "fc00::1");

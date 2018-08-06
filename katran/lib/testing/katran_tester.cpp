@@ -201,7 +201,7 @@ void testLbCounters(katran::KatranLb& lb) {
     LOG(INFO) << "per Vip counter is incorrect";
   }
   stats = lb.getLruStats();
-  if ((stats.v1 != 17) || (stats.v2 != 10)) {
+  if ((stats.v1 != 17) || (stats.v2 != 11)) {
     VLOG(2) << "Total pckts: " << stats.v1 << " LRU misses: " << stats.v2;
     LOG(INFO) << "LRU counter is incorrect";
   }
@@ -215,7 +215,7 @@ void testLbCounters(katran::KatranLb& lb) {
     VLOG(2) << "FallbackLRU hits: " << stats.v1;
     LOG(INFO) << "LRU fallback counter is incorrect";
   }
-  LOG(INFO) << "Testing of counters is complite";
+  LOG(INFO) << "Testing of counters is complete";
   return;
 }
 
