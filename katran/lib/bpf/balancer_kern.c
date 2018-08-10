@@ -411,7 +411,7 @@ static inline int process_packet(void *data, __u64 off, void *data_end,
   if ((vip_info->flags & F_QUIC_VIP)) {
     int real_index;
     real_index = parse_quic(data, data_end, is_ipv6, &pckt);
-    if (real_index >= 0) {
+    if (real_index > 0) {
       __u32 key = real_index;
       __u32 *real_pos = bpf_map_lookup_elem(&quic_mapping, &key);
       if (real_pos) {

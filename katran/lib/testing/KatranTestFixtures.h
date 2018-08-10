@@ -177,7 +177,7 @@ const std::vector<std::pair<std::string, std::string>> inputTestFixtures = {
   {
     // Ether(src="0x1", dst="0x2")/IP(src="192.168.1.42", dst="10.200.1.5")/UDP(sport=31337, dport=443)/'\xfc\xfa\xce\xb0\x0c\x80\x13\xFF\x33\x44\x55\x66\x77\x88\x01\x11\x01quic data\x00@'
     "AgAAAAAAAQAAAAAACABFAAA4AAEAAEARrRXAqAEqCsgBBXppAbsAJBV2/PrOsAyAE/8zRFVmd4gBEQFxdWljIGRhdGEAQA==",
-    "QUIC: long header. 0-RTT Protected. Conn Id based routing."
+    "QUIC: long header. 0-RTT Protected. CH. LRU hit."
   },
   //24
   {
@@ -195,7 +195,7 @@ const std::vector<std::pair<std::string, std::string>> inputTestFixtures = {
   {
     // Ether(src="0x1", dst="0x2")/IP(src="192.168.1.42", dst="10.200.1.5")/UDP(sport=31337, dport=443)/'\x00'
     "AgAAAAAAAQAAAAAACABFAAAdAAEAAEARrTDAqAEqCsgBBXppAbsACbYYAA==",
-    "QUIC: short header. No connection id, still LRU hit"
+    "QUIC: short header. No connection id. CH. LRU hit"
   },
   //27
   {
@@ -208,6 +208,12 @@ const std::vector<std::pair<std::string, std::string>> inputTestFixtures = {
     // Ether(src="0x1", dst="0x2")/IP(src="192.168.1.42", dst="10.200.1.5")/UDP(sport=31337, dport=443)/'\x00\x11\x11\x00\x00\x00\x00\x00\x00@'
     "AgAAAAAAAQAAAAAACABFAAAmAAEAAEARrSfAqAEqCsgBBXppAbsAEqS1ABERAAAAAAAAQA==",
     "QUIC: short header w/ connection id but non-existing mapping"
+  },
+  //29
+  {
+    // Ether(src="0x1", dst="0x2")/IP(src="192.168.1.42", dst="10.200.1.5")/UDP(sport=31337, dport=443)/'\x00\x10\x00\x03\x04\x05\x06\x07\x00@'
+    "AgAAAAAAAQAAAAAACABFAAAmAAEAAEARrSfAqAEqCsgBBXppAbsAEqunABAAAwQFBgcAQA==",
+    "QUIC: short header w/ conn id. host id = 0. CH. LRU hit"
   },
 };
 
@@ -351,6 +357,11 @@ const std::vector<std::pair<std::string, std::string>> outputTestFixtures = {
   //28
   {
     "AADerb6vAgAAAAAACABFAAA6AAAAAEAEXF+sEGhQCgAAAUUAACYAAQAAQBGtJ8CoASoKyAEFemkBuwASpLUAEREAAAAAAABA",
+    "XDP_TX"
+  },
+  //29
+  {
+    "AADerb6vAgAAAAAACABFAAA6AAAAAEAEXF6sEGhQCgAAAkUAACYAAQAAQBGtJ8CoASoKyAEFemkBuwASq6cAEAADBAUGBwBA",
     "XDP_TX"
   },
 };

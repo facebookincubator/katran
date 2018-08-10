@@ -154,8 +154,12 @@ static inline int parse_quic(void *data, void *data_end,
     if (quic_data + sizeof(struct quic_long_header) > data_end) {
       return FURTHER_PROCESSING;
     }
-    if ((*pkt_type & QUIC_CLIENT_INITIAL) == QUIC_CLIENT_INITIAL) {
+    if ((*pkt_type ^ QUIC_CLIENT_INITIAL) == QUIC_LONG_HEADER) {
       // client initial packet - fall back to use c. hash
+      return FURTHER_PROCESSING;
+    }
+    if ((*pkt_type ^ QUIC_0RTT) == QUIC_LONG_HEADER) {
+      // 0-RTT packet - fall back to use c. hash
       return FURTHER_PROCESSING;
     }
 
