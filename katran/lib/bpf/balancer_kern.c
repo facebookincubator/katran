@@ -25,9 +25,9 @@ static inline __u32 get_packet_hash(struct packet_description *pckt,
                                     bool hash_16bytes) {
   if (hash_16bytes) {
     return jhash_2words(jhash(pckt->flow.srcv6, 16, MAX_VIPS),
-                        pckt->flow.ports, CH_RINGS_SIZE);
+                        pckt->flow.ports, INIT_JHASH_SEED);
   } else {
-    return jhash_2words(pckt->flow.src, pckt->flow.ports, CH_RINGS_SIZE);
+    return jhash_2words(pckt->flow.src, pckt->flow.ports, INIT_JHASH_SEED);
   }
 }
 

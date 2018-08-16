@@ -15,12 +15,14 @@
  */
 
 #pragma once
+#include <folly/Function.h>
 #include <string>
 #include <unordered_map>
 
 #include "BpfLoader.h"
 
 extern "C" {
+#include <linux/perf_event.h>
 #include "linux_includes/bpf.h"
 }
 
@@ -428,6 +430,56 @@ class BpfAdapter {
    */
   static int getPossibleCpus();
 
+  /**
+   * @param struct perf_event_mmap_page* header ptr to mmaped memory
+   * @param int pages size of mmap region in pages
+   * @return true on success
+   *
+   * helper function to unmap previously mmaped pages for bpf_perf_event
+   */
+  static bool perfEventUnmmap(struct perf_event_mmap_page** header, int pages);
+
+  /**
+   * @param int cpu where perf event needs to be attached
+   * @param int map_fd descriptor of bpf's perf event map
+   * @param int wakeUpNumEvents sampling rate. wake up every wakeUpNumEvents
+   * @param struct perf_event_mmap_page** header of mmaped memory region
+   * @param int& event_fd descriptor of new perf event
+   * @return true on success
+   *
+   * helper function to mmap memory region and create a new perf event which is
+   * going to use it on specified cpu w/ specified sampling rate.
+   * header and event_fd params are going to be used to store allocated values
+   */
+  static bool openPerfEvent(
+      /* input */
+      int cpu,
+      int map_fd,
+      int wakeUpNumEvents,
+      int pages,
+      /* output */
+      struct perf_event_mmap_page** header,
+      int& event_fd);
+
+  /**
+   * @param Function eventHandler cb to run on received perf event
+   * @param perf_event_mmap_page header ptr to mmape memory region of perf event
+   * @param string& buffer to copy perf event data to
+   * @param int pageSize size of a single page
+   * @param int pages size in pages of mmaped memory region
+   * @param int cpu cpu to get handle event from
+   *
+   * helper function to handle perf event from specified cpu
+   * and call specified helper
+   */
+  static void handlePerfEvent(
+      folly::Function<void(const char* data, size_t size)> eventHandler,
+      struct perf_event_mmap_page* header,
+      std::string& buffer,
+      int pageSize,
+      int pages,
+      int cpu);
+
  private:
   /**
    * helper function to modify (add/delete/replace) tc's bpf prog.
@@ -458,6 +510,11 @@ class BpfAdapter {
    * returns -1 on failure
    */
   int getDirFd(const std::string& path);
+
+  /**
+   * helper function to mmap pages for bpf_perf_event
+   */
+  static struct perf_event_mmap_page* perfEventMmap(int event_fd, int pages);
 
   /**
    * object file loader

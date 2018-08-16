@@ -16,6 +16,7 @@
 
 #include "BpfAdapter.h"
 
+#include <folly/CppAttributes.h>
 #include <folly/FileUtil.h>
 #include <folly/ScopeGuard.h>
 #include <folly/String.h>
@@ -37,6 +38,8 @@ extern "C" {
 #include <linux/tc_act/tc_gact.h>
 #include <net/if.h>
 #include <stdlib.h>
+#include <sys/ioctl.h>
+#include <sys/mman.h>
 #include <sys/resource.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -55,7 +58,7 @@ std::array<const char, 4> kBpfKind = {"bpf"};
 std::array<const char, 5> kTcActKind = {"gact"};
 constexpr int kMaxPathLen = 255;
 constexpr folly::StringPiece kPossibleCpusFile(
-  "/sys/devices/system/cpu/possible");
+    "/sys/devices/system/cpu/possible");
 
 // from linux/pkt_cls.h bpf specific constants
 /* BPF classifier */
@@ -74,6 +77,13 @@ enum {
   TCA_BPF_FLAGS,
   __TCA_BPF_MAX,
 };
+
+struct perf_event_sample {
+  struct perf_event_header header;
+  __u32 size;
+  char data[];
+};
+
 } // namespace
 
 #ifndef IFLA_XDP
@@ -91,7 +101,53 @@ constexpr int kNoMap = -1;
 constexpr int kError = -1;
 constexpr int kMaxIndex = 1;
 constexpr int kMinIndex = 0;
+
+int get_perf_event_fd(int cpu, int wakeUpNumEvents) {
+  struct perf_event_attr attr;
+  int pmu_fd;
+  ::memset(&attr, 0, sizeof(attr));
+  attr.sample_type = PERF_SAMPLE_RAW;
+  attr.type = PERF_TYPE_SOFTWARE;
+  attr.config = PERF_COUNT_SW_BPF_OUTPUT;
+  if (wakeUpNumEvents) {
+    attr.sample_period = wakeUpNumEvents;
+    attr.wakeup_events = wakeUpNumEvents;
+  }
+
+  pmu_fd = ebpf_perf_event_open(&attr, -1, cpu, -1, 0);
+
+  if (pmu_fd < 0) {
+    LOG(ERROR) << "ebpf_perf_event_open failed";
+    return pmu_fd;
+  }
+
+  if (::ioctl(pmu_fd, PERF_EVENT_IOC_ENABLE, 0)) {
+    LOG(ERROR) << "cannot open perf event for cpu:" << cpu << ". "
+               << folly::errnoStr(errno);
+    close(pmu_fd);
+    pmu_fd = -1;
+  }
+  return pmu_fd;
 }
+
+struct perf_event_mmap_page* FOLLY_NULLABLE mmap_perf_event(int fd, int pages) {
+  if (fd < 0) {
+    LOG(ERROR) << "Won't mmap for fd < 0";
+    return nullptr;
+  }
+
+  auto mmap_size = ::getpagesize() * (pages + 1);
+  auto base =
+      ::mmap(nullptr, mmap_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+  if (base == MAP_FAILED) {
+    LOG(ERROR) << "cannot mmap perf event. " << folly::errnoStr(errno);
+    return nullptr;
+  }
+
+  return reinterpret_cast<struct perf_event_mmap_page*>(base);
+}
+
+} // namespace
 
 namespace katran {
 
@@ -113,10 +169,7 @@ int BpfAdapter::loadBpfProg(
   return loader_.loadBpfFile(bpf_prog, type);
 }
 
-int BpfAdapter::loadBpfProg(
-  char *buf,
-  int buf_size,
-  const bpf_prog_type type) {
+int BpfAdapter::loadBpfProg(char* buf, int buf_size, const bpf_prog_type type) {
   return loader_.loadBpfFromBuffer(buf, buf_size, type);
 }
 
@@ -174,7 +227,7 @@ int BpfAdapter::bpfUpdateMap(
     unsigned long long flags) {
   auto bpfError = ebpf_update_elem(map_fd, key, value, flags);
   if (bpfError) {
-    VLOG(4) << "Error while updating value in map: " << std::strerror(errno);
+    VLOG(4) << "Error while updating value in map: " << folly::errnoStr(errno);
   }
   return bpfError;
 }
@@ -182,7 +235,7 @@ int BpfAdapter::bpfUpdateMap(
 int BpfAdapter::bpfMapLookupElement(int map_fd, void* key, void* value) {
   auto bpfError = ebpf_lookup_elem(map_fd, key, value);
   if (bpfError) {
-    VLOG(4) << "Error while geting value from map: " << std::strerror(errno);
+    VLOG(4) << "Error while geting value from map: " << folly::errnoStr(errno);
   }
   return bpfError;
 }
@@ -190,7 +243,7 @@ int BpfAdapter::bpfMapLookupElement(int map_fd, void* key, void* value) {
 int BpfAdapter::bpfMapDeleteElement(int map_fd, void* key) {
   auto bpfError = ebpf_delete_elem(map_fd, key);
   if (bpfError) {
-    VLOG(4) << "Error while deleting key from map: " << std::strerror(errno);
+    VLOG(4) << "Error while deleting key from map: " << folly::errnoStr(errno);
   }
   return bpfError;
 }
@@ -198,7 +251,7 @@ int BpfAdapter::bpfMapDeleteElement(int map_fd, void* key) {
 int BpfAdapter::bpfMapGetNextKey(int map_fd, void* key, void* next_key) {
   auto bpfError = ebpf_get_next_key(map_fd, key, next_key);
   if (bpfError) {
-    VLOG(4) << "Error getting next key from map: " << std::strerror(errno);
+    VLOG(4) << "Error getting next key from map: " << folly::errnoStr(errno);
   }
   return bpfError;
 }
@@ -635,6 +688,113 @@ int BpfAdapter::getPossibleCpus() {
     return kError;
   }
   return range[kMinIndex] == 0 ? range[kMaxIndex] + 1 : kError;
+}
+
+bool BpfAdapter::perfEventUnmmap(
+    struct perf_event_mmap_page** header,
+    int pages) {
+  bool ret = false;
+  if (header != nullptr && *header != nullptr) {
+    auto res = ::munmap(*header, pages * ::getpagesize() + 1);
+    if (!res) {
+      *header = nullptr;
+      ret = true;
+    }
+  }
+  return ret;
+}
+
+bool BpfAdapter::openPerfEvent(
+    int cpu,
+    int map_fd,
+    int wakeUpNumEvents,
+    int pages,
+    struct perf_event_mmap_page** header,
+    int& event_fd) {
+  if (header == nullptr || *header != nullptr) {
+    LOG(ERROR) << "Won't open perf event with header not equal to nullptr";
+    return false;
+  }
+  event_fd = get_perf_event_fd(cpu, wakeUpNumEvents);
+  if (event_fd < 0) {
+    LOG(ERROR) << "Failed to get perf event fd";
+    return false;
+  }
+  *header = mmap_perf_event(event_fd, pages);
+  if (*header == nullptr) {
+    return false;
+  }
+  if (ebpf_update_elem(map_fd, &cpu, &event_fd, BPF_ANY)) {
+    LOG(ERROR) << "failed to update perf_event_map " << folly::errnoStr(errno);
+    return false;
+  }
+  return true;
+}
+
+void BpfAdapter::handlePerfEvent(
+    folly::Function<void(const char* data, size_t size)> eventHandler,
+    struct perf_event_mmap_page* header,
+    std::string& buffer,
+    int pageSize,
+    int pages,
+    int cpu) {
+  if (header == nullptr) {
+    VLOG(2) << "handlePerfEvent: unexpectedly header equals to nullptr";
+    return;
+  }
+  auto dataTail = header->data_tail;
+  auto dataHead = header->data_head;
+  auto bufferSize = pageSize * pages;
+  char *base, *begin, *end;
+
+  asm volatile("" ::: "memory"); /* smp_rmb() */
+  if (dataHead == dataTail) {
+    return;
+  }
+
+  base = reinterpret_cast<char*>(header) + pageSize;
+
+  begin = base + dataTail % bufferSize;
+  end = base + dataHead % bufferSize;
+
+  while (begin != end) {
+    const struct perf_event_sample* event;
+
+    event = reinterpret_cast<const struct perf_event_sample*>(begin);
+    if (begin + event->header.size > base + bufferSize) {
+      long len = base + bufferSize - begin;
+
+      CHECK_LT(len, event->header.size);
+      if (event->header.size > buffer.size()) {
+        buffer.resize(event->header.size);
+      }
+      buffer.assign(begin, len);
+      buffer.insert(len, base, event->header.size - len);
+      event = reinterpret_cast<const struct perf_event_sample*>(buffer.data());
+      begin = base + event->header.size - len;
+    } else if (begin + event->header.size == base + bufferSize) {
+      begin = base;
+    } else {
+      begin += event->header.size;
+    }
+
+    if (event->header.type == PERF_RECORD_SAMPLE) {
+      eventHandler(event->data, event->size);
+    } else if (event->header.type == PERF_RECORD_LOST) {
+      const struct lost_sample {
+        struct perf_event_header header;
+        __u64 id;
+        __u64 lost;
+      }* lost = reinterpret_cast<const struct lost_sample*>(event);
+      VLOG(5) << "cpu:" << cpu << " lost " << lost->lost << " events";
+    } else {
+      VLOG(5) << "cpu:" << cpu
+              << " received unknown event type:" << event->header.type
+              << " size:" << event->header.size;
+    }
+  }
+  __sync_synchronize(); /* smp_mb() */
+  header->data_tail = dataHead;
 }
 
 } // namespace katran
