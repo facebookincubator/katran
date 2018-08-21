@@ -40,7 +40,8 @@ get_dev_tools() {
         libbison-dev \
         bison \
         flex \
-        bc
+        bc \
+        libbpfcc-dev
 }
 
 get_folly() {
