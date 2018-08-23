@@ -157,6 +157,24 @@ get_mstch() {
     touch deps/mstch_installed
 }
 
+get_fizz() {
+    if [ -f "deps/fizz_installed" ]; then
+        return
+    fi
+    rm -rf deps/fizz
+    sudo apt-get install -y libsodium-dev
+    pushd .
+    cd deps
+    git clone --depth 1 https://github.com/facebookincubator/fizz
+    cd fizz
+    mkdir build_ && cd build_
+    cmake ../fizz/
+    make -j $NCPUS
+    sudo make install
+    popd
+    touch deps/fizz_installed
+}
+
 get_wangle() {
     if [ -f "deps/wangle_installed" ]; then
         return
@@ -277,6 +295,7 @@ get_linux
 get_gtest
 if [ "$BUILD_EXAMPLE" -eq 1 ]; then
   get_mstch
+  get_fizz
   get_wangle
   get_zstd
   get_fbthrift
