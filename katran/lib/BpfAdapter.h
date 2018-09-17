@@ -431,6 +431,15 @@ class BpfAdapter {
   static int getPossibleCpus();
 
   /**
+   * @return number of online cpus in the system
+   *
+   * helper function which retrieves number of currently online cpus.
+   * return -1 on failure, number of CPUs
+   * otherwise.
+   */
+  static int getOnlineCpus();
+
+  /**
    * @param struct perf_event_mmap_page* header ptr to mmaped memory
    * @param int pages size of mmap region in pages
    * @return true on success

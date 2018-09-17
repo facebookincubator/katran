@@ -29,6 +29,7 @@
 
 #include "balancer_consts.h"
 #include "balancer_structs.h"
+#include "balancer_helpers.h"
 #include "bpf_helpers.h"
 #include "pckt_parsing.h"
 
@@ -97,8 +98,7 @@ static inline bool encap_v4(struct xdp_md *xdp, struct ctl_value *cval,
   __u32 ip_suffix = htons(pckt->flow.port16[0]);
   ip_suffix <<= 16;
   ip_suffix ^= pckt->flow.src;
-  __u16 *next_iph_u16;
-  __u32 csum = 0;
+  __u64 csum = 0;
   // ipip encap
   if (bpf_xdp_adjust_head(xdp, 0 - (int)sizeof(struct iphdr))) {
     return false;
@@ -130,12 +130,9 @@ static inline bool encap_v4(struct xdp_md *xdp, struct ctl_value *cval,
   iph->saddr = ((0xFFFF0000 & ip_suffix) | IPIP_V4_PREFIX);
   iph->ttl = DEFAULT_TTL;
 
-  next_iph_u16 = (__u16 *)iph;
-  #pragma clang loop unroll(full)
-  for (int i = 0; i < sizeof(struct iphdr) >> 1; i++) {
-     csum += *next_iph_u16++;
-  }
-  iph->check = ~((csum & 0xffff) + (csum >> 16));
+  ipv4_csum_inline(iph, &csum);
+  iph->check = csum;
+
   return true;
 }
 

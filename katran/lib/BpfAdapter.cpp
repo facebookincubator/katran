@@ -59,6 +59,8 @@ std::array<const char, 5> kTcActKind = {"gact"};
 constexpr int kMaxPathLen = 255;
 constexpr folly::StringPiece kPossibleCpusFile(
     "/sys/devices/system/cpu/possible");
+constexpr folly::StringPiece kOnlineCpusFile(
+    "/sys/devices/system/cpu/online");
 
 // from linux/pkt_cls.h bpf specific constants
 /* BPF classifier */
@@ -145,6 +147,28 @@ struct perf_event_mmap_page* FOLLY_NULLABLE mmap_perf_event(int fd, int pages) {
   }
 
   return reinterpret_cast<struct perf_event_mmap_page*>(base);
+}
+
+int getCpuCount(const folly::StringPiece file) {
+  std::string cpus;
+  auto res = folly::readFile(file.data(), cpus);
+  if (!res) {
+    LOG(ERROR) << "Can't read number of cpus from " << file;
+    return kError;
+  }
+  VLOG(2) << "cpus file " << file << " content: " << cpus;
+  std::vector<uint32_t> range;
+  folly::split("-", cpus, range);
+  if (range.size() == 2) {
+    return range[kMinIndex] == 0 ? range[kMaxIndex] + 1 : kError;
+  } else if (range.size() == 1) {
+    // if system contains just a single cpu content of the file would be just
+    // "0"
+    return 1;
+  } else {
+    LOG(ERROR) << "unsupported format of file: " << file << " format: " << cpus;
+    return kError;
+  }
 }
 
 } // namespace
@@ -674,20 +698,11 @@ int BpfAdapter::detachCgroupProg(
 }
 
 int BpfAdapter::getPossibleCpus() {
-  std::string cpus;
-  auto res = folly::readFile(kPossibleCpusFile.data(), cpus);
-  if (!res) {
-    LOG(ERROR) << "Can't read number of possible cpus";
-    return kError;
-  }
-  VLOG(2) << "possible cpus file content: " << cpus;
-  std::vector<uint32_t> range;
-  folly::split("-", cpus, range);
-  if (range.size() != 2) {
-    LOG(ERROR) << "unsupported format of cpus file: " << cpus;
-    return kError;
-  }
-  return range[kMinIndex] == 0 ? range[kMaxIndex] + 1 : kError;
+  return getCpuCount(kPossibleCpusFile);
+}
+
+int BpfAdapter::getOnlineCpus() {
+  return getCpuCount(kOnlineCpusFile);
 }
 
 bool BpfAdapter::perfEventUnmmap(

@@ -50,6 +50,16 @@ static inline void ipv4_csum(void *data_start, int data_size,  __u64 *csum) {
 }
 
 __attribute__((__always_inline__))
+static inline void ipv4_csum_inline(void *iph, __u64 *csum) {
+  __u16 *next_iph_u16 = (__u16 *)iph;
+  #pragma clang loop unroll(full)
+  for (int i = 0; i < sizeof(struct iphdr) >> 1; i++) {
+     *csum += *next_iph_u16++;
+  }
+  *csum = csum_fold_helper(*csum);
+}
+
+__attribute__((__always_inline__))
 static inline void ipv4_l4_csum(void *data_start, int data_size,
                                 __u64 *csum, struct iphdr *iph) {
   __u32 tmp = 0;

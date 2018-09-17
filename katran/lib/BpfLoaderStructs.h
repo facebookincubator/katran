@@ -74,7 +74,7 @@ struct RelocDesc {
 struct BpfProgData {
   std::vector<RelocDesc> progRelocs;
   std::string name;
-  struct bpf_insn* insns;
+  struct bpf_insn* insns{nullptr};
   bpf_prog_type type;
   int idx;
   int insns_cnt;

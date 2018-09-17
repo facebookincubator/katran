@@ -59,10 +59,9 @@ static inline int send_icmp_reply(void *data, void *data_end) {
   struct iphdr *iph;
   struct icmphdr *icmp_hdr;
   __u32 tmp_addr = 0;
+  __u64 csum = 0;
   __u64 off = 0;
-  __u32 csum = 0;
-  __u32 csum1 = 0;
-  __u16 *next_iph_u16;
+
   if ((data + sizeof(struct eth_hdr)
       + sizeof(struct iphdr) + sizeof(struct icmphdr)) > data_end) {
     return XDP_DROP;
@@ -81,12 +80,8 @@ static inline int send_icmp_reply(void *data, void *data_end) {
   iph->daddr = iph->saddr;
   iph->saddr = tmp_addr;
   iph->check = 0;
-  next_iph_u16 = (__u16 *)iph;
-  #pragma clang loop unroll(full)
-  for (int i = 0; i < sizeof(struct iphdr) >> 1; i++) {
-     csum += *next_iph_u16++;
-  }
-  iph->check = ~((csum & 0xffff) + (csum >> 16));
+  ipv4_csum_inline(iph, &csum);
+  iph->check = csum;
   return swap_mac_and_send(data, data_end);
 }
 

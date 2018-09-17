@@ -91,10 +91,14 @@ BpfLoader::BpfLoader()
     : innerMapsProto_(kMaxInnerMaps, kNotExists),
       sectionsIndexes_(4, kNotExists) {}
 
+BpfLoader::~BpfLoader() {
+  clearBpfProgDataMap();
+}
+
 int BpfLoader::getMapFdByName(const std::string& name) {
   auto map = maps_.find(name);
   if (map == maps_.end()) {
-    LOG(ERROR) << "Can't find name w/ name: " << name;
+    LOG(ERROR) << "Can't find map w/ name: " << name;
     return kNotExists;
   } else {
     return map->second;
@@ -341,7 +345,7 @@ void BpfLoader::initializeTempVars() {
   symbolTable_ = nullptr;
   elf_ = nullptr;
   relocs_.clear();
-  progsData_.clear();
+  clearBpfProgDataMap();
   offsetToMap_.clear();
 }
 
@@ -507,6 +511,20 @@ int BpfLoader::relocateMaps() {
   return 0;
 }
 
+void BpfLoader::freeBpfProgDataInsns(BpfProgData& prog) {
+  if (prog.insns) {
+    std::free(prog.insns);
+    prog.insns = nullptr;
+  }
+}
+
+void BpfLoader::clearBpfProgDataMap() {
+  for (auto& progPair: progsData_) {
+    freeBpfProgDataInsns(progPair.second);
+  }
+  progsData_.clear();
+}
+
 int BpfLoader::relocateInsns() {
   for (auto& prog_iter : progsData_) {
     if (prog_iter.second.progRelocs.size() == 0) {
@@ -597,7 +615,7 @@ int BpfLoader::loadBpfProgs() {
 
     progs_[prog_iter.second.name] = prog_fd;
     progsCntr_++;
-    std::free(prog_iter.second.insns);
+    freeBpfProgDataInsns(prog_iter.second);
   }
   return 0;
 }

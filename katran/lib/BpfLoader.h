@@ -38,6 +38,8 @@ class BpfLoader {
  public:
   BpfLoader();
 
+  ~BpfLoader();
+
   /**
    * @param char* ptr to buffer with elf object
    * @param int size of the buffer with elf object
@@ -179,6 +181,18 @@ class BpfLoader {
    * helper function to apply map's related rellocations for the programs
    */
   int relocateMaps();
+
+  /**
+   * helper function to clear/free malloc'd memory associated with instructions
+   * in BpfProgData
+   */
+  void freeBpfProgDataInsns(BpfProgData& prog);
+
+  /**
+   * helper function to clear the contents of the map and also clear/free
+   * malloc'd memory associated with BpfProgData in the map
+   */
+  void clearBpfProgDataMap();
 
   /**
    * dict of map's name to map's descriptor mappings
