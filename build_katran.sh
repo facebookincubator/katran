@@ -235,6 +235,9 @@ get_grpc() {
     git clone  --depth 1 https://github.com/grpc/grpc
     cd grpc
     git submodule update --init
+    mkdir build
+    cd build
+    cmake ..
     make -j $NCPUS
     sudo make install
     cd third_party/protobuf
