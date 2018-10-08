@@ -3,7 +3,8 @@ project(katran_grpc)
 set (CMAKE_CXX_STANDARD 14)
 
 find_library(PROTOBUF libprotobuf.a protobuf)
-set(GRPC_LIBRARIES_PATH "${CMAKE_SOURCE_DIR}/deps/grpc/build/")
+set(GRPC_BUILD_PATH "${CMAKE_SOURCE_DIR}/deps/grpc/build/")
+set(GRPC_LIBRARIES_PATH "${GRPC_BUILD_PATH}")
 set(CARES_LIBRARIES_PATH "${GRPC_LIBRARIES_PATH}/third_party/cares/cares/lib")
 find_library(ADDR_SORT libaddress_sorting.a address_sorting PATHS ${GRPC_LIBRARIES_PATH})
 find_library(GPR libgpr.a gpr PATHS ${GRPC_LIBRARIES_PATH})
@@ -35,7 +36,7 @@ add_custom_command(
     COMMAND ${PROTOBUF_PROTOC_EXECUTABLE}
     ARGS "--proto_path=${PROTO_PATH}"
          "--grpc_out=${GENERATED_PROTOBUF_PATH}"
-         "--plugin=protoc-gen-grpc=/usr/local/bin/grpc_cpp_plugin"
+         "--plugin=protoc-gen-grpc=${GRPC_BUILD_PATH}/grpc_cpp_plugin"
          "${KATRAN_PROTO}"
     COMMENT "generating grpc files"
     )
