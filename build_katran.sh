@@ -244,7 +244,7 @@ get_grpc() {
     cmake ..
     make -j $NCPUS
     sudo make install
-    cd third_party/protobuf
+    cd ../third_party/protobuf
     make && sudo make install
     popd
     touch deps/grpc_installed
