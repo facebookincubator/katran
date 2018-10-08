@@ -229,6 +229,10 @@ get_grpc() {
     if [ -f "deps/grpc_installed" ]; then
         return
     fi
+    GO_INSTALLED=$(which go || true)
+    if [ -z "$GO_INSTALLED" ]; then
+        sudo apt-get install -y golang
+    fi
     rm -rf deps/grpc
     pushd .
     cd deps
