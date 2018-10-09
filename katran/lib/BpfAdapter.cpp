@@ -59,8 +59,7 @@ std::array<const char, 5> kTcActKind = {"gact"};
 constexpr int kMaxPathLen = 255;
 constexpr folly::StringPiece kPossibleCpusFile(
     "/sys/devices/system/cpu/possible");
-constexpr folly::StringPiece kOnlineCpusFile(
-    "/sys/devices/system/cpu/online");
+constexpr folly::StringPiece kOnlineCpusFile("/sys/devices/system/cpu/online");
 
 // from linux/pkt_cls.h bpf specific constants
 /* BPF classifier */
@@ -189,12 +188,17 @@ BpfAdapter::BpfAdapter(bool set_limits) {
 
 int BpfAdapter::loadBpfProg(
     const std::string& bpf_prog,
-    const bpf_prog_type type) {
-  return loader_.loadBpfFile(bpf_prog, type);
+    const bpf_prog_type type,
+    bool use_names) {
+  return loader_.loadBpfFile(bpf_prog, type, use_names);
 }
 
-int BpfAdapter::loadBpfProg(char* buf, int buf_size, const bpf_prog_type type) {
-  return loader_.loadBpfFromBuffer(buf, buf_size, type);
+int BpfAdapter::loadBpfProg(
+    char* buf,
+    int buf_size,
+    const bpf_prog_type type,
+    bool use_names) {
+  return loader_.loadBpfFromBuffer(buf, buf_size, type, use_names);
 }
 
 int BpfAdapter::getMapFdByName(const std::string& name) {

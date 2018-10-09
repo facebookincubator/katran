@@ -196,6 +196,14 @@
 #define INIT_JHASH_SEED CH_RINGS_SIZE
 #endif
 
+// initial value for jhash hashing function, used to pick up a real server
+// w/ ipv6 address
+#ifndef INIT_JHASH_SEED_V6
+#define INIT_JHASH_SEED_V6 MAX_VIPS
+#endif
+
+
+
 /*
  * optional features (requires kernel support. turned off by default)
  * to be able to enable them, you need to define them in compile time

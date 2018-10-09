@@ -81,7 +81,9 @@ int ebpf_create_map_in_map_node(enum bpf_map_type map_type, const char *name,
   attr.inner_map_fd = inner_map_fd;
   attr.max_entries = max_entries;
   attr.map_flags = map_flags;
-  memcpy(attr.map_name, name, min(name_len, BPF_OBJ_NAME_LEN - 1));
+  if (name) {
+    memcpy(attr.map_name, name, min(name_len, BPF_OBJ_NAME_LEN - 1));
+  }
 
   if (node >= 0) {
     attr.map_flags |= BPF_F_NUMA_NODE;

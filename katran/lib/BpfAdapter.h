@@ -64,6 +64,7 @@ class BpfAdapter {
   /**
    * @param string bpf_prog path to bpf program
    * @param bpf_prog_type type of bpf prog to load
+   * @param bool use_names flag to mark if names for maps/progs should be loaded
    * @return int result 0 in case of success, other val otherwise
    *
    * helper function to load bpf program into the kernel
@@ -73,12 +74,14 @@ class BpfAdapter {
    */
   int loadBpfProg(
       const std::string& bpf_prog,
-      const bpf_prog_type type = BPF_PROG_TYPE_UNSPEC);
+      const bpf_prog_type type = BPF_PROG_TYPE_UNSPEC,
+      bool use_names = false);
 
   /**
    * @param char* ptr to buffer with bpf's elf object
    * @param int size of the buffer
    * @param bpf_prog_type type of bpf prog to load
+   * @param bool use_names flag to mark if names for maps/progs should be loaded
    * @return int result 0 in case of success, other val otherwise
    *
    * helper function to load bpf program into the kernel from buffer
@@ -89,7 +92,8 @@ class BpfAdapter {
   int loadBpfProg(
       char* buf,
       int buf_size,
-      const bpf_prog_type type = BPF_PROG_TYPE_UNSPEC);
+      const bpf_prog_type type = BPF_PROG_TYPE_UNSPEC,
+      bool use_names = false);
 
   /**
    * @param string name of the map (as in bpf's .c file)

@@ -44,6 +44,7 @@ class BpfLoader {
    * @param char* ptr to buffer with elf object
    * @param int size of the buffer with elf object
    * @param bpf_prog_type type of bpf program to load.
+   * @param bool use_names flag to mark if names for maps/progs should be loaded
    * @return int 0 on success
    *
    * helper function to load bpf program from specified buffer (in elf format).
@@ -54,11 +55,13 @@ class BpfLoader {
   int loadBpfFromBuffer(
       char* buf,
       int buf_size,
-      const bpf_prog_type type = BPF_PROG_TYPE_UNSPEC);
+      const bpf_prog_type type = BPF_PROG_TYPE_UNSPEC,
+      bool use_names = false);
 
   /**
    * @param string path to bpf object file
    * @param bpf_prog_type type of bpf program to load.
+   * @param bool use_names flag to mark if names for maps/progs should be loaded
    * @return int 0 on success
    *
    * helper function to load bpf program. for XDP and TC bpf programs we could
@@ -67,7 +70,8 @@ class BpfLoader {
    */
   int loadBpfFile(
       const std::string& path,
-      const bpf_prog_type type = BPF_PROG_TYPE_UNSPEC);
+      const bpf_prog_type type = BPF_PROG_TYPE_UNSPEC,
+      bool use_names = false);
 
   /**
    * @param string name of the map
@@ -154,7 +158,7 @@ class BpfLoader {
   /**
    * helper function to initialize scratch/tmp variables
    */
-  void initializeTempVars();
+  void initializeTempVars(bool use_names);
 
   /**
    * helper function to collect indexes for maps/strings/symbols/text sections
@@ -279,6 +283,11 @@ class BpfLoader {
    * tmp object w/ map's offset to name mapping
    */
   std::unordered_map<uint32_t, std::string> offsetToMap_;
+
+  /**
+   * temp flag to mark if loader should load map's and prog's names
+   */
+  bool useNames_;
 };
 
 } // namespace katran

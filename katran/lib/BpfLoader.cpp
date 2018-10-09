@@ -44,6 +44,7 @@
 #include "BpfLoader.h"
 
 #include <glog/logging.h>
+#include <algorithm>
 #include <cerrno>
 #include <cstdlib>
 #include <cstring>
@@ -79,6 +80,7 @@ constexpr int kMaxSections = 128;
 constexpr int kMegaByte = 1024 * 1024;
 constexpr int kLogBufSize = 10 * kMegaByte;
 constexpr int kNotExists = -1;
+constexpr int kNoNuma = -1;
 constexpr int kStart = 0;
 constexpr int kPrefixSize = 3;
 constexpr int kTextSection = 0;
@@ -212,6 +214,10 @@ int BpfLoader::loadMaps(Elf* elf) {
       LOG(ERROR) << "Name collision for map: " << exists->second;
       return 1;
     }
+    const char* map_name = map_symbol->second.c_str();
+    if (!useNames_) {
+      map_name = nullptr;
+    }
     VLOG(4) << "Loading map w/ name: " << map_symbol->second
             << " ,offset: " << map_offset;
     if (maps[i].type == BPF_MAP_TYPE_ARRAY_OF_MAPS ||
@@ -229,15 +235,18 @@ int BpfLoader::loadMaps(Elf* elf) {
                    << "map-in-map prototype";
         return 1;
       }
-      map_fd = ebpf_create_map_in_map(
+      map_fd = ebpf_create_map_in_map_node(
           static_cast<enum bpf_map_type>(maps[i].type),
+          map_name,
           maps[i].key_size,
           inner_map_fd,
           maps[i].max_entries,
-          maps[i].map_flags);
+          maps[i].map_flags,
+          kNoNuma);
     } else {
-      map_fd = ebpf_create_map(
+      map_fd = ebpf_create_map_name(
           static_cast<enum bpf_map_type>(maps[i].type),
+          map_name,
           maps[i].key_size,
           maps[i].value_size,
           maps[i].max_entries,
@@ -338,7 +347,7 @@ int BpfLoader::addProgData(const std::string& name, Elf_Data* data, int idx) {
   return 0;
 }
 
-void BpfLoader::initializeTempVars() {
+void BpfLoader::initializeTempVars(bool use_names) {
   for (auto& section : sectionsIndexes_) {
     section = kNotExists;
   }
@@ -347,6 +356,7 @@ void BpfLoader::initializeTempVars() {
   relocs_.clear();
   clearBpfProgDataMap();
   offsetToMap_.clear();
+  useNames_ = use_names;
 }
 
 int BpfLoader::collectReloc() {
@@ -519,7 +529,7 @@ void BpfLoader::freeBpfProgDataInsns(BpfProgData& prog) {
 }
 
 void BpfLoader::clearBpfProgDataMap() {
-  for (auto& progPair: progsData_) {
+  for (auto& progPair : progsData_) {
     freeBpfProgDataInsns(progPair.second);
   }
   progsData_.clear();
@@ -597,8 +607,15 @@ int BpfLoader::loadBpfProgs() {
             << "\nlicense: " << license_
             << "\nkernel version: " << kernelVersion_;
     std::string bpf_log_buf(kLogBufSize, '\0');
-    auto prog_fd = ebpf_prog_load(
+    auto prog_name = prog_iter.second.name;
+    std::replace(prog_name.begin(), prog_name.end(), '-', '_');
+    const char* name = prog_name.c_str();
+    if (!useNames_) {
+      name = nullptr;
+    }
+    auto prog_fd = ebpf_prog_load_name(
         prog_iter.second.type,
+        name,
         prog_iter.second.insns,
         prog_iter.second.size,
         license_.c_str(),
@@ -620,8 +637,11 @@ int BpfLoader::loadBpfProgs() {
   return 0;
 }
 
-int BpfLoader::loadBpfFile(const std::string& path, const bpf_prog_type type) {
-  initializeTempVars();
+int BpfLoader::loadBpfFile(
+    const std::string& path,
+    const bpf_prog_type type,
+    bool use_names) {
+  initializeTempVars(use_names);
   int fd = -1;
   SCOPE_EXIT {
     elf_end(elf_);
@@ -652,9 +672,11 @@ int BpfLoader::loadBpfFile(const std::string& path, const bpf_prog_type type) {
 }
 
 int BpfLoader::loadBpfFromBuffer(
-  char* buf, int buf_size, const bpf_prog_type type) {
-  //
-  initializeTempVars();
+    char* buf,
+    int buf_size,
+    const bpf_prog_type type,
+    bool use_names) {
+  initializeTempVars(use_names);
   SCOPE_EXIT {
     elf_end(elf_);
   };

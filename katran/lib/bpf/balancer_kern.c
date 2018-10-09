@@ -24,7 +24,7 @@ __attribute__((__always_inline__))
 static inline __u32 get_packet_hash(struct packet_description *pckt,
                                     bool hash_16bytes) {
   if (hash_16bytes) {
-    return jhash_2words(jhash(pckt->flow.srcv6, 16, MAX_VIPS),
+    return jhash_2words(jhash(pckt->flow.srcv6, 16, INIT_JHASH_SEED_V6),
                         pckt->flow.ports, INIT_JHASH_SEED);
   } else {
     return jhash_2words(pckt->flow.src, pckt->flow.ports, INIT_JHASH_SEED);
