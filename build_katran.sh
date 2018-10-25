@@ -77,7 +77,7 @@ get_folly() {
 	cd deps
 	git clone https://github.com/facebook/folly --depth 1
 	cd folly/build
-  cmake ..
+  cmake -DCXX_STD=gnu++14 ..
   make -j $NCPUS
   sudo make install
   popd
