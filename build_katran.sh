@@ -218,7 +218,7 @@ get_fbthrift() {
     cd deps
     git clone --depth 1 https://github.com/facebook/fbthrift || true
     cd fbthrift/build
-    cmake ..
+    cmake -DCXX_STD=gnu++14 ..
     make -j $NCPUS
     sudo make install
     popd
