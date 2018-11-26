@@ -42,6 +42,7 @@ struct flow_key {
 // client's packet metadata
 struct packet_description {
   struct flow_key flow;
+  __u32 real_index;
   __u8 flags;
 };
 

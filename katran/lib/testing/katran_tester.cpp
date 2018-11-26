@@ -21,8 +21,8 @@
 #include <folly/Range.h>
 #include <gflags/gflags.h>
 
-#include "KatranTestFixtures.h"
 #include "KatranOptionalTestFixtures.h"
+#include "KatranTestFixtures.h"
 #include "XdpTester.h"
 #include "katran/lib/KatranLb.h"
 #include "katran/lib/KatranLbStructs.h"
@@ -48,12 +48,21 @@ constexpr uint32_t kDefaultPriority = 2307;
 constexpr uint32_t kDefaultKatranPos = 8;
 constexpr bool kNoHc = false;
 const std::vector<std::string> kReals = {
-  "10.0.0.1",
-  "10.0.0.2",
-  "10.0.0.3",
-  "fc00::1",
-  "fc00::2",
-  "fc00::3",
+    "10.0.0.1",
+    "10.0.0.2",
+    "10.0.0.3",
+    "fc00::1",
+    "fc00::2",
+    "fc00::3",
+};
+
+const std::vector<::katran::lb_stats> kRealStats = {
+    {1, 38},
+    {8, 400},
+    {4, 236},
+    {2, 91},
+    {1, 38},
+    {2, 121},
 };
 
 constexpr uint16_t kVipPort = 80;
@@ -164,7 +173,7 @@ void prepareOptionalLbData(katran::KatranLb& lb) {
 }
 
 void preparePerfTestingLbData(katran::KatranLb& lb) {
-  for (auto& dst: kReals) {
+  for (auto& dst : kReals) {
     lb.addInlineDecapDst(dst);
   }
 }
@@ -215,6 +224,22 @@ void testLbCounters(katran::KatranLb& lb) {
     VLOG(2) << "FallbackLRU hits: " << stats.v1;
     LOG(INFO) << "LRU fallback counter is incorrect";
   }
+  for (int i = 0; i < kReals.size(); i++) {
+    auto real = kReals[i];
+    auto id = lb.getIndexForReal(real);
+    if (id < 0) {
+      LOG(INFO) << "Real does not exists: " << real;
+      continue;
+    }
+    stats = lb.getRealStats(id);
+    auto expected_stats = kRealStats[i];
+    if (stats.v1 != expected_stats.v1 || stats.v2 != expected_stats.v2) {
+      VLOG(2) << "stats for real: " << real << " v1: " << stats.v1
+              << " v2: " << stats.v2;
+      LOG(INFO) << "incorrect stats for real: " << real;
+      LOG(INFO) << "Expected to be incorrect w/ non default build flags";
+    }
+  }
   LOG(INFO) << "Testing of counters is complete";
   return;
 }
@@ -262,8 +287,8 @@ int main(int argc, char** argv) {
       LOG(INFO) << "Running optional tests. they could fail if requirements "
                 << "are not satisfied";
       tester.resetTestFixtures(
-        katran::testing::inputOptionalTestFixtures,
-        katran::testing::outputOptionalTestFixtures);
+          katran::testing::inputOptionalTestFixtures,
+          katran::testing::outputOptionalTestFixtures);
       tester.testFromFixture();
       testOptionalLbCounters(lb);
     }

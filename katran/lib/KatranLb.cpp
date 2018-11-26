@@ -625,6 +625,15 @@ std::vector<NewReal> KatranLb::getRealsForVip(const VipKey& vip) {
   return reals;
 }
 
+int64_t KatranLb::getIndexForReal(const std::string& real) {
+  auto real_iter = reals_.find(real);
+  if (real_iter == reals_.end()) {
+    return kError;
+  } else {
+    return real_iter->second.num;
+  }
+}
+
 int KatranLb::addSrcRoutingRule(
     const std::vector<std::string>& srcs,
     const std::string& dst) {
@@ -1012,7 +1021,11 @@ lb_stats KatranLb::getInlineDecapStats() {
   return getLbStats(maxVips_ + kInlineDecapOffset);
 }
 
-lb_stats KatranLb::getLbStats(uint32_t position) {
+lb_stats KatranLb::getRealStats(uint32_t index) {
+  return getLbStats(index, "reals_stats");
+}
+
+lb_stats KatranLb::getLbStats(uint32_t position, const std::string& map) {
   unsigned int nr_cpus = BpfAdapter::getPossibleCpus();
   if (nr_cpus < 0) {
     LOG(ERROR) << "Error while getting number of possible cpus";
@@ -1023,7 +1036,7 @@ lb_stats KatranLb::getLbStats(uint32_t position) {
 
   if (!testing_) {
     auto res = bpfAdapter_.bpfMapLookupElement(
-        bpfAdapter_.getMapFdByName("stats"), &position, stats);
+        bpfAdapter_.getMapFdByName(map), &position, stats);
     if (!res) {
       for (auto& stat : stats) {
         sum_stat.v1 += stat.v1;

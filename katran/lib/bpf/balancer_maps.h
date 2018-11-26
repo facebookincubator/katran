@@ -73,6 +73,15 @@ struct bpf_map_def SEC("maps") reals = {
   .map_flags = NO_FLAGS,
 };
 
+// map with per real pps/bps statistic
+struct bpf_map_def SEC("maps") reals_stats = {
+  .type = BPF_MAP_TYPE_PERCPU_ARRAY,
+  .key_size = sizeof(__u32),
+  .value_size = sizeof(struct lb_stats),
+  .max_entries = MAX_REALS,
+  .map_flags = NO_FLAGS,
+};
+
 // map w/ per vip statistics
 struct bpf_map_def SEC("maps") stats = {
   .type = BPF_MAP_TYPE_PERCPU_ARRAY,

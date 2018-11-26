@@ -127,6 +127,7 @@ static inline bool get_packet_dst(struct real_definition **real,
     }
     key = *real_pos;
   }
+  pckt->real_index = key;
   *real = bpf_map_lookup_elem(&reals, &key);
   if (!(*real)) {
     return false;
@@ -161,6 +162,7 @@ static inline void connection_table_lookup(struct real_definition **real,
     dst_lru->atime = cur_time;
   }
   key = dst_lru->pos;
+  pckt->real_index = key;
   *real = bpf_map_lookup_elem(&reals, &key);
   return;
 }
@@ -323,8 +325,12 @@ static inline int process_packet(void *data, __u64 off, void *data_end,
     }
     __u32 *decap_dst_flags = bpf_map_lookup_elem(&decap_dst, &dst_addr);
 
-    // prototype for inline decapsulation / could be used for
-    // microbenchmarks with katran_tester
+    action = process_encaped_pckt(&data, &data_end, xdp, &is_ipv6, &pckt,
+                                  &protocol, off, &pkt_bytes);
+    if (action >= 0) {
+      return action;
+    }
+
     if (decap_dst_flags) {
       __u32 stats_key = MAX_VIPS + REMOTE_ENCAP_CNTRS;
       BUILD_BUG_ON(stats_key >= STATS_MAP_SIZE);
@@ -333,12 +339,11 @@ static inline int process_packet(void *data, __u64 off, void *data_end,
         return XDP_DROP;
       }
       data_stats->v1 += 1;
-      action = process_encaped_pckt(&data, &data_end, xdp, &is_ipv6, &pckt,
-                                    &protocol, off, &pkt_bytes);
-      if (action >= 0) {
-        return action;
-      }
       pckt.flags |= F_INLINE_DECAP;
+    } else {
+      // it's ipip encapsulated packet but not to decap dst. so just pass
+      // decapsulated packet to the kernel
+      return XDP_PASS;
     }
   }
   #endif
@@ -416,6 +421,7 @@ static inline int process_packet(void *data, __u64 off, void *data_end,
       __u32 *real_pos = bpf_map_lookup_elem(&quic_mapping, &key);
       if (real_pos) {
         key = *real_pos;
+        pckt.real_index = key;
         dst = bpf_map_lookup_elem(&reals, &key);
         if (!dst) {
           return XDP_DROP;
@@ -499,6 +505,15 @@ static inline int process_packet(void *data, __u64 off, void *data_end,
   }
   data_stats->v1 += 1;
   data_stats->v2 += pkt_bytes;
+
+  // per real statistics
+  data_stats = bpf_map_lookup_elem(&reals_stats, &pckt.real_index);
+  if (!data_stats) {
+    return XDP_DROP;
+  }
+  data_stats->v1 += 1;
+  data_stats->v2 += pkt_bytes;
+
   return XDP_TX;
 }
 

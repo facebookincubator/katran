@@ -197,6 +197,16 @@ class KatranLb {
   std::vector<NewReal> getRealsForVip(const VipKey& vip);
 
   /**
+   * @param string address of the real
+   * @return int64_t internal index of the real. -1 if does not exists
+   *
+   * helper function to get internal (to katran) index of real
+   * could be used in other helpers. e.g. to get per real statistics.
+   * if real does not exist index -1 would be returned.
+   */
+  int64_t getIndexForReal(const std::string& real);
+
+  /**
    * @param ModifyAction action. either ADD or DEL
    * @param std::vector<QuicReal> reals to be modified
    *
@@ -388,6 +398,15 @@ class KatranLb {
   lb_stats getInlineDecapStats();
 
   /**
+   * @param uint32_t index of the real
+   * @return struct lb_stats w/ per real pps and bps statistics
+   *
+   * helper function which returns per real statistics for real with specified
+   * index.
+   */
+  lb_stats getRealStats(uint32_t index);
+
+  /**
    * @param uint32_t somark of the packet
    * @param std::string dst for a packed w/ specified so_mark
    * @return bool true on success
@@ -448,7 +467,7 @@ class KatranLb {
   /**
    * helper function to get stats from counter on specified possition
    */
-  lb_stats getLbStats(uint32_t position);
+  lb_stats getLbStats(uint32_t position, const std::string& map = "stats");
 
   /**
    * helper function to decrease real's ref count and delete it from

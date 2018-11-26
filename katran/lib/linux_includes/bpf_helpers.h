@@ -95,8 +95,38 @@ static int (*bpf_xdp_adjust_tail)(void *ctx, int offset) =
 static int (*bpf_skb_get_xfrm_state)(void *ctx, int index, void *state,
                                      int size, int flags) =
   (void *) BPF_FUNC_skb_get_xfrm_state;
+static int (*bpf_sk_select_reuseport)(void *ctx, void *map, void *key, __u32 flags) =
+  (void *) BPF_FUNC_sk_select_reuseport;
 static int (*bpf_get_stack)(void *ctx, void *buf, int size, int flags) =
   (void *) BPF_FUNC_get_stack;
+static int (*bpf_fib_lookup)(void *ctx, struct bpf_fib_lookup *params,
+           int plen, __u32 flags) =
+  (void *) BPF_FUNC_fib_lookup;
+static int (*bpf_lwt_push_encap)(void *ctx, unsigned int type, void *hdr,
+         unsigned int len) =
+  (void *) BPF_FUNC_lwt_push_encap;
+static int (*bpf_lwt_seg6_store_bytes)(void *ctx, unsigned int offset,
+               void *from, unsigned int len) =
+  (void *) BPF_FUNC_lwt_seg6_store_bytes;
+static int (*bpf_lwt_seg6_action)(void *ctx, unsigned int action, void *param,
+          unsigned int param_len) =
+  (void *) BPF_FUNC_lwt_seg6_action;
+static int (*bpf_lwt_seg6_adjust_srh)(void *ctx, unsigned int offset,
+              unsigned int len) =
+  (void *) BPF_FUNC_lwt_seg6_adjust_srh;
+static int (*bpf_rc_repeat)(void *ctx) =
+  (void *) BPF_FUNC_rc_repeat;
+static int (*bpf_rc_keydown)(void *ctx, unsigned int protocol,
+           unsigned long long scancode, unsigned int toggle) =
+  (void *) BPF_FUNC_rc_keydown;
+static unsigned long long (*bpf_get_current_cgroup_id)(void) =
+  (void *) BPF_FUNC_get_current_cgroup_id;
+static void *(*bpf_get_local_storage)(void *map, unsigned long long flags) =
+  (void *) BPF_FUNC_get_local_storage;
+static unsigned long long (*bpf_skb_cgroup_id)(void *ctx) =
+  (void *) BPF_FUNC_skb_cgroup_id;
+static unsigned long long (*bpf_skb_ancestor_cgroup_id)(void *ctx, int level) =
+  (void *) BPF_FUNC_skb_ancestor_cgroup_id;
 #endif
 /* llvm builtin functions that eBPF C program may use to
  * emit BPF_LD_ABS and BPF_LD_IND instructions
@@ -121,6 +151,15 @@ struct bpf_map_def {
   unsigned int inner_map_idx;
   unsigned int numa_node;
 };
+
+#define BPF_ANNOTATE_KV_PAIR(name, type_key, type_val)    \
+  struct ____btf_map_##name {       \
+    type_key key;         \
+    type_val value;         \
+  };              \
+  struct ____btf_map_##name       \
+  __attribute__ ((section(".maps." #name), used))   \
+    ____btf_map_##name = { }
 
 static int (*bpf_skb_load_bytes)(void *ctx, int off, void *to, int len) =
   (void *) BPF_FUNC_skb_load_bytes;
