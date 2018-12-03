@@ -30,8 +30,15 @@ DEFINE_string(
 int main(int argc, char** argv) {
   gflags::ParseCommandLineFlags(&argc, &argv, true);
   google::InitGoogleLogging(argv[0]);
+  bool shared_map_found = false;
   katran::BpfAdapter adapter;
   int err;
+  auto array_id = adapter.getPinnedBpfObject(FLAGS_bpfpath);
+  if (array_id > 0) {
+    LOG(INFO) << "using shared map for root array";
+    adapter.updateSharedMap("root_array", array_id);
+    shared_map_found = true;
+  }
   err = adapter.loadBpfProg(FLAGS_bpfprog);
   if (err) {
     std::cout << "cant load bpf prog " << FLAGS_bpfprog << std::endl;
@@ -61,11 +68,12 @@ int main(int argc, char** argv) {
     std::cout << "can't get fd for vip_map\n";
     return 1;
   }
-
-  auto res = adapter.pinBpfObject(root_array, FLAGS_bpfpath);
-  if (res < 0) {
-    std::cout << "can't pin root array\n";
-    return 1;
+  if (!shared_map_found) {
+    auto res = adapter.pinBpfObject(root_array, FLAGS_bpfpath);
+    if (res < 0) {
+      std::cout << "can't pin root array\n";
+      return 1;
+    }
   }
 
   return 0;
