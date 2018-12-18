@@ -44,7 +44,7 @@ bool XdpEventReader::open(int eventMapFd, folly::EventBase *evb,
     LOG(ERROR) << "can't open perf event for map with fd: " << eventMapFd;
     return false;
   }
-  initHandler(evb, fd);
+  initHandler(evb, folly::NetworkSocket::fromFd(fd));
   if (!registerHandler(READ | PERSIST)) {
     LOG(ERROR) << "can't register XdpEventReader for read event";
     return false;
