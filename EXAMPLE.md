@@ -20,6 +20,11 @@ root xdp program).
 to show how packets look on the wire.
 
 ### Starting katran
+As a first step make sure that BPF's jit is enabled (for best possible performance):
+net.core.bpf_jit_enable sysctl should be set to 1:
+```
+sysctl net.core.bpf_jit_enable=1
+```
 
 We are going to use gRPC in our example (but all this steps
 are applicable to thrift as well. They are intentionally written 
