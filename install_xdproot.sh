@@ -25,5 +25,5 @@ fi
 
 if [ ! -f "/sys/fs/bpf/jmp_${INTERFACE}" ]; then
     echo "Assuming ${INTERFACE} exists. please change script to actual interface if it does not"
-    sudo sh -c "$(pwd)/build/katran/lib/xdproot -bpfprog $(pwd)/deps/linux/bpfprog/bpf/xdp_root.o -bpfpath=/sys/fs/bpf/jmp_${INTERFACE} -intf=${INTERFACE}"
+    sudo sh -c "$(pwd)/build/katran/lib/xdproot -bpfprog $(pwd)/deps/bpfprog/bpf/xdp_root.o -bpfpath=/sys/fs/bpf/jmp_${INTERFACE} -intf=${INTERFACE}"
 fi

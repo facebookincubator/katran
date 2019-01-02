@@ -20,7 +20,7 @@
  * This file contains common used routines. such as csum helpers etc
  */
 
-#include <uapi/linux/ipv6.h>
+#include <linux/ipv6.h>
 
 #include "bpf_helpers.h"
 

@@ -109,20 +109,6 @@ get_required_libs() {
         libre2-dev
 }
 
-get_linux() {
-    if [ -f "deps/linux_installed" ]; then
-        return
-    fi
-    rm -rf deps/linux
-    pushd .
-    cd deps
-    git clone --branch v4.15 --depth 1 https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git
-    cd linux
-    make defconfig
-    popd
-    touch deps/linux_installed
-}
-
 get_gtest() {
     if [ -f "deps/googletest_installed" ]; then
         return
@@ -198,7 +184,7 @@ get_zstd() {
     rm -rf deps/zstd
     pushd .
     cd deps
-    git clone --depth 1 https://github.com/facebook/zstd
+    git clone --depth 1 https://github.com/facebook/zstd --branch v1.3.7
     cd zstd
     make -j $NCPUS
     sudo make install
@@ -298,7 +284,6 @@ get_dev_tools
 get_folly
 get_clang
 get_required_libs
-get_linux
 get_gtest
 if [ "$BUILD_EXAMPLE" -eq 1 ]; then
   get_mstch

@@ -23,14 +23,16 @@
  * using IPIP as our encap of choice
  */
 
-#include <uapi/linux/bpf.h>
-#include <uapi/linux/ip.h>
-#include <uapi/linux/ipv6.h>
+#include <linux/ip.h>
+#include <linux/ipv6.h>
+#include <string.h>
 
 #include "balancer_consts.h"
 #include "balancer_structs.h"
 #include "balancer_helpers.h"
+#include "bpf.h"
 #include "bpf_helpers.h"
+#include "bpf_endian.h"
 #include "pckt_parsing.h"
 
 __attribute__((__always_inline__))
@@ -69,11 +71,11 @@ static inline bool encap_v6(struct xdp_md *xdp, struct ctl_value *cval,
   if (is_ipv6) {
     ip6h->nexthdr = IPPROTO_IPV6;
     ip_suffix = pckt->flow.srcv6[3] ^ pckt->flow.port16[0];
-    ip6h->payload_len = htons(pkt_bytes + sizeof(struct ipv6hdr));
+    ip6h->payload_len = bpf_htons(pkt_bytes + sizeof(struct ipv6hdr));
   } else {
     ip6h->nexthdr = IPPROTO_IPIP;
     ip_suffix = pckt->flow.src ^ pckt->flow.port16[0];
-    ip6h->payload_len = htons(pkt_bytes);
+    ip6h->payload_len = bpf_htons(pkt_bytes);
   }
   ip6h->hop_limit = DEFAULT_TTL;
 
@@ -95,7 +97,7 @@ static inline bool encap_v4(struct xdp_md *xdp, struct ctl_value *cval,
   struct iphdr *iph;
   struct eth_hdr *new_eth;
   struct eth_hdr *old_eth;
-  __u32 ip_suffix = htons(pckt->flow.port16[0]);
+  __u32 ip_suffix = bpf_htons(pckt->flow.port16[0]);
   ip_suffix <<= 16;
   ip_suffix ^= pckt->flow.src;
   __u64 csum = 0;
@@ -124,7 +126,7 @@ static inline bool encap_v4(struct xdp_md *xdp, struct ctl_value *cval,
   iph->check = 0;
   // as w/ v6 we could configure tos to something else
   iph->tos = 0;
-  iph->tot_len = htons(pkt_bytes + sizeof(struct iphdr));
+  iph->tot_len = bpf_htons(pkt_bytes + sizeof(struct iphdr));
   iph->daddr = dst->dst;
 
   iph->saddr = ((0xFFFF0000 & ip_suffix) | IPIP_V4_PREFIX);

@@ -18,4 +18,4 @@
 set -xeo pipefail
 
 
-sudo sh -c "$(pwd)/build/katran/lib/testing/katran_tester -balancer_prog $(pwd)/deps/linux/bpfprog/bpf/balancer_kern.o -test_from_fixtures=true $1"
+sudo sh -c "$(pwd)/build/katran/lib/testing/katran_tester -balancer_prog $(pwd)/deps/bpfprog/bpf/balancer_kern.o -test_from_fixtures=true $1"

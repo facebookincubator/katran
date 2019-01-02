@@ -35,6 +35,7 @@ int ebpf_update_elem(int fd, void *key, void *value, unsigned long long flags);
 int ebpf_lookup_elem(int fd, void *key, void *value);
 int ebpf_delete_elem(int fd, void *key);
 int ebpf_get_next_key(int fd, void *key, void *next_key);
+int ebpf_map_get_fd_by_id(__u32 id);
 
 int ebpf_prog_load(enum bpf_prog_type prog_type,
                   const struct bpf_insn *insns, int insn_len,

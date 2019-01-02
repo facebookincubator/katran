@@ -1,19 +1,18 @@
-# kbuild trick to avoid linker error. Can be omitted if a module is built.
-obj- := dummy.o
+obj := .
+src := .
+
 
 DEBUGBPF = -DDEBUG
-#DEBUGBPF = ""
 DEBUGFLAGS = -O0 -g -Wall
-RELEASEFLAGS = -O2 -Wall
 PFLAGS = $(DEBUGFLAGS)
 
-INCLUDEFLAGS = -I$(objtree)/usr/include \
-	       -I$(objtree)/bpfprog/include \
+INCLUDEFLAGS = -I$(obj)/usr/include \
+	       -I$(obj)/include \
+	       #-I$(obj)/bpfprog/include \
 
 
 
-always += $(hostprogs-y) # slbpoc
-always += bpf/balancer_kern.o
+always = bpf/balancer_kern.o
 always += bpf/adapter_integration_test_kern.o
 always += bpf/healthchecking_ipip.o
 always += bpf/xdp_pktcntr.o
@@ -29,38 +28,15 @@ LLC ?= llc
 CLANG ?= clang
 
 # Trick to allow make to be run from this directory
-all:
+all: $(always)
 	$(MAKE) -C .. $$PWD/
-
+	
 clean:
 	$(MAKE) -C .. M=$$PWD clean
 	@rm -f *~
 
-# Verify LLVM compiler tools are available and bpf target is supported by llc
-.PHONY: verify_cmds verify_target_bpf $(CLANG) $(LLC)
-
-verify_cmds: $(CLANG) $(LLC)
-	@for TOOL in $^ ; do \
-		if ! (which -- "$${TOOL}" > /dev/null 2>&1); then \
-			echo "*** ERROR: Cannot find LLVM tool $${TOOL}" ;\
-			exit 1; \
-		else true; fi; \
-	done
-
-verify_target_bpf: verify_cmds
-	@if ! (${LLC} -march=bpf -mattr=help > /dev/null 2>&1); then \
-		echo "*** ERROR: LLVM (${LLC}) does not support 'bpf' target" ;\
-		echo "   NOTICE: LLVM version >= 3.7.1 required" ;\
-		exit 2; \
-	else true; fi
-
-$(src)/bpf/*.c: verify_target_bpf
-
-# asm/sysreg.h - inline assembly used by it is incompatible with llvm.
-# But, there is no easy way to fix it, so just exclude it since it is
-# useless for BPF samples.
 $(obj)/bpf/%.o: $(src)/bpf/%.c
-	$(CLANG) $(NOSTDINC_FLAGS) $(LINUXINCLUDE) $(INCLUDEFLAGS) $(EXTRA_CFLAGS) \
+	$(CLANG) $(INCLUDEFLAGS) $(EXTRA_CFLAGS) \
 	$(DEBUGBPF) -D__KERNEL__ -Wno-unused-value -Wno-pointer-sign \
 		-Wno-compare-distinct-pointer-types \
 		-O2 -emit-llvm -c -g $< -o -| $(LLC) -march=bpf -filetype=obj -o $@

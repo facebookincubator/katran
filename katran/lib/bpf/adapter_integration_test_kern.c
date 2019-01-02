@@ -14,15 +14,16 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#include <uapi/linux/bpf.h>
+#include <linux/in.h>
+#include <linux/if.h>
+#include <linux/if_ether.h>
+#include <linux/ip.h>
+#include <linux/ipv6.h>
+#include <linux/if_tunnel.h>
+#include <linux/pkt_cls.h>
+
+#include "bpf.h"
 #include "bpf_helpers.h"
-#include <uapi/linux/in.h>
-#include <uapi/linux/if.h>
-#include <uapi/linux/if_ether.h>
-#include <uapi/linux/ip.h>
-#include <uapi/linux/ipv6.h>
-#include <uapi/linux/if_tunnel.h>
-#include <uapi/linux/pkt_cls.h>
 
 #define CTRL_ARRAY_SIZE 2
 #define CNTRS_ARRAY_SIZE 512

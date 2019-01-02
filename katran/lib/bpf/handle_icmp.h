@@ -22,17 +22,18 @@
  * and handling ICMP packets
  */
 
-#include <uapi/linux/ip.h>
-#include <uapi/linux/ipv6.h>
-#include <uapi/linux/icmp.h>
-#include <uapi/linux/icmpv6.h>
+#include <linux/ip.h>
+#include <linux/ipv6.h>
+#include <linux/icmp.h>
+#include <linux/icmpv6.h>
 #include <stddef.h>
-#include <uapi/linux/bpf.h>
-#include <uapi/linux/if_ether.h>
+#include <linux/if_ether.h>
 
 #include "balancer_consts.h"
 #include "balancer_structs.h"
 #include "balancer_helpers.h"
+#include "bpf.h"
+#include "bpf_endian.h"
 
 __attribute__((__always_inline__))
 static inline int swap_mac_and_send(void *data, void *data_end) {
@@ -137,7 +138,7 @@ static inline int send_icmp4_too_big(struct xdp_md *xdp) {
   orig_iph = data + off;
   icmp_hdr->type = ICMP_DEST_UNREACH;
   icmp_hdr->code = ICMP_FRAG_NEEDED;
-  icmp_hdr->un.frag.mtu = htons(MAX_PCKT_SIZE-sizeof(struct eth_hdr));
+  icmp_hdr->un.frag.mtu = bpf_htons(MAX_PCKT_SIZE-sizeof(struct eth_hdr));
   icmp_hdr->checksum = 0;
   ipv4_csum(icmp_hdr, ICMP_TOOBIG_PAYLOAD_SIZE, &csum);
   icmp_hdr->checksum = csum;
@@ -148,7 +149,7 @@ static inline int send_icmp4_too_big(struct xdp_md *xdp) {
   iph->ihl = 5;
   iph->protocol = IPPROTO_ICMP;
   iph->tos = 0;
-  iph->tot_len = htons(ICMP_TOOBIG_SIZE + headroom - sizeof(struct eth_hdr));
+  iph->tot_len = bpf_htons(ICMP_TOOBIG_SIZE + headroom - sizeof(struct eth_hdr));
   iph->check = 0;
   csum = 0;
   ipv4_csum(iph, sizeof(struct iphdr), &csum);
@@ -184,13 +185,13 @@ static inline int send_icmp6_too_big(struct xdp_md *xdp) {
   ip6h->priority = 0;
   ip6h->nexthdr = IPPROTO_ICMPV6;
   ip6h->hop_limit = DEFAULT_TTL;
-  ip6h->payload_len = htons(ICMP6_TOOBIG_PAYLOAD_SIZE);
+  ip6h->payload_len = bpf_htons(ICMP6_TOOBIG_PAYLOAD_SIZE);
   memset(ip6h->flow_lbl, 0, sizeof(ip6h->flow_lbl));
   memcpy(ip6h->daddr.s6_addr32, orig_ip6h->saddr.s6_addr32, 16);
   memcpy(ip6h->saddr.s6_addr32, orig_ip6h->daddr.s6_addr32, 16);
   icmp6_hdr->icmp6_type = ICMPV6_PKT_TOOBIG;
   icmp6_hdr->icmp6_code = 0;
-  icmp6_hdr->icmp6_mtu = htonl(MAX_PCKT_SIZE-sizeof(struct eth_hdr));
+  icmp6_hdr->icmp6_mtu = bpf_htonl(MAX_PCKT_SIZE-sizeof(struct eth_hdr));
   icmp6_hdr->icmp6_cksum = 0;
   ipv6_csum(icmp6_hdr, ICMP6_TOOBIG_PAYLOAD_SIZE, &csum, ip6h);
   icmp6_hdr->icmp6_cksum = csum;

@@ -3,18 +3,18 @@
  * This is main balancer's application code
  */
 
-#include <uapi/linux/bpf.h>
-#include <uapi/linux/in.h>
-#include <uapi/linux/ip.h>
-#include <uapi/linux/ipv6.h>
+#include <linux/in.h>
+#include <linux/ip.h>
+#include <linux/ipv6.h>
 #include <stddef.h>
-#include <linux/bug.h>
-#include <linux/jhash.h>
+#include <stdbool.h>
 
-#include "bpf_helpers.h"
 #include "balancer_consts.h"
 #include "balancer_structs.h"
 #include "balancer_maps.h"
+#include "bpf.h"
+#include "bpf_helpers.h"
+#include "jhash.h"
 #include "pckt_encap.h"
 #include "pckt_parsing.h"
 #include "handle_icmp.h"
@@ -34,7 +34,6 @@ static inline __u32 get_packet_hash(struct packet_description *pckt,
 __attribute__((__always_inline__))
 static inline bool is_under_flood(__u64 *cur_time) {
   __u32 conn_rate_key = MAX_VIPS + NEW_CONN_RATE_CNTR;
-  BUILD_BUG_ON(conn_rate_key >= STATS_MAP_SIZE);
   struct lb_stats *conn_rate_stats = bpf_map_lookup_elem(
     &stats, &conn_rate_key);
   if (!conn_rate_stats) {
@@ -97,7 +96,6 @@ static inline bool get_packet_dst(struct real_definition **real,
       key = *lpm_val;
     }
     __u32 stats_key = MAX_VIPS + LPM_SRC_CNTRS;
-    BUILD_BUG_ON(stats_key >= STATS_MAP_SIZE);
     struct lb_stats *data_stats = bpf_map_lookup_elem(&stats, &stats_key);
     if (data_stats) {
       if (src_found) {
@@ -185,7 +183,7 @@ static inline int process_l3_headers(struct packet_description *pckt,
     iph_len = sizeof(struct ipv6hdr);
     *protocol = ip6h->nexthdr;
     pckt->flow.proto = *protocol;
-    *pkt_bytes = ntohs(ip6h->payload_len);
+    *pkt_bytes = bpf_ntohs(ip6h->payload_len);
     off += iph_len;
     if (*protocol == IPPROTO_FRAGMENT) {
       // we drop fragmented packets
@@ -213,7 +211,7 @@ static inline int process_l3_headers(struct packet_description *pckt,
 
     *protocol = iph->protocol;
     pckt->flow.proto = *protocol;
-    *pkt_bytes = ntohs(iph->tot_len);
+    *pkt_bytes = bpf_ntohs(iph->tot_len);
     off += IPV4_HDR_LEN_NO_OPT;
 
     if (iph->frag_off & PCKT_FRAGMENTED) {
@@ -333,7 +331,6 @@ static inline int process_packet(void *data, __u64 off, void *data_end,
 
     if (decap_dst_flags) {
       __u32 stats_key = MAX_VIPS + REMOTE_ENCAP_CNTRS;
-      BUILD_BUG_ON(stats_key >= STATS_MAP_SIZE);
       data_stats = bpf_map_lookup_elem(&stats, &stats_key);
       if (!data_stats) {
         return XDP_DROP;
@@ -387,7 +384,6 @@ static inline int process_packet(void *data, __u64 off, void *data_end,
   if (data_end - data > MAX_PCKT_SIZE) {
 #ifdef ICMP_TOOBIG_GENERATION
     __u32 stats_key = MAX_VIPS + ICMP_TOOBIG_CNTRS;
-    BUILD_BUG_ON(stats_key >= STATS_MAP_SIZE);
     data_stats = bpf_map_lookup_elem(&stats, &stats_key);
     if (!data_stats) {
       return XDP_DROP;
@@ -404,7 +400,6 @@ static inline int process_packet(void *data, __u64 off, void *data_end,
   }
 
   __u32 stats_key = MAX_VIPS + LRU_CNTRS;
-  BUILD_BUG_ON(stats_key >= STATS_MAP_SIZE);
   data_stats = bpf_map_lookup_elem(&stats, &stats_key);
   if (!data_stats) {
     return XDP_DROP;
@@ -441,7 +436,6 @@ static inline int process_packet(void *data, __u64 off, void *data_end,
     if (!lru_map) {
       lru_map = &fallback_lru_cache;
       __u32 lru_stats_key = MAX_VIPS + FALLBACK_LRU_CNTR;
-      BUILD_BUG_ON(lru_stats_key >= STATS_MAP_SIZE);
       struct lb_stats *lru_stats = bpf_map_lookup_elem(&stats, &lru_stats_key);
       if (!lru_stats) {
         return XDP_DROP;
@@ -459,7 +453,6 @@ static inline int process_packet(void *data, __u64 off, void *data_end,
     if (!dst) {
       if (pckt.flow.proto == IPPROTO_TCP) {
         __u32 lru_stats_key = MAX_VIPS + LRU_MISS_CNTR;
-        BUILD_BUG_ON(lru_stats_key >= STATS_MAP_SIZE);
         struct lb_stats *lru_stats = bpf_map_lookup_elem(
           &stats, &lru_stats_key);
         if (!lru_stats) {

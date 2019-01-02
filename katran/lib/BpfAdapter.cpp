@@ -284,6 +284,20 @@ int BpfAdapter::bpfMapGetNextKey(int map_fd, void* key, void* next_key) {
   return bpfError;
 }
 
+int BpfAdapter::bpfMapGetFdOfInnerMap(int outer_map_fd, void* key) {
+  int inner_map_id = -1;
+  auto res = bpfMapLookupElement(outer_map_fd, key, &inner_map_id);
+  if (res) {
+    VLOG(4) << "Error while looking up key in the outer map=" << outer_map_fd;
+    return inner_map_id;
+  }
+  return bpfMapGetFdById(inner_map_id);
+}
+
+int BpfAdapter::bpfMapGetFdById(uint32_t map_id) {
+  return ebpf_map_get_fd_by_id(map_id);
+}
+
 int BpfAdapter::pinBpfObject(int fd, const std::string& path) {
   return ebpf_obj_pin(fd, path.c_str());
 }

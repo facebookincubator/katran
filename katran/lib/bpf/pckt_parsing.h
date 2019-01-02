@@ -22,19 +22,20 @@
  * parsing etc)
  */
 
-#include <uapi/linux/ip.h>
-#include <uapi/linux/ipv6.h>
-#include <uapi/linux/icmp.h>
-#include <uapi/linux/icmpv6.h>
+#include <linux/ip.h>
+#include <linux/ipv6.h>
+#include <linux/icmp.h>
+#include <linux/icmpv6.h>
 #include <stddef.h>
-#include <uapi/linux/tcp.h>
-#include <uapi/linux/udp.h>
-#include <uapi/linux/bpf.h>
-#include <uapi/linux/if_ether.h>
-#include <uapi/linux/ptrace.h>
+#include <linux/tcp.h>
+#include <linux/udp.h>
+#include <linux/if_ether.h>
+#include <linux/ptrace.h>
+#include <stdbool.h>
 
 #include "balancer_consts.h"
 #include "balancer_helpers.h"
+#include "bpf.h"
 
 struct quic_long_header {
   __u8 flags;

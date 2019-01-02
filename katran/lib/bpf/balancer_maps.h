@@ -21,11 +21,12 @@
  * This file contains definition of all maps which has been used by balancer
  */
 
-#include <uapi/linux/bpf.h>
-
+#include "bpf.h"
 #include "bpf_helpers.h"
+
 #include "balancer_consts.h"
 #include "balancer_structs.h"
+
 // map, which contains all the vips for which we are doing load balancing
 struct bpf_map_def SEC("maps") vip_map = {
   .type = BPF_MAP_TYPE_HASH,
@@ -39,7 +40,7 @@ struct bpf_map_def SEC("maps") vip_map = {
 // map which contains cpu core to lru mapping
 struct bpf_map_def SEC("maps") lru_maps_mapping = {
   .type = BPF_MAP_TYPE_ARRAY_OF_MAPS,
-  .key_size = sizeof(u32),
+  .key_size = sizeof(__u32),
   // index/position of prototype map in inner_maps_fds array
   .inner_map_idx = 0,
   .max_entries = MAX_SUPPORTED_CPUS,

@@ -286,6 +286,32 @@ class BpfAdapter {
   int bpfMapGetNextKey(int map_fd, void* key, void* next_key);
 
   /**
+   * @param int outer_map_fd file descriptor of the map-in-map
+   * @param void* key pointer to the key, for looking up the associated value
+   * @return int fd of inner map on success, -1 on failure
+   *
+   * Returns FD of the inner bpf map associated with the given
+   * key in the given map-in-map with fd=outer_map_fd
+   *
+   * NOTE: bpf internally increments the reference count of the inner map after
+   * successfully looking up by it's id. Thus, the userspace program
+   * must close the FD to avoid leaks.
+   */
+  int bpfMapGetFdOfInnerMap(int outer_map_fd, void* key);
+
+  /**
+   * @param uint32_t map_id valid id of a bpf map
+   * @return int fd of the map if success, -1 on failure
+   *
+   * Given id of a bpf map, returns it's file descriptor (fd)
+   *
+   * NOTE: bpf internally increments the reference count of the map after
+   * successfully looking up by it's id. Thus, the userspace program
+   * must close the FD to avoid leaks.
+   */
+  int bpfMapGetFdById(uint32_t map_id);
+
+  /**
    * @param int prog_fd descriptor of bpf program
    * @param unsigned int ifindex - index of the interface
    * @param const string& bpf_name name of program

@@ -14,12 +14,12 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#include <uapi/linux/bpf.h>
-#include <uapi/linux/ip.h>
-#include <uapi/linux/ipv6.h>
-#include <uapi/linux/pkt_cls.h>
+#include <linux/ip.h>
+#include <linux/ipv6.h>
+#include <linux/pkt_cls.h>
 #include <linux/string.h>
 
+#include "bpf.h"
 #include "bpf_helpers.h"
 
 #define CTRL_MAP_SIZE 4

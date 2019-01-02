@@ -150,6 +150,16 @@ int ebpf_get_next_key(int fd, void *key, void *next_key)
   return sys_bpf(BPF_MAP_GET_NEXT_KEY, &attr, sizeof(attr));
 }
 
+int ebpf_map_get_fd_by_id(__u32 id)
+{
+  union bpf_attr attr;
+
+  bzero(&attr, sizeof(attr));
+  attr.map_id = id;
+
+  return sys_bpf(BPF_MAP_GET_FD_BY_ID, &attr, sizeof(attr));
+}
+
 #define ROUND_UP(x, n) (((x) + (n) - 1u) & ~((n) - 1u))
 
 int ebpf_prog_load_name(enum bpf_prog_type prog_type, const char *name,
