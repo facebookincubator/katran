@@ -39,58 +39,59 @@ constexpr uint32_t kMaxQuicId = 4095;
 } // namespace
 
 KatranLb::KatranLb(const KatranConfig& config)
-    : maxVips_(config.maxVips),
-      maxReals_(config.maxReals),
-      chRingSize_(config.chRingSize),
-      maxLpmSrcSize_(config.maxLpmSrcSize),
-      maxDecapDstSize_(config.maxDecapDst),
+    : config_(config),
       bpfAdapter_(!config.testing),
-      tcPriority_(config.priority),
-      balancerProgPath_(config.balancerProgPath),
-      healthcheckingProgPath_(config.healthcheckingProgPath),
-      rootMapPath_(config.rootMapPath),
       ctlValues_(kCtlMapSize),
-      testing_(config.testing),
       standalone_(true),
-      rootMapPos_(config.rootMapPos),
-      enableHc_(config.enableHc),
       forwardingCores_(config.forwardingCores),
       numaNodes_(config.numaNodes),
-      lruMapsFd_(kMaxForwardingCores),
-      totalLruSize_(config.LruSize) {
-  for (uint32_t i = 0; i < config.maxVips; i++) {
+      lruMapsFd_(kMaxForwardingCores) {
+  for (uint32_t i = 0; i < config_.maxVips; i++) {
     vipNums_.push_back(i);
   }
 
-  for (uint32_t i = 0; i < config.maxReals; i++) {
+  for (uint32_t i = 0; i < config_.maxReals; i++) {
     realNums_.push_back(i);
   }
 
-  if (!config.rootMapPath.empty()) {
+  if (!config_.rootMapPath.empty()) {
     standalone_ = false;
   }
-  if (!testing_) {
+
+  if (config_.hcInterface.empty()) {
+    config_.hcInterface = config_.mainInterface;
+  }
+
+  if (!config_.testing) {
     ctl_value ctl;
     int res;
 
     // populating ctl vector
-    if (config.defaultMac.size() != 6) {
+    if (config_.defaultMac.size() != 6) {
       throw std::invalid_argument("mac's size is not equal to six byte");
     }
     for (int i = 0; i < 6; i++) {
-      ctl.mac[i] = config.defaultMac[i];
+      ctl.mac[i] = config_.defaultMac[i];
     }
     ctlValues_[kMacAddrPos] = ctl;
 
-    if (config.enableHc) {
-      res = bpfAdapter_.getInterfaceIndex(config.v4TunInterface);
+    if (config_.enableHc) {
+      res = bpfAdapter_.getInterfaceIndex(config_.hcInterface);
+      if (res == 0) {
+        throw std::invalid_argument(
+            "can't resolve ifindex for healthcheck intf");
+      }
+      ctl.ifindex = res;
+      ctlValues_[kHcIntfPos] = ctl;
+
+      res = bpfAdapter_.getInterfaceIndex(config_.v4TunInterface);
       if (!res) {
         throw std::invalid_argument("can't resolve ifindex for v4tun intf");
       }
       ctl.ifindex = res;
       ctlValues_[kIpv4TunPos] = ctl;
 
-      res = bpfAdapter_.getInterfaceIndex(config.v6TunInterface);
+      res = bpfAdapter_.getInterfaceIndex(config_.v6TunInterface);
       if (res == 0) {
         throw std::invalid_argument("can't resolve ifindex for v6tun intf");
       }
@@ -98,7 +99,7 @@ KatranLb::KatranLb(const KatranConfig& config)
       ctlValues_[kIpv6TunPos] = ctl;
     }
 
-    res = bpfAdapter_.getInterfaceIndex(config.mainInterface);
+    res = bpfAdapter_.getInterfaceIndex(config_.mainInterface);
     if (res == 0) {
       throw std::invalid_argument("can't resolve ifindex for main intf");
     }
@@ -108,23 +109,24 @@ KatranLb::KatranLb(const KatranConfig& config)
 }
 
 KatranLb::~KatranLb() {
-  if (!testing_ && progsAttached_) {
+  if (!config_.testing && progsAttached_) {
     int res;
     auto mainIfindex = ctlValues_[kMainIntfPos].ifindex;
+    auto hcIfindex = ctlValues_[kHcIntfPos].ifindex;
     if (standalone_) {
       res = bpfAdapter_.detachXdpProg(mainIfindex);
     } else {
-      res = bpfAdapter_.bpfMapDeleteElement(rootMapFd_, &rootMapPos_);
+      res = bpfAdapter_.bpfMapDeleteElement(rootMapFd_, &config_.rootMapPos);
     }
     if (res != 0) {
       LOG(INFO) << "wasn't able to delete main bpf prog";
     }
-    if (enableHc_) {
+    if (config_.enableHc) {
       res = bpfAdapter_.deleteTcBpfFilter(
           getHealthcheckerProgFd(),
-          mainIfindex,
+          hcIfindex,
           "katran-healthchecker",
-          tcPriority_,
+          config_.priority,
           BPF_TC_EGRESS);
       if (res != 0) {
         LOG(INFO) << "wasn't able to delete hc bpf prog";
@@ -137,7 +139,7 @@ AddressType KatranLb::validateAddress(
     const std::string& addr,
     bool allowNetAddr) {
   if (!folly::IPAddress::validate(addr)) {
-    if (allowNetAddr && (srcRouting_ || testing_)) {
+    if (allowNetAddr && (srcRouting_ || config_.testing)) {
       auto ret = folly::IPAddress::tryCreateNetwork(addr);
       if (ret.hasValue()) {
         return AddressType::NETWORK;
@@ -165,7 +167,7 @@ void KatranLb::initialSanityChecking() {
     throw std::invalid_argument("can't get fd for prog: xdp-balancer");
   }
 
-  if (enableHc_) {
+  if (config_.enableHc) {
     res = getHealthcheckerProgFd();
     if (res < 0) {
       throw std::invalid_argument("can't get fd for prog: cls-hc");
@@ -211,7 +213,7 @@ void KatranLb::initLrus() {
       numa_mapping_specified = true;
     }
     int lru_fd, numa_node;
-    auto per_core_lru_size = totalLruSize_ / forwardingCores_.size();
+    auto per_core_lru_size = config_.LruSize / forwardingCores_.size();
     VLOG(2) << "per core lru size: " << per_core_lru_size;
     for (int i = 0; i < forwardingCores_.size(); i++) {
       auto core = forwardingCores_[i];
@@ -293,13 +295,13 @@ void KatranLb::loadBpfProgs() {
   int res;
   initLrus();
   // loading bpf progs.
-  res = bpfAdapter_.loadBpfProg(balancerProgPath_);
+  res = bpfAdapter_.loadBpfProg(config_.balancerProgPath);
   if (res) {
     throw std::invalid_argument("can't load main bpf prog");
   }
 
-  if (enableHc_) {
-    res = bpfAdapter_.loadBpfProg(healthcheckingProgPath_);
+  if (config_.enableHc) {
+    res = bpfAdapter_.loadBpfProg(config_.healthcheckingProgPath);
     if (res) {
       throw std::invalid_argument("can't load healthchecking bpf prog");
     }
@@ -322,7 +324,7 @@ void KatranLb::loadBpfProgs() {
     }
   }
 
-  if (enableHc_) {
+  if (config_.enableHc) {
     std::vector<uint32_t> hc_ctl_keys = {kIpv4TunPos, kIpv6TunPos};
 
     for (auto ctl_key : hc_ctl_keys) {
@@ -357,31 +359,31 @@ void KatranLb::attachBpfProgs() {
     }
   } else {
     // we are in "shared" mode and must register ourself in root xdp prog
-    rootMapFd_ = bpfAdapter_.getPinnedBpfObject(rootMapPath_);
+    rootMapFd_ = bpfAdapter_.getPinnedBpfObject(config_.rootMapPath);
     if (rootMapFd_ < 0) {
       throw std::invalid_argument("can't get fd of xdp's root map");
     }
-    res = bpfAdapter_.bpfUpdateMap(rootMapFd_, &rootMapPos_, &main_fd);
+    res = bpfAdapter_.bpfUpdateMap(rootMapFd_, &config_.rootMapPos, &main_fd);
     if (res) {
       throw std::invalid_argument("can't register in root array");
     }
   }
 
-  if (enableHc_) {
+  if (config_.enableHc) {
     // attaching healthchecking bpf prog.
     auto hc_fd = getHealthcheckerProgFd();
     res = bpfAdapter_.addTcBpfFilter(
         hc_fd,
-        interface_index,
+        ctlValues_[kHcIntfPos].ifindex,
         "katran-healthchecker",
-        tcPriority_,
+        config_.priority,
         BPF_TC_EGRESS);
     if (res != 0) {
       if (standalone_) {
         // will try to remove main bpf prog.
         bpfAdapter_.detachXdpProg(interface_index);
       } else {
-        bpfAdapter_.bpfMapDeleteElement(rootMapFd_, &rootMapPos_);
+        bpfAdapter_.bpfMapDeleteElement(rootMapFd_, &config_.rootMapPos);
       }
       throw std::invalid_argument(
           "can't attach healthchecking bpf prog "
@@ -402,7 +404,7 @@ bool KatranLb::changeMac(const std::vector<uint8_t> newMac) {
   for (int i = 0; i < kMacBytes; i++) {
     ctlValues_[kMacAddrPos].mac[i] = newMac[i];
   }
-  if (!testing_) {
+  if (!config_.testing) {
     auto res = bpfAdapter_.bpfUpdateMap(
         bpfAdapter_.getMapFdByName("ctl_array"),
         &key,
@@ -439,8 +441,8 @@ bool KatranLb::addVip(const VipKey& vip, const uint32_t flags) {
   }
   auto vip_num = vipNums_[0];
   vipNums_.pop_front();
-  vips_.emplace(vip, Vip(vip_num, flags, chRingSize_));
-  if (!testing_) {
+  vips_.emplace(vip, Vip(vip_num, flags, config_.chRingSize));
+  if (!config_.testing) {
     vip_meta meta;
     meta.vip_num = vip_num;
     meta.flags = flags;
@@ -466,7 +468,7 @@ bool KatranLb::delVip(const VipKey& vip) {
     decreaseRefCountForReal(real_name);
   }
   vipNums_.push_back(vip_iter->second.getVipNum());
-  if (!testing_) {
+  if (!config_.testing) {
     updateVipMap(ModifyAction::DEL, vip);
   }
   vips_.erase(vip_iter);
@@ -504,7 +506,7 @@ bool KatranLb::modifyVip(const VipKey& vip, uint32_t flag, bool set) {
   } else {
     vip_iter->second.unsetVipFlags(flag);
   }
-  if (!testing_) {
+  if (!config_.testing) {
     vip_meta meta;
     meta.vip_num = vip_iter->second.getVipNum();
     meta.flags = vip_iter->second.getVipFlags();
@@ -580,7 +582,7 @@ bool KatranLb::modifyRealsForVip(
         ureal.updatedReal.num = real_iter->second.num;
       } else {
         auto rnum = increaseRefCountForReal(real.address);
-        if (rnum == maxReals_) {
+        if (rnum == config_.maxReals) {
           LOG(INFO) << "exhausted real's space";
           continue;
         }
@@ -594,12 +596,12 @@ bool KatranLb::modifyRealsForVip(
 
   auto ch_positions = vip_iter->second.batchRealsUpdate(ureals);
   auto vip_num = vip_iter->second.getVipNum();
-  if (!testing_) {
+  if (!config_.testing) {
     auto ch_fd = bpfAdapter_.getMapFdByName("ch_rings");
     uint32_t key;
     int res;
     for (auto pos : ch_positions) {
-      key = vip_num * chRingSize_ + pos.pos;
+      key = vip_num * config_.chRingSize + pos.pos;
       res = bpfAdapter_.bpfUpdateMap(ch_fd, &key, &pos.real);
       if (res != 0) {
         LOG(INFO) << "can't update ch ring";
@@ -638,7 +640,7 @@ int KatranLb::addSrcRoutingRule(
     const std::vector<std::string>& srcs,
     const std::string& dst) {
   int num_errors = 0;
-  if (!srcRouting_ && !testing_) {
+  if (!srcRouting_ && !config_.testing) {
     LOG(ERROR) << "Source based routing is not enabled in forwarding plane";
     return kError;
   }
@@ -654,7 +656,8 @@ int KatranLb::addSrcRoutingRule(
       // dont want to stop even if one addr is incorrect.
       continue;
     }
-    if (lpmSrcMapping_.size() + src_networks.size() + 1 > maxLpmSrcSize_) {
+    if (lpmSrcMapping_.size() + src_networks.size() + 1 >
+        config_.maxLpmSrcSize) {
       LOG(ERROR) << "source mappings map size is exhausted";
       // num errors is equal to number of routes which don't have space to be
       // installed to
@@ -675,7 +678,7 @@ int KatranLb::addSrcRoutingRule(
 int KatranLb::addSrcRoutingRule(
     const std::vector<folly::CIDRNetwork>& srcs,
     const std::string& dst) {
-  if (!srcRouting_ && !testing_) {
+  if (!srcRouting_ && !config_.testing) {
     LOG(ERROR) << "Source based routing is not enabled in forwarding plane";
     return kError;
   }
@@ -684,19 +687,19 @@ int KatranLb::addSrcRoutingRule(
     return kError;
   }
   for (auto& src : srcs) {
-    if (lpmSrcMapping_.size() + 1 > maxLpmSrcSize_) {
+    if (lpmSrcMapping_.size() + 1 > config_.maxLpmSrcSize) {
       LOG(ERROR) << "source mappings map size is exhausted";
       // no point to continue. bailing out
       return kError;
     }
     auto rnum = increaseRefCountForReal(dst);
-    if (rnum == maxReals_) {
+    if (rnum == config_.maxReals) {
       LOG(ERROR) << "exhausted real's space";
       // all src using same dst. no point to continue if we can't add this dst
       return kError;
     }
     lpmSrcMapping_[src] = rnum;
-    if (!testing_) {
+    if (!config_.testing) {
       modifyLpmSrcRule(ModifyAction::ADD, src, rnum);
     }
   }
@@ -704,7 +707,7 @@ int KatranLb::addSrcRoutingRule(
 }
 
 bool KatranLb::delSrcRoutingRule(const std::vector<std::string>& srcs) {
-  if (!srcRouting_ && !testing_) {
+  if (!srcRouting_ && !config_.testing) {
     LOG(ERROR) << "Source based routing is not enabled in forwarding plane";
     return false;
   }
@@ -719,7 +722,7 @@ bool KatranLb::delSrcRoutingRule(const std::vector<std::string>& srcs) {
 }
 
 bool KatranLb::delSrcRoutingRule(const std::vector<folly::CIDRNetwork>& srcs) {
-  if (!srcRouting_ && !testing_) {
+  if (!srcRouting_ && !config_.testing) {
     LOG(ERROR) << "Source based routing is not enabled in forwarding plane";
     return false;
   }
@@ -732,7 +735,7 @@ bool KatranLb::delSrcRoutingRule(const std::vector<folly::CIDRNetwork>& srcs) {
     }
     auto dst = numToReals_[src_iter->second];
     decreaseRefCountForReal(dst);
-    if (!testing_) {
+    if (!config_.testing) {
       modifyLpmSrcRule(ModifyAction::DEL, src, src_iter->second);
     }
     lpmSrcMapping_.erase(src_iter);
@@ -741,14 +744,14 @@ bool KatranLb::delSrcRoutingRule(const std::vector<folly::CIDRNetwork>& srcs) {
 }
 
 bool KatranLb::clearAllSrcRoutingRules() {
-  if (!srcRouting_ && !testing_) {
+  if (!srcRouting_ && !config_.testing) {
     LOG(ERROR) << "Source based routing is not enabled in forwarding plane";
     return false;
   }
   for (auto& rule : lpmSrcMapping_) {
     auto dst_iter = numToReals_.find(rule.second);
     decreaseRefCountForReal(dst_iter->second);
-    if (!testing_) {
+    if (!config_.testing) {
       modifyLpmSrcRule(ModifyAction::DEL, rule.first, rule.second);
     }
   }
@@ -762,7 +765,7 @@ uint32_t KatranLb::getSrcRoutingRuleSize() {
 
 std::unordered_map<std::string, std::string> KatranLb::getSrcRoutingRule() {
   std::unordered_map<std::string, std::string> src_mapping;
-  if (!srcRouting_ && !testing_) {
+  if (!srcRouting_ && !config_.testing) {
     LOG(ERROR) << "Source based routing is not enabled in forwarding plane";
     return src_mapping;
   }
@@ -778,7 +781,7 @@ std::unordered_map<std::string, std::string> KatranLb::getSrcRoutingRule() {
 std::unordered_map<folly::CIDRNetwork, std::string>
 KatranLb::getSrcRoutingRuleCidr() {
   std::unordered_map<folly::CIDRNetwork, std::string> src_mapping;
-  if (!srcRouting_ && !testing_) {
+  if (!srcRouting_ && !config_.testing) {
     LOG(ERROR) << "Source based routing is not enabled in forwarding plane";
     return src_mapping;
   }
@@ -847,7 +850,7 @@ bool KatranLb::modifyLpmMap(
 }
 
 bool KatranLb::addInlineDecapDst(const std::string& dst) {
-  if (!inlineDecap_ && !testing_) {
+  if (!inlineDecap_ && !config_.testing) {
     LOG(ERROR) << "source based routing is not enabled in forwarding plane";
     return false;
   }
@@ -859,20 +862,20 @@ bool KatranLb::addInlineDecapDst(const std::string& dst) {
     LOG(ERROR) << "trying to add already existing decap dst";
     return false;
   }
-  if (decapDsts_.size() + 1 > maxDecapDstSize_) {
+  if (decapDsts_.size() + 1 > config_.maxDecapDst) {
     LOG(ERROR) << "size of decap destinations map is exhausted";
     return false;
   }
   VLOG(2) << "adding decap dst " << dst;
   decapDsts_.insert(dst);
-  if (!testing_) {
+  if (!config_.testing) {
     modifyDecapDst(ModifyAction::ADD, dst);
   }
   return true;
 }
 
 bool KatranLb::delInlineDecapDst(const std::string& dst) {
-  if (!inlineDecap_ && !testing_) {
+  if (!inlineDecap_ && !config_.testing) {
     LOG(ERROR) << "source based routing is not enabled in forwarding plane";
     return false;
   }
@@ -883,7 +886,7 @@ bool KatranLb::delInlineDecapDst(const std::string& dst) {
   }
   VLOG(2) << "deleting decap dst " << dst;
   decapDsts_.erase(dst_iter);
-  if (!testing_) {
+  if (!config_.testing) {
     modifyDecapDst(ModifyAction::DEL, dst);
   }
   return true;
@@ -953,7 +956,7 @@ void KatranLb::modifyQuicRealsMapping(
         continue;
       }
       auto rnum = increaseRefCountForReal(real.address);
-      if (rnum == maxReals_) {
+      if (rnum == config_.maxReals) {
         LOG(ERROR) << "exhausted real's space";
         continue;
       }
@@ -961,7 +964,7 @@ void KatranLb::modifyQuicRealsMapping(
       quicMapping_[real.address] = real.id;
     }
   }
-  if (!testing_) {
+  if (!config_.testing) {
     auto quic_mapping_fd = bpfAdapter_.getMapFdByName("quic_mapping");
     uint32_t id, rnum;
     int res;
@@ -998,27 +1001,27 @@ lb_stats KatranLb::getStatsForVip(const VipKey& vip) {
 }
 
 lb_stats KatranLb::getLruStats() {
-  return getLbStats(maxVips_ + kLruCntrOffset);
+  return getLbStats(config_.maxVips + kLruCntrOffset);
 }
 
 lb_stats KatranLb::getLruMissStats() {
-  return getLbStats(maxVips_ + kLruMissOffset);
+  return getLbStats(config_.maxVips + kLruMissOffset);
 }
 
 lb_stats KatranLb::getLruFallbackStats() {
-  return getLbStats(maxVips_ + kLruFallbackOffset);
+  return getLbStats(config_.maxVips + kLruFallbackOffset);
 }
 
 lb_stats KatranLb::getIcmpTooBigStats() {
-  return getLbStats(maxVips_ + kIcmpTooBigOffset);
+  return getLbStats(config_.maxVips + kIcmpTooBigOffset);
 }
 
 lb_stats KatranLb::getSrcRoutingStats() {
-  return getLbStats(maxVips_ + kLpmSrcOffset);
+  return getLbStats(config_.maxVips + kLpmSrcOffset);
 }
 
 lb_stats KatranLb::getInlineDecapStats() {
-  return getLbStats(maxVips_ + kInlineDecapOffset);
+  return getLbStats(config_.maxVips + kInlineDecapOffset);
 }
 
 lb_stats KatranLb::getRealStats(uint32_t index) {
@@ -1034,7 +1037,7 @@ lb_stats KatranLb::getLbStats(uint32_t position, const std::string& map) {
   lb_stats stats[nr_cpus];
   lb_stats sum_stat = {};
 
-  if (!testing_) {
+  if (!config_.testing) {
     auto res = bpfAdapter_.bpfMapLookupElement(
         bpfAdapter_.getMapFdByName(map), &position, stats);
     if (!res) {
@@ -1050,7 +1053,7 @@ lb_stats KatranLb::getLbStats(uint32_t position, const std::string& map) {
 bool KatranLb::addHealthcheckerDst(
     const uint32_t somark,
     const std::string& dst) {
-  if (!enableHc_) {
+  if (!config_.enableHc) {
     return false;
   }
   if (validateAddress(dst) == AddressType::INVALID) {
@@ -1064,7 +1067,7 @@ bool KatranLb::addHealthcheckerDst(
   beaddr addr;
 
   auto hc_iter = hcReals_.find(somark);
-  if (hc_iter == hcReals_.end() && hcReals_.size() == maxReals_) {
+  if (hc_iter == hcReals_.end() && hcReals_.size() == config_.maxReals) {
     LOG(INFO) << "healthchecker's reals space exhausted";
     return false;
   }
@@ -1076,7 +1079,7 @@ bool KatranLb::addHealthcheckerDst(
   } else {
     addr = IpHelpers::parseAddrToBe(dst);
   }
-  if (!testing_) {
+  if (!config_.testing) {
     auto res = bpfAdapter_.bpfUpdateMap(
         bpfAdapter_.getMapFdByName("hc_reals_map"), &key, &addr);
     if (res != 0) {
@@ -1089,7 +1092,7 @@ bool KatranLb::addHealthcheckerDst(
 }
 
 bool KatranLb::delHealthcheckerDst(const uint32_t somark) {
-  if (!enableHc_) {
+  if (!config_.enableHc) {
     return false;
   }
   VLOG(4) << folly::format("deleting healtcheck with so_mark {}", somark);
@@ -1101,7 +1104,7 @@ bool KatranLb::delHealthcheckerDst(const uint32_t somark) {
     LOG(INFO) << "trying to remove non-existing healthcheck";
     return false;
   }
-  if (!testing_) {
+  if (!config_.testing) {
     auto res = bpfAdapter_.bpfMapDeleteElement(
         bpfAdapter_.getMapFdByName("hc_reals_map"), &key);
     if (res) {
@@ -1186,7 +1189,7 @@ uint32_t KatranLb::increaseRefCountForReal(const std::string& real) {
     return real_iter->second.num;
   } else {
     if (realNums_.size() == 0) {
-      return maxReals_;
+      return config_.maxReals;
     }
     RealMeta rmeta;
     auto rnum = realNums_[0];
@@ -1195,7 +1198,7 @@ uint32_t KatranLb::increaseRefCountForReal(const std::string& real) {
     rmeta.refCount = 1;
     rmeta.num = rnum;
     reals_[real] = rmeta;
-    if (!testing_) {
+    if (!config_.testing) {
       updateRealsMap(real, rnum);
     }
     return rnum;

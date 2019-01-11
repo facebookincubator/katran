@@ -41,6 +41,7 @@ constexpr int kMacAddrPos = 0;
 constexpr int kIpv4TunPos = 1;
 constexpr int kIpv6TunPos = 2;
 constexpr int kMainIntfPos = 3;
+constexpr int kHcIntfPos = 4;
 
 /**
  * constants are from balancer_consts.h
@@ -554,56 +555,14 @@ class KatranLb {
       const uint32_t flags = 0);
 
   /**
-   * maximum amount of vips, which katran supports (must be the same number as
-   * in forwarding plane (compiled xdp prog))
+   * main configurations of katran
    */
-  uint32_t maxVips_;
-
-  /**
-   * maximum ammount of reals,  which katran supports (must be the same number
-   * as in forwarding plane).
-   */
-  uint32_t maxReals_;
-
-  /**
-   * size of ch ring (must be the same number as in forwarding plane).
-   */
-  uint32_t chRingSize_;
-
-  /**
-   * size of source address lookup table for source based routing
-   */
-  uint32_t maxLpmSrcSize_;
-
-  /**
-   * size of inline decapsulation destanation lookup table
-   */
-  uint32_t maxDecapDstSize_;
+  KatranConfig config_;
 
   /**
    * bpf adapter to program forwarding plane
    */
   BpfAdapter bpfAdapter_;
-
-  /**
-   * priority of tc prog for healthchecking
-   */
-  uint32_t tcPriority_;
-
-  /**
-   * path to bpf code for main balancer program
-   */
-  std::string balancerProgPath_;
-
-  /**
-   * path to bpf code for healthchecking
-   */
-  std::string healthcheckingProgPath_;
-
-  /**
-   * path to rootlet's pinned prog array
-   */
-  std::string rootMapPath_;
 
   /**
    * vector of unused possitions for vips and reals. for each element
@@ -644,11 +603,6 @@ class KatranLb {
   std::unordered_set<std::string> decapDsts_;
 
   /**
-   * flag for testing. if set to true - we wont program forwarding path.
-   */
-  bool testing_;
-
-  /**
    * flag which indicates if katran is working in "standalone" mode or not.
    */
   bool standalone_;
@@ -657,16 +611,6 @@ class KatranLb {
    * fd of rootMap if katran is working in "shared" mode.
    */
   int rootMapFd_;
-
-  /**
-   * poisition inside rootMapFd_ if we are in "shared" mode
-   */
-  uint32_t rootMapPos_;
-
-  /**
-   * flag, which indicates should we load healtcheck related routines or not
-   */
-  bool enableHc_;
 
   /**
    * flag which indicates that bpf progs has been loaded.
@@ -707,12 +651,6 @@ class KatranLb {
    * vector of LRU maps descriptors;
    */
   std::vector<int> lruMapsFd_;
-
-  /**
-   * total LRUs map size; each forwarding cpu/core will have
-   * total_size/forwarding_cores entries
-   */
-  uint64_t totalLruSize_;
 };
 
 } // namespace katran

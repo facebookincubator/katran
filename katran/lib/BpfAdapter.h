@@ -120,7 +120,7 @@ class BpfAdapter {
    * default behavior for numa_node is to allocate mem on the
    * same node as userspace process is running.
    */
-  int createBpfMap(
+  static int createBpfMap(
       unsigned int type,
       unsigned int key_size,
       unsigned int value_size,
@@ -144,7 +144,7 @@ class BpfAdapter {
    * default behavior for numa_node is to allocate mem on the
    * same node as userspace process is running.
    */
-  int createNamedBpfMap(
+  static int createNamedBpfMap(
       const std::string& name,
       unsigned int type,
       unsigned int key_size,
@@ -208,7 +208,7 @@ class BpfAdapter {
    * helper function which attach bpf program to tc's hook
    * on specified interface in specified direction
    */
-  int attachBpfProgToTc(
+  static int attachBpfProgToTc(
       const int prog_fd,
       const std::string& interface_name,
       const int direction = BPF_TC_INGRESS,
@@ -222,7 +222,9 @@ class BpfAdapter {
    *
    *  helper function to attach bpf prog to specified interface
    */
-  int attachXdpProg(const int prog_fd, const std::string& interface_name);
+  static int attachXdpProg(
+      const int prog_fd,
+      const std::string& interface_name);
 
   /**
    * @param string interface_name from which we want to detach xdp prog
@@ -230,7 +232,7 @@ class BpfAdapter {
    *
    * helper function to detach bpf prog from interface
    */
-  int detachXdpProg(const std::string& interface_name);
+  static int detachXdpProg(const std::string& interface_name);
 
   /**
    * @param int interface ifindex
@@ -238,7 +240,7 @@ class BpfAdapter {
    *
    * helper function to detach bpf prog from interface w/ specified index
    */
-  int detachXdpProg(const int ifindex);
+  static int detachXdpProg(const int ifindex);
 
   /**
    * @param int map_fd file descriptor of map to update
@@ -250,7 +252,7 @@ class BpfAdapter {
    * helper function to update (and/or create; depends on container)
    * value inside bpf map
    */
-  int bpfUpdateMap(
+  static int bpfUpdateMap(
       int map_fd,
       void* key,
       void* value,
@@ -265,7 +267,7 @@ class BpfAdapter {
    * helper function to update (and/or create; depends on container)
    * value inside bpf map
    */
-  int bpfMapLookupElement(int map_fd, void* key, void* value);
+  static int bpfMapLookupElement(int map_fd, void* key, void* value);
 
   /**
    * @param int map_fd file descriptor of bpf map
@@ -274,7 +276,7 @@ class BpfAdapter {
    *
    * helper function to delete element for bpf map, which key is equal to *key
    */
-  int bpfMapDeleteElement(int map_fd, void* key);
+  static int bpfMapDeleteElement(int map_fd, void* key);
 
   /**
    * @param int map_fd file descriptor of bpf map
@@ -283,7 +285,7 @@ class BpfAdapter {
    *
    * helper function to iterate through the keys of a map
    */
-  int bpfMapGetNextKey(int map_fd, void* key, void* next_key);
+  static int bpfMapGetNextKey(int map_fd, void* key, void* next_key);
 
   /**
    * @param int outer_map_fd file descriptor of the map-in-map
@@ -297,7 +299,7 @@ class BpfAdapter {
    * successfully looking up by it's id. Thus, the userspace program
    * must close the FD to avoid leaks.
    */
-  int bpfMapGetFdOfInnerMap(int outer_map_fd, void* key);
+  static int bpfMapGetFdOfInnerMap(int outer_map_fd, void* key);
 
   /**
    * @param uint32_t map_id valid id of a bpf map
@@ -309,7 +311,7 @@ class BpfAdapter {
    * successfully looking up by it's id. Thus, the userspace program
    * must close the FD to avoid leaks.
    */
-  int bpfMapGetFdById(uint32_t map_id);
+  static int bpfMapGetFdById(uint32_t map_id);
 
   /**
    * @param int prog_fd descriptor of bpf program
@@ -322,7 +324,7 @@ class BpfAdapter {
    * and w/ specified priority. if there is already filter w/ specified
    * priority, this call will fails (return non 0);
    */
-  int addTcBpfFilter(
+  static int addTcBpfFilter(
       const int prog_fd,
       const unsigned int ifindex,
       const std::string& bpf_name,
@@ -338,7 +340,7 @@ class BpfAdapter {
    *  helper function to add or delete (by specifying prog_fd = -1) xdp
    *  prog
    */
-  int modifyXdpProg(
+  static int modifyXdpProg(
       const int prog_fd,
       const unsigned int ifindex,
       const uint32_t flags = 0);
@@ -354,7 +356,7 @@ class BpfAdapter {
    * (thru ifindex) and w/ specified priority. if there is no filter
    * with specified priority this call will create a new one
    */
-  int replaceTcBpfFilter(
+  static int replaceTcBpfFilter(
       const int prog_fd,
       const unsigned int ifindex,
       const std::string& bpf_name,
@@ -371,7 +373,7 @@ class BpfAdapter {
    * helper function to delete bpf prog (filter) from specified interface.
    * to delete specified filter priority must be specified
    */
-  int deleteTcBpfFilter(
+  static int deleteTcBpfFilter(
       const int prog_fd,
       const unsigned int ifindex,
       const std::string& bpf_name,
@@ -394,7 +396,7 @@ class BpfAdapter {
    * it will return modified (if program modifies it) packet
    * and xdp's return code.
    */
-  int testXdpProg(
+  static int testXdpProg(
       const int prog_fd,
       const int repeat,
       void* data,
@@ -413,7 +415,7 @@ class BpfAdapter {
    *
    * helper function to attach bpf prog to specified cgroup
    */
-  int attachCgroupProg(
+  static int attachCgroupProg(
       int prog_fd,
       const std::string& cgroup,
       enum bpf_attach_type type,
@@ -426,7 +428,9 @@ class BpfAdapter {
    *
    * helper function to detach all bpf progs from specified cgroup
    */
-  int detachCgroupProg(const std::string& cgroup, enum bpf_attach_type type);
+  static int detachCgroupProg(
+      const std::string& cgroup,
+      enum bpf_attach_type type);
 
   /**
    * @param int bpf prog fd
@@ -437,7 +441,7 @@ class BpfAdapter {
    * helper function to detach specified (by fd) bpf progs
    * from specified cgroup
    */
-  int detachCgroupProg(
+  static int detachCgroupProg(
       int prog_fd,
       const std::string& cgroup,
       enum bpf_attach_type type);
@@ -524,7 +528,7 @@ class BpfAdapter {
    * helper function to modify (add/delete/replace) tc's bpf prog.
    * this is lowlvl function which would be used by all other public wrappers
    */
-  int modifyTcBpfFilter(
+  static int modifyTcBpfFilter(
       const int cmd,
       const unsigned int flags,
       const uint32_t priority,
@@ -536,7 +540,7 @@ class BpfAdapter {
   /**
    * Generic wrapper to add bpf prog to tc.
    */
-  int genericAttachBpfProgToTc(
+  static int genericAttachBpfProgToTc(
       const int prog_fd,
       const unsigned int ifindex,
       const std::string& bpf_name,
@@ -548,7 +552,7 @@ class BpfAdapter {
    * used to get cgroup's fd from path
    * returns -1 on failure
    */
-  int getDirFd(const std::string& path);
+  static int getDirFd(const std::string& path);
 
   /**
    * helper function to mmap pages for bpf_perf_event
