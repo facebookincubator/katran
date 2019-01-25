@@ -211,6 +211,23 @@ get_fbthrift() {
     touch deps/fbthrift_installed
 }
 
+get_rsocket() {
+    if [ -f "deps/rsocket_installed" ]; then
+        return
+    fi
+    rm -rf deps/rsocket-cpp
+    pushd .
+    cd deps
+    git clone --depth 1 https://github.com/rsocket/rsocket-cpp || true
+    mkdir -p rsocket-cpp/build
+    cd rsocket-cpp/build
+    cmake -DCXX_STD=gnu++14 ..
+    make -j $NCPUS
+    sudo make install
+    popd
+    touch deps/rsocket_installed
+}
+
 get_grpc() {
     if [ -f "deps/grpc_installed" ]; then
         return
@@ -290,6 +307,7 @@ if [ "$BUILD_EXAMPLE" -eq 1 ]; then
   get_fizz
   get_wangle
   get_zstd
+  get_rsocket
   get_fbthrift
   get_grpc
 fi
