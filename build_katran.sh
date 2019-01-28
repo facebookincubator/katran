@@ -25,9 +25,14 @@ if [ ! -z "$FORCE_INSTALL" ]; then
     rm -rf ./deps
 fi
 
-if [ -z "$BUILD_EXAMPLE" ]; then
-    BUILD_EXAMPLE=1
-    export CMAKE_BUILD_EXAMPLE="$BUILD_EXAMPLE"
+if [ ! -z "$BUILD_EXAMPLE_THRIFT" ]; then
+    BUILD_EXAMPLE_THRIFT=1
+    export CMAKE_BUILD_EXAMPLE_THRIFT="$BUILD_EXAMPLE_THRIFT"
+fi
+
+if [ -z "$BUILD_EXAMPLE_GRPC" ]; then
+    BUILD_EXAMPLE_GRPC=1
+    export CMAKE_BUILD_EXAMPLE_GRPC="$BUILD_EXAMPLE_GRPC"
 fi
 
 mkdir deps || true
@@ -107,6 +112,7 @@ get_required_libs() {
         libmnl-dev \
         liblzma-dev \
         libre2-dev
+    sudo apt-get install -y libsodium-dev
 }
 
 get_gtest() {
@@ -148,7 +154,6 @@ get_fizz() {
         return
     fi
     rm -rf deps/fizz
-    sudo apt-get install -y libsodium-dev
     pushd .
     cd deps
     git clone --depth 1 https://github.com/facebookincubator/fizz
@@ -302,13 +307,15 @@ get_folly
 get_clang
 get_required_libs
 get_gtest
-if [ "$BUILD_EXAMPLE" -eq 1 ]; then
+if [ "$BUILD_EXAMPLE_THRIFT" -eq 1 ]; then
   get_mstch
   get_fizz
   get_wangle
   get_zstd
   get_rsocket
   get_fbthrift
+fi
+if [ "$BUILD_EXAMPLE_GRPC" -eq 1 ]; then
   get_grpc
 fi
 if [ -z "$INSTALL_DEPS_ONLY" ]; then

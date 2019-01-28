@@ -3,6 +3,10 @@ project(xdpdump)
 set (CMAKE_CXX_STANDARD 14)
 
 find_library(LIBBCC bcc)
+find_library(DL dl)
+find_library(LIBIBERTY libiberty.a iberty)
+find_library(EVENT libevent.a event)
+find_library(EVENT_CORE libevent_core.a event_core)
 
 add_library(pcap_writer
   PcapWriter.h
