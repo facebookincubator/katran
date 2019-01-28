@@ -22,16 +22,16 @@ create_grpc_template () {
     protoc -I ../../example_grpc/protos/ ../../example_grpc/protos/katran.proto --go_out=plugins=grpc:start_katran/src/start_katran/lb_katran
 }
 
-get_goclient_deps() {
+get_start_katran_deps() {
     pushd .
-    cd goclient/src/katranc/main
+    cd start_katran/src/start_katran/main
     go get
     popd
 }
 
-build_goclient() {
+build_start_katran() {
     pushd .
-    cd goclient/src/katranc/main
+    cd start_katran/src/start_katran/main
     go build
     popd
 }
@@ -50,3 +50,5 @@ This script will fail if go is not present
 go version 1>/dev/null
 export GOPATH=$(pwd)/start_katran
 create_grpc_template
+get_start_katran_deps
+build_start_katran
