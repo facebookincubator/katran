@@ -13,9 +13,8 @@ currently supported strategies for affinitization:
 This tool also could do NIC affinitization w/o starting katran.
 Intended use case:
 1) run this tool on server startup to do NIC affinitization
-w/o starting katran (by specifying -affinitize_only flag)
-2) run katran w/ the same strategy as in 1 but w/o NICs affinitization
-(w/ -affinitize=false flag)
+w/o starting katran (by specifying -affinitize and -affinitize_only flags)
+2) run katran w/ the same strategy as in 1 and w/ -run flag
 
 in this order we wont override NIC's IRQ affinity on every katran's restart
 
@@ -58,7 +57,7 @@ Usage of ./start_katran:
 
 almost all flags are one to one mapping to CLI flags of katran_server and have the same meaning
 few exceptions are:
- * -affinitize = discover CPU topology and write IRQ affinitiy. true by default
+ * -affinitize = discover CPU topology and write IRQ affinitiy. false by default
  * -affinitize_only = dont try to start katran and do IRQ affinity only
  * -strategy = which IRQ to CPU mapping strategy to use
  * -run (default false) = by default we run in "dryrun" mode. we wont start katran w/o this flag
