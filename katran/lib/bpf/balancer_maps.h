@@ -41,8 +41,7 @@ struct bpf_map_def SEC("maps") vip_map = {
 struct bpf_map_def SEC("maps") lru_maps_mapping = {
   .type = BPF_MAP_TYPE_ARRAY_OF_MAPS,
   .key_size = sizeof(__u32),
-  // index/position of prototype map in inner_maps_fds array
-  .inner_map_idx = 0,
+  .value_size = sizeof(__u32),
   .max_entries = MAX_SUPPORTED_CPUS,
   .map_flags = NO_FLAGS,
 };

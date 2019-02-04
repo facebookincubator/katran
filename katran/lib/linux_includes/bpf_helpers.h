@@ -144,8 +144,6 @@ struct bpf_map_def {
   unsigned int value_size;
   unsigned int max_entries;
   unsigned int map_flags;
-  unsigned int inner_map_idx;
-  unsigned int numa_node;
 };
 
 #define BPF_ANNOTATE_KV_PAIR(name, type_key, type_val)    \

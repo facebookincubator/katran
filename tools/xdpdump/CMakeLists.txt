@@ -42,6 +42,9 @@ add_library(lxdpdump
 
 target_link_libraries(lxdpdump
   xdp_event_logger
+  "${BPF}"
+  "${LIBELF}"
+  "${LIBZ}"
   "${LIBBCC}"
   "${FOLLY}"
   "${GLOG}"

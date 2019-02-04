@@ -27,6 +27,7 @@ find_library(LIBUNWIND libunwind.a unwind)
 find_library(LIBLZMA liblzma.a lzma)
 find_library(LIBZ libz.a z)
 find_library(LIBDC libdouble-conversion.a double-conversion)
+find_library(BPF libbpf.a PATHS ${LIBBPF_PATH} NO_DEFAULT_PATH)
 add_library(murmur3 STATIC
     MurmurHash3.h
     MurmurHash3.cpp
@@ -57,16 +58,15 @@ target_link_libraries(iphelpers
 add_library(bpfadapter STATIC
     BpfAdapter.cpp
     BpfLoader.cpp
-    linux_includes/libbpf.c
     BpfAdapter.h
     BpfLoader.h
     linux_includes/bpf.h
     linux_includes/bpf_common.h
     linux_includes/bpf_helpers.h
-    linux_includes/libbpf.h
 )
 
 set(BPFADAPTER_DEPS
+    "${BPF}"
     "${LIBUNWIND}"
     "${LIBLZMA}"
     "${GLOG}"
@@ -79,7 +79,6 @@ set(BPFADAPTER_DEPS
 )
 
 target_link_libraries(bpfadapter "${BPFADAPTER_DEPS}")
-
 add_library(katranlb STATIC
     KatranLb.h
     KatranLb.cpp

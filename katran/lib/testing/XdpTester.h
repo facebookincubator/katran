@@ -21,7 +21,7 @@
 #include <utility>
 #include <vector>
 
-#include "PcapParser.h"
+#include "katran/lib/testing/PcapParser.h"
 #include "katran/lib/BpfAdapter.h"
 
 namespace katran {

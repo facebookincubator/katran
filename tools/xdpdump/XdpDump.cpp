@@ -21,7 +21,7 @@
 #include <iostream>
 #include <signal.h>
 
-#include <bcc/libbpf.h>
+#include <bpf/bpf.h>
 #include <bcc/table_storage.h>
 #include <folly/Format.h>
 #include <folly/io/async/EventBaseManager.h>
@@ -144,13 +144,16 @@ void XdpDump::load() {
                              folly::to<std::string>(funcName_));
   }
 
-  auto fnSize = bpf_->function_size(funcName_);
+  auto fnSize = bpf_->function_size(funcName_) / sizeof(struct bpf_insn);
   auto bpfLogBuf = std::make_unique<char[]>(kBpfLogBufSize);
-  progFd_ = bpf_prog_load(BPF_PROG_TYPE_XDP, funcName_.c_str(),
+  progFd_ = bpf_load_program(BPF_PROG_TYPE_XDP,
                           reinterpret_cast<struct bpf_insn *>(fnStart), fnSize,
                           bpf_->license(), bpf_->kern_version(),
-                          0 /* log_level */, bpfLogBuf.get(), kBpfLogBufSize);
+                          bpfLogBuf.get(), kBpfLogBufSize);
   if (progFd_ < 0) {
+    VLOG(2) << "fd is negative: " << progFd_ << " errno: " << errno
+	    << " errno str: " << folly::to<std::string>(std::strerror(errno))
+	    << " fn size: " << fnSize;
     throw std::runtime_error("cant load bpfprog. error:" +
                              folly::to<std::string>(bpfLogBuf.get()));
   } else {
@@ -159,7 +162,7 @@ void XdpDump::load() {
 }
 
 void XdpDump::attach() {
-  auto bpfError = bpf_update_elem(jmpFd_, &kMapPos, &progFd_, 0);
+  auto bpfError = bpf_map_update_elem(jmpFd_, &kMapPos, &progFd_, 0);
   if (bpfError) {
     throw std::runtime_error("Error while updating value in map: " +
                              folly::to<std::string>(std::strerror(errno)));
@@ -168,7 +171,7 @@ void XdpDump::attach() {
 
 void XdpDump::detach() {
   VLOG(2) << "detaching xdpdump from rootlet";
-  auto bpfError = bpf_delete_elem(jmpFd_, &kMapPos);
+  auto bpfError = bpf_map_delete_elem(jmpFd_, &kMapPos);
   if (bpfError) {
     throw std::runtime_error("Error while deleting key from map: " +
                              folly::toStdString(folly::errnoStr(errno)));

@@ -258,6 +258,29 @@ get_grpc() {
     touch deps/grpc_installed
 }
 
+get_libbpf() {
+    if [ -f "deps/libbpf_installed" ]; then
+        return
+    fi
+    rm -rf deps/libbpf
+    pushd .
+    cd deps
+    git clone --depth 1 https://github.com/libbpf/libbpf || true
+    cd libbpf/src
+    make
+    DESTDIR=../install make install
+    cd ..
+    cp -r include/uapi install/usr/include/bpf/
+    cd install/usr/include/bpf
+    # override to use local bpf.h instead of system wide
+    sed -i 's/#include <linux\/bpf.h>/#include <bpf\/uapi\/linux\/bpf.h>/g' ./bpf.h
+    sed -i 's/#include <linux\/bpf.h>/#include <bpf\/uapi\/linux\/bpf.h>/g' ./libbpf.h
+    popd
+    touch deps/libbpf_installed
+}
+
+
+
 fix_gtest() {
     # oss version require this line for gtest to run/work
     local GTEST_INIT='
@@ -307,6 +330,7 @@ get_folly
 get_clang
 get_required_libs
 get_gtest
+get_libbpf
 if [ "$BUILD_EXAMPLE_THRIFT" -eq 1 ]; then
   get_mstch
   get_fizz

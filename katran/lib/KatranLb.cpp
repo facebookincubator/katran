@@ -35,7 +35,7 @@ constexpr int kLruPrototypePos = 0;
 constexpr int kMaxForwardingCores = 128;
 constexpr int kFirstElem = 0;
 constexpr int kError = -1;
-constexpr uint32_t kMaxQuicId = 4095;
+constexpr uint32_t kMaxQuicId = 65535; // 2^16-1
 } // namespace
 
 KatranLb::KatranLb(const KatranConfig& config)
@@ -254,7 +254,7 @@ void KatranLb::initLrus() {
       throw std::runtime_error("can't create prototype map for test lru");
     }
   }
-  res = bpfAdapter_.updateInnerMapsArray(kLruPrototypePos, lru_proto_fd);
+  res = bpfAdapter_.setInnerMapPrototype("lru_maps_mapping", lru_proto_fd);
   if (res < 0) {
     throw std::runtime_error(
         "can't update inner_maps_fds w/ prototype for main lru");

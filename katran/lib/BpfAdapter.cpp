@@ -30,6 +30,7 @@
 
 extern "C" {
 #include <arpa/inet.h>
+#include <asm/unistd.h>
 #include <fcntl.h>
 #include <linux/if_ether.h>
 #include <linux/netlink.h>
@@ -43,8 +44,6 @@ extern "C" {
 #include <sys/resource.h>
 #include <sys/types.h>
 #include <unistd.h>
-
-#include "linux_includes/libbpf.h"
 }
 
 namespace {
@@ -103,6 +102,15 @@ constexpr int kError = -1;
 constexpr int kMaxIndex = 1;
 constexpr int kMinIndex = 0;
 
+int perf_event_open(
+    struct perf_event_attr* attr,
+    int pid,
+    int cpu,
+    int group_fd,
+    unsigned long flags) {
+  return syscall(__NR_perf_event_open, attr, pid, cpu, group_fd, flags);
+}
+
 int get_perf_event_fd(int cpu, int wakeUpNumEvents) {
   struct perf_event_attr attr;
   int pmu_fd;
@@ -115,10 +123,10 @@ int get_perf_event_fd(int cpu, int wakeUpNumEvents) {
     attr.wakeup_events = wakeUpNumEvents;
   }
 
-  pmu_fd = ebpf_perf_event_open(&attr, -1, cpu, -1, 0);
+  pmu_fd = perf_event_open(&attr, -1, cpu, -1, 0);
 
   if (pmu_fd < 0) {
-    LOG(ERROR) << "ebpf_perf_event_open failed";
+    LOG(ERROR) << "bpf_perf_event_open failed";
     return pmu_fd;
   }
 
@@ -226,7 +234,7 @@ int BpfAdapter::createNamedBpfMap(
     int numa_node) {
   const char* name_ptr = !name.empty() ? name.c_str() : nullptr;
 
-  return ebpf_create_map_node(
+  return bpf_create_map_node(
       static_cast<enum bpf_map_type>(type),
       name_ptr,
       key_size,
@@ -236,8 +244,8 @@ int BpfAdapter::createNamedBpfMap(
       numa_node);
 }
 
-int BpfAdapter::updateInnerMapsArray(int pos, int map_fd) {
-  return loader_.updateInnerMapsArray(pos, map_fd);
+int BpfAdapter::setInnerMapPrototype(const std::string& name, int map_fd) {
+  return loader_.setInnerMapPrototype(name, map_fd);
 }
 
 int BpfAdapter::getProgFdByName(const std::string& name) {
@@ -253,7 +261,7 @@ int BpfAdapter::bpfUpdateMap(
     void* key,
     void* value,
     unsigned long long flags) {
-  auto bpfError = ebpf_update_elem(map_fd, key, value, flags);
+  auto bpfError = bpf_map_update_elem(map_fd, key, value, flags);
   if (bpfError) {
     VLOG(4) << "Error while updating value in map: " << folly::errnoStr(errno);
   }
@@ -261,7 +269,7 @@ int BpfAdapter::bpfUpdateMap(
 }
 
 int BpfAdapter::bpfMapLookupElement(int map_fd, void* key, void* value) {
-  auto bpfError = ebpf_lookup_elem(map_fd, key, value);
+  auto bpfError = bpf_map_lookup_elem(map_fd, key, value);
   if (bpfError) {
     VLOG(4) << "Error while geting value from map: " << folly::errnoStr(errno);
   }
@@ -269,7 +277,7 @@ int BpfAdapter::bpfMapLookupElement(int map_fd, void* key, void* value) {
 }
 
 int BpfAdapter::bpfMapDeleteElement(int map_fd, void* key) {
-  auto bpfError = ebpf_delete_elem(map_fd, key);
+  auto bpfError = bpf_map_delete_elem(map_fd, key);
   if (bpfError) {
     VLOG(4) << "Error while deleting key from map: " << folly::errnoStr(errno);
   }
@@ -277,7 +285,7 @@ int BpfAdapter::bpfMapDeleteElement(int map_fd, void* key) {
 }
 
 int BpfAdapter::bpfMapGetNextKey(int map_fd, void* key, void* next_key) {
-  auto bpfError = ebpf_get_next_key(map_fd, key, next_key);
+  auto bpfError = bpf_map_get_next_key(map_fd, key, next_key);
   if (bpfError) {
     VLOG(4) << "Error getting next key from map: " << folly::errnoStr(errno);
   }
@@ -295,15 +303,15 @@ int BpfAdapter::bpfMapGetFdOfInnerMap(int outer_map_fd, void* key) {
 }
 
 int BpfAdapter::bpfMapGetFdById(uint32_t map_id) {
-  return ebpf_map_get_fd_by_id(map_id);
+  return bpf_map_get_fd_by_id(map_id);
 }
 
 int BpfAdapter::pinBpfObject(int fd, const std::string& path) {
-  return ebpf_obj_pin(fd, path.c_str());
+  return bpf_obj_pin(fd, path.c_str());
 }
 
 int BpfAdapter::getPinnedBpfObject(const std::string& path) {
-  return ebpf_obj_get(path.c_str());
+  return bpf_obj_get(path.c_str());
 }
 
 int BpfAdapter::getInterfaceIndex(const std::string& interface_name) {
@@ -411,7 +419,7 @@ int BpfAdapter::testXdpProg(
     uint32_t* size_out,
     uint32_t* retval,
     uint32_t* duration) {
-  return ebpf_prog_test_run(
+  return bpf_prog_test_run(
       prog_fd, repeat, data, data_size, data_out, size_out, retval, duration);
 }
 
@@ -685,7 +693,7 @@ int BpfAdapter::attachCgroupProg(
   SCOPE_EXIT {
     ::close(target_fd);
   };
-  return ebpf_prog_attach(prog_fd, target_fd, type, flags);
+  return bpf_prog_attach(prog_fd, target_fd, type, flags);
 }
 
 int BpfAdapter::detachCgroupProg(
@@ -698,7 +706,7 @@ int BpfAdapter::detachCgroupProg(
   SCOPE_EXIT {
     ::close(target_fd);
   };
-  return ebpf_prog_detach(target_fd, type);
+  return bpf_prog_detach(target_fd, type);
 }
 
 int BpfAdapter::detachCgroupProg(
@@ -712,7 +720,7 @@ int BpfAdapter::detachCgroupProg(
   SCOPE_EXIT {
     ::close(target_fd);
   };
-  return ebpf_prog_detach2(prog_fd, target_fd, type);
+  return bpf_prog_detach2(prog_fd, target_fd, type);
 }
 
 int BpfAdapter::getPossibleCpus() {
@@ -757,7 +765,7 @@ bool BpfAdapter::openPerfEvent(
   if (*header == nullptr) {
     return false;
   }
-  if (ebpf_update_elem(map_fd, &cpu, &event_fd, BPF_ANY)) {
+  if (bpf_map_update_elem(map_fd, &cpu, &event_fd, BPF_ANY)) {
     LOG(ERROR) << "failed to update perf_event_map " << folly::errnoStr(errno);
     return false;
   }

@@ -181,13 +181,13 @@ static inline int parse_quic(void *data, void *data_end,
   if (!connId) {
     return FURTHER_PROCESSING;
   }
-  // first four bits in the connId contain info about version
-  if ((connId[0] >> 4) != QUIC_CONNID_VERSION) {
-    // version mismatch; fallback to hashing
-    return FURTHER_PROCESSING;
+  // connId schema v2: if first two bits contain the right version info
+  if ((connId[0] >> 6) == QUIC_CONNID_VERSION) {
+    // extract last 16 bits from the first 18 bits:
+    //            last 6 bits         +    8 bits        +   first 2 bits
+    return ((connId[0] & 0x3F) << 10) | (connId[1] << 2) | (connId[2] >> 6);
   }
-  // extract last 12 bits from the first 16 bits
-  return ((connId[0] & 0x0F) << 8) | connId[1];
+  return FURTHER_PROCESSING;
 }
 
 #endif // of  __PCKT_PARSING_H

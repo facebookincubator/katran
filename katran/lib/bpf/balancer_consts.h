@@ -61,8 +61,8 @@
 #define MAX_DECAP_DST 6
 #endif
 
-// we are using first 12bits from quic's connection id to store real's index
-#define MAX_QUIC_REALS 4096
+// use 16 bits in quic's connection id to store real's index
+#define MAX_QUIC_REALS 65535 // 2^16-1
 
 #define CTL_MAP_SIZE 16
 #define CH_RINGS_SIZE (MAX_VIPS * RING_SIZE)

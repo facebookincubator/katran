@@ -22,8 +22,8 @@
 #include "BpfLoader.h"
 
 extern "C" {
+#include <bpf/bpf.h>
 #include <linux/perf_event.h>
-#include "linux_includes/bpf.h"
 }
 
 namespace katran {
@@ -154,14 +154,13 @@ class BpfAdapter {
       int numa_node = -1);
 
   /**
-   * @param int pos index/position to update
+   * @param string name of map-in-map w/ specified fd as prototype
    * @param int map_fd fd of the prototype map
    * @return 0 on success, -1 on failure
    *
-   * helper function to update array of inner map's prototypes.
-   * (this array is being used by map-in-map map's types)
+   * helper function to set prototype for map-in-map
    */
-  int updateInnerMapsArray(int pos, int map_fd);
+  int setInnerMapPrototype(const std::string& name, int map_fd);
 
   /**
    * @param string name of the prog's section (as SEC("name") in bpf)

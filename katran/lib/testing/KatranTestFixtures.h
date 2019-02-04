@@ -199,20 +199,20 @@ const std::vector<std::pair<std::string, std::string>> inputTestFixtures = {
   },
   //27
   {
-    // Ether(src="0x1", dst="0x2")/IP(src="192.168.1.42", dst="10.200.1.5")/UDP(sport=31337, dport=443)/'\x00\x14\x02\x03\x04\x05\x06\x07\x00@'
-    "AgAAAAAAAQAAAAAACABFAAAmAAEAAEARrSfAqAEqCsgBBXppAbsAEqmjABQCAwQFBgcAQA==",
+    // Ether(src="0x1", dst="0x2")/IP(src="192.168.1.42", dst="10.200.1.5")/UDP(sport=31337, dport=443)/'\x00\x41\x00\x83\x04\x05\x06\x07\x00@'
+    "AgAAAAAAAQAAAAAACABFAAAmAAEAAEARrSfAqAEqCsgBBXppAbsAEqr2AEEAgwQFBgcAQA==",
     "QUIC: short header w/ connection id"
   },
   //28
   {
-    // Ether(src="0x1", dst="0x2")/IP(src="192.168.1.42", dst="10.200.1.5")/UDP(sport=31337, dport=443)/'\x00\x11\x11\x00\x00\x00\x00\x00\x00@'
-    "AgAAAAAAAQAAAAAACABFAAAmAAEAAEARrSfAqAEqCsgBBXppAbsAEqS1ABERAAAAAAAAQA==",
+    // Ether(src="0x1", dst="0x2")/IP(src="192.168.1.42", dst="10.200.1.5")/UDP(sport=31337, dport=443)/'\x00\x41\x11\x00\x00\x00\x00\x00\x00@'
+    "AgAAAAAAAQAAAAAACABFAAAmAAEAAEARrSfAqAEqCsgBBXppAbsAEqSFAEERAAAAAAAAQA==",
     "QUIC: short header w/ connection id but non-existing mapping"
   },
   //29
   {
-    // Ether(src="0x1", dst="0x2")/IP(src="192.168.1.42", dst="10.200.1.5")/UDP(sport=31337, dport=443)/'\x00\x10\x00\x03\x04\x05\x06\x07\x00@'
-    "AgAAAAAAAQAAAAAACABFAAAmAAEAAEARrSfAqAEqCsgBBXppAbsAEqunABAAAwQFBgcAQA==",
+    // Ether(src="0x1", dst="0x2")/IP(src="192.168.1.42", dst="10.200.1.5")/UDP(sport=31337, dport=443)/'\x00\x40\x00\x03\x04\x05\x06\x07\x00@'
+    "AgAAAAAAAQAAAAAACABFAAAmAAEAAEARrSfAqAEqCsgBBXppAbsAEqt3AEAAAwQFBgcAQA==",
     "QUIC: short header w/ conn id. host id = 0. CH. LRU hit"
   },
 };
@@ -336,7 +336,9 @@ const std::vector<std::pair<std::string, std::string>> outputTestFixtures = {
   },
   //24
   {
-    "AADerb6vAgAAAAAACABFAABMAAAAAEAEXEusEGhQCgAAA0UAADgAAQAAQBGtFcCoASoKyAEFemkBuwAkBZ39+s6wDIAUAQMEBQYHAAERAXF1aWMgZGF0YQBA",
+    // TODO udippant change it back to the commented value (Do not open source)
+    // "AADerb6vAgAAAAAACABFAABMAAAAAEAEXEusEGhQCgAAA0UAADgAAQAAQBGtFcCoASoKyAEFemkBuwAkBZ39+s6wDIAUAQMEBQYHAAERAXF1aWMgZGF0YQBA",
+    "AADerb6vAgAAAAAACABFAABMAAAAAEAEXEysEGhQCgAAAkUAADgAAQAAQBGtFcCoASoKyAEFemkBuwAkBZ39+s6wDIAUAQMEBQYHAAERAXF1aWMgZGF0YQBA",
     "XDP_TX"
   },
   //25
@@ -351,17 +353,17 @@ const std::vector<std::pair<std::string, std::string>> outputTestFixtures = {
   },
   //27
   {
-    "AADerb6vAgAAAAAAht1gAAAAACYEQAEAAAAAAAAAAAAAALrBASr8AAAAAAAAAAAAAAAAAAACRQAAJgABAABAEa0nwKgBKgrIAQV6aQG7ABKpowAUAgMEBQYHAEA=",
+    "AADerb6vAgAAAAAAht1gAAAAACYEQAEAAAAAAAAAAAAAALrBASr8AAAAAAAAAAAAAAAAAAACRQAAJgABAABAEa0nwKgBKgrIAQV6aQG7ABKq9gBBAIMEBQYHAEA=",
     "XDP_TX"
   },
   //28
   {
-    "AADerb6vAgAAAAAACABFAAA6AAAAAEAEXF+sEGhQCgAAAUUAACYAAQAAQBGtJ8CoASoKyAEFemkBuwASpLUAEREAAAAAAABA",
+    "AADerb6vAgAAAAAACABFAAA6AAAAAEAEXF+sEGhQCgAAAUUAACYAAQAAQBGtJ8CoASoKyAEFemkBuwASpIUAQREAAAAAAABA",
     "XDP_TX"
   },
   //29
   {
-    "AADerb6vAgAAAAAACABFAAA6AAAAAEAEXF6sEGhQCgAAAkUAACYAAQAAQBGtJ8CoASoKyAEFemkBuwASq6cAEAADBAUGBwBA",
+    "AADerb6vAgAAAAAACABFAAA6AAAAAEAEXF6sEGhQCgAAAkUAACYAAQAAQBGtJ8CoASoKyAEFemkBuwASq3cAQAADBAUGBwBA",
     "XDP_TX"
   },
 };
