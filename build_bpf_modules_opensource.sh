@@ -26,6 +26,7 @@ rm -rf ./deps/bpfprog
 mkdir -p ./deps/bpfprog/include
 cp ./katran/lib/Makefile-bpf ./deps/bpfprog/Makefile
 cp -r ./katran/lib/bpf ./deps/bpfprog/
+cp -r ./katran/decap/bpf ./deps/bpfprog/
 cp ./katran/lib/linux_includes/* ./deps/bpfprog/include/
 cd ./deps/bpfprog && LD_LIBRARY_PATH="${CLANG_PATH}/lib" make \
   EXTRA_CFLAGS="$*" \

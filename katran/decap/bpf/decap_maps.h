@@ -1,4 +1,4 @@
-/* Copyright (C) 2018-present, Facebook, Inc.
+/* Copyright (C) 2019-present, Facebook, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -14,24 +14,33 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#include <gtest/gtest.h>
+#ifndef __DECAP_MAPS_H
+#define __DECAP_MAPS_H
 
-#include <folly/io/IOBuf.h>
+/*
+ * This file contains definition of all maps which has been used by balancer
+ */
 
-#include "Base64Helpers.h"
+#include "bpf.h"
+#include "bpf_helpers.h"
 
-namespace katran {
+#ifndef STATS_MAP_SIZE
+#define STATS_MAP_SIZE 4
+#endif
 
-TEST(Base64Tests, testEncode) {
-  auto test_string = "Test Data!";
-  auto buf = folly::IOBuf::copyBuffer(test_string);
-  ASSERT_STREQ(
-      Base64Helpers::base64Encode(buf.get()).c_str(), "VGVzdCBEYXRhIQ==");
+struct decap_stats {
+  __u64 decap_v4;
+  __u64 decap_v6;
+  __u64 total;
 };
 
-TEST(Base64Tests, testDecode) {
-  ASSERT_STREQ(
-      Base64Helpers::base64Decode("VGVzdCBEYXRhIQ==").c_str(), "Test Data!");
+// map w/ per vip statistics
+struct bpf_map_def SEC("maps") stats = {
+  .type = BPF_MAP_TYPE_PERCPU_ARRAY,
+  .key_size = sizeof(__u32),
+  .value_size = sizeof(struct decap_stats),
+  .max_entries = STATS_MAP_SIZE,
+  .map_flags = NO_FLAGS,
 };
 
-} // namespace katran
+#endif // of _DECAP_MAPS

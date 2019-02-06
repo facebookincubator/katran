@@ -17,6 +17,7 @@ always += bpf/adapter_integration_test_kern.o
 always += bpf/healthchecking_ipip.o
 always += bpf/xdp_pktcntr.o
 always += bpf/xdp_root.o
+always += bpf/decap_kern.o
 
 HOSTCFLAGS += $(INCLUDEFLAGS) $(PFLAGS)
 HOSTCFLAGS_bpf_load.o += $(INCLUDEFLAGS) $(PFLAGS) -Wno-unused-variable
