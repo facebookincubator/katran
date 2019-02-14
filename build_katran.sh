@@ -98,8 +98,8 @@ get_clang() {
     cd deps
     mkdir clang
     cd clang
-    wget http://releases.llvm.org/5.0.0/clang+llvm-5.0.0-linux-x86_64-ubuntu16.04.tar.xz
-    tar xvf ./clang+llvm-5.0.0-linux-x86_64-ubuntu16.04.tar.xz
+    wget http://releases.llvm.org/7.0.1/clang+llvm-7.0.1-x86_64-linux-gnu-ubuntu-18.04.tar.xz
+    tar xvf ./clang+llvm-7.0.1-x86_64-linux-gnu-ubuntu-18.04.tar.xz
     popd
     touch deps/clang_installed
 }

@@ -21,7 +21,7 @@ set -xeo pipefail
 # 1) put it into bpf/ dir
 # 2) edit Makefile (add new prog into always += section)
 
-CLANG_PATH="$(pwd)/deps/clang/clang+llvm-5.0.0-linux-x86_64-ubuntu16.04"
+CLANG_PATH="$(pwd)/deps/clang/clang+llvm-7.0.1-x86_64-linux-gnu-ubuntu-18.04"
 rm -rf ./deps/bpfprog
 mkdir -p ./deps/bpfprog/include
 cp ./katran/lib/Makefile-bpf ./deps/bpfprog/Makefile
