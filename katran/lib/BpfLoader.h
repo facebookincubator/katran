@@ -18,13 +18,12 @@
 
 #include <string>
 #include <unordered_map>
+
 extern "C" {
 #include <bpf/libbpf.h>
 }
 
-
 namespace katran {
-
 
 /**
  * This is a helper class which implements routines to load a bpf program

@@ -114,13 +114,15 @@
 #define DEFAULT_TTL 64
 #endif
 
-// QUIC invariants from draft-ietf-quic-transport-13
+// QUIC invariants from draft-ietf-quic-transport-17
 #define QUIC_LONG_HEADER 0x80
 #define QUIC_SHORT_HEADER 0x00
-#define QUIC_CLIENT_INITIAL 0x7F
-#define QUIC_RETRY 0x7E
-#define QUIC_HANDSHAKE 0x7D
-#define QUIC_0RTT 0x7C
+// Long header packet types (with alignment of 8-bits for packet-type)
+#define QUIC_CLIENT_INITIAL 0x00
+#define QUIC_0RTT 0x10
+#define QUIC_HANDSHAKE 0x20
+#define QUIC_RETRY 0x30
+#define QUIC_PACKET_TYPE_MASK 0x30
 
 // Implementation specific constants:
 // Require connection id to be of minimum length

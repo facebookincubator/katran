@@ -57,8 +57,8 @@ const std::vector<std::string> kReals = {
 };
 
 const std::vector<::katran::lb_stats> kRealStats = {
-    {1, 38},
-    {8, 400},
+    {3, 150},
+    {7, 344},
     {4, 236},
     {2, 91},
     {1, 38},
@@ -210,7 +210,7 @@ void testLbCounters(katran::KatranLb& lb) {
     LOG(INFO) << "per Vip counter is incorrect";
   }
   stats = lb.getLruStats();
-  if ((stats.v1 != 18) || (stats.v2 != 11)) {
+  if ((stats.v1 != 19) || (stats.v2 != 11)) {
     VLOG(2) << "Total pckts: " << stats.v1 << " LRU misses: " << stats.v2;
     LOG(INFO) << "LRU counter is incorrect";
   }

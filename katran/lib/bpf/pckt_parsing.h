@@ -42,7 +42,10 @@ struct quic_long_header {
   __u32 version;
   // Dest Conn Id Len(4 bits)| Source Conn Id Len(4 bits)
   __u8 conn_id_lens;
-  __u8 connection_id[QUIC_MIN_CONNID_LEN];
+  // conn-id len can be of either 0 bytes in length or between 4 and 18 bytes
+  // For routing, katran requires minimum of 'QUIC_MIN_CONNID_LEN',
+  // and doesn't read beyond that
+  __u8 dst_connection_id[QUIC_MIN_CONNID_LEN];
 } __attribute__((__packed__));
 
 struct quic_short_header {
@@ -155,12 +158,9 @@ static inline int parse_quic(void *data, void *data_end,
     if (quic_data + sizeof(struct quic_long_header) > data_end) {
       return FURTHER_PROCESSING;
     }
-    if ((*pkt_type ^ QUIC_CLIENT_INITIAL) == QUIC_LONG_HEADER) {
-      // client initial packet - fall back to use c. hash
-      return FURTHER_PROCESSING;
-    }
-    if ((*pkt_type ^ QUIC_0RTT) == QUIC_LONG_HEADER) {
-      // 0-RTT packet - fall back to use c. hash
+    if ((*pkt_type & QUIC_PACKET_TYPE_MASK) < QUIC_HANDSHAKE) {
+      // for client initial and 0rtt packet - fall back to use c. hash, since
+      // the connection-id is not the server-chosen one.
       return FURTHER_PROCESSING;
     }
 
@@ -170,7 +170,7 @@ static inline int parse_quic(void *data, void *data_end,
       // conn id is not long enough
       return FURTHER_PROCESSING;
     }
-    connId = long_header->connection_id;
+    connId = long_header->dst_connection_id;
   } else {
     // short header: just read the connId
     if (quic_data + sizeof(struct quic_short_header) > data_end) {
