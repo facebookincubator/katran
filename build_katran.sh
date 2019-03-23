@@ -19,7 +19,6 @@ set -xeo pipefail
 NCPUS=$(cat /proc/cpuinfo  | grep processor | wc -l)
 ROOT_DIR=$(pwd)
 DEPS_DIR="${ROOT_DIR}/deps"
-CLANG_DIR="${DEPS_DIR}/clang/clang+llvm-5.0.0-linux-x86_64-ubuntu16.04"
 
 if [ ! -z "$FORCE_INSTALL" ]; then
     rm -rf ./deps
@@ -98,8 +97,8 @@ get_clang() {
     cd deps
     mkdir clang
     cd clang
-    wget http://releases.llvm.org/7.0.1/clang+llvm-7.0.1-x86_64-linux-gnu-ubuntu-18.04.tar.xz
-    tar xvf ./clang+llvm-7.0.1-x86_64-linux-gnu-ubuntu-18.04.tar.xz
+    wget http://releases.llvm.org/8.0.0/clang+llvm-8.0.0-x86_64-linux-gnu-ubuntu-18.04.tar.xz
+    tar xvf ./clang+llvm-8.0.0-x86_64-linux-gnu-ubuntu-18.04.tar.xz
     popd
     touch deps/clang_installed
 }
