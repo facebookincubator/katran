@@ -27,6 +27,7 @@ constexpr int kNotExists = -1;
 constexpr int kPrefixLen = 3;
 constexpr int kStart = 0;
 constexpr int kSuccess = 0;
+constexpr int kMaxSharedMapNameSize = 15;
 } // namespace
 
 namespace {
@@ -49,9 +50,25 @@ namespace {
   }
   return BPF_PROG_TYPE_UNSPEC;
 }
+
+// custom libbpf print function so we would be able to control
+// debug output from libbpf w/ -v flags
+int libbpf_print(
+    enum libbpf_print_level level,
+    const char* format,
+    va_list args) {
+  if (level == LIBBPF_DEBUG && !VLOG_IS_ON(6)) {
+    return 0;
+  }
+
+  return vfprintf(stderr, format, args);
+}
+
 } // namespace
 
-BpfLoader::BpfLoader() {}
+BpfLoader::BpfLoader() {
+  libbpf_set_print(libbpf_print);
+}
 
 BpfLoader::~BpfLoader() {
   for (auto& obj : bpfObjects_) {
@@ -87,6 +104,10 @@ int BpfLoader::getProgFdByName(const std::string& name) {
 int BpfLoader::updateSharedMap(const std::string& name, int fd) {
   if (sharedMaps_.find(name) != sharedMaps_.end()) {
     LOG(ERROR) << "Shared maps name collision. Name: " << name;
+    return kNotExists;
+  } else if (name.size() > kMaxSharedMapNameSize) {
+    LOG(ERROR) << "Shared map's name: " << name << " bigger than maximum "
+               << " supported size: " << kMaxSharedMapNameSize;
     return kNotExists;
   } else {
     sharedMaps_[name] = fd;

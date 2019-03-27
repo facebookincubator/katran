@@ -26,6 +26,7 @@ DEFINE_string(
     bpfpath,
     "/mnt/bpf/xdproot/xdproot_array",
     "path to where we want to pin root_array");
+DEFINE_int32(xdp_flags, 0 , "xdp attachment flags");
 
 int main(int argc, char** argv) {
   gflags::ParseCommandLineFlags(&argc, &argv, true);
@@ -52,12 +53,12 @@ int main(int argc, char** argv) {
   }
 
   // attaching prog to eth0
-  if (adapter.detachXdpProg(FLAGS_intf)) {
+  if (adapter.detachXdpProg(FLAGS_intf, FLAGS_xdp_flags)) {
     std::cout << "can't detach xdp prog\n";
     return 1;
   }
 
-  if (adapter.attachXdpProg(prog_fd, FLAGS_intf)) {
+  if (adapter.attachXdpProg(prog_fd, FLAGS_intf, FLAGS_xdp_flags)) {
     std::cout << "cant attach bpf to interface " << FLAGS_intf << std::endl;
     return 1;
   }

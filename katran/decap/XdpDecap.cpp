@@ -22,6 +22,8 @@ namespace katran {
 
 XdpDecap::XdpDecap(const XdpDecapConfig& config) : config_(config) {
   if (!config_.mapPath.empty()) {
+    isStandalone_ = false;
+  } else {
     // sanity checking that interface w/ specified name exists
     // so we wont need to do it later every time when we would want to access it
     auto ifindex = bpfAdapter_.getInterfaceIndex(config_.interface);
@@ -30,12 +32,15 @@ XdpDecap::XdpDecap(const XdpDecapConfig& config) : config_(config) {
                  << config_.interface;
       return;
     }
-    isStandalone_ = false;
   }
 }
 
 XdpDecap::~XdpDecap() {
   if (isAttached_) {
+    if (!config_.detachOnExit) {
+      LOG(INFO) << "Exiting w/o detach";
+      return;
+    }
     if (isStandalone_) {
       auto res = bpfAdapter_.detachXdpProg(config_.interface);
       if (res) {

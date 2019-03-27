@@ -217,29 +217,35 @@ class BpfAdapter {
   /**
    *  @param int prog_fd descriptor of the program
    *  @param string interface_name to attach
+   *  @param uint32_t flags xdp flags for attaching xdp prog. 0 is default
    *  @return int 0 on success
    *
    *  helper function to attach bpf prog to specified interface
    */
   static int attachXdpProg(
       const int prog_fd,
-      const std::string& interface_name);
+      const std::string& interface_name,
+      const uint32_t flags = 0);
 
   /**
    * @param string interface_name from which we want to detach xdp prog
+   * @param uint32_t flags xdp flags used for attaching xdp prog. 0 is default
    * @return int 0 on success
    *
    * helper function to detach bpf prog from interface
    */
-  static int detachXdpProg(const std::string& interface_name);
+  static int detachXdpProg(
+      const std::string& interface_name,
+      const uint32_t flags = 0);
 
   /**
    * @param int interface ifindex
+   * @param uint32_t flags xdp flags used for attaching xdp prog. 0 is default
    * @return int 0 on success
    *
    * helper function to detach bpf prog from interface w/ specified index
    */
-  static int detachXdpProg(const int ifindex);
+  static int detachXdpProg(const int ifindex, const uint32_t flags = 0);
 
   /**
    * @param int map_fd file descriptor of map to update

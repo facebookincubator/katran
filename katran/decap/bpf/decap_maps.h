@@ -42,5 +42,6 @@ struct bpf_map_def SEC("maps") stats = {
   .max_entries = STATS_MAP_SIZE,
   .map_flags = NO_FLAGS,
 };
+BPF_ANNOTATE_KV_PAIR(stats, __u32, struct decap_stats);
 
 #endif // of _DECAP_MAPS

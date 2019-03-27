@@ -43,6 +43,7 @@ struct decap_stats {
  * @param string mapPath in shared mode - path to bpf prog array
  * @param int progPos in shared mode - position in prog array
  * @param string interface in standalone mode - interface to attach
+ * @param bool detachOnExit - should we remove xdp prog from kernel on exit
  *
  * structure which contains main XdpDecap configuration
  */
@@ -51,6 +52,7 @@ struct XdpDecapConfig {
   std::string mapPath = kDefaultMapPath;
   int progPos = kDefaultProgPos;
   std::string interface = kDefaultInterface;
+  bool detachOnExit = true;
 };
 
 }

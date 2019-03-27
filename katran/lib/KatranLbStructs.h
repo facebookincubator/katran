@@ -32,6 +32,7 @@ constexpr uint32_t kLbDefaultChRingSize = 65537;
 constexpr uint32_t kDefaultMaxLpmSrcSize = 3000000;
 constexpr uint32_t kDefaultMaxDecapDstSize = 6;
 constexpr unsigned int kDefaultLruSize = 8000000;
+constexpr uint32_t kNoFlags = 0;
 std::string kNoExternalMap = "";
 std::string kDefaultHcInterface = "";
 } // namespace
@@ -141,6 +142,7 @@ struct KatranConfig {
   uint32_t maxLpmSrcSize = kDefaultMaxLpmSrcSize;
   uint32_t maxDecapDst = kDefaultMaxDecapDstSize;
   std::string hcInterface = kDefaultHcInterface;
+  uint32_t xdpAttachFlags = kNoFlags;
 };
 
 /**

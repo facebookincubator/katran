@@ -72,6 +72,9 @@ class XdpDecap {
 
   /**
    * flag which indicates were XdpDecap attached as standalone program or not
+   * in standalone mode xdpdecap would try to install xdp program to physical
+   * interface directly. in shared (!standalone) it would try to register itself
+   * into provided bpf's program array on specified position
    */
   bool isStandalone_{true};
 

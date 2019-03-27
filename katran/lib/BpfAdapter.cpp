@@ -340,26 +340,29 @@ int BpfAdapter::attachBpfProgToTc(
 
 int BpfAdapter::attachXdpProg(
     const int prog_fd,
-    const std::string& interface_name) {
+    const std::string& interface_name,
+    const uint32_t flags) {
   unsigned int ifindex = if_nametoindex(interface_name.c_str());
   if (!ifindex) {
     VLOG(1) << "can't resolve ifindex for interface: " << interface_name;
     return 1;
   }
-  return modifyXdpProg(prog_fd, ifindex);
+  return modifyXdpProg(prog_fd, ifindex, flags);
 }
 
-int BpfAdapter::detachXdpProg(const std::string& interface_name) {
+int BpfAdapter::detachXdpProg(
+    const std::string& interface_name,
+    const uint32_t flags) {
   unsigned int ifindex = if_nametoindex(interface_name.c_str());
   if (!ifindex) {
     VLOG(1) << "can't resolve ifindex for interface: " << interface_name;
     return 1;
   }
-  return modifyXdpProg(-1, ifindex);
+  return modifyXdpProg(-1, ifindex, flags);
 }
 
-int BpfAdapter::detachXdpProg(const int ifindex) {
-  return modifyXdpProg(-1, ifindex);
+int BpfAdapter::detachXdpProg(const int ifindex, const uint32_t flags) {
+  return modifyXdpProg(-1, ifindex, flags);
 }
 
 int BpfAdapter::addTcBpfFilter(

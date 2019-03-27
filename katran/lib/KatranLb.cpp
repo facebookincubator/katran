@@ -114,7 +114,7 @@ KatranLb::~KatranLb() {
     auto mainIfindex = ctlValues_[kMainIntfPos].ifindex;
     auto hcIfindex = ctlValues_[kHcIntfPos].ifindex;
     if (standalone_) {
-      res = bpfAdapter_.detachXdpProg(mainIfindex);
+      res = bpfAdapter_.detachXdpProg(mainIfindex, config_.xdpAttachFlags);
     } else {
       res = bpfAdapter_.bpfMapDeleteElement(rootMapFd_, &config_.rootMapPos);
     }
@@ -351,7 +351,8 @@ void KatranLb::attachBpfProgs() {
   auto interface_index = ctlValues_[kMainIntfPos].ifindex;
   if (standalone_) {
     // attaching main bpf prog in standalone mode
-    res = bpfAdapter_.modifyXdpProg(main_fd, interface_index);
+    res = bpfAdapter_.modifyXdpProg(
+        main_fd, interface_index, config_.xdpAttachFlags);
     if (res != 0) {
       throw std::invalid_argument(
           "can't attach main bpf prog "
@@ -381,7 +382,7 @@ void KatranLb::attachBpfProgs() {
     if (res != 0) {
       if (standalone_) {
         // will try to remove main bpf prog.
-        bpfAdapter_.detachXdpProg(interface_index);
+        bpfAdapter_.detachXdpProg(interface_index, config_.xdpAttachFlags);
       } else {
         bpfAdapter_.bpfMapDeleteElement(rootMapFd_, &config_.rootMapPos);
       }

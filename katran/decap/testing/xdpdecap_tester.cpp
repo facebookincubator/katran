@@ -28,7 +28,7 @@
 
 DEFINE_string(pcap_input, "", "path to input pcap file");
 DEFINE_string(pcap_output, "", "path to output pcap file");
-DEFINE_string(decap_prog, "./decap_kern.o", "path to decap bpf prog");
+DEFINE_string(decap_prog, "./decap_kern.o", "path to balancer bpf prog");
 DEFINE_bool(print_base64, false, "print packets in base64 from pcap file");
 DEFINE_bool(test_from_fixtures, false, "run tests on predefined dataset");
 DEFINE_bool(perf_testing, false, "run perf tests on predefined dataset");

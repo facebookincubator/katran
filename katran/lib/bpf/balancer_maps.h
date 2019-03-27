@@ -35,6 +35,7 @@ struct bpf_map_def SEC("maps") vip_map = {
   .max_entries = MAX_VIPS,
   .map_flags = NO_FLAGS,
 };
+BPF_ANNOTATE_KV_PAIR(vip_map, struct vip_definition, struct vip_meta);
 
 
 // map which contains cpu core to lru mapping
@@ -45,6 +46,7 @@ struct bpf_map_def SEC("maps") lru_maps_mapping = {
   .max_entries = MAX_SUPPORTED_CPUS,
   .map_flags = NO_FLAGS,
 };
+BPF_ANNOTATE_KV_PAIR(lru_maps_mapping, __u32, __u32);
 
 // fallback lru. we should never hit this one outside of unittests
 struct bpf_map_def SEC("maps") fallback_lru_cache = {
@@ -54,6 +56,7 @@ struct bpf_map_def SEC("maps") fallback_lru_cache = {
   .max_entries = DEFAULT_LRU_SIZE,
   .map_flags = NO_FLAGS,
 };
+BPF_ANNOTATE_KV_PAIR(fallback_lru_cache, struct flow_key, struct real_pos_lru);
 
 // map which contains all vip to real mappings
 struct bpf_map_def SEC("maps") ch_rings = {
@@ -63,6 +66,7 @@ struct bpf_map_def SEC("maps") ch_rings = {
   .max_entries = CH_RINGS_SIZE,
   .map_flags = NO_FLAGS,
 };
+BPF_ANNOTATE_KV_PAIR(ch_rings, __u32, __u32);
 
 // map which contains opaque real's id to real mapping
 struct bpf_map_def SEC("maps") reals = {
@@ -72,6 +76,7 @@ struct bpf_map_def SEC("maps") reals = {
   .max_entries = MAX_REALS,
   .map_flags = NO_FLAGS,
 };
+BPF_ANNOTATE_KV_PAIR(reals, __u32, struct real_definition);
 
 // map with per real pps/bps statistic
 struct bpf_map_def SEC("maps") reals_stats = {
@@ -81,6 +86,7 @@ struct bpf_map_def SEC("maps") reals_stats = {
   .max_entries = MAX_REALS,
   .map_flags = NO_FLAGS,
 };
+BPF_ANNOTATE_KV_PAIR(reals_stats, __u32, struct lb_stats);
 
 // map w/ per vip statistics
 struct bpf_map_def SEC("maps") stats = {
@@ -90,6 +96,7 @@ struct bpf_map_def SEC("maps") stats = {
   .max_entries = STATS_MAP_SIZE,
   .map_flags = NO_FLAGS,
 };
+BPF_ANNOTATE_KV_PAIR(stats, __u32, struct lb_stats);
 
 // map for quic connection-id to real's id mapping
 struct bpf_map_def SEC("maps") quic_mapping = {
@@ -99,6 +106,7 @@ struct bpf_map_def SEC("maps") quic_mapping = {
   .max_entries = MAX_QUIC_REALS,
   .map_flags = NO_FLAGS,
 };
+BPF_ANNOTATE_KV_PAIR(quic_mapping, __u32, __u32);
 
 // control array. contains metadata such as default router mac
 // and/or interfaces ifindexes
@@ -111,6 +119,7 @@ struct bpf_map_def SEC("maps") ctl_array = {
   .max_entries = CTL_MAP_SIZE,
   .map_flags = NO_FLAGS,
 };
+BPF_ANNOTATE_KV_PAIR(ctl_array, __u32, struct ctl_value);
 
 #ifdef LPM_SRC_LOOKUP
 struct bpf_map_def SEC("maps") lpm_src_v4 = {
@@ -120,6 +129,7 @@ struct bpf_map_def SEC("maps") lpm_src_v4 = {
   .max_entries = MAX_LPM_SRC,
   .map_flags = BPF_F_NO_PREALLOC,
 };
+BPF_ANNOTATE_KV_PAIR(lpm_src_v4, struct v4_lpm_key, __u32);
 
 struct bpf_map_def SEC("maps") lpm_src_v6 = {
   .type = BPF_MAP_TYPE_LPM_TRIE,
@@ -128,6 +138,8 @@ struct bpf_map_def SEC("maps") lpm_src_v6 = {
   .max_entries = MAX_LPM_SRC,
   .map_flags = BPF_F_NO_PREALLOC,
 };
+BPF_ANNOTATE_KV_PAIR(lpm_src_v6, struct v6_lpm_key, __u32);
+
 #endif
 #ifdef INLINE_DECAP
 struct bpf_map_def SEC("maps") decap_dst = {
@@ -137,5 +149,7 @@ struct bpf_map_def SEC("maps") decap_dst = {
   .max_entries = MAX_VIPS,
   .map_flags = NO_FLAGS,
 };
+BPF_ANNOTATE_KV_PAIR(decap_dst, struct address, __u32);
+
 #endif
 #endif // of _BALANCER_MAPS
