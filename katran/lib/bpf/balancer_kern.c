@@ -169,7 +169,8 @@ __attribute__((__always_inline__))
 static inline int process_l3_headers(struct packet_description *pckt,
                                      __u8 *protocol, __u64 off,
                                      __u16 *pkt_bytes, void *data,
-                                     void *data_end, bool is_ipv6) {
+                                     void *data_end, bool is_ipv6,
+                                     bool decrement_ttl) {
   __u64 iph_len;
   int action;
   struct iphdr *iph;
@@ -183,6 +184,14 @@ static inline int process_l3_headers(struct packet_description *pckt,
     iph_len = sizeof(struct ipv6hdr);
     *protocol = ip6h->nexthdr;
     pckt->flow.proto = *protocol;
+
+    if (decrement_ttl) {
+      if(!--ip6h->hop_limit) {
+        // ttl 0
+        return XDP_DROP;
+      }
+    }
+
     *pkt_bytes = bpf_ntohs(ip6h->payload_len);
     off += iph_len;
     if (*protocol == IPPROTO_FRAGMENT) {
@@ -207,6 +216,16 @@ static inline int process_l3_headers(struct packet_description *pckt,
       // if len of ipv4 hdr is not equal to 20bytes that means that header
       // contains ip options, and we dont support em
       return XDP_DROP;
+    }
+
+    if (decrement_ttl) {
+      u32 csum;
+      if (!--iph->ttl) {
+        // ttl 0
+        return XDP_DROP;
+      }
+      csum = iph->check + 0x0001;
+      iph->check = (csum & 0xffff) + (csum >> 16);
     }
 
     *protocol = iph->protocol;
@@ -236,7 +255,7 @@ static inline int process_encaped_pckt(void **data, void **data_end,
                                        struct xdp_md *xdp, bool *is_ipv6,
                                        struct packet_description *pckt,
                                        __u8 *protocol, __u64 off,
-                                       __u16 *pkt_bytes) {
+                                       __u16 *pkt_bytes, bool decrement_ttl) {
   int action;
   if (*protocol == IPPROTO_IPIP) {
     if (*is_ipv6) {
@@ -262,7 +281,7 @@ static inline int process_encaped_pckt(void **data, void **data_end,
       return XDP_DROP;
     }
     action = process_l3_headers(
-      pckt, protocol, off, pkt_bytes, *data, *data_end, false);
+      pckt, protocol, off, pkt_bytes, *data, *data_end, false, decrement_ttl);
     if (action >= 0) {
       return action;
     }
@@ -280,7 +299,7 @@ static inline int process_encaped_pckt(void **data, void **data_end,
       return XDP_DROP;
     }
     action = process_l3_headers(
-      pckt, protocol, off, pkt_bytes, *data, *data_end, true);
+      pckt, protocol, off, pkt_bytes, *data, *data_end, true, decrement_ttl);
     if (action >= 0) {
       return action;
     }
@@ -307,7 +326,7 @@ static inline int process_packet(void *data, __u64 off, void *data_end,
   __u32 mac_addr_pos = 0;
   __u16 pkt_bytes;
   action = process_l3_headers(
-    &pckt, &protocol, off, &pkt_bytes, data, data_end, is_ipv6);
+    &pckt, &protocol, off, &pkt_bytes, data, data_end, is_ipv6, false);
   if (action >= 0) {
     return action;
   }
@@ -324,7 +343,7 @@ static inline int process_packet(void *data, __u64 off, void *data_end,
     __u32 *decap_dst_flags = bpf_map_lookup_elem(&decap_dst, &dst_addr);
 
     action = process_encaped_pckt(&data, &data_end, xdp, &is_ipv6, &pckt,
-                                  &protocol, off, &pkt_bytes);
+                                  &protocol, off, &pkt_bytes, decap_dst_flags);
     if (action >= 0) {
       return action;
     }
