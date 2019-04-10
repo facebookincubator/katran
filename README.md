@@ -38,8 +38,6 @@ If you need to build it for other Linux distributions, you need to make sure tha
     - [`folly`](https://github.com/facebook/folly)
     - recent version of clang compiler (6.0+)
     - glog/gtest/gflags/elf libraries
-    - [`wangle`](https://github.com/facebook/wangle)
-    - recent version of [`linux kernel src`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git)
 
 Additionally, if you want to build examples, [`fbthrift`](https://github.com/facebook/fbthrift) and [`gRPC`](https://github.com/grpc/grpc) must be installed, as well!
 
