@@ -19,10 +19,7 @@
 #include <memory>
 
 #include <folly/io/async/AsyncSignalHandler.h>
-
-namespace grpc_impl {
-class Server;
-}
+#include <grpc++/grpc++.h>
 
 namespace folly {
 class EventBase;
@@ -43,14 +40,14 @@ class GrpcSignalHandler : public folly::AsyncSignalHandler {
    */
   GrpcSignalHandler(
       std::shared_ptr<folly::EventBase> evb,
-      grpc_impl::Server* server,
+      grpc::Server* server,
       int32_t delay);
   ~GrpcSignalHandler() override {}
 
   void signalReceived(int signum) noexcept override;
 
  private:
-  grpc_impl::Server* server_;
+  grpc::Server* server_;
   std::shared_ptr<folly::EventBase> evb_;
   int32_t delay_;
   bool shutdownScheduled_{false};

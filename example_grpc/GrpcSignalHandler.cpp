@@ -17,7 +17,6 @@
 #include "GrpcSignalHandler.h"
 
 #include <folly/io/async/EventBase.h>
-#include <grpc++/grpc++.h>
 
 namespace lb {
 namespace katran {
