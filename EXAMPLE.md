@@ -276,7 +276,7 @@ if __name__ == "__main__":
     main()
 ```
 
-In the first screen lets run our helper python program to generate udp packets toward 10.100.1.1 and fc00:100::1 (our VIPs)
+In the first screen lets run our helper python program to generate udp packets toward `10.100.1.1` and `fc00:100::1` (our VIPs)
 
 ```
 $ sudo python hc_it_client.py 4 4 10.100.1.1  1000  # 4 packets with dst 10.100.1.1 and socket mark 1000
