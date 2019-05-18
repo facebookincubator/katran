@@ -63,10 +63,10 @@ type KatranClient struct {
 	client lb_katran.KatranServiceClient
 }
 
-func (kc *KatranClient) Init() {
+func (kc *KatranClient) Init(serverAddr string) {
 	var opts []grpc.DialOption
 	opts = append(opts, grpc.WithInsecure())
-	conn, err := grpc.Dial("127.0.0.1:50051", opts...)
+	conn, err := grpc.Dial(serverAddr, opts...)
 	if err != nil {
 		log.Fatalf("Can't connect to local katran server! err is %v\n", err)
 	}
