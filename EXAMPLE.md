@@ -144,7 +144,7 @@ standalone mode is when katran is attached to the interface directly (and you wo
 be able to run any other XDP program on this interface)
 
 ```
-$ sudo ./build/example_grpc/katran_server_grpc -balancer_prog ./deps/linux/bpfprog/bpf/balancer_kern.o -default_mac 52:54:00:12:35:02 -forwarding_cores=0 -healthchecker_prog ./deps/linux/bpfprog/bpf/healthchecking_ipip.o -intf=enp0s3 -ipip_intf=ipip0 -ipip6_intf=ipip60 -lru_size=10000
+$ sudo ./build/example_grpc/katran_server_grpc -balancer_prog ./deps/bpfprog/bpf/balancer_kern.o -default_mac 52:54:00:12:35:02 -forwarding_cores=0 -healthchecker_prog ./deps/bpfprog/bpf/healthchecking_ipip.o -intf=enp0s3 -ipip_intf=ipip0 -ipip6_intf=ipip60 -lru_size=10000
 ```
 
 In this example:
@@ -197,7 +197,7 @@ if needed, in front of load balancer.
 
 
 ```
-$ sudo ./build/example_grpc/katran_server_grpc -balancer_prog ./deps/linux/bpfprog/bpf/balancer_kern.o -default_mac 52:54:00:12:35:02 -forwarding_cores=0 -healthchecker_prog ./deps/linux/bpfprog/bpf/healthchecking_ipip.o -intf=enp0s3 -ipip_intf=ipip0 -ipip6_intf=ipip60 -lru_size=10000 -map_path /sys/fs/bpf/jmp_eth0 -prog_pos=2
+$ sudo ./build/example_grpc/katran_server_grpc -balancer_prog ./deps/bpfprog/bpf/balancer_kern.o -default_mac 52:54:00:12:35:02 -forwarding_cores=0 -healthchecker_prog ./deps/bpfprog/bpf/healthchecking_ipip.o -intf=enp0s3 -ipip_intf=ipip0 -ipip6_intf=ipip60 -lru_size=10000 -map_path /sys/fs/bpf/jmp_eth0 -prog_pos=2
 ```
 
 ### Configuring healthchecks forwarding
@@ -220,7 +220,7 @@ For v6 VIP we are using only one real with address: `fc00:200::1`
 To configure so_mark to real mapping, we are going to use go client that we built earlier:
 
 ```
-$ cp  ./katran_goclient ./katran_goclient
+$ cp  ./example_grpc/goclient/bin/main ./katran_goclient
 $ ./katran_goclient -new_hc 10.200.200.1 -somark 1000
 exiting
 $ ./katran_goclient -new_hc 10.200.200.2 -somark 1001
