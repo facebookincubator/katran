@@ -220,7 +220,7 @@ For v6 VIP we are using only one real with address: `fc00:200::1`
 To configure so_mark to real mapping, we are going to use go client that we built earlier:
 
 ```
-$ cp  ./katran_goclient ./katran_goclient
+$ cp  ./example_grpc/goclient/bin/main ./katran_goclient
 $ ./katran_goclient -new_hc 10.200.200.1 -somark 1000
 exiting
 $ ./katran_goclient -new_hc 10.200.200.2 -somark 1001
