@@ -18,6 +18,7 @@
 #include <folly/Function.h>
 #include <string>
 #include <unordered_map>
+#include <vector>
 
 #include "BpfLoader.h"
 
@@ -319,6 +320,18 @@ class BpfAdapter {
   static int bpfMapGetFdById(uint32_t map_id);
 
   /**
+   * @param uint32_t prog_id valid id of a bpf prog
+   * @return int fd of the prog if success, -1 on failure
+   *
+   * Given id of a bpf prog, returns it's file descriptor (fd)
+   *
+   * NOTE: bpf internally increments the reference count of the prog after
+   * successfully looking up by it's id. Thus, the userspace program
+   * must close the FD to avoid leaks.
+   */
+  static int bpfProgGetFdById(uint32_t prog_id);
+
+  /**
    * @param int prog_fd descriptor of bpf program
    * @param unsigned int ifindex - index of the interface
    * @param const string& bpf_name name of program
@@ -448,6 +461,18 @@ class BpfAdapter {
    */
   static int detachCgroupProg(
       int prog_fd,
+      const std::string& cgroup,
+      enum bpf_attach_type type);
+
+  /**
+   * @param string path to cgroup directory
+   * @param enum bpf_attach_type type of attachment
+   * @return vector int of fds of attached bpf progs
+   *
+   * helper function to get a list of fds of all attached bpf progs
+   * with specified type to specified cgroup
+   */
+  static std::vector<uint32_t> getCgroupProgsIds(
       const std::string& cgroup,
       enum bpf_attach_type type);
 

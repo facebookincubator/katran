@@ -22,6 +22,7 @@
 #include <folly/String.h>
 #include <glog/logging.h>
 #include <libmnl/libmnl.h>
+#include <array>
 #include <cerrno>
 #include <cstdio>
 #include <cstring>
@@ -53,6 +54,7 @@ constexpr unsigned TCA_BPF_PRIO_1 = 1;
 constexpr int TC_HANDLE = 0x1;
 constexpr int TC_CLASS_ID = 1;
 constexpr int TC_ACTION_OK = TC_ACT_OK;
+constexpr int kMaxProgsToQuery = 1024;
 std::array<const char, 4> kBpfKind = {"bpf"};
 std::array<const char, 5> kTcActKind = {"gact"};
 constexpr int kMaxPathLen = 255;
@@ -304,6 +306,10 @@ int BpfAdapter::bpfMapGetFdOfInnerMap(int outer_map_fd, void* key) {
 
 int BpfAdapter::bpfMapGetFdById(uint32_t map_id) {
   return bpf_map_get_fd_by_id(map_id);
+}
+
+int BpfAdapter::bpfProgGetFdById(uint32_t prog_id) {
+  return bpf_prog_get_fd_by_id(prog_id);
 }
 
 int BpfAdapter::pinBpfObject(int fd, const std::string& path) {
@@ -709,7 +715,24 @@ int BpfAdapter::detachCgroupProg(
   SCOPE_EXIT {
     ::close(target_fd);
   };
-  return bpf_prog_detach(target_fd, type);
+  auto res = bpf_prog_detach(target_fd, type);
+  if (res) {
+    VLOG(2) << "detaching bpf progs explicitly by fd";
+    auto progs_ids = getCgroupProgsIds(cgroup, type);
+    if (!progs_ids.size()) {
+      return res;
+    }
+    for (auto& id : progs_ids) {
+      VLOG(2) << "detaching id: " << id;
+      auto fd = bpfProgGetFdById(id);
+      res = bpf_prog_detach2(fd, target_fd, type);
+      ::close(fd);
+      if (res) {
+        break;
+      }
+    }
+  }
+  return res;
 }
 
 int BpfAdapter::detachCgroupProg(
@@ -724,6 +747,31 @@ int BpfAdapter::detachCgroupProg(
     ::close(target_fd);
   };
   return bpf_prog_detach2(prog_fd, target_fd, type);
+}
+
+std::vector<uint32_t> BpfAdapter::getCgroupProgsIds(
+    const std::string& cgroup,
+    enum bpf_attach_type type) {
+  std::array<uint32_t, kMaxProgsToQuery> progs{};
+  std::vector<uint32_t> result{};
+  uint32_t prog_count = kMaxProgsToQuery;
+  uint32_t flags;
+
+  auto cgroup_fd = getDirFd(cgroup);
+  if (cgroup_fd < 0) {
+    return result;
+  }
+  SCOPE_EXIT {
+    ::close(cgroup_fd);
+  };
+  int query_result =
+      bpf_prog_query(cgroup_fd, type, 0, &flags, progs.data(), &prog_count);
+  if (!query_result) {
+    for (int i = 0; i < prog_count; i++) {
+      result.push_back(progs[i]);
+    }
+  }
+  return result;
 }
 
 int BpfAdapter::getPossibleCpus() {
