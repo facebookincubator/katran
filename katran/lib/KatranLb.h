@@ -34,6 +34,8 @@
 
 namespace katran {
 
+class KatranMonitor;
+
 /**
  * position of elements inside control vector
  */
@@ -451,6 +453,30 @@ class KatranLb {
     return bpfAdapter_.getProgFdByName("cls-hc");
   }
 
+  /**
+   * @return false if introspection is not enabled
+   *
+   * if katran introspection is enabled: stop all monitoring
+   */
+  bool stopKatranMonitor();
+
+  /**
+   * @param uint32_t limit how many packets are going to be written/collected
+   * @return false if introspection is not enabled
+   *
+   * if katran introspection is enabled: restart katran monitoring. collected
+   * packets are going to be written either into separate files or into buffer
+   */
+  bool restartKatranMonitor(uint32_t limit);
+
+  /**
+   * @return KatranMonitorStats stats from katran monitor
+   *
+   * if katran introspection is enabled: return stats from monitor. such as
+   * "how many packets has been written/recved from forwarding plane" etc
+   */
+  KatranMonitorStats getKatranMonitorStats();
+
  private:
   /**
    * update vipmap(add or remove vip) in forwarding plane
@@ -502,6 +528,12 @@ class KatranLb {
    * throws on failure
    */
   void attachLrus();
+
+  /**
+   * helper function to enable everything related to introspection/events
+   * reporting. it will set up perf pipe and all routines to read from them
+   */
+  void startIntrospectionRoutines();
 
   /**
    * helper function to creat LRU map w/ specified size.
@@ -565,6 +597,11 @@ class KatranLb {
   BpfAdapter bpfAdapter_;
 
   /**
+   * implements all introspection related routines
+   */
+  std::unique_ptr<KatranMonitor> monitor_;
+
+  /**
    * vector of unused possitions for vips and reals. for each element
    * we are going to pop position's num from the vector. for deleted one -
    * push it back (so it could be reused in future)
@@ -623,17 +660,9 @@ class KatranLb {
   bool progsAttached_{false};
 
   /**
-   * flag which indicates that source based routing feature has been
-   * enabled/compiled in bpf forwarding plane
+   * enabled optional features
    */
-  bool srcRouting_{false};
-
-  /**
-   * flag which indicates that inline decapsulation feature has been
-   * enabled/compiled in bpf forwarding plane
-   */
-  bool inlineDecap_{false};
-
+  struct KatranFeatures features_;
   /**
    * vector of forwarding CPUs (cpus/cores which are responisible for NICs
    * irq handling)

@@ -217,9 +217,20 @@
  * LPM_SRC_LOOKUP - allow to do src based routing/dst decision override
  *
  * INLINE_DECAP - allow do to inline ipip decapsulation in XDP context
+ *
+ * KATRAN_INTROSPECTION - katran will start to perfpipe packet's header which
+ * have triggered specific events
  */
 #ifdef LPM_SRC_LOOKUP
 #define INLINE_DECAP
 #endif
+
+// maximum size of packets header which we would write to event pipe
+// if KATRAN_INTROSPECTION is enabled
+#ifndef MAX_EVENT_SIZE
+#define MAX_EVENT_SIZE 128
+#endif
+
+#define TCP_NONSYN_LRUMISS 0
 
 #endif // of __BALANCER_CONSTS_H

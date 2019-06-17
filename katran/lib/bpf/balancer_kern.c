@@ -484,6 +484,10 @@ static inline int process_packet(void *data, __u64 off, void *data_end,
           // miss of non-syn tcp packet. could be either because of LRU trashing
           // or because another katran is restarting and all the sessions
           // have been reshuffled
+#ifdef KATRAN_INTROSPECTION
+          __u32 size = data_end - data;
+          submit_event(xdp, &event_pipe, TCP_NONSYN_LRUMISS, data, size);
+#endif
           lru_stats->v2 += 1;
         }
       }

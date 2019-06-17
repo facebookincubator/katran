@@ -84,4 +84,9 @@ static inline u32 jhash_2words(u32 a, u32 b, u32 initval)
   return __jhash_nwords(a, b, 0, initval + JHASH_INITVAL + (2 << 2));
 }
 
+static inline u32 jhash_1word(u32 a, u32 initval)
+{
+  return __jhash_nwords(a, 0, 0, initval + JHASH_INITVAL + (1 << 2));
+}
+
 #endif

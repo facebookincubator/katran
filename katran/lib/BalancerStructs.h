@@ -40,6 +40,13 @@ struct vip_definition {
   uint8_t proto;
 };
 
+// metadata for perfpipe event
+struct event_metadata {
+  uint32_t event;
+  uint32_t pkt_size;
+  uint32_t data_len;
+} __attribute__((__packed__));
+
 // result of vip's lookup
 struct vip_meta {
   uint32_t flags;

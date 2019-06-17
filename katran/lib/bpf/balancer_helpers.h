@@ -22,6 +22,9 @@
 
 #include <linux/ipv6.h>
 
+#include "balancer_consts.h"
+#include "balancer_structs.h"
+#include "bpf.h"
 #include "bpf_helpers.h"
 
 #define bpf_printk(fmt, ...)                                    \
@@ -30,7 +33,6 @@
                bpf_trace_printk(____fmt, sizeof(____fmt),       \
                                 ##__VA_ARGS__);                 \
 })
-
 
 __attribute__((__always_inline__))
 static inline __u16 csum_fold_helper(__u64 csum) {
@@ -41,6 +43,11 @@ static inline __u16 csum_fold_helper(__u64 csum) {
       csum = (csum & 0xffff) + (csum >> 16);
   }
   return ~csum;
+}
+
+__attribute__((__always_inline__))
+static int min_helper(int a, int b) {
+  return a < b ? a : b;
 }
 
 __attribute__((__always_inline__))
@@ -88,4 +95,21 @@ static inline void ipv6_csum(void *data_start, int data_size,
   *csum = bpf_csum_diff(0, 0, data_start, data_size, *csum);
   *csum = csum_fold_helper(*csum);
 }
+
+/**
+ * helper to print blob of data into perf pipe
+ */
+__attribute__((__always_inline__))
+static inline void submit_event(struct xdp_md *ctx, void *map,
+                                __u32 event_id, void *data, __u32 size) {
+
+  struct event_metadata md = {};
+  __u64 flags = BPF_F_CURRENT_CPU;
+  md.event = event_id;
+  md.pkt_size = size;
+  md.data_len = min_helper(size, MAX_EVENT_SIZE);
+  flags |= (__u64) md.data_len << 32;
+  bpf_perf_event_output(ctx, map, flags, &md, sizeof(struct event_metadata));
+}
+
 #endif

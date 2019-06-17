@@ -308,8 +308,8 @@ int BpfAdapter::bpfMapGetFdById(uint32_t map_id) {
   return bpf_map_get_fd_by_id(map_id);
 }
 
-int BpfAdapter::bpfProgGetFdById(uint32_t prog_id) {
-  return bpf_prog_get_fd_by_id(prog_id);
+int BpfAdapter::bpfProgGetFdById(uint32_t map_id) {
+  return bpf_prog_get_fd_by_id(map_id);
 }
 
 int BpfAdapter::pinBpfObject(int fd, const std::string& path) {

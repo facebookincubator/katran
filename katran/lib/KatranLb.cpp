@@ -24,6 +24,8 @@
 #include <folly/lang/Bits.h>
 #include <glog/logging.h>
 
+#include "katran/lib/KatranMonitor.h"
+
 namespace katran {
 
 namespace {
@@ -139,7 +141,7 @@ AddressType KatranLb::validateAddress(
     const std::string& addr,
     bool allowNetAddr) {
   if (!folly::IPAddress::validate(addr)) {
-    if (allowNetAddr && (srcRouting_ || config_.testing)) {
+    if (allowNetAddr && (features_.srcRouting || config_.testing)) {
       auto ret = folly::IPAddress::tryCreateNetwork(addr);
       if (ret.hasValue()) {
         return AddressType::NETWORK;
@@ -282,13 +284,25 @@ void KatranLb::featureDiscovering() {
   res = bpfAdapter_.getMapFdByName("lpm_src_v4");
   if (res >= 0) {
     VLOG(2) << "source based routing is supported";
-    srcRouting_ = true;
+    features_.srcRouting = true;
   }
   res = bpfAdapter_.getMapFdByName("decap_dst");
   if (res >= 0) {
     VLOG(2) << "inline decapsulation is supported";
-    inlineDecap_ = true;
+    features_.inlineDecap = true;
   }
+  res = bpfAdapter_.getMapFdByName("event_pipe");
+  if (res >= 0) {
+    VLOG(2) << "katran introspection is enabled";
+    features_.introspection = true;
+  }
+}
+
+void KatranLb::startIntrospectionRoutines() {
+  auto monitor_config = config_.monitorConfig;
+  monitor_config.nCpus = katran::BpfAdapter::getPossibleCpus();
+  monitor_config.mapFd = bpfAdapter_.getMapFdByName("event_pipe");
+  monitor_ = std::make_unique<KatranMonitor>(monitor_config);
 }
 
 void KatranLb::loadBpfProgs() {
@@ -339,6 +353,9 @@ void KatranLb::loadBpfProgs() {
     }
   }
   progsLoaded_ = true;
+  if (features_.introspection) {
+    startIntrospectionRoutines();
+  }
   attachLrus();
 }
 
@@ -641,7 +658,7 @@ int KatranLb::addSrcRoutingRule(
     const std::vector<std::string>& srcs,
     const std::string& dst) {
   int num_errors = 0;
-  if (!srcRouting_ && !config_.testing) {
+  if (!features_.srcRouting && !config_.testing) {
     LOG(ERROR) << "Source based routing is not enabled in forwarding plane";
     return kError;
   }
@@ -679,7 +696,7 @@ int KatranLb::addSrcRoutingRule(
 int KatranLb::addSrcRoutingRule(
     const std::vector<folly::CIDRNetwork>& srcs,
     const std::string& dst) {
-  if (!srcRouting_ && !config_.testing) {
+  if (!features_.srcRouting && !config_.testing) {
     LOG(ERROR) << "Source based routing is not enabled in forwarding plane";
     return kError;
   }
@@ -708,7 +725,7 @@ int KatranLb::addSrcRoutingRule(
 }
 
 bool KatranLb::delSrcRoutingRule(const std::vector<std::string>& srcs) {
-  if (!srcRouting_ && !config_.testing) {
+  if (!features_.srcRouting && !config_.testing) {
     LOG(ERROR) << "Source based routing is not enabled in forwarding plane";
     return false;
   }
@@ -723,7 +740,7 @@ bool KatranLb::delSrcRoutingRule(const std::vector<std::string>& srcs) {
 }
 
 bool KatranLb::delSrcRoutingRule(const std::vector<folly::CIDRNetwork>& srcs) {
-  if (!srcRouting_ && !config_.testing) {
+  if (!features_.srcRouting && !config_.testing) {
     LOG(ERROR) << "Source based routing is not enabled in forwarding plane";
     return false;
   }
@@ -745,7 +762,7 @@ bool KatranLb::delSrcRoutingRule(const std::vector<folly::CIDRNetwork>& srcs) {
 }
 
 bool KatranLb::clearAllSrcRoutingRules() {
-  if (!srcRouting_ && !config_.testing) {
+  if (!features_.srcRouting && !config_.testing) {
     LOG(ERROR) << "Source based routing is not enabled in forwarding plane";
     return false;
   }
@@ -766,7 +783,7 @@ uint32_t KatranLb::getSrcRoutingRuleSize() {
 
 std::unordered_map<std::string, std::string> KatranLb::getSrcRoutingRule() {
   std::unordered_map<std::string, std::string> src_mapping;
-  if (!srcRouting_ && !config_.testing) {
+  if (!features_.srcRouting && !config_.testing) {
     LOG(ERROR) << "Source based routing is not enabled in forwarding plane";
     return src_mapping;
   }
@@ -782,7 +799,7 @@ std::unordered_map<std::string, std::string> KatranLb::getSrcRoutingRule() {
 std::unordered_map<folly::CIDRNetwork, std::string>
 KatranLb::getSrcRoutingRuleCidr() {
   std::unordered_map<folly::CIDRNetwork, std::string> src_mapping;
-  if (!srcRouting_ && !config_.testing) {
+  if (!features_.srcRouting && !config_.testing) {
     LOG(ERROR) << "Source based routing is not enabled in forwarding plane";
     return src_mapping;
   }
@@ -791,6 +808,33 @@ KatranLb::getSrcRoutingRuleCidr() {
     src_mapping[src.first] = real;
   }
   return src_mapping;
+}
+
+bool KatranLb::stopKatranMonitor() {
+  if (!features_.introspection) {
+    return false;
+  }
+  monitor_->stopMonitor();
+  return true;
+}
+
+bool KatranLb::restartKatranMonitor(uint32_t limit) {
+  if (!features_.introspection) {
+    return false;
+  }
+  monitor_->restartMonitor(limit);
+  return true;
+}
+
+KatranMonitorStats KatranLb::getKatranMonitorStats() {
+  struct KatranMonitorStats stats;
+  if (!features_.introspection) {
+    return stats;
+  }
+  auto writer_stats = monitor_->getWriterStats();
+  stats.limit = writer_stats.limit;
+  stats.amount = writer_stats.amount;
+  return stats;
 }
 
 bool KatranLb::modifyLpmSrcRule(
@@ -851,7 +895,7 @@ bool KatranLb::modifyLpmMap(
 }
 
 bool KatranLb::addInlineDecapDst(const std::string& dst) {
-  if (!inlineDecap_ && !config_.testing) {
+  if (!features_.inlineDecap && !config_.testing) {
     LOG(ERROR) << "source based routing is not enabled in forwarding plane";
     return false;
   }
@@ -876,7 +920,7 @@ bool KatranLb::addInlineDecapDst(const std::string& dst) {
 }
 
 bool KatranLb::delInlineDecapDst(const std::string& dst) {
-  if (!inlineDecap_ && !config_.testing) {
+  if (!features_.inlineDecap && !config_.testing) {
     LOG(ERROR) << "source based routing is not enabled in forwarding plane";
     return false;
   }

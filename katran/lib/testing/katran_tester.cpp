@@ -46,6 +46,7 @@ const std::string kNoExternalMap = "";
 const std::vector<uint8_t> kDefaultMac = {0x00, 0x00, 0xDE, 0xAD, 0xBE, 0xAF};
 constexpr uint32_t kDefaultPriority = 2307;
 constexpr uint32_t kDefaultKatranPos = 8;
+constexpr uint32_t kMonitorLimit = 1024;
 constexpr bool kNoHc = false;
 const std::vector<std::string> kReals = {
     "10.0.0.1",
@@ -101,6 +102,7 @@ void addQuicMappings(katran::KatranLb& lb) {
 }
 
 void prepareLbData(katran::KatranLb& lb) {
+  lb.restartKatranMonitor(kMonitorLimit);
   katran::VipKey vip;
   // adding udp vip for tests
   vip.address = "10.200.1.1";
@@ -195,6 +197,10 @@ void testOptionalLbCounters(katran::KatranLb& lb) {
     VLOG(2) << "inline decapsulated pckts: " << stats.v1;
     LOG(INFO) << "inline decapsulated packet's counter is incorrect";
   }
+  LOG(INFO) << "KatranMonitor stats (only for -DKATRAN_INTROSPECTION)";
+  auto monitor_stats = lb.getKatranMonitorStats();
+  LOG(INFO) << "limit: " << monitor_stats.limit
+            << " amount: " << monitor_stats.amount;
   LOG(INFO) << "Testing of optional counters is complite";
 }
 

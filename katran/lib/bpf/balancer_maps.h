@@ -152,4 +152,17 @@ struct bpf_map_def SEC("maps") decap_dst = {
 BPF_ANNOTATE_KV_PAIR(decap_dst, struct address, __u32);
 
 #endif
+
+#ifdef KATRAN_INTROSPECTION
+
+struct bpf_map_def SEC("maps") event_pipe = {
+  .type = BPF_MAP_TYPE_PERF_EVENT_ARRAY,
+  .key_size = sizeof(int),
+  .value_size = sizeof(__u32),
+  .max_entries = MAX_SUPPORTED_CPUS,
+  .map_flags = NO_FLAGS,
+};
+BPF_ANNOTATE_KV_PAIR(event_pipe, int, __u32);
+
+#endif
 #endif // of _BALANCER_MAPS

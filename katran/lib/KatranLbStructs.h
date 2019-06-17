@@ -31,6 +31,11 @@ constexpr uint32_t kDefaultPriority = 2307;
 constexpr uint32_t kLbDefaultChRingSize = 65537;
 constexpr uint32_t kDefaultMaxLpmSrcSize = 3000000;
 constexpr uint32_t kDefaultMaxDecapDstSize = 6;
+constexpr uint32_t kDefaultNumOfPages = 2;
+constexpr uint32_t kDefaultMonitorQueueSize = 4096;
+constexpr uint32_t kDefaultMonitorPcktLimit = 0;
+constexpr uint32_t kDefaultMonitorSnapLen = 128;
+constexpr uint32_t kDefaultMonitorMaxEvents = 4;
 constexpr unsigned int kDefaultLruSize = 8000000;
 constexpr uint32_t kNoFlags = 0;
 std::string kNoExternalMap = "";
@@ -81,6 +86,30 @@ enum class AddressType {
 };
 
 /**
+ * @param uint32_t nCpus number of cpus
+ * @param uint32_t pages number of pages for even pipe shared memory
+ * @param int mapFd descriptor of event pipe map
+ * @param uint32_t queueSize size of mpmc queue between readers and pcap writer
+ * @param uint32_t maxPackets to capture, 0 - no limit
+ * @param uint32_t snapLen maximum number of bytes from packet to write.
+ * @param uint32_t maxEvents maximum supported events/pcap writers
+ * @param std::string path where pcap outputs are going to be stored
+ *
+ * katran monitoring config. being used if katran's bpf code was build w/
+ * introspection enabled (-DKATRAN_INTROSPECTION)
+ */
+struct KatranMonitorConfig {
+  uint32_t nCpus;
+  uint32_t pages{kDefaultNumOfPages};
+  int mapFd;
+  uint32_t queueSize{kDefaultMonitorQueueSize};
+  uint32_t pcktLimit{kDefaultMonitorPcktLimit};
+  uint32_t snapLen{kDefaultMonitorSnapLen};
+  uint32_t maxEvents{kDefaultMonitorMaxEvents};
+  std::string path{"/tmp/katran_pcap"};
+};
+
+/**
  * struct which contains all configurations for KatranLB
  * @param string mainInterface name where to attach bpf prog (e.g eth0)
  * @param string v4TunInterface name for ipip encap (for healtchecks)
@@ -102,6 +131,7 @@ enum class AddressType {
  * @param uint32_t maxLpmSrcSize maximum size of map for src based routing
  * @param uint32_t maxDecapDst maximum number of destinations for inline decap
  * @param std::string hcInterface interface where we want to attach hc bpf prog
+ * @param KatranMonitorConfig monitorConfig for katran introspection
  *
  * note about rootMapPath and rootMapPos:
  * katran has two modes of operation.
@@ -143,6 +173,33 @@ struct KatranConfig {
   uint32_t maxDecapDst = kDefaultMaxDecapDstSize;
   std::string hcInterface = kDefaultHcInterface;
   uint32_t xdpAttachFlags = kNoFlags;
+  struct KatranMonitorConfig monitorConfig;
+};
+
+/**
+ * @param uint32_t limit of packet writer. how many packets we would write
+ * before we stop
+ * @param uint32_ amount of packets which has been written so far
+ *
+ * struct which contains stats from katran monitor
+ */
+struct KatranMonitorStats {
+  uint32_t limit{0};
+  uint32_t amount{0};
+};
+
+/**
+ * @param srcRouting flag which indicates that source based routing feature has
+ * been enabled/compiled in bpf forwarding plane
+ * @param inlineDecap flag which indicates that inline decapsulation feature has
+ * been enabled/compiled in bpf forwarding plane
+ * @param introspection flag which indicates that katran introspection is
+ * enabled
+ */
+struct KatranFeatures {
+  bool srcRouting{false};
+  bool inlineDecap{false};
+  bool introspection{false};
 };
 
 /**

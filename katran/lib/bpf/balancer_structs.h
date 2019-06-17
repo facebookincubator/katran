@@ -112,5 +112,12 @@ struct address {
   };
 };
 
+// metadata about packet, copied to the userspace through event pipe
+struct event_metadata {
+  __u32 event;
+  __u32 pkt_size;
+  __u32 data_len;
+} __attribute__((__packed__));
+
 
 #endif // of _BALANCER_STRUCTS

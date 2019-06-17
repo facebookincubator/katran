@@ -28,6 +28,9 @@ find_library(LIBLZMA liblzma.a lzma)
 find_library(LIBZ libz.a z)
 find_library(LIBDC libdouble-conversion.a double-conversion)
 find_library(BPF libbpf.a PATHS ${LIBBPF_PATH} NO_DEFAULT_PATH)
+find_library(EVENT libevent.a event)
+find_library(DL dl)
+find_library(LIBIBERTY libiberty.a iberty)
 add_library(murmur3 STATIC
     MurmurHash3.h
     MurmurHash3.cpp
@@ -79,7 +82,44 @@ set(BPFADAPTER_DEPS
 )
 
 target_link_libraries(bpfadapter "${BPFADAPTER_DEPS}")
+
+add_library(pcapwriter STATIC
+    ByteRangeWriter.cpp
+    FileWriter.cpp
+    PcapMsg.cpp
+    PcapMsgMeta.cpp
+    PcapWriter.cpp
+    ByteRangeWriter.h
+    DataWriter.h
+    FileWriter.h
+    PcapMsg.h
+    PcapMsgMeta.h
+    PcapStructs.h
+    PcapWriter.h
+)
+
+set(PCAPWRITER_DEPS
+    "-Wl,--start-group"
+    "${LIBUNWIND}"
+    "${LIBLZMA}"
+    "${GLOG}"
+    "${PTHREAD}"
+    "${LIBZ}"
+    "${FOLLY}"
+    "${LIBDC}"
+    "${DL}"
+    "${EVENT}"
+    "${LIBIBERTY}"
+    "-Wl,--end-group"
+)
+
+target_link_libraries(pcapwriter "${PCAPWRITER_DEPS}")
+
 add_library(katranlb STATIC
+    KatranEventReader.h
+    KatranEventReader.cpp
+    KatranMonitor.h
+    KatranMonitor.cpp
     KatranLb.h
     KatranLb.cpp
     KatranLbStructs.h
@@ -89,10 +129,14 @@ add_library(katranlb STATIC
 )
 
 target_link_libraries(katranlb
+    "-Wl,--start-group"
     bpfadapter
     chhelpers
     iphelpers
+    pcapwriter
     "${GFLAGS}"
+    "${PTHREAD}"
+    "-Wl,--end-group"
 )
 
 add_library(mac_helpers STATIC
