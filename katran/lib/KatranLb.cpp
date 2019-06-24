@@ -191,7 +191,8 @@ void KatranLb::initialSanityChecking() {
 }
 
 int KatranLb::createLruMap(int size, int flags, int numaNode) {
-  return bpfAdapter_.createBpfMap(
+  return bpfAdapter_.createNamedBpfMap(
+      "katran_lru",
       kBpfMapTypeLruHash,
       sizeof(struct flow_key),
       sizeof(struct real_pos_lru),
