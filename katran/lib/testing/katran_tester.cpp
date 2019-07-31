@@ -246,6 +246,11 @@ void testLbCounters(katran::KatranLb& lb) {
       LOG(INFO) << "Expected to be incorrect w/ non default build flags";
     }
   }
+  auto lb_stats = lb.getKatranLbStats();
+  if (lb_stats.bpfFailedCalls != 0) {
+    VLOG(2) << "failed bpf calls: " << lb_stats.bpfFailedCalls;
+    LOG(INFO) << "incorrect stats about katran library internals";
+  }
   LOG(INFO) << "Testing of counters is complete";
   return;
 }

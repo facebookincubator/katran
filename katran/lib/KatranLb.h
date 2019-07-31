@@ -477,6 +477,16 @@ class KatranLb {
    */
   KatranMonitorStats getKatranMonitorStats();
 
+  /**
+   * @return KatranLbStats generic stats about userspace part of katran
+   *
+   * helper function which helps to introspect internals of katran's
+   * userspace counterpart
+   */
+  KatranLbStats getKatranLbStats() {
+    return lbStats_;
+  }
+
  private:
   /**
    * update vipmap(add or remove vip) in forwarding plane
@@ -680,6 +690,11 @@ class KatranLb {
    * vector of LRU maps descriptors;
    */
   std::vector<int> lruMapsFd_;
+
+  /**
+   * userspace library stats
+   */
+  KatranLbStats lbStats_;
 };
 
 } // namespace katran
