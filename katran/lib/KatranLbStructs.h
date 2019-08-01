@@ -189,6 +189,17 @@ struct KatranMonitorStats {
 };
 
 /**
+ * @param uint64_t bpfFailedCalls number of failed syscalls
+ *
+ * generic userspace related stats to track internals of katran library
+ * such as number of failed bpf syscalls (could happens if we are trying to add
+ * to many vips etc)
+ */
+struct KatranLbStats {
+  uint64_t bpfFailedCalls{0};
+};
+
+/**
  * @param srcRouting flag which indicates that source based routing feature has
  * been enabled/compiled in bpf forwarding plane
  * @param inlineDecap flag which indicates that inline decapsulation feature has

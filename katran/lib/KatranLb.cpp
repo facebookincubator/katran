@@ -429,6 +429,7 @@ bool KatranLb::changeMac(const std::vector<uint8_t> newMac) {
         &key,
         &ctlValues_[kMacAddrPos].mac);
     if (res != 0) {
+      lbStats_.bpfFailedCalls++;
       VLOG(4) << "can't add new mac address";
       return false;
     }
@@ -623,6 +624,7 @@ bool KatranLb::modifyRealsForVip(
       key = vip_num * config_.chRingSize + pos.pos;
       res = bpfAdapter_.bpfUpdateMap(ch_fd, &key, &pos.real);
       if (res != 0) {
+        lbStats_.bpfFailedCalls++;
         LOG(INFO) << "can't update ch ring";
       }
     }
@@ -860,6 +862,7 @@ bool KatranLb::modifyLpmMap(
           bpfAdapter_.getMapFdByName(mapName), &key_v4, value);
       if (res != 0) {
         LOG(INFO) << "can't add new element into " << mapName;
+        lbStats_.bpfFailedCalls++;
         return false;
       }
     } else {
@@ -867,6 +870,7 @@ bool KatranLb::modifyLpmMap(
           bpfAdapter_.getMapFdByName(mapName), &key_v4);
       if (res != 0) {
         LOG(INFO) << "can't delete element from " << mapName;
+        lbStats_.bpfFailedCalls++;
         return false;
       }
     }
@@ -881,6 +885,7 @@ bool KatranLb::modifyLpmMap(
           bpfAdapter_.getMapFdByName(mapName), &key_v6, value);
       if (res != 0) {
         LOG(INFO) << "can't add new element into " << mapName;
+        lbStats_.bpfFailedCalls++;
         return false;
       }
     } else {
@@ -888,6 +893,7 @@ bool KatranLb::modifyLpmMap(
           bpfAdapter_.getMapFdByName(mapName), &key_v6);
       if (res != 0) {
         LOG(INFO) << "can't delete element from " << mapName;
+        lbStats_.bpfFailedCalls++;
         return false;
       }
     }
@@ -956,6 +962,7 @@ bool KatranLb::modifyDecapDst(
         bpfAdapter_.getMapFdByName("decap_dst"), &addr, &flags);
     if (res != 0) {
       LOG(ERROR) << "error while adding dst for inline decap " << dst;
+      lbStats_.bpfFailedCalls++;
       return false;
     }
   } else {
@@ -963,6 +970,7 @@ bool KatranLb::modifyDecapDst(
         bpfAdapter_.getMapFdByName("decap_dst"), &addr);
     if (res != 0) {
       LOG(ERROR) << "error while deleting dst for inline decap " << dst;
+      lbStats_.bpfFailedCalls++;
       return false;
     }
   }
@@ -1020,6 +1028,7 @@ void KatranLb::modifyQuicRealsMapping(
       res = bpfAdapter_.bpfUpdateMap(quic_mapping_fd, &id, &rnum);
       if (res != 0) {
         LOG(ERROR) << "can't update quic mapping";
+        lbStats_.bpfFailedCalls++;
       }
     }
   }
@@ -1091,6 +1100,8 @@ lb_stats KatranLb::getLbStats(uint32_t position, const std::string& map) {
         sum_stat.v1 += stat.v1;
         sum_stat.v2 += stat.v2;
       }
+    } else {
+      lbStats_.bpfFailedCalls++;
     }
   }
   return sum_stat;
@@ -1130,6 +1141,7 @@ bool KatranLb::addHealthcheckerDst(
         bpfAdapter_.getMapFdByName("hc_reals_map"), &key, &addr);
     if (res != 0) {
       LOG(INFO) << "can't add new real for healthchecking";
+      lbStats_.bpfFailedCalls++;
       return false;
     }
   }
@@ -1155,6 +1167,7 @@ bool KatranLb::delHealthcheckerDst(const uint32_t somark) {
         bpfAdapter_.getMapFdByName("hc_reals_map"), &key);
     if (res) {
       LOG(INFO) << "can't remove hc w/ somark: " << key;
+      lbStats_.bpfFailedCalls++;
       return false;
     }
   }
@@ -1186,6 +1199,7 @@ bool KatranLb::updateVipMap(
         bpfAdapter_.getMapFdByName("vip_map"), &vip_def, meta);
     if (res != 0) {
       LOG(INFO) << "can't add new element into vip_map";
+      lbStats_.bpfFailedCalls++;
       return false;
     }
   } else {
@@ -1193,6 +1207,7 @@ bool KatranLb::updateVipMap(
         bpfAdapter_.getMapFdByName("vip_map"), &vip_def);
     if (res != 0) {
       LOG(INFO) << "can't delete element from vip_map";
+      lbStats_.bpfFailedCalls++;
       return false;
     }
   }
@@ -1205,6 +1220,7 @@ bool KatranLb::updateRealsMap(const std::string& real, uint32_t num) {
       bpfAdapter_.getMapFdByName("reals"), &num, &real_addr);
   if (res != 0) {
     LOG(INFO) << "can't add new real";
+    lbStats_.bpfFailedCalls++;
     return false;
   } else {
     return true;
