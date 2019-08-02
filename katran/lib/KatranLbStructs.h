@@ -190,6 +190,7 @@ struct KatranMonitorStats {
 
 /**
  * @param uint64_t bpfFailedCalls number of failed syscalls
+ * @param uint64_t addrValidationFailed times provided ipaddress was invalid
  *
  * generic userspace related stats to track internals of katran library
  * such as number of failed bpf syscalls (could happens if we are trying to add
@@ -197,6 +198,7 @@ struct KatranMonitorStats {
  */
 struct KatranLbStats {
   uint64_t bpfFailedCalls{0};
+  uint64_t addrValidationFailed{0};
 };
 
 /**

@@ -293,6 +293,8 @@ TEST_F(KatranLbTest, invalidAddressHandling) {
   // adding incorrect hc dst
   res = lb.addHealthcheckerDst(1, "bbb");
   ASSERT_FALSE(res);
+  auto stats = lb.getKatranLbStats();
+  ASSERT_EQ(stats.addrValidationFailed, 3);
 };
 
 TEST_F(KatranLbTest, addInvalidSrcRoutingRule) {

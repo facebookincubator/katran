@@ -147,6 +147,7 @@ AddressType KatranLb::validateAddress(
         return AddressType::NETWORK;
       }
     }
+    lbStats_.addrValidationFailed++;
     LOG(ERROR) << "Invalid address: " << addr;
     return AddressType::INVALID;
   }
@@ -561,11 +562,12 @@ bool KatranLb::modifyRealsForVip(
     return false;
   }
   auto cur_reals = vip_iter->second.getReals();
-  for (auto& real : reals) {
+  for (const auto& real : reals) {
     if (validateAddress(real.address) == AddressType::INVALID) {
       LOG(ERROR) << "Invalid real's address: " << real.address;
       continue;
     }
+    folly::IPAddress raddr(real.address);
     VLOG(4) << folly::format(
         "modifying real: {} with weight {} for vip {}:{}:{}",
         real.address,
@@ -575,7 +577,7 @@ bool KatranLb::modifyRealsForVip(
         vip.proto);
 
     if (action == ModifyAction::DEL) {
-      auto real_iter = reals_.find(real.address);
+      auto real_iter = reals_.find(raddr);
       if (real_iter == reals_.end()) {
         LOG(INFO) << "trying to delete non-existing real";
         continue;
@@ -588,20 +590,20 @@ bool KatranLb::modifyRealsForVip(
         continue;
       }
       ureal.updatedReal.num = real_iter->second.num;
-      decreaseRefCountForReal(real.address);
+      decreaseRefCountForReal(raddr);
     } else {
-      auto real_iter = reals_.find(real.address);
+      auto real_iter = reals_.find(raddr);
       if (real_iter != reals_.end()) {
         if (std::find(
                 cur_reals.begin(), cur_reals.end(), real_iter->second.num) ==
             cur_reals.end()) {
           // increment ref count if it's a new real for this vip
-          increaseRefCountForReal(real.address);
+          increaseRefCountForReal(raddr);
           cur_reals.push_back(real_iter->second.num);
         }
         ureal.updatedReal.num = real_iter->second.num;
       } else {
-        auto rnum = increaseRefCountForReal(real.address);
+        auto rnum = increaseRefCountForReal(raddr);
         if (rnum == config_.maxReals) {
           LOG(INFO) << "exhausted real's space";
           continue;
@@ -609,7 +611,7 @@ bool KatranLb::modifyRealsForVip(
         ureal.updatedReal.num = rnum;
       }
       ureal.updatedReal.weight = real.weight;
-      ureal.updatedReal.hash = folly::IPAddress(real.address).hash();
+      ureal.updatedReal.hash = raddr.hash();
     }
     ureals.push_back(ureal);
   }
@@ -642,19 +644,21 @@ std::vector<NewReal> KatranLb::getRealsForVip(const VipKey& vip) {
   int i = 0;
   for (auto real_id : vip_reals_ids) {
     reals[i].weight = real_id.weight;
-    reals[i].address = numToReals_[real_id.num];
+    reals[i].address = numToReals_[real_id.num].str();
     ++i;
   }
   return reals;
 }
 
 int64_t KatranLb::getIndexForReal(const std::string& real) {
-  auto real_iter = reals_.find(real);
-  if (real_iter == reals_.end()) {
-    return kError;
-  } else {
-    return real_iter->second.num;
+  if (validateAddress(real) != AddressType::INVALID) {
+    folly::IPAddress raddr(real);
+    auto real_iter = reals_.find(raddr);
+    if (real_iter != reals_.end()) {
+      return real_iter->second.num;
+    }
   }
+  return kError;
 }
 
 int KatranLb::addSrcRoutingRule(
@@ -713,7 +717,7 @@ int KatranLb::addSrcRoutingRule(
       // no point to continue. bailing out
       return kError;
     }
-    auto rnum = increaseRefCountForReal(dst);
+    auto rnum = increaseRefCountForReal(folly::IPAddress(dst));
     if (rnum == config_.maxReals) {
       LOG(ERROR) << "exhausted real's space";
       // all src using same dst. no point to continue if we can't add this dst
@@ -794,7 +798,7 @@ std::unordered_map<std::string, std::string> KatranLb::getSrcRoutingRule() {
     auto real = numToReals_[src.second];
     auto src_network =
         folly::sformat("{}/{}", src.first.first.str(), src.first.second);
-    src_mapping[src_network] = real;
+    src_mapping[src_network] = real.str();
   }
   return src_mapping;
 }
@@ -808,9 +812,17 @@ KatranLb::getSrcRoutingRuleCidr() {
   }
   for (auto& src : lpmSrcMapping_) {
     auto real = numToReals_[src.second];
-    src_mapping[src.first] = real;
+    src_mapping[src.first] = real.str();
   }
   return src_mapping;
+}
+
+const std::unordered_map<uint32_t, std::string> KatranLb::getNumToRealMap() {
+  std::unordered_map<uint32_t, std::string> reals;
+  for (const auto& real: numToReals_) {
+    reals[real.first] = real.second.str();
+  }
+  return reals;
 }
 
 bool KatranLb::stopKatranMonitor() {
@@ -910,7 +922,8 @@ bool KatranLb::addInlineDecapDst(const std::string& dst) {
     LOG(ERROR) << "invalid decap destination address: " << dst;
     return false;
   }
-  if (decapDsts_.find(dst) != decapDsts_.end()) {
+  folly::IPAddress daddr(dst);
+  if (decapDsts_.find(daddr) != decapDsts_.end()) {
     LOG(ERROR) << "trying to add already existing decap dst";
     return false;
   }
@@ -919,9 +932,9 @@ bool KatranLb::addInlineDecapDst(const std::string& dst) {
     return false;
   }
   VLOG(2) << "adding decap dst " << dst;
-  decapDsts_.insert(dst);
+  decapDsts_.insert(daddr);
   if (!config_.testing) {
-    modifyDecapDst(ModifyAction::ADD, dst);
+    modifyDecapDst(ModifyAction::ADD, daddr);
   }
   return true;
 }
@@ -931,7 +944,12 @@ bool KatranLb::delInlineDecapDst(const std::string& dst) {
     LOG(ERROR) << "source based routing is not enabled in forwarding plane";
     return false;
   }
-  auto dst_iter = decapDsts_.find(dst);
+  if (validateAddress(dst) == AddressType::INVALID) {
+    LOG(ERROR) << "provided address in invalid format: " << dst;
+    return false;
+  }
+  auto daddr = folly::IPAddress(dst);
+  auto dst_iter = decapDsts_.find(daddr);
   if (dst_iter == decapDsts_.end()) {
     LOG(ERROR) << "trying to delete non-existing decap dst " << dst;
     return false;
@@ -939,7 +957,7 @@ bool KatranLb::delInlineDecapDst(const std::string& dst) {
   VLOG(2) << "deleting decap dst " << dst;
   decapDsts_.erase(dst_iter);
   if (!config_.testing) {
-    modifyDecapDst(ModifyAction::DEL, dst);
+    modifyDecapDst(ModifyAction::DEL, daddr);
   }
   return true;
 }
@@ -947,14 +965,14 @@ bool KatranLb::delInlineDecapDst(const std::string& dst) {
 std::vector<std::string> KatranLb::getInlineDecapDst() {
   std::vector<std::string> dsts;
   for (auto& dst : decapDsts_) {
-    dsts.push_back(dst);
+    dsts.push_back(dst.str());
   }
   return dsts;
 }
 
 bool KatranLb::modifyDecapDst(
     ModifyAction action,
-    const std::string& dst,
+    const folly::IPAddress& dst,
     uint32_t flags) {
   auto addr = IpHelpers::parseAddrToBe(dst);
   if (action == ModifyAction::ADD) {
@@ -992,7 +1010,8 @@ void KatranLb::modifyQuicRealsMapping(
       continue;
     }
     VLOG(4) << folly::sformat("modifying quic's real {}", real.address);
-    auto real_iter = quicMapping_.find(real.address);
+    auto raddr = folly::IPAddress(real.address);
+    auto real_iter = quicMapping_.find(raddr);
     if (action == ModifyAction::DEL) {
       if (real_iter == quicMapping_.end()) {
         LOG(ERROR) << folly::sformat(
@@ -1000,7 +1019,7 @@ void KatranLb::modifyQuicRealsMapping(
             real.address);
         continue;
       }
-      decreaseRefCountForReal(real.address);
+      decreaseRefCountForReal(raddr);
       quicMapping_.erase(real_iter);
     } else {
       if (real_iter != quicMapping_.end()) {
@@ -1009,13 +1028,13 @@ void KatranLb::modifyQuicRealsMapping(
         // or we could silently delete old mapping instead.
         continue;
       }
-      auto rnum = increaseRefCountForReal(real.address);
+      auto rnum = increaseRefCountForReal(raddr);
       if (rnum == config_.maxReals) {
         LOG(ERROR) << "exhausted real's space";
         continue;
       }
       to_update[real.id] = rnum;
-      quicMapping_[real.address] = real.id;
+      quicMapping_[raddr] = real.id;
     }
   }
   if (!config_.testing) {
@@ -1038,7 +1057,7 @@ std::vector<QuicReal> KatranLb::getQuicRealsMapping() {
   std::vector<QuicReal> reals;
   QuicReal real;
   for (auto& mapping : quicMapping_) {
-    real.address = mapping.first;
+    real.address = mapping.first.str();
     real.id = mapping.second;
     reals.push_back(real);
   }
@@ -1119,7 +1138,7 @@ bool KatranLb::addHealthcheckerDst(
   }
   VLOG(4) << folly::format(
       "adding healtcheck with so_mark {} to dst {}", somark, dst);
-
+  auto hcaddr = folly::IPAddress(dst);
   uint32_t key = somark;
   beaddr addr;
 
@@ -1128,13 +1147,12 @@ bool KatranLb::addHealthcheckerDst(
     LOG(INFO) << "healthchecker's reals space exhausted";
     return false;
   }
-  folly::IPAddress dst_addr(dst);
   // for md bassed tunnels remote_ipv4 must be in host endian format
   // and v6 in be
-  if (dst_addr.isV4()) {
-    addr = IpHelpers::parseAddrToInt(dst);
+  if (hcaddr.isV4()) {
+    addr = IpHelpers::parseAddrToInt(hcaddr);
   } else {
-    addr = IpHelpers::parseAddrToBe(dst);
+    addr = IpHelpers::parseAddrToBe(hcaddr);
   }
   if (!config_.testing) {
     auto res = bpfAdapter_.bpfUpdateMap(
@@ -1145,7 +1163,7 @@ bool KatranLb::addHealthcheckerDst(
       return false;
     }
   }
-  hcReals_[somark] = dst;
+  hcReals_[somark] = hcaddr;
   return true;
 }
 
@@ -1177,7 +1195,10 @@ bool KatranLb::delHealthcheckerDst(const uint32_t somark) {
 
 std::unordered_map<uint32_t, std::string> KatranLb::getHealthcheckersDst() {
   // would be empty map in case if enableHc_ is false
-  std::unordered_map<uint32_t, std::string> hcs(hcReals_);
+  std::unordered_map<uint32_t, std::string> hcs;
+  for (const auto& hc : hcReals_) {
+    hcs[hc.first] = hc.second.str();
+  }  
   return hcs;
 }
 
@@ -1214,7 +1235,7 @@ bool KatranLb::updateVipMap(
   return true;
 }
 
-bool KatranLb::updateRealsMap(const std::string& real, uint32_t num) {
+bool KatranLb::updateRealsMap(const folly::IPAddress& real, uint32_t num) {
   auto real_addr = IpHelpers::parseAddrToBe(real);
   auto res = bpfAdapter_.bpfUpdateMap(
       bpfAdapter_.getMapFdByName("reals"), &num, &real_addr);
@@ -1227,7 +1248,7 @@ bool KatranLb::updateRealsMap(const std::string& real, uint32_t num) {
   }
 };
 
-void KatranLb::decreaseRefCountForReal(const std::string& real) {
+void KatranLb::decreaseRefCountForReal(const folly::IPAddress& real) {
   auto real_iter = reals_.find(real);
   if (real_iter == reals_.end()) {
     // it's expected that caller must call this function only after explicit
@@ -1244,7 +1265,7 @@ void KatranLb::decreaseRefCountForReal(const std::string& real) {
   }
 }
 
-uint32_t KatranLb::increaseRefCountForReal(const std::string& real) {
+uint32_t KatranLb::increaseRefCountForReal(const folly::IPAddress& real) {
   auto real_iter = reals_.find(real);
   if (real_iter != reals_.end()) {
     real_iter->second.refCount++;

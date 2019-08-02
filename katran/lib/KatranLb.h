@@ -328,9 +328,7 @@ class KatranLb {
    *
    * helper function to get internal index to real's ip address mapping.
    */
-  const std::unordered_map<uint32_t, std::string>& getNumToRealMap() {
-    return numToReals_;
-  }
+  const std::unordered_map<uint32_t, std::string> getNumToRealMap();
 
   /**
    * @return uint32_t number of src to dst mappings
@@ -499,7 +497,7 @@ class KatranLb {
   /**
    * update(add or remove) reals map in forwarding plane
    */
-  bool updateRealsMap(const std::string& real, uint32_t num);
+  bool updateRealsMap(const folly::IPAddress& real, uint32_t num);
 
   /**
    * helper function to get stats from counter on specified possition
@@ -510,12 +508,12 @@ class KatranLb {
    * helper function to decrease real's ref count and delete it from
    * internal dicts if rec count became zero
    */
-  void decreaseRefCountForReal(const std::string& real);
+  void decreaseRefCountForReal(const folly::IPAddress& real);
 
   /**
    * helper function to add new real or increase ref count for existing one
    */
-  uint32_t increaseRefCountForReal(const std::string& real);
+  uint32_t increaseRefCountForReal(const folly::IPAddress& real);
 
   /**
    * helper function to do initial sanity checking right after bpf programs
@@ -593,7 +591,7 @@ class KatranLb {
    */
   bool modifyDecapDst(
       ModifyAction action,
-      const std::string& dst,
+      const folly::IPAddress& dst,
       const uint32_t flags = 0);
 
   /**
@@ -627,15 +625,15 @@ class KatranLb {
   /**
    * dict of so_mark to real mapping; for healthchecking
    */
-  std::unordered_map<uint32_t, std::string> hcReals_;
+  std::unordered_map<uint32_t, folly::IPAddress> hcReals_;
 
-  std::unordered_map<std::string, RealMeta> reals_;
-  std::unordered_map<std::string, uint32_t> quicMapping_;
+  std::unordered_map<folly::IPAddress, RealMeta> reals_;
+  std::unordered_map<folly::IPAddress, uint32_t> quicMapping_;
   /**
    * for reverse real's lookup. get real by num.
    * used when we are going to delete vip and coresponding reals.
    */
-  std::unordered_map<uint32_t, std::string> numToReals_;
+  std::unordered_map<uint32_t, folly::IPAddress> numToReals_;
 
   std::unordered_map<VipKey, Vip, VipKeyHasher> vips_;
 
@@ -647,7 +645,7 @@ class KatranLb {
   /**
    * set of destantions, which are used for inline decapsulation.
    */
-  std::unordered_set<std::string> decapDsts_;
+  std::unordered_set<folly::IPAddress> decapDsts_;
 
   /**
    * flag which indicates if katran is working in "standalone" mode or not.
