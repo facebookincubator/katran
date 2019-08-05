@@ -169,32 +169,32 @@ const std::vector<std::pair<std::string, std::string>> inputTestFixtures = {
   },
   //22
   {
-    // Ether(src="0x1", dst="0x2")/IP(src="192.168.1.42", dst="10.200.1.5")/UDP(sport=31337, dport=443)/'\xcf\xfa\xce\xb0\x0c\x80\x41\x02\x03\x04\x05\x06\x07\x00\x01\x11\x01quic data\x00@'
-    "AgAAAAAAAQAAAAAACABFAAA4AAEAAEARrRXAqAEqCsgBBXppAbsAJAacz/rOsAyAQQIDBAUGBwABEQFxdWljIGRhdGEAQA==",
+    // Ether(src="0x1", dst="0x2")/IP(src="192.168.1.42", dst="10.200.1.5")/UDP(sport=31337, dport=443)/'\xcf\xfa\xce\xb0\x01\x08\x41\x02\x03\x04\x05\x06\x07\x00\x00\x01\x11\x01quic data\x00@'
+    "AgAAAAAAAQAAAAAACABFAAA5AAEAAEARrRTAqAEqCsgBBXppAbsAJbdsz/rOsAEIQQIDBAUGBwAAAREBcXVpYyBkYXRhAEA=",
     "QUIC: long header. Client Initial type. LRU miss"
   },
   //23
   {
-    // Ether(src="0x1", dst="0x2")/IP(src="192.168.1.42", dst="10.200.1.5")/UDP(sport=31337, dport=443)/'\xdf\xfa\xce\xb0\x0c\x80\x43\xFF\x33\x44\x55\x66\x77\x88\x01\x11\x01quic data\x00@'
-    "AgAAAAAAAQAAAAAACABFAAA4AAEAAEARrRXAqAEqCsgBBXppAbsAJAJ23/rOsAyAQ/8zRFVmd4gBEQFxdWljIGRhdGEAQA==",
+    // Ether(src="0x1", dst="0x2")/IP(src="192.168.1.42", dst="10.200.1.5")/UDP(sport=31337, dport=443)/'\xdf\xfa\xce\xb0\x01\x08\x43\xFF\x33\x44\x55\x66\x77\x88\x00\x01\x11\x01quic data\x00@'
+    "AgAAAAAAAQAAAAAACABFAAA5AAEAAEARrRTAqAEqCsgBBXppAbsAJbNG3/rOsAEIQ/8zRFVmd4gAAREBcXVpYyBkYXRhAEA=",
     "QUIC: long header. 0-RTT Protected. CH. LRU hit."
   },
   //24
   {
-    // Ether(src="0x1", dst="0x2")/IP(src="192.168.1.42", dst="10.200.1.5")/UDP(sport=31337, dport=443)/'\xef\xfa\xce\xb0\x0c\x80\x44\x01\x03\x04\x05\x06\x07\x00\x01\x11\x01quic data\x00@'
-    "AgAAAAAAAQAAAAAACABFAAA4AAEAAEARrRXAqAEqCsgBBXppAbsAJOOc7/rOsAyARAEDBAUGBwABEQFxdWljIGRhdGEAQA==",
+    // Ether(src="0x1", dst="0x2")/IP(src="192.168.1.42", dst="10.200.1.5")/UDP(sport=31337, dport=443)/'\xef\xfa\xce\xb0\x01\x08\x44\x01\x03\x04\x05\x06\x07\x00\x00\x01\x11\x01quic data\x00@'
+    "AgAAAAAAAQAAAAAACABFAAA5AAEAAEARrRTAqAEqCsgBBXppAbsAJZRt7/rOsAEIRAEDBAUGBwAAAREBcXVpYyBkYXRhAEA=",
     "QUIC: long header. Handshake. v4 vip v6 real. Conn Id based."
   },
   //25
   {
-    // Ether(src="0x1", dst="0x2")/IP(src="192.168.1.42", dst="10.200.1.5")/UDP(sport=31337, dport=443)/'\xff\xfa\xce\xb0\x0c\x80\x44\x01\x03\x04\x05\x06\x07\x00\x01\x11\x01quic data\x00@'
-    "AgAAAAAAAQAAAAAACABFAAA4AAEAAEARrRXAqAEqCsgBBXppAbsAJNOc//rOsAyARAEDBAUGBwABEQFxdWljIGRhdGEAQA==",
+    // Ether(src="0x1", dst="0x2")/IP(src="192.168.1.42", dst="10.200.1.5")/UDP(sport=31337, dport=443)/'\xff\xfa\xce\xb0\x01\x08\x44\x01\x03\x04\x05\x06\x07\x00\x00\x01\x11\x01quic data\x00@'
+    "AgAAAAAAAQAAAAAACABFAAA5AAEAAEARrRTAqAEqCsgBBXppAbsAJYRt//rOsAEIRAEDBAUGBwAAAREBcXVpYyBkYXRhAEA=",
     "QUIC: long header. Retry. v4 vip v6 real. Conn Id based."
   },
   //26
   {
-    // Ether(src="0x1", dst="0x2")/IPv6(src="fc00:2::42", dst="fc00:1::2")/UDP(sport=31337, dport=443)/'\xcf\xfa\xce\xb0\x0c\x80\x44\x01\x03\x04\x05\x06\x07\x00\x01\x11\x01quic data\x00@'
-    "AgAAAAAAAQAAAAAAht1gAAAAACQRQPwAAAIAAAAAAAAAAAAAAEL8AAABAAAAAAAAAAAAAAACemkBuwAk2PPP+s6wDIBEAQMEBQYHAAERAXF1aWMgZGF0YQBA",
+    // Ether(src="0x1", dst="0x2")/IPv6(src="fc00:2::42", dst="fc00:1::2")/UDP(sport=31337, dport=443)/'\xcf\xfa\xce\xb0\x01\x08\x44\x01\x03\x04\x05\x06\x07\x00\x00\x01\x11\x01quic data\x00@'
+    "AgAAAAAAAQAAAAAAht1gAAAAACURQPwAAAIAAAAAAAAAAAAAAEL8AAABAAAAAAAAAAAAAAACemkBuwAlicTP+s6wAQhEAQMEBQYHAAABEQFxdWljIGRhdGEAQA==",
     "QUIC: long header. client initial. v6 vip v6 real. LRU miss"
   },
   //27
@@ -332,27 +332,27 @@ const std::vector<std::pair<std::string, std::string>> outputTestFixtures = {
   },
   //22
   {
-    "AADerb6vAgAAAAAACABFAABMAAAAAEAEXEysEGhQCgAAAkUAADgAAQAAQBGtFcCoASoKyAEFemkBuwAkBpzP+s6wDIBBAgMEBQYHAAERAXF1aWMgZGF0YQBA",
+    "AADerb6vAgAAAAAACABFAABNAAAAAEAEXEusEGhQCgAAAkUAADkAAQAAQBGtFMCoASoKyAEFemkBuwAlt2zP+s6wAQhBAgMEBQYHAAABEQFxdWljIGRhdGEAQA==",
     "XDP_TX"
   },
   //23
   {
-    "AADerb6vAgAAAAAACABFAABMAAAAAEAEXEysEGhQCgAAAkUAADgAAQAAQBGtFcCoASoKyAEFemkBuwAkAnbf+s6wDIBD/zNEVWZ3iAERAXF1aWMgZGF0YQBA",
+    "AADerb6vAgAAAAAACABFAABNAAAAAEAEXEusEGhQCgAAAkUAADkAAQAAQBGtFMCoASoKyAEFemkBuwAls0bf+s6wAQhD/zNEVWZ3iAABEQFxdWljIGRhdGEAQA==",
     "XDP_TX"
   },
   //24
   {
-    "AADerb6vAgAAAAAACABFAABMAAAAAEAEXE2sEGhQCgAAAUUAADgAAQAAQBGtFcCoASoKyAEFemkBuwAk45zv+s6wDIBEAQMEBQYHAAERAXF1aWMgZGF0YQBA",
+    "AADerb6vAgAAAAAACABFAABNAAAAAEAEXEysEGhQCgAAAUUAADkAAQAAQBGtFMCoASoKyAEFemkBuwAllG3v+s6wAQhEAQMEBQYHAAABEQFxdWljIGRhdGEAQA==",
     "XDP_TX"
   },
   //25
   {
-    "AADerb6vAgAAAAAACABFAABMAAAAAEAEXE2sEGhQCgAAAUUAADgAAQAAQBGtFcCoASoKyAEFemkBuwAk05z/+s6wDIBEAQMEBQYHAAERAXF1aWMgZGF0YQBA",
+    "AADerb6vAgAAAAAACABFAABNAAAAAEAEXEysEGhQCgAAAUUAADkAAQAAQBGtFMCoASoKyAEFemkBuwAlhG3/+s6wAQhEAQMEBQYHAAABEQFxdWljIGRhdGEAQA==",
     "XDP_TX"
   },
   //26
   {
-    "AADerb6vAgAAAAAAht1gAAAAAEwpQAEAAAAAAAAAAAAAAHppAEL8AAAAAAAAAAAAAAAAAAABYAAAAAAkEUD8AAACAAAAAAAAAAAAAABC/AAAAQAAAAAAAAAAAAAAAnppAbsAJNjzz/rOsAyARAEDBAUGBwABEQFxdWljIGRhdGEAQA==",
+    "AADerb6vAgAAAAAAht1gAAAAAE0pQAEAAAAAAAAAAAAAAHppAEL8AAAAAAAAAAAAAAAAAAABYAAAAAAlEUD8AAACAAAAAAAAAAAAAABC/AAAAQAAAAAAAAAAAAAAAnppAbsAJYnEz/rOsAEIRAEDBAUGBwAAAREBcXVpYyBkYXRhAEA=",
     "XDP_TX"
   },
   //27
@@ -376,6 +376,5 @@ const std::vector<std::pair<std::string, std::string>> outputTestFixtures = {
     "XDP_TX"
   },
 };
-
-}
-}
+} // namespace testing
+} // namespace katran

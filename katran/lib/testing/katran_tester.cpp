@@ -57,11 +57,12 @@ const std::vector<std::string> kReals = {
     "fc00::3",
 };
 
+// packet and bytes stats for reals
 const std::vector<::katran::lb_stats> kRealStats = {
-    {3, 150},
-    {7, 344},
+    {3, 152},
+    {7, 346},
     {4, 236},
-    {2, 91},
+    {2, 92},
     {1, 38},
     {2, 121},
 };

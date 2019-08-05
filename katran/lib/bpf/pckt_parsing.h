@@ -40,7 +40,8 @@
 struct quic_long_header {
   __u8 flags;
   __u32 version;
-  // Dest Conn Id Len(4 bits)| Source Conn Id Len(4 bits)
+  // Pre draft-22: Dest Conn Id Len(4 bits) | Source Conn Id Len(4 bits)
+  // Post draft-22: Dest Conn Id Len (8 bits)
   __u8 conn_id_lens;
   // conn-id len can be of either 0 bytes in length or between 4 and 18 bytes
   // For routing, katran requires minimum of 'QUIC_MIN_CONNID_LEN',
@@ -165,10 +166,17 @@ static inline int parse_quic(void *data, void *data_end,
     }
 
     struct quic_long_header* long_header = (struct quic_long_header*) quic_data;
-    // first 4 bits in the conn Id specifies the length of 'dest conn id'
-    if ((long_header->conn_id_lens >> 4) < QUIC_MIN_CONNID_LEN) {
-      // conn id is not long enough
-      return FURTHER_PROCESSING;
+    if (long_header->version == QUIC_VERSION_MVFST_OLD) {
+      // first 4 bits in the conn Id specifies the length of 'dest conn id'
+      if ((long_header->conn_id_lens >> 4) < QUIC_MIN_CONNID_LEN) {
+        // conn id is not long enough
+        return FURTHER_PROCESSING;
+      }
+    } else {
+      // Post draft version 22, this byte is the conn id length of dest conn id
+      if (long_header->conn_id_lens < QUIC_MIN_CONNID_LEN) {
+        return FURTHER_PROCESSING;
+      }
     }
     connId = long_header->dst_connection_id;
   } else {
