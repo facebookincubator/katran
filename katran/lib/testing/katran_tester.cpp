@@ -250,8 +250,16 @@ void testLbCounters(katran::KatranLb& lb) {
   auto lb_stats = lb.getKatranLbStats();
   if (lb_stats.bpfFailedCalls != 0) {
     VLOG(2) << "failed bpf calls: " << lb_stats.bpfFailedCalls;
-    LOG(INFO) << "incorrect stats about katran library internals";
+    LOG(INFO) << "incorrect stats about katran library internals: "
+              << "number of failed bpf syscalls is non zero";
   }
+  if (lb_stats.addrValidationFailed != 0) {
+    VLOG(2) << "failed ip address validations: "
+            << lb_stats.addrValidationFailed;
+    LOG(INFO) << "incorrect stats about katran library internals: "
+              << "number of failed ip address validations is non zero";
+  }
+
   LOG(INFO) << "Testing of counters is complete";
   return;
 }
