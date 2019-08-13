@@ -62,7 +62,7 @@ var (
 	listQuicMapping = flag.Bool("list_qm", false, "List current quic's mappings")
 	delQuicMapping  = flag.Bool("del_qm", false,
 		"Delete instead of adding specified quic mapping")
-	katranServer  = flag.String("server", "127.0.0.1:50051",
+	katranServer = flag.String("server", "127.0.0.1:50051",
 		"Katran server listen address")
 )
 
