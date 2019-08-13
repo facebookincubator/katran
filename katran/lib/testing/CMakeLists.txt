@@ -17,11 +17,11 @@ target_link_libraries(base64_helpers
 add_library(pcap_parser STATIC
     PcapParser.h
     PcapParser.cpp
-    PcapStructs.h
 )
 
 target_link_libraries(pcap_parser
     base64_helpers
+    pcapwriter
     "${FOLLY}"
     "${GLOG}"
     "${PTHREAD}"
