@@ -1,0 +1,9 @@
+guide on how to sync katran to oss.
+
+today it is done manually (T_T. at least script is
+on it's way so this could be done just by running shell. mb one day we would
+use proper FB tool for that). you need to sync
+only lib folder to facebookincubator/katran github project.
+(https://github.com/facebookincubator/katran/tree/master/katran)
+after sync make sure that all internal files (TARGETS) are not copied.
+
