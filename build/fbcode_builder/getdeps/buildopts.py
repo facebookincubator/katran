@@ -130,7 +130,7 @@ class BuildOptions(object):
     def get_context_generator(self, host_tuple=None, facebook_internal=False):
         """ Create a manifest ContextGenerator for the specified target platform. """
         if host_tuple is None:
-            host_type = self.host_type
+            host_type = HostType()
         elif isinstance(host_tuple, HostType):
             host_type = host_tuple
         else:
