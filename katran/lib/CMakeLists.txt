@@ -115,6 +115,15 @@ set(PCAPWRITER_DEPS
 
 target_link_libraries(pcapwriter "${PCAPWRITER_DEPS}")
 
+add_library(katransimulator STATIC
+  KatranSimulator.h
+  KatranSimulator.cpp
+)
+
+target_link_libraries(katransimulator
+    bpfadapter
+)
+
 add_library(katranlb STATIC
     KatranEventReader.h
     KatranEventReader.cpp
@@ -134,6 +143,7 @@ target_link_libraries(katranlb
     chhelpers
     iphelpers
     pcapwriter
+    katransimulator
     "${GFLAGS}"
     "${PTHREAD}"
     "-Wl,--end-group"
