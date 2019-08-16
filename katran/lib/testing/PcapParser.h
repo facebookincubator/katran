@@ -22,7 +22,7 @@
 #include <folly/File.h>
 #include <folly/io/IOBuf.h>
 
-#include "PcapStructs.h"
+#include "katran/lib/PcapStructs.h"
 
 namespace katran {
 

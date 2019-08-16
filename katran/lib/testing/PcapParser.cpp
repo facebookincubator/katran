@@ -14,7 +14,7 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#include "PcapParser.h"
+#include "katran/lib/testing/PcapParser.h"
 
 #include <chrono>
 #include <stdexcept>
@@ -22,8 +22,7 @@
 #include <folly/FileUtil.h>
 #include <glog/logging.h>
 
-#include "Base64Helpers.h"
-#include "PcapStructs.h"
+#include "katran/lib/testing/Base64Helpers.h"
 
 namespace katran {
 

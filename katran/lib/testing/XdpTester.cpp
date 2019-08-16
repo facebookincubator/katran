@@ -14,7 +14,7 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#include "XdpTester.h"
+#include "katran/lib/testing/XdpTester.h"
 
 #include <iostream>
 #include <string>
