@@ -42,7 +42,7 @@ constexpr uint32_t kMaxQuicId = 65535; // 2^16-1
 
 KatranLb::KatranLb(const KatranConfig& config)
     : config_(config),
-      bpfAdapter_(!config.testing),
+      bpfAdapter_(config.memlockUnlimited),
       ctlValues_(kCtlMapSize),
       standalone_(true),
       forwardingCores_(config.forwardingCores),

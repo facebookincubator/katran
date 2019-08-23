@@ -132,6 +132,7 @@ struct KatranMonitorConfig {
  * @param uint32_t maxDecapDst maximum number of destinations for inline decap
  * @param std::string hcInterface interface where we want to attach hc bpf prog
  * @param KatranMonitorConfig monitorConfig for katran introspection
+ * @param memlockUnlimited should katran set memlock to unlimited by default
  *
  * note about rootMapPath and rootMapPos:
  * katran has two modes of operation.
@@ -174,6 +175,7 @@ struct KatranConfig {
   std::string hcInterface = kDefaultHcInterface;
   uint32_t xdpAttachFlags = kNoFlags;
   struct KatranMonitorConfig monitorConfig;
+  bool memlockUnlimited = true;
 };
 
 /**
