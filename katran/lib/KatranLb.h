@@ -30,6 +30,7 @@
 #include "katran/lib/CHHelpers.h"
 #include "katran/lib/IpHelpers.h"
 #include "katran/lib/KatranLbStructs.h"
+#include "katran/lib/KatranSimulator.h"
 #include "katran/lib/Vip.h"
 
 namespace katran {
@@ -484,6 +485,16 @@ class KatranLb {
   KatranLbStats getKatranLbStats() {
     return lbStats_;
   }
+
+  /**
+   * @param KatranFlow 5 tuple which describes a flow
+   * @return string address of the real.
+   *
+   * getRealForFlow functions returns address of the real where specified
+   * 5 tuple is going to be sent.
+   * returns empty string if given 5 tuple does not belong to a configured vip
+   */
+  const std::string getRealForFlow(const KatranFlow& flow);
 
  private:
   /**

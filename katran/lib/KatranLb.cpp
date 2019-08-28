@@ -38,6 +38,7 @@ constexpr int kMaxForwardingCores = 128;
 constexpr int kFirstElem = 0;
 constexpr int kError = -1;
 constexpr uint32_t kMaxQuicId = 65535; // 2^16-1
+constexpr folly::StringPiece kEmptyString = "";
 } // namespace
 
 KatranLb::KatranLb(const KatranConfig& config)
@@ -1200,6 +1201,15 @@ std::unordered_map<uint32_t, std::string> KatranLb::getHealthcheckersDst() {
     hcs[hc.first] = hc.second.str();
   }
   return hcs;
+}
+
+const std::string KatranLb::getRealForFlow(const KatranFlow& flow) {
+  if (!progsLoaded_) {
+    LOG(ERROR) << "bpf programs are not loaded";
+    return kEmptyString.data();
+  }
+  auto sim = KatranSimulator(getKatranProgFd());
+  return sim.getRealForFlow(flow);
 }
 
 bool KatranLb::updateVipMap(

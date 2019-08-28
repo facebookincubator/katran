@@ -102,6 +102,93 @@ void addQuicMappings(katran::KatranLb& lb) {
   lb.modifyQuicRealsMapping(action, qreals);
 }
 
+void testSimulator(katran::KatranLb& lb) {
+  // udp, v4 vip v4 real
+  auto real = lb.getRealForFlow(katran::KatranFlow{
+      .src = "172.16.0.1",
+      .dst = "10.200.1.1",
+      .srcPort = 31337,
+      .dstPort = 80,
+      .proto = kUdp,
+  });
+  if (real != "10.0.0.2") {
+    VLOG(2) << "real: " << real;
+    LOG(INFO) << "simulation is incorrect for v4 real and v4 udp vip";
+  }
+  // tcp, v4 vip v4 real
+  real = lb.getRealForFlow(katran::KatranFlow{
+      .src = "172.16.0.1",
+      .dst = "10.200.1.1",
+      .srcPort = 31337,
+      .dstPort = 80,
+      .proto = kTcp,
+  });
+  if (real != "10.0.0.2") {
+    VLOG(2) << "real: " << real;
+    LOG(INFO) << "simulation is incorrect for v4 real and v4 tcp vip";
+  }
+  // tcp, v4 vip v6 real
+  real = lb.getRealForFlow(katran::KatranFlow{
+      .src = "172.16.0.1",
+      .dst = "10.200.1.3",
+      .srcPort = 31337,
+      .dstPort = 80,
+      .proto = kTcp,
+  });
+  if (real != "fc00::2") {
+    VLOG(2) << "real: " << real;
+    LOG(INFO) << "simulation is incorrect for v6 real and v4 tcp vip";
+  }
+  // tcp, v6 vip v6 real
+  real = lb.getRealForFlow(katran::KatranFlow{
+      .src = "fc00:2::1",
+      .dst = "fc00:1::1",
+      .srcPort = 31337,
+      .dstPort = 80,
+      .proto = kTcp,
+  });
+  if (real != "fc00::3") {
+    VLOG(2) << "real: " << real;
+    LOG(INFO) << "simulation is incorrect for v6 real and v6 tcp vip";
+  }
+  // non existing vip
+  real = lb.getRealForFlow(katran::KatranFlow{
+      .src = "fc00:2::1",
+      .dst = "fc00:1::2",
+      .srcPort = 31337,
+      .dstPort = 80,
+      .proto = kTcp,
+  });
+  if (!real.empty()) {
+    VLOG(2) << "real: " << real;
+    LOG(INFO) << "incorrect real for non existing vip";
+  }
+  // malformed flow #1
+  real = lb.getRealForFlow(katran::KatranFlow{
+      .src = "10.0.0.1",
+      .dst = "fc00:1::1",
+      .srcPort = 31337,
+      .dstPort = 80,
+      .proto = kTcp,
+  });
+  if (!real.empty()) {
+    VLOG(2) << "real: " << real;
+    LOG(INFO) << "incorrect real for malformed flow #1";
+  }
+  // malformed flow #2
+  real = lb.getRealForFlow(katran::KatranFlow{
+      .src = "aaaa",
+      .dst = "bbbb",
+      .srcPort = 31337,
+      .dstPort = 80,
+      .proto = kTcp,
+  });
+  if (!real.empty()) {
+    VLOG(2) << "real: " << real;
+    LOG(INFO) << "incorrect real for malformed flow #2";
+  }
+}
+
 void prepareLbData(katran::KatranLb& lb) {
   lb.restartKatranMonitor(kMonitorLimit);
   katran::VipKey vip;
@@ -302,6 +389,7 @@ int main(int argc, char** argv) {
   } else if (FLAGS_test_from_fixtures) {
     tester.testFromFixture();
     testLbCounters(lb);
+    testSimulator(lb);
     if (FLAGS_optional_tests) {
       prepareOptionalLbData(lb);
       LOG(INFO) << "Running optional tests. they could fail if requirements "
