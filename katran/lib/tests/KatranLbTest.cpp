@@ -42,7 +42,11 @@ class KatranLbTest : public ::testing::Test {
                         {},
                         {},
                         10,
-                        4}){};
+                        4,
+                        "eth0",
+                        0,
+                        {},
+                        false}){}
 
   void SetUp() override {
     v1.address = "fc01::1";
