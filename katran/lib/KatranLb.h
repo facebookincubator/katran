@@ -45,6 +45,7 @@ constexpr int kIpv4TunPos = 1;
 constexpr int kIpv6TunPos = 2;
 constexpr int kMainIntfPos = 3;
 constexpr int kHcIntfPos = 4;
+constexpr int kIntrospectionGkPos = 5;
 
 /**
  * constants are from balancer_consts.h
@@ -63,6 +64,18 @@ constexpr int kFallbackLruSize = 1024;
 constexpr int kMapNoFlags = 0;
 constexpr int kMapNumaNode = 4;
 constexpr int kNoNuma = -1;
+
+namespace {
+/**
+ * state of katran monitor forwarding. if it is disabled - forwarding
+ * plane would never send anything to userspace through perfpipe
+ */
+enum class KatranMonitorState {
+  DISABLED,
+  ENABLED,
+};
+
+}
 
 /**
  * This class implements all routines to interact with katran load balancer
@@ -604,6 +617,11 @@ class KatranLb {
       ModifyAction action,
       const folly::IPAddress& dst,
       const uint32_t flags = 0);
+
+  /**
+   * helper function to change state of katran monitor's forwarding
+   */
+  bool changeKatranMonitorForwardingState(KatranMonitorState state);
 
   /**
    * main configurations of katran

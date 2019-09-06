@@ -24,6 +24,7 @@
 
 #include "balancer_consts.h"
 #include "balancer_structs.h"
+#include "balancer_maps.h"
 #include "bpf.h"
 #include "bpf_helpers.h"
 
@@ -96,13 +97,19 @@ static inline void ipv6_csum(void *data_start, int data_size,
   *csum = csum_fold_helper(*csum);
 }
 
+
 /**
  * helper to print blob of data into perf pipe
  */
 __attribute__((__always_inline__))
 static inline void submit_event(struct xdp_md *ctx, void *map,
                                 __u32 event_id, void *data, __u32 size) {
-
+  struct ctl_value *gk;
+  __u32 introspection_gk_pos = 5;
+  gk = bpf_map_lookup_elem(&ctl_array, &introspection_gk_pos);
+  if (!gk || gk->value == 0) {
+    return;
+  }
   struct event_metadata md = {};
   __u64 flags = BPF_F_CURRENT_CPU;
   md.event = event_id;
