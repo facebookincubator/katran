@@ -4,7 +4,6 @@ set (CMAKE_CXX_STANDARD 14)
 
 # thrift cmake macro
 find_program(THRIFT1 thrift1)
-set(THRIFT_TEMPLATES ${CMAKE_SOURCE_DIR}/deps/fbthrift/thrift/compiler/generate/templates)
 include (${CMAKE_SOURCE_DIR}/deps/fbthrift/ThriftLibrary.cmake)
 set(THRIFT_PREFIX "katran/if")
 set(THRIFT_DIR ${CMAKE_BINARY_DIR}/thrift-out/${THRIFT_PREFIX})
