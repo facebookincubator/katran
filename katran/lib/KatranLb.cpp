@@ -858,6 +858,14 @@ bool KatranLb::stopKatranMonitor() {
   return true;
 }
 
+std::unique_ptr<folly::IOBuf> KatranLb::getKatranMonitorEventBuffer(int event) {
+  if (!features_.introspection) {
+    return nullptr;
+  }
+  return monitor_->getEventBuffer(event);
+}
+
+
 bool KatranLb::restartKatranMonitor(uint32_t limit) {
   if (!features_.introspection) {
     return false;
@@ -877,6 +885,7 @@ KatranMonitorStats KatranLb::getKatranMonitorStats() {
   auto writer_stats = monitor_->getWriterStats();
   stats.limit = writer_stats.limit;
   stats.amount = writer_stats.amount;
+  stats.bufferExceedCount = writer_stats.bufferExceedCount;
   return stats;
 }
 

@@ -20,6 +20,7 @@
 #include <folly/io/async/ScopedEventBaseThread.h>
 
 #include "katran/lib/FileWriter.h"
+#include "katran/lib/IOBufWriter.h"
 #include "katran/lib/KatranEventReader.h"
 
 
@@ -49,11 +50,18 @@ KatranMonitor::KatranMonitor(const KatranMonitorConfig& config)
     throw std::runtime_error("none of eventReaders were initialized");
   }
 
-  std::vector<std::shared_ptr<DataWriter>> data_writers;
+std::vector<std::shared_ptr<DataWriter>> data_writers;
   for (int i = 0; i < config_.maxEvents; i++) {
-    std::string fname;
-    folly::toAppend(config_.path, "_", i, &fname);
-    data_writers.push_back(std::make_shared<FileWriter>(fname));
+    if (config_.storage == PcapStorageFormat::FILE) {
+      std::string fname;
+      folly::toAppend(config_.path, "_", i, &fname);
+      data_writers.push_back(std::make_shared<FileWriter>(fname));
+    } else {
+      // PcapStorageFormat::IOBuf
+      buffers_.emplace_back(folly::IOBuf::create(config_.bufferSize));
+      data_writers.push_back(
+        std::make_shared<IOBufWriter>(buffers_.back().get()));
+    }
   }
 
   writer_ = std::make_shared<PcapWriter>(
@@ -82,6 +90,18 @@ void KatranMonitor::restartMonitor(uint32_t limit) {
   msg.setRestart(true);
   msg.setLimit(limit);
   queue_->blockingWrite(std::move(msg));
+}
+
+std::unique_ptr<folly::IOBuf> KatranMonitor::getEventBuffer(int event) {
+  if (buffers_.size() == 0) {
+    LOG(ERROR) << "PcapStorageFormat is not set to IOBuf";
+    return nullptr;
+  }
+  if (event < 0 || event > (buffers_.size() - 1)) {
+    LOG(ERROR) << "Undefined event id";
+    return nullptr;
+  }
+  return buffers_[event]->cloneOne();
 }
 
 PcapWriterStats KatranMonitor::getWriterStats() {

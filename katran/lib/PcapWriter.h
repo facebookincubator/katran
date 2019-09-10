@@ -27,6 +27,7 @@
 struct PcapWriterStats {
   uint32_t limit{0};
   uint32_t amount{0};
+  uint32_t bufferExceedCount{0};
 };
 
 namespace katran {
@@ -153,6 +154,12 @@ class PcapWriter {
    * Max number of packets that can be written in a single batch
    */
   uint32_t packetLimit_{0};
+
+  /**
+   * Number of bufferExceedCount events: when writer does not have enough
+   * space to write packet
+   */
+  uint32_t bufferExceedCount_{0};
 
   /**
    * Max number of bytes to be stored.

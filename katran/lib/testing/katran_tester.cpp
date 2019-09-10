@@ -14,11 +14,15 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
+#include <chrono>
 #include <iostream>
 #include <string>
+#include <thread>
 #include <vector>
 
 #include <folly/Range.h>
+#include <folly/File.h>
+#include <folly/FileUtil.h>
 #include <gflags/gflags.h>
 
 #include "KatranOptionalTestFixtures.h"
@@ -29,6 +33,8 @@
 
 DEFINE_string(pcap_input, "", "path to input pcap file");
 DEFINE_string(pcap_output, "", "path to output pcap file");
+DEFINE_string(monitor_output,
+  "/tmp/katran_pcap", "output file for katran monitoring");
 DEFINE_string(balancer_prog, "./balancer_kern.o", "path to balancer bpf prog");
 DEFINE_string(healtchecking_prog, "", "path to healthchecking bpf prog");
 DEFINE_bool(print_base64, false, "print packets in base64 from pcap file");
@@ -37,6 +43,7 @@ DEFINE_bool(perf_testing, false, "run perf tests on predefined dataset");
 DEFINE_bool(optional_tests, false, "run optional (kernel specific) tests");
 DEFINE_int32(repeat, 1000000, "perf test runs for single packet");
 DEFINE_int32(position, -1, "perf test runs for single packet");
+DEFINE_bool(iobuf_storage, false, "test iobuf storage for katran monitor");
 
 namespace {
 const std::string kMainInterface = "lo";
@@ -48,6 +55,7 @@ constexpr uint32_t kDefaultPriority = 2307;
 constexpr uint32_t kDefaultKatranPos = 8;
 constexpr uint32_t kMonitorLimit = 1024;
 constexpr bool kNoHc = false;
+constexpr uint32_t k1Mbyte = 1024*1024;
 const std::vector<std::string> kReals = {
     "10.0.0.1",
     "10.0.0.2",
@@ -186,6 +194,23 @@ void testSimulator(katran::KatranLb& lb) {
   if (!real.empty()) {
     VLOG(2) << "real: " << real;
     LOG(INFO) << "incorrect real for malformed flow #2";
+  }
+}
+
+void testKatranMonitor(katran::KatranLb& lb) {
+  lb.stopKatranMonitor();
+  std::this_thread::sleep_for(std::chrono::seconds(1));
+  // 0 - tcp non_syn lru miss
+  auto buf = lb.getKatranMonitorEventBuffer(0);
+  if (buf != nullptr) {
+    LOG(INFO) << "buffer length is: " << buf->length();
+    auto pcap_file = folly::File(FLAGS_monitor_output.c_str(),
+       O_RDWR | O_CREAT | O_TRUNC);
+    auto res = folly::writeFull(pcap_file.fd(), buf->data(),
+      buf->length());
+    if (res < 0) {
+      LOG(ERROR) << "error while trying to write katran monitor output";
+    }
   }
 }
 
@@ -369,16 +394,24 @@ int main(int argc, char** argv) {
     tester.printPcktBase64();
     return 0;
   }
-  katran::KatranLb lb(katran::KatranConfig{kMainInterface,
-                                           kV4TunInterface,
-                                           kV6TunInterface,
-                                           FLAGS_balancer_prog,
-                                           FLAGS_healtchecking_prog,
-                                           kDefaultMac,
-                                           kDefaultPriority,
-                                           kNoExternalMap,
-                                           kDefaultKatranPos,
-                                           kNoHc});
+  katran::KatranMonitorConfig kmconfig;
+  kmconfig.path = FLAGS_monitor_output;
+  if (FLAGS_iobuf_storage) {
+    kmconfig.storage = katran::PcapStorageFormat::IOBUF;
+    kmconfig.bufferSize = k1Mbyte;
+  }
+  katran::KatranConfig kconfig{kMainInterface,
+                               kV4TunInterface,
+                               kV6TunInterface,
+                               FLAGS_balancer_prog,
+                               FLAGS_healtchecking_prog,
+                               kDefaultMac,
+                               kDefaultPriority,
+                               kNoExternalMap,
+                               kDefaultKatranPos,
+                               kNoHc};
+  kconfig.monitorConfig = kmconfig;
+  katran::KatranLb lb(kconfig);
   lb.loadBpfProgs();
   auto balancer_prog_fd = lb.getKatranProgFd();
   prepareLbData(lb);
@@ -390,6 +423,9 @@ int main(int argc, char** argv) {
     tester.testFromFixture();
     testLbCounters(lb);
     testSimulator(lb);
+    if (FLAGS_iobuf_storage) {
+      testKatranMonitor(lb);
+    }
     if (FLAGS_optional_tests) {
       prepareOptionalLbData(lb);
       LOG(INFO) << "Running optional tests. they could fail if requirements "

@@ -80,10 +80,12 @@ target_include_directories(
 add_library(pcapwriter STATIC
     ByteRangeWriter.cpp
     FileWriter.cpp
+    IOBufWriter.cpp
     PcapMsg.cpp
     PcapMsgMeta.cpp
     PcapWriter.cpp
     ByteRangeWriter.h
+    IOBufWriter.h
     DataWriter.h
     FileWriter.h
     PcapMsg.h
