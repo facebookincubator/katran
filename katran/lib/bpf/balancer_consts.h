@@ -196,6 +196,11 @@
 #define IPIP_V6_PREFIX3 0
 #endif
 
+// default tos/tclass value
+#ifndef DEFAULT_TOS
+#define DEFAULT_TOS 0
+#endif
+
 // initial value for jhash hashing function, used to pick up a real server
 #ifndef INIT_JHASH_SEED
 #define INIT_JHASH_SEED CH_RINGS_SIZE
