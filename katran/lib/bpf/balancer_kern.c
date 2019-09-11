@@ -510,11 +510,11 @@ static inline int process_packet(void *data, __u64 off, void *data_end,
   }
 
   if (dst->flags & F_IPV6) {
-    if(!encap_v6(xdp, cval, is_ipv6, &pckt, dst, pkt_bytes)) {
+    if(!PCKT_ENCAP_V6(xdp, cval, is_ipv6, &pckt, dst, pkt_bytes)) {
       return XDP_DROP;
     }
   } else {
-    if(!encap_v4(xdp, cval, &pckt, dst, pkt_bytes)) {
+    if(!PCKT_ENCAP_V4(xdp, cval, &pckt, dst, pkt_bytes)) {
       return XDP_DROP;
     }
   }

@@ -165,4 +165,18 @@ struct bpf_map_def SEC("maps") event_pipe = {
 BPF_ANNOTATE_KV_PAIR(event_pipe, int, __u32);
 
 #endif
+
+#ifdef GUE_ENCAP
+// map which src ip address for outer ip packet while using GUE encap
+// NOTE: This is not a stable API. This is to be reworked when static
+// variables will be available in mainline kernels
+struct bpf_map_def SEC("maps") pckt_srcs = {
+  .type = BPF_MAP_TYPE_ARRAY,
+  .key_size = sizeof(__u32),
+  .value_size = sizeof(struct real_definition),
+  .max_entries = 2,
+  .map_flags = NO_FLAGS,
+};
+BPF_ANNOTATE_KV_PAIR(pckt_srcs, __u32, struct real_definition);
+#endif
 #endif // of _BALANCER_MAPS

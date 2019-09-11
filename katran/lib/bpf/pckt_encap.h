@@ -30,6 +30,7 @@
 #include "balancer_consts.h"
 #include "balancer_helpers.h"
 #include "balancer_structs.h"
+#include "balancer_maps.h"
 #include "bpf.h"
 #include "bpf_endian.h"
 #include "bpf_helpers.h"
@@ -85,6 +86,15 @@ __attribute__((__always_inline__)) static inline void create_v6_hdr(
   ip6h->hop_limit = DEFAULT_TTL;
   memcpy(ip6h->saddr.s6_addr32, saddr, 16);
   memcpy(ip6h->daddr.s6_addr32, daddr, 16);
+}
+
+__attribute__((__always_inline__))
+static inline void create_udp_hdr(struct udphdr *udph, __u16 sport, __u16 dport,
+                                  __u16 len, __u16 csum) {
+  udph->source = sport;
+  udph->dest = bpf_htons(dport);
+  udph->len = bpf_htons(len);
+  udph->check = csum;
 }
 
 __attribute__((__always_inline__)) static inline bool encap_v6(
@@ -220,5 +230,134 @@ decap_v4(struct xdp_md* xdp, void** data, void** data_end) {
   *data_end = (void*)(long)xdp->data_end;
   return true;
 }
+
+#ifdef GUE_ENCAP
+
+__attribute__((__always_inline__))
+static inline bool gue_encap_v4(struct xdp_md *xdp, struct ctl_value *cval,
+                                struct packet_description *pckt,
+                                struct real_definition *dst, __u32 pkt_bytes) {
+  void *data;
+  void *data_end;
+  struct iphdr *iph;
+  struct udphdr *udph;
+  struct eth_hdr *new_eth;
+  struct eth_hdr *old_eth;
+  struct real_definition *src;
+
+  __u16 sport = bpf_htons(pckt->flow.port16[0]);
+  __u32 ipv4_src  = V4_SRC_INDEX;
+
+  src = bpf_map_lookup_elem(&pckt_srcs, &ipv4_src);
+  if (!src) {
+    return false;
+  }
+  ipv4_src = src->dst;
+ 
+  sport ^= ((pckt->flow.src >> 16) & 0xFFFF);
+  __u64 csum = 0;
+
+  if (bpf_xdp_adjust_head(
+      xdp, 0 - ((int)sizeof(struct iphdr) + (int)sizeof(struct udphdr)))) {
+    return false;
+  }
+  data = (void *)(long)xdp->data;
+  data_end = (void *)(long)xdp->data_end;
+  new_eth = data;
+  iph = data + sizeof(struct eth_hdr);
+  udph = (void *)iph + sizeof(struct iphdr);
+  old_eth = data + sizeof(struct iphdr) + sizeof(struct udphdr);
+  if (new_eth + 1 > data_end ||
+      old_eth + 1 > data_end ||
+      iph + 1 > data_end ||
+      udph + 1 > data_end) {
+    return false;
+  }
+  memcpy(new_eth->eth_dest, cval->mac, 6);
+  memcpy(new_eth->eth_source, old_eth->eth_dest, 6);
+  new_eth->eth_proto = BE_ETH_P_IP;
+  
+  create_udp_hdr(
+    udph,
+    sport,
+    GUE_DPORT,
+    pkt_bytes + sizeof(struct udphdr),
+    GUE_CSUM);
+
+  create_v4_hdr(
+    iph,
+    pckt,
+    ipv4_src,
+    dst->dst,
+    pkt_bytes + sizeof(struct udphdr),
+    IPPROTO_UDP);
+
+  return true;
+}
+
+__attribute__((__always_inline__))
+static inline bool gue_encap_v6(struct xdp_md *xdp, struct ctl_value *cval,
+                                bool is_ipv6, struct packet_description *pckt,
+                                struct real_definition *dst, __u32 pkt_bytes) {
+  void *data;
+  void *data_end;
+  struct ipv6hdr *ip6h;
+  struct eth_hdr *new_eth;
+  struct eth_hdr *old_eth;
+  struct udphdr *udph;
+  __u32 key = V6_SRC_INDEX;
+  __u16 payload_len;
+  __u16 sport;
+  struct real_definition *src;
+
+  src = bpf_map_lookup_elem(&pckt_srcs, &key);
+  if (!src) {
+    return false;
+  }
+ 
+  if (bpf_xdp_adjust_head(
+    xdp, 0 - ((int)sizeof(struct ipv6hdr) + (int)sizeof(struct udphdr)))) {
+    return false;
+  }
+  data = (void *)(long)xdp->data;
+  data_end = (void *)(long)xdp->data_end;
+  new_eth = data;
+  ip6h = data + sizeof(struct eth_hdr);
+  udph = (void *)ip6h + sizeof(struct ipv6hdr);
+  old_eth = data + sizeof(struct ipv6hdr) + sizeof(struct udphdr);
+  if (new_eth + 1 > data_end ||
+      old_eth + 1 > data_end ||
+      ip6h + 1 > data_end ||
+      udph + 1 > data_end) {
+    return false;
+  }
+  memcpy(new_eth->eth_dest, cval->mac, 6);
+  memcpy(new_eth->eth_source, old_eth->eth_dest, 6);
+  new_eth->eth_proto = BE_ETH_P_IPV6;
+
+
+  if (is_ipv6) {
+    sport = (pckt->flow.srcv6[3] & 0xFFFF) ^ pckt->flow.port16[0];
+    pkt_bytes += (sizeof(struct ipv6hdr) + sizeof(struct udphdr));
+  } else {
+    sport = ((pckt->flow.src >> 16) & 0xFFFF) ^ pckt->flow.port16[0];
+    pkt_bytes += sizeof(struct udphdr);
+  }
+
+  create_udp_hdr(
+    udph,
+    sport,
+    GUE_DPORT,
+    pkt_bytes,
+    GUE_CSUM);
+
+  create_v6_hdr(ip6h, pckt, src->dstv6, dst->dstv6, pkt_bytes, IPPROTO_UDP);
+
+  return true;
+}
+
+#endif // of GUE_ENCAP
+
+
 
 #endif // of __PCKT_ENCAP_H

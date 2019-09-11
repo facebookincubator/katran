@@ -206,6 +206,13 @@
 #define COPY_INNER_PACKET_TOS 1
 #endif
 
+// defaut GUE dst port
+#ifndef GUE_DPORT
+#define GUE_DPORT 6080
+#endif
+
+#define GUE_CSUM 0
+
 // initial value for jhash hashing function, used to pick up a real server
 #ifndef INIT_JHASH_SEED
 #define INIT_JHASH_SEED CH_RINGS_SIZE
@@ -231,12 +238,29 @@
  *
  * INLINE_DECAP - allow do to inline ipip decapsulation in XDP context
  *
+ * GUE_ENCAP - use GUE (draft-ietf-intarea-gue) as encapsulation method
+ *
  * KATRAN_INTROSPECTION - katran will start to perfpipe packet's header which
  * have triggered specific events
  */
 #ifdef LPM_SRC_LOOKUP
 #define INLINE_DECAP
 #endif
+
+#ifdef GUE_ENCAP
+#define PCKT_ENCAP_V4 gue_encap_v4
+#define PCKT_ENCAP_V6 gue_encap_v6
+#else
+#define PCKT_ENCAP_V4 encap_v4
+#define PCKT_ENCAP_V6 encap_v6
+#endif
+
+
+/**
+ * positions in pckts_srcs table
+ */
+#define V4_SRC_INDEX 0
+#define V6_SRC_INDEX 1
 
 // maximum size of packets header which we would write to event pipe
 // if KATRAN_INTROSPECTION is enabled

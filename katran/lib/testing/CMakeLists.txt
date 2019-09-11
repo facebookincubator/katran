@@ -40,6 +40,7 @@ add_library(xdptester STATIC
     XdpTester.h
     XdpTester.cpp
     KatranTestFixtures.h
+    KatranGueTestFixtures.h
     KatranOptionalTestFixtures.h
 )
 
