@@ -39,6 +39,7 @@ add_subdirectory(katran)
 
 if(BUILD_TESTS)
   enable_testing()
+  include(KatranTest)
 endif()
 
 if(DEFINED ENV{CMAKE_BUILD_EXAMPLE_THRIFT})
@@ -49,7 +50,6 @@ endif()
 if(DEFINED ENV{CMAKE_BUILD_EXAMPLE_GRPC})
     add_subdirectory(example_grpc)
 endif()
-message("Building tools/utils for katran")
 
 install(
   EXPORT katran-exports

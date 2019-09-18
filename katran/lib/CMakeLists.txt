@@ -212,7 +212,7 @@ file(
   RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
   *.h
 )
-list(FILTER KATRAN_HEADERS_TOINSTALL EXCLUDE REGEX test/)
+list(FILTER KATRAN_HEADERS_TOINSTALL EXCLUDE REGEX tests/)
 foreach(header ${KATRAN_HEADERS_TOINSTALL})
   get_filename_component(header_dir ${header} DIRECTORY)
   install(FILES ${header} DESTINATION include/katran/lib/${header_dir})
