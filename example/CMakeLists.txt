@@ -53,7 +53,7 @@ add_library(simple_service_handler
 )
 target_link_libraries(simple_service_handler
     katranlb
-    "${FOLLY}"
+    "Folly::folly"
     "${THRIFTCPP2}"
 )
 
@@ -62,16 +62,15 @@ add_library(simple_signal_handler
     KatranSimpleServiceSignalHandler.h
 )
 target_link_libraries(simple_signal_handler
-    "${FOLLY}"
+    "Folly::folly"
     "${DL}"
     "${EVENT}"
-
 )
 
 add_executable(simple_katran_server KatranSimpleServer.cpp)
 target_link_libraries(simple_katran_server
     "-Wl,--start-group"
-    "${FOLLY}"
+    "Folly::folly"
     "${THRIFT}"
     "${THRIFTCPP2}"
     "${THRIFTPROTOCOL}"
@@ -85,20 +84,19 @@ target_link_libraries(simple_katran_server
     "${LIBSODIUM}"
     "${LIBFIZZ}"
     "${LIBGSS}"
-    "${LIBLZMA}"
     "${LIBLZ4}"
     "${LIBSNAPPY}"
     "${BOOST_SYSTEM}"
     "${LIBBOOST_CONTEXT}"
     "${DL}"
     "${EVENT_CORE}"
-    "${EVENT}"
+    "libevent::libevent"
     "${CRYPTO}"
     "${SSL}"
     "${LIBIBERTY}"
     "${LIBDC}"
     "${GFLAGS}"
-    "${GLOG}"
+    "glog::glog"
     "${PTHREAD}"
     "${LIBZSTD}"
     mac_helpers
@@ -116,7 +114,7 @@ add_library(katran_client_lib
 target_link_libraries(katran_client_lib
     katranlb
     "-Wl,--start-group"
-    "${FOLLY}"
+    "Folly::folly"
     "${LIBASYNC}"
     "${THRIFT}"
     "${THRIFTCPP2}"
@@ -125,7 +123,7 @@ target_link_libraries(katran_client_lib
     "${LIBTHRIFTFROZEN2}"
     "${LIBPROTOCOL}"
     "${LIBTRANSPORT}"
-    "${GLOG}"
+    "glog::glog"
     "${LIBRE2}"
     "-Wl,--end-group"
 )
@@ -133,7 +131,7 @@ target_link_libraries(katran_client_lib
 add_executable(simple_katran_client client/Main.cpp)
 target_link_libraries(simple_katran_client
     "-Wl,--start-group"
-    "${FOLLY}"
+    "Folly::folly"
     "${LIBCONCURRENCY}"
     "${LIBASYNC}"
     "${THRIFT}"
@@ -145,7 +143,6 @@ target_link_libraries(simple_katran_client
     "${LIBTRANSPORT}"
     "${LIBWANGLE}"
     "${LIBGSS}"
-    "${LIBLZMA}"
     "${LIBLZ4}"
     "${LIBSNAPPY}"
     "${BOOST_SYSTEM}"
@@ -158,7 +155,7 @@ target_link_libraries(simple_katran_client
     "${LIBIBERTY}"
     "${LIBDC}"
     "${GFLAGS}"
-    "${GLOG}"
+    "glog::glog"
     "${PTHREAD}"
     "${LIBZSTD}"
     katran_client_lib

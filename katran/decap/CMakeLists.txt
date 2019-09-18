@@ -1,5 +1,10 @@
-cmake_minimum_required (VERSION 3.0)
+cmake_minimum_required (VERSION 3.9)
+set(KATRAN_INCLUDE_DIR "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../../>")
+
 project (libdecap-proj)
+find_package(Glog REQUIRED)
+find_package(folly CONFIG REQUIRED)
+find_package(Threads)
 
 add_library(decap STATIC
     XdpDecap.cpp
@@ -9,7 +14,18 @@ add_library(decap STATIC
 
 target_link_libraries(decap
     bpfadapter
-    "${GLOG}"
+    "Folly::folly"
+    glog::glog
 )
 
-add_subdirectory(testing)
+target_include_directories(
+  decap PUBLIC
+  ${GFLAGS_INCLUDE_DIR}
+  ${KATRAN_INCLUDE_DIR}
+)
+
+install(TARGETS decap)
+
+if (BUILD_TESTS)
+  add_subdirectory(testing)
+endif()

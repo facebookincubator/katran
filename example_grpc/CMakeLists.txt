@@ -57,7 +57,7 @@ add_library(katran_service_handler
 target_link_libraries(katran_service_handler
   katranlb
   mac_helpers
-  "${FOLLY}"
+  "Folly::folly"
 )
 
 add_library(grpc_signal_handler
@@ -66,7 +66,7 @@ add_library(grpc_signal_handler
 )
 
 target_link_libraries(grpc_signal_handler
-    "${FOLLY}"
+    "Folly::folly"
     "${DL}"
     "${EVENT}"
     "${GRPC++}"
@@ -79,14 +79,13 @@ add_executable(katran_server_grpc katran_server.cpp)
 target_link_libraries(katran_server_grpc
   "-Wl,--start-group"
   "${LIBUNWIND}"
-  "${LIBLZMA}"
   "${PROTOBUF}"
   "${GRPC++}"
   "${GPR}"
   "${ADDR_SORT}"
   "${CARES}"
-  "${FOLLY}"
-  "${GLOG}"
+  "Folly::folly"
+  "glog::glog"
   "${GFLAGS}"
   "${PTHREAD}"
   "${LIBDC}"
@@ -98,3 +97,5 @@ target_link_libraries(katran_server_grpc
   grpc_signal_handler
   "-Wl,--end-group"
 )
+
+install(TARGETS katran_server_grpc)

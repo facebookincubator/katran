@@ -5,7 +5,6 @@ set (CMAKE_CXX_STANDARD 14)
 find_library(LIBBCC bcc)
 find_library(DL dl)
 find_library(LIBIBERTY libiberty.a iberty)
-find_library(EVENT libevent.a event)
 find_library(EVENT_CORE libevent_core.a event_core)
 
 add_library(pcap_writer
@@ -17,7 +16,7 @@ add_library(pcap_writer
 )
 
 target_link_libraries(pcap_writer
-  "${FOLLY}"
+  "Folly::folly"
 )
 
 add_library(xdp_event_logger
@@ -29,8 +28,8 @@ add_library(xdp_event_logger
 
 target_link_libraries(xdp_event_logger
   pcap_writer
-  "${FOLLY}"
-  "${GLOG}"
+  "Folly::folly"
+  "glog::glog"
 )
 
 add_library(lxdpdump
@@ -44,22 +43,21 @@ target_link_libraries(lxdpdump
   "${LIBELF}"
   "${LIBZ}"
   "${LIBBCC}"
-  "${FOLLY}"
-  "${GLOG}"
+  "Folly::folly"
+  "glog::glog"
 )
 
 add_executable(xdpdump xdpdump_tool.cpp)
 target_link_libraries(xdpdump
   "-Wl,--start-group"
   "${LIBUNWIND}"
-  "${LIBLZMA}"
-  "${FOLLY}"
-  "${GLOG}"
+  "Folly::folly"
+  "glog::glog"
   "${GFLAGS}"
   "${PTHREAD}"
   "${LIBDC}"
   "${DL}"
-  "${EVENT}"
+  "libevent:libevent"
   "${EVENT_CORE}"
   "${LIBIBERTY}"
   iphelpers

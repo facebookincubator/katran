@@ -1,36 +1,19 @@
-cmake_minimum_required (VERSION 3.0)
-project (libkatran-proj)
-
-# for clang's compile_commands.json
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-
-set(CMAKE_CXX_COMPILER_ID "Clang")
-
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++14")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Werror")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-sign-compare -Wno-bool-compare")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error=unused-variable -Woverloaded-virtual -Wnon-virtual-dtor")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-maybe-uninitialized -Wdeprecated-declarations")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error=deprecated-declarations")
-
-# system libs
-find_library(GLOG libglog.a glog)
 find_library(LIBELF libelf.a elf)
-find_library(LIBMNL libmnl.a mnl)
-find_library(GFLAGS libgflags.a gflags)
-find_library(GTEST gtest)
-find_library(FOLLY libfolly.a folly)
-find_library(PTHREAD pthread)
-find_library(LIBUNWIND libunwind.a unwind)
-find_library(LIBLZMA liblzma.a lzma)
-find_library(LIBZ libz.a z)
-find_library(LIBDC libdouble-conversion.a double-conversion)
-find_library(BPF libbpf.a PATHS ${LIBBPF_PATH} NO_DEFAULT_PATH)
-find_library(EVENT libevent.a event)
-find_library(DL dl)
-find_library(LIBIBERTY libiberty.a iberty)
+# Look for libbpf.  It is important to use its pkg-config file as that is
+# responsible for locating its libelf dependency.
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(BPF REQUIRED libbpf)
+add_library(Bpf INTERFACE IMPORTED)
+set_property(TARGET Bpf PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${BPF_INCLUDE_DIRS})
+set_property(TARGET Bpf PROPERTY INTERFACE_LINK_LIBRARIES ${BPF_LINK_LIBRARIES})
+set_property(TARGET Bpf PROPERTY INTERFACE_LINK_OPTIONS ${BPF_STATIC_LDFLAGS})
+set_property(TARGET Bpf PROPERTY INTERFACE_COMPILE_OPTIONS ${BPF_STATIC_CFLAGS_OTHER})
+
+find_library(LIBMNL_LIBRARY mnl)
+find_path(LIBMNL_INCLUDE_DIR libmnl)
+find_library(LIBZ_LIBRARY z)
+find_library(LIBZ z)
+
 add_library(murmur3 STATIC
     MurmurHash3.h
     MurmurHash3.cpp
@@ -43,19 +26,26 @@ add_library(chhelpers STATIC
 
 target_link_libraries(chhelpers murmur3)
 
+target_include_directories(
+  chhelpers PUBLIC
+  ${KATRAN_INCLUDE_DIR}
+)
+
 add_library(iphelpers STATIC
     IpHelpers.h
     IpHelpers.cpp
 )
 
 target_link_libraries(iphelpers
-    "${FOLLY}"
-    "${LIBUNWIND}"
-    "${LIBLZMA}"
-    "${GLOG}"
+    Folly::folly
+    "glog::glog"
     "${GFLAGS}"
-    "${PTHREAD}"
-    "${LIBDC}"
+)
+
+target_include_directories(
+  iphelpers PUBLIC
+  ${FOLLY_INCLUDE_DIR}
+  ${KATRAN_INCLUDE_DIR}
 )
 
 add_library(bpfadapter STATIC
@@ -68,20 +58,24 @@ add_library(bpfadapter STATIC
     linux_includes/bpf_helpers.h
 )
 
-set(BPFADAPTER_DEPS
-    "${BPF}"
-    "${LIBUNWIND}"
-    "${LIBLZMA}"
-    "${GLOG}"
-    "${PTHREAD}"
-    "${LIBELF}"
-    "${LIBZ}"
-    "${LIBMNL}"
-    "${FOLLY}"
-    "${LIBDC}"
+target_link_libraries(bpfadapter
+  PUBLIC
+    ${BPF_LINK_LIBRARIES}
+    ${LIBELF}
+    glog::glog
+    ${PTHREAD}
+    ${LIBZ}
+    Folly::folly
+    ${LIBMNL_LIBRARY}
 )
 
-target_link_libraries(bpfadapter "${BPFADAPTER_DEPS}")
+target_include_directories(
+  bpfadapter PUBLIC
+  ${BPF_INCLUDE_DIRS}
+  ${FOLLY_INCLUDE_DIR}
+  ${KATRAN_INCLUDE_DIR}
+  ${LIBMNL_INCLUDE_DIR}
+)
 
 add_library(pcapwriter STATIC
     ByteRangeWriter.cpp
@@ -100,16 +94,10 @@ add_library(pcapwriter STATIC
 
 set(PCAPWRITER_DEPS
     "-Wl,--start-group"
-    "${LIBUNWIND}"
-    "${LIBLZMA}"
-    "${GLOG}"
-    "${PTHREAD}"
-    "${LIBZ}"
-    "${FOLLY}"
-    "${LIBDC}"
-    "${DL}"
-    "${EVENT}"
-    "${LIBIBERTY}"
+    glog::glog
+    ${PTHREAD}
+    ${LIBZ}
+    Folly::folly
     "-Wl,--end-group"
 )
 
@@ -120,8 +108,19 @@ add_library(katransimulator STATIC
   KatranSimulator.cpp
 )
 
+add_dependencies(
+  katransimulator
+  bpfadapter
+)
+
 target_link_libraries(katransimulator
     bpfadapter
+)
+
+target_include_directories(
+  pcapwriter PUBLIC
+  ${FOLLY_INCLUDE_DIR}
+  ${KATRAN_INCLUDE_DIR}
 )
 
 add_library(katranlb STATIC
@@ -144,9 +143,16 @@ target_link_libraries(katranlb
     iphelpers
     pcapwriter
     katransimulator
-    "${GFLAGS}"
-    "${PTHREAD}"
+    ${GFLAGS}
+    ${PTHREAD}
     "-Wl,--end-group"
+)
+
+target_include_directories(
+  katranlb PUBLIC
+  ${BPF_INCLUDE_DIRS}
+  ${FOLLY_INCLUDE_DIR}
+  ${KATRAN_INCLUDE_DIR}
 )
 
 add_library(mac_helpers STATIC
@@ -155,21 +161,112 @@ add_library(mac_helpers STATIC
 )
 
 target_link_libraries(mac_helpers
-    "${FOLLY}"
+    Folly::folly
+    glog::glog
 )
 
-add_executable(xdproot xdproot.cpp)
-target_link_libraries(xdproot
+target_include_directories(
+  mac_helpers PUBLIC
+  ${FOLLY_INCLUDE_DIR}
+  ${KATRAN_INCLUDE_DIR}
+)
+
+ add_executable(xdproot xdproot.cpp)
+
+ add_dependencies(
+   xdproot
+   bpfadapter
+ )
+
+ target_link_libraries(xdproot
+  PUBLIC
     bpfadapter
-    "${GFLAGS}"
+    ${BPF_LINK_LIBRARIES}
+    ${LIBELF}
+    ${GFLAGS_LIBRARIES}
+)
+
+ target_include_directories(
+  xdproot PUBLIC
+  ${GFLAGS_INCLUDE_DIR}
+  ${KATRAN_INCLUDE_DIR}
+  ${BPF_INCLUDE_DIRS}
 )
 
 add_executable(maglev_integration_test maglev_integration_test.cpp)
+
 target_link_libraries(maglev_integration_test
     chhelpers
-    "${GFLAGS}"
+    ${GFLAGS_LIBRARIES}
     "${PTHREAD}"
 )
 
-add_subdirectory(testing)
-add_subdirectory(tests)
+target_include_directories(
+  maglev_integration_test PUBLIC
+  ${GFLAGS_INCLUDE_DIR}
+  ${KATRAN_INCLUDE_DIR}
+)
+
+file(
+  GLOB_RECURSE KATRAN_HEADERS_TOINSTALL
+  RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
+  *.h
+)
+list(FILTER KATRAN_HEADERS_TOINSTALL EXCLUDE REGEX test/)
+foreach(header ${KATRAN_HEADERS_TOINSTALL})
+  get_filename_component(header_dir ${header} DIRECTORY)
+  install(FILES ${header} DESTINATION include/katran/lib/${header_dir})
+endforeach()
+
+install(
+  TARGETS murmur3
+  EXPORT katran-exports
+  DESTINATION lib
+)
+
+install(
+  TARGETS chhelpers
+  EXPORT katran-exports
+  DESTINATION lib
+)
+
+install(
+  TARGETS iphelpers
+  EXPORT katran-exports
+  DESTINATION lib
+)
+
+install(
+  TARGETS bpfadapter
+  EXPORT katran-exports
+  DESTINATION lib
+)
+
+install(
+  TARGETS pcapwriter
+  EXPORT katran-exports
+  DESTINATION lib
+)
+
+install(
+  TARGETS katransimulator
+  EXPORT katran-exports
+  DESTINATION lib
+)
+
+install(
+  TARGETS katranlb
+  EXPORT katran-exports
+  DESTINATION lib
+)
+
+install(
+  TARGETS mac_helpers
+  EXPORT katran-exports
+  DESTINATION lib
+)
+
+if (BUILD_TESTS)
+  add_subdirectory(testing)
+  add_subdirectory(tests)
+endif()
