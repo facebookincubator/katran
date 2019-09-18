@@ -826,8 +826,32 @@ const std::unordered_map<uint32_t, std::string> KatranLb::getNumToRealMap() {
   return reals;
 }
 
+bool KatranLb::changeKatranMonitorForwardingState(KatranMonitorState state) {
+    uint32_t key = kIntrospectionGkPos;
+    struct ctl_value value;
+    switch (state) {
+      case KatranMonitorState::ENABLED:
+        value.value = 1;
+        break;
+      case KatranMonitorState::DISABLED:
+        value.value = 0;
+        break;
+    }
+    auto res = bpfAdapter_.bpfUpdateMap(
+      bpfAdapter_.getMapFdByName("ctl_array"), &key, &value);
+    if (res != 0) {
+      LOG(INFO) << "can't change state of introspection forwarding plane";
+      lbStats_.bpfFailedCalls++;
+      return false;
+    }
+    return true;
+}
+
 bool KatranLb::stopKatranMonitor() {
   if (!features_.introspection) {
+    return false;
+  }
+  if (!changeKatranMonitorForwardingState(KatranMonitorState::DISABLED)) {
     return false;
   }
   monitor_->stopMonitor();
@@ -836,6 +860,9 @@ bool KatranLb::stopKatranMonitor() {
 
 bool KatranLb::restartKatranMonitor(uint32_t limit) {
   if (!features_.introspection) {
+    return false;
+  }
+  if (!changeKatranMonitorForwardingState(KatranMonitorState::ENABLED)) {
     return false;
   }
   monitor_->restartMonitor(limit);
