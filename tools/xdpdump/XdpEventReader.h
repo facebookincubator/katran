@@ -26,13 +26,13 @@ extern "C" {
 #include <linux/perf_event.h>
 }
 
-#include "PcapMsg.h"
-#include "XdpDumpStructs.h"
-#include "XdpEventLogger.h"
+#include "katran/lib/PcapMsg.h"
+#include "katran/lib/PcapWriter.h"
+#include "tools/xdpdump/XdpDumpStructs.h"
+#include "tools/xdpdump/XdpEventLogger.h"
 
 namespace xdpdump {
 
-class PcapWriter;
 class XdpEventLogger;
 
 /**
@@ -48,7 +48,7 @@ public:
    * @param int pages number of pages for mmaped memory region
    * @param int cpu number where to attach this instance of xdpeventreader
    */
-  XdpEventReader(std::shared_ptr<folly::MPMCQueue<PcapMsg>> queue,
+  XdpEventReader(std::shared_ptr<folly::MPMCQueue<katran::PcapMsg>> queue,
                  std::shared_ptr<XdpEventLogger> eventLogger, int pages,
                  int cpu);
   ~XdpEventReader() override;
@@ -81,7 +81,7 @@ private:
    * queue where we write data, which will be read by PcapWriter.
    * write is non-blocking. so if queue is full - we will drop the packet
    */
-  std::shared_ptr<folly::MPMCQueue<PcapMsg>> queue_;
+  std::shared_ptr<folly::MPMCQueue<katran::PcapMsg>> queue_;
 
   /**
    * counter of how many times non blocking write failed.

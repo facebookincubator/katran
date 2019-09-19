@@ -27,8 +27,8 @@
 #include <folly/io/async/EventBaseManager.h>
 #include <glog/logging.h>
 
-#include "PcapWriter.h"
-#include "XdpDumpKern.h"
+#include "katran/lib/PcapWriter.h"
+#include "tools/xdpdump/XdpDumpKern.h"
 
 namespace xdpdump {
 
@@ -77,7 +77,7 @@ uint64_t getPossibleCpus() {
 } // namespace
 
 XdpDump::XdpDump(folly::EventBase *eventBase, XdpDumpFilter filter,
-                 std::shared_ptr<PcapWriter> pcapWriter)
+                 std::shared_ptr<katran::PcapWriter> pcapWriter)
     : folly::AsyncTimeout(eventBase, AsyncTimeout::InternalEnum::INTERNAL),
       filter_(filter), pcapWriter_(pcapWriter), eventBase_(eventBase) {}
 
@@ -249,7 +249,8 @@ void XdpDump::pumpEventBase() {
 
 void XdpDump::tryStartPcapWriter() {
   if (pcapWriter_) {
-    queue_ = std::make_shared<folly::MPMCQueue<PcapMsg>>(kQueueCapacity);
+    queue_ =
+        std::make_shared<folly::MPMCQueue<katran::PcapMsg>>(kQueueCapacity);
     writerThread_ = std::thread([this]() {
       this->eventBase_->waitUntilRunning();
       this->pcapWriter_->run(this->queue_);
@@ -298,7 +299,7 @@ void XdpDump::clear() {
 void XdpDump::stop() {
   if (queue_) {
     VLOG(2) << "stoping pcap writer";
-    PcapMsg stopMsg(nullptr, 0, 0);
+    katran::PcapMsg stopMsg(nullptr, 0, 0);
     queue_->blockingWrite(std::move(stopMsg));
   } else {
     eventBase_->terminateLoopSoon();

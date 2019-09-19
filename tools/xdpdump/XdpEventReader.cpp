@@ -14,14 +14,12 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#include "XdpEventReader.h"
+#include "tools/xdpdump/XdpEventReader.h"
 
 #include <bcc/libbpf.h>
 #include <folly/String.h>
 #include <folly/io/async/EventBase.h>
 #include <unistd.h>
-
-#include "PcapWriter.h"
 
 extern "C" {
 #include <sys/ioctl.h>
@@ -189,9 +187,9 @@ void perfEventHandler(
 
 } // namespace
 
-XdpEventReader::XdpEventReader(std::shared_ptr<folly::MPMCQueue<PcapMsg>> queue,
-                               std::shared_ptr<XdpEventLogger> eventLogger,
-                               int pages, int cpu)
+XdpEventReader::XdpEventReader(
+    std::shared_ptr<folly::MPMCQueue<katran::PcapMsg>> queue,
+    std::shared_ptr<XdpEventLogger> eventLogger, int pages, int cpu)
     : queue_(queue), eventLogger_(eventLogger), pages_(pages), cpu_(cpu) {
   pageSize_ = ::getpagesize();
 }
@@ -223,7 +221,8 @@ void XdpEventReader::handlePerfEvent(const char *data,
                                      size_t /* unused */) noexcept {
   auto info = eventLogger_->handlePerfEvent(data);
   if (queue_ != nullptr) {
-    PcapMsg pcap_msg(data + info.hdr_size, info.pkt_size, info.data_len);
+    katran::PcapMsg pcap_msg(data + info.hdr_size, info.pkt_size,
+                             info.data_len);
     // best effort non blocking write. if writer thread is full we will lose
     // this packet
     auto res = queue_->write(std::move(pcap_msg));

@@ -16,7 +16,7 @@
 
 #pragma once
 
-#include "XdpDumpStructs.h"
+#include "tools/xdpdump/XdpDumpStructs.h"
 #include <ostream>
 
 namespace xdpdump {

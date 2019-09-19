@@ -27,9 +27,9 @@
 #include <folly/io/async/AsyncTimeout.h>
 #include <folly/io/async/EventBase.h>
 
-#include "PcapMsg.h"
-#include "XdpDumpStructs.h"
-#include "XdpEventReader.h"
+#include "katran/lib/PcapMsg.h"
+#include "tools/xdpdump/XdpDumpStructs.h"
+#include "tools/xdpdump/XdpEventReader.h"
 
 namespace folly {
 class EventBase;
@@ -64,7 +64,7 @@ public:
    * capture
    */
   explicit XdpDump(folly::EventBase *eventBase, XdpDumpFilter filter,
-                   std::shared_ptr<PcapWriter> pcapWriter);
+                   std::shared_ptr<katran::PcapWriter> pcapWriter);
 
   /**
    * Destructor for XdpDump.
@@ -181,7 +181,7 @@ private:
   /**
    * pcapWriter is used to store pcap-data into file or byte range.
    */
-  std::shared_ptr<PcapWriter> pcapWriter_{nullptr};
+  std::shared_ptr<katran::PcapWriter> pcapWriter_{nullptr};
 
   /**
    * bpf provider which is used to created bpf prog. depends on configuration
@@ -220,7 +220,7 @@ private:
   /**
    * MPMCQueue where we pass PcapMsg from perfEventReaders to PcapWriter
    */
-  std::shared_ptr<folly::MPMCQueue<PcapMsg>> queue_;
+  std::shared_ptr<folly::MPMCQueue<katran::PcapMsg>> queue_;
 
   /**
    * name of main bpf function

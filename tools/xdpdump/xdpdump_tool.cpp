@@ -22,9 +22,10 @@
 
 #include "katran/lib/IpHelpers.h"
 
-#include "PcapWriter.h"
-#include "XdpDump.h"
-#include "XdpDumpStructs.h"
+#include "katran/lib/FileWriter.h"
+#include "katran/lib/PcapWriter.h"
+#include "tools/xdpdump/XdpDump.h"
+#include "tools/xdpdump/XdpDumpStructs.h"
 
 DEFINE_string(src, "", "source ip address");
 DEFINE_string(dst, "", "destination ip address");
@@ -49,7 +50,7 @@ DEFINE_int32(bpf_mmap_pages, 2,
              "It must be a power of 2.");
 DEFINE_int32(duration_ms, -1, "how long to take a capture");
 
-using PcapWriter = xdpdump::PcapWriter;
+using PcapWriter = katran::PcapWriter;
 
 int main(int argc, char **argv) {
   gflags::ParseCommandLineFlags(&argc, &argv, true);
@@ -117,7 +118,7 @@ int main(int argc, char **argv) {
 
   std::shared_ptr<PcapWriter> pcapWriter;
   if (!FLAGS_pcap_path.empty()) {
-    auto fileWriter = std::make_shared<PcapWriter::FileWriter>(FLAGS_pcap_path);
+    auto fileWriter = std::make_shared<katran::FileWriter>(FLAGS_pcap_path);
     pcapWriter = std::make_shared<PcapWriter>(fileWriter, FLAGS_packet_limit,
                                               FLAGS_snaplen);
   }
