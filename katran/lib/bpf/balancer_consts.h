@@ -101,6 +101,8 @@
 #define F_HASH_DPORT_ONLY (1 << 3)
 // check if src based routing should be used
 #define F_SRC_ROUTING (1 << 4)
+// dont encapsulate packet and just return XDP_PASS (e.g. when vip and real are the same machine)
+#define F_PASS_ONLY (1 << 5)
 // packet_description flags:
 // the description has been created from icmp msg
 #define F_ICMP (1 << 0)

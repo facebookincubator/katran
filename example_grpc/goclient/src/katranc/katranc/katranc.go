@@ -36,6 +36,7 @@ const (
 	NO_LRU      = 2
 	QUIC_VIP    = 4
 	DPORT_HASH  = 8
+	PASS_ONLY   = 16
 )
 
 const (
@@ -50,6 +51,7 @@ var (
 		"NO_LRU":     NO_LRU,
 		"QUIC_VIP":   QUIC_VIP,
 		"DPORT_HASH": DPORT_HASH,
+		"PASS_ONLY":  PASS_ONLY,
 	}
 )
 

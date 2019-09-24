@@ -46,7 +46,7 @@ var (
 	showIcmpStats = flag.Bool("icmp", false, "Show ICMP 'packet too big' related stats")
 	listServices  = flag.Bool("l", false, "List configured services")
 	changeFlags   = flag.String("f", "",
-		"change flags. Possible values: NO_SPORT, NO_LRU, QUIC_VIP, DPORT_HASH")
+		"change flags. Possible values: NO_SPORT, NO_LRU, QUIC_VIP, DPORT_HASH, PASS_ONLY")
 	unsetFlags = flag.Bool("unset", false, "Unset specified flags")
 	newHc      = flag.String("new_hc", "", "Address of new backend to healtcheck")
 	somark     = flag.Uint64("somark", 0, "Socket mark to specified backend")
