@@ -44,10 +44,11 @@ constexpr uint64_t NO_SPORT = 1;
 constexpr uint64_t NO_LRU = 2;
 constexpr uint64_t QUIC_VIP = 4;
 constexpr uint64_t DPORT_HASH = 8;
+constexpr uint64_t PASS_ONLY = 16;
 
 const std::map<std::string, uint64_t> flagTranslationTable = {
     {"", DEFAULT_FLAG},     {"NO_SPORT", NO_SPORT},     {"NO_LRU", NO_LRU},
-    {"QUIC_VIP", QUIC_VIP}, {"DPORT_HASH", DPORT_HASH},
+    {"QUIC_VIP", QUIC_VIP}, {"DPORT_HASH", DPORT_HASH}, {"PASS_ONLY", PASS_ONLY},
 };
 }; // namespace
 
@@ -190,6 +191,9 @@ std::string KatranSimpleClient::parseFlags(uint64_t flags) {
   }
   if ((flags & DPORT_HASH) > 0) {
     flagsStr += " DPORT_HASH ";
+  }
+  if ((flags & PASS_ONLY) > 0) {
+    flagsStr += " PASS_ONLY ";
   }
   return flagsStr;
 }

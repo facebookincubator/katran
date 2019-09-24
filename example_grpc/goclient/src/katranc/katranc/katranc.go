@@ -280,6 +280,9 @@ func parseFlags(flags uint64) string {
 	if flags&uint64(DPORT_HASH) > 0 {
 		flags_str += " DPORT_HASH "
 	}
+	if flags&uint64(PASS_ONLY) > 0 {
+    		flags_str += " PASS_ONLY "
+    	}
 	return flags_str
 }
 
