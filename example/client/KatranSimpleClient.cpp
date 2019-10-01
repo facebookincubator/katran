@@ -44,10 +44,12 @@ constexpr uint64_t NO_SPORT = 1;
 constexpr uint64_t NO_LRU = 2;
 constexpr uint64_t QUIC_VIP = 4;
 constexpr uint64_t DPORT_HASH = 8;
+constexpr uint64_t XDP_PASS_ONLY = 1;
 
 const std::map<std::string, uint64_t> flagTranslationTable = {
     {"", DEFAULT_FLAG},     {"NO_SPORT", NO_SPORT},     {"NO_LRU", NO_LRU},
     {"QUIC_VIP", QUIC_VIP}, {"DPORT_HASH", DPORT_HASH},
+    {"XDP_PASS_ONLY", XDP_PASS_ONLY}
 };
 }; // namespace
 
@@ -118,7 +120,8 @@ void KatranSimpleClient::delService(const std::string &address, int proto) {
 void KatranSimpleClient::updateServerForVip(const std::string &vipAddr,
                                             int proto,
                                             const std::string &realAddr,
-                                            uint64_t weight, bool del) {
+                                            uint64_t weight,
+                                            uint64_t realFlags, bool del) {
   auto vip = parseToVip(vipAddr, proto);
   auto real = parseToReal(realAddr, weight);
   Action action;
@@ -194,6 +197,14 @@ std::string KatranSimpleClient::parseFlags(uint64_t flags) {
   return flagsStr;
 }
 
+std::string KatranSimpleClient::parseRealFlags(uint64_t flags) {
+  std::string flagsStr = "";
+  if ((flags & XDP_PASS_ONLY) > 0) {
+    flagsStr += " XDP_PASS_ONLY ";
+  }
+  return flagsStr;
+}
+
 void KatranSimpleClient::list(const std::string &address, int proto) {
   auto vips = getAllVips();
   LOG(INFO) << folly::sformat("vips len: {}", vips.size());
@@ -215,8 +226,8 @@ void KatranSimpleClient::listVipAndReals(const Vip &vip) {
   uint64_t flags = getFlags(vip);
   LOG(INFO) << folly::sformat("Vip's flags: {}", parseFlags(flags));
   for (auto real : reals) {
-    LOG(INFO) << folly::sformat("-> {:<20} weight {}", real.address,
-                                real.weight);
+    LOG(INFO) << folly::sformat("-> {:<20} weight {} flags {}", real.address,
+                                real.weight, parseRealFlags(real.flags));
   }
 }
 
@@ -439,10 +450,11 @@ Vip KatranSimpleClient::parseToVip(const std::string &address,
 }
 
 Real KatranSimpleClient::parseToReal(const std::string &address,
-                                     uint32_t weight) {
+                                     uint32_t weight, uint64_t flags) {
   Real real;
   real.address = address;
   real.weight = weight;
+  real.flags = flags;
   return real;
 }
 

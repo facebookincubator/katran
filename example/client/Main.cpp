@@ -45,7 +45,8 @@ DEFINE_bool(l, false, "List configured services");
 DEFINE_bool(C, false, "Clear all configs");
 DEFINE_string(
     f, "",
-    "change flags. Possible values: NO_SPORT, NO_LRU, QUIC_VIP, DPORT_HASH");
+    "change flags. Possible values: "
+    "NO_SPORT, NO_LRU, QUIC_VIP, DPORT_HASH, XDP_PASS_ONLY");
 DEFINE_bool(unset, false, "Unset specified flags");
 DEFINE_string(new_hc, "", "Address of new backend to healthcheck");
 DEFINE_uint64(somark, 0, "Socket mark to specified backend");
@@ -112,10 +113,10 @@ int main(int argc, char **argv) {
     client.addOrModifyService(service, changeFlags, proto, true, !FLAGS_unset);
   } else if (addServerFlag || editServerFlag) {
     client.updateServerForVip(service, proto, realServerFlag, realWeightFlag,
-                              false);
+                              changeFlags, false);
   } else if (delServerFlag) {
     client.updateServerForVip(service, proto, realServerFlag, realWeightFlag,
-                              true);
+                              changeFlags, true);
   } else if (FLAGS_del_qm) {
     if (FLAGS_quic_mapping == "") {
       LOG(FATAL) << "quic_mapping is not specified.";

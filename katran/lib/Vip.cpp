@@ -85,6 +85,7 @@ std::vector<Endpoint> Vip::getRealsAndWeight() {
     endpoint.num = r.first;
     endpoint.weight = r.second.weight;
     endpoint.hash = r.second.hash;
+    endpoint.flags = r.second.realFlags;
     endpoints[i++] = endpoint;
   }
   return endpoints;
@@ -104,6 +105,7 @@ std::vector<Endpoint> Vip::getEndpoints(std::vector<UpdateReal>& ureals) {
       if (cur_weight != ureal.updatedReal.weight) {
         reals_[ureal.updatedReal.num].weight = ureal.updatedReal.weight;
         reals_[ureal.updatedReal.num].hash = ureal.updatedReal.hash;
+        reals_[ureal.updatedReal.num].realFlags = ureal.updatedReal.flags;
         reals_changed = true;
       }
     }
@@ -116,6 +118,7 @@ std::vector<Endpoint> Vip::getEndpoints(std::vector<UpdateReal>& ureals) {
         endpoint.num = real.first;
         endpoint.weight = real.second.weight;
         endpoint.hash = real.second.hash;
+        endpoint.flags = real.second.realFlags;
         endpoints.push_back(endpoint);
       };
     }

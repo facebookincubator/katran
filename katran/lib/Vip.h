@@ -45,11 +45,12 @@ struct UpdateReal {
 
 /**
  * struct which is used by Vip class to store real's related metadata
- * such as real's weight and hash
+ * such as real's weight and hash and flags
  */
 struct VipRealMeta {
   uint32_t weight;
   uint64_t hash;
+  uint64_t realFlags;
 };
 
 /**

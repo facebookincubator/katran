@@ -33,6 +33,7 @@ struct Endpoint {
   uint32_t num;
   uint32_t weight;
   uint64_t hash;
+  uint64_t flags;
 };
 
 /**

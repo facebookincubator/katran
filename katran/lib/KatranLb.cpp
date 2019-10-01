@@ -570,9 +570,10 @@ bool KatranLb::modifyRealsForVip(
     }
     folly::IPAddress raddr(real.address);
     VLOG(4) << folly::format(
-        "modifying real: {} with weight {} for vip {}:{}:{}",
+        "modifying real: {} with weight {} and flags {} for vip {}:{}:{}",
         real.address,
         real.weight,
+        real.flags,
         vip.address,
         vip.port,
         vip.proto);
@@ -609,10 +610,14 @@ bool KatranLb::modifyRealsForVip(
           LOG(INFO) << "exhausted real's space";
           continue;
         }
+        if (!config_.testing) {
+          updateRealsMap(real, real.flags, rnum);
+        }
         ureal.updatedReal.num = rnum;
       }
       ureal.updatedReal.weight = real.weight;
       ureal.updatedReal.hash = raddr.hash();
+      ureal.updatedReal.flags = real.flags;
     }
     ureals.push_back(ureal);
   }
@@ -646,6 +651,7 @@ std::vector<NewReal> KatranLb::getRealsForVip(const VipKey& vip) {
   for (auto real_id : vip_reals_ids) {
     reals[i].weight = real_id.weight;
     reals[i].address = numToReals_[real_id.num].str();
+    reals[i].flags = real_id.flags;
     ++i;
   }
   return reals;
@@ -1272,10 +1278,18 @@ bool KatranLb::updateVipMap(
   return true;
 }
 
-bool KatranLb::updateRealsMap(const folly::IPAddress& real, uint32_t num) {
+bool KatranLb::updateRealsMap(const folly::IPAddress &real, uint64_t flags, uint32_t num) {
   auto real_addr = IpHelpers::parseAddrToBe(real);
+  real_definition real_def = {};
+  real_def.flags = real_addr.flags;
+  if (real.isV6()) {
+    std::memcpy(real_def.dstv6, real_addr.v6daddr, 16);
+  }else{
+    real_def.dst = real_addr.daddr;
+  }
+  real_def.real_flags = flags;
   auto res = bpfAdapter_.bpfUpdateMap(
-      bpfAdapter_.getMapFdByName("reals"), &num, &real_addr);
+    bpfAdapter_.getMapFdByName("reals"), &num, &real_def);
   if (res != 0) {
     LOG(INFO) << "can't add new real";
     lbStats_.bpfFailedCalls++;
@@ -1318,9 +1332,6 @@ uint32_t KatranLb::increaseRefCountForReal(const folly::IPAddress& real) {
     rmeta.refCount = 1;
     rmeta.num = rnum;
     reals_[real] = rmeta;
-    if (!config_.testing) {
-      updateRealsMap(real, rnum);
-    }
     return rnum;
   }
 }

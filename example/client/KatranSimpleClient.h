@@ -55,7 +55,7 @@ public:
 
   void updateServerForVip(const std::string &vipAddr, int proto,
                           const std::string &realAddr, uint64_t weight,
-                          bool del);
+                          uint64_t realFlags, bool del);
 
   void modifyQuicMappings(const std::string &mapping, bool del);
 
@@ -92,11 +92,13 @@ public:
 private:
   Vip parseToVip(const std::string &address, uint32_t protocol);
 
-  Real parseToReal(const std::string &address, uint32_t weight);
+  Real parseToReal(const std::string &address, uint32_t weight, uint64_t flags);
 
   QuicReal parseToQuicReal(const std::string &mapping);
 
   std::string parseFlags(uint64_t flags);
+
+ std::string parseRealFlags(uint64_t flags);
 
   // factory method to create KatranServiceClient instance
   std::unique_ptr<KatranServiceAsyncClient>

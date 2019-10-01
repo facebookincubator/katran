@@ -109,6 +109,11 @@
 // packet was decapsulated inline
 #define F_INLINE_DECAP (1 << 2)
 
+// flags for reals
+// prevent ipip encap and return xdp_pass
+// (useful when vip and real are the same machine)
+#define F_XDP_PASS_ONLY (1 << 0)
+
 // ttl for outer ipip packet
 #ifndef DEFAULT_TTL
 #define DEFAULT_TTL 64

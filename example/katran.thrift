@@ -42,6 +42,7 @@ struct VipMeta {
 struct Real {
   1: string address,
   2: i32 weight,
+  3: i64 flags,
 }
 
 struct QuicReal {

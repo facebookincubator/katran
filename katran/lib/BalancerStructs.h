@@ -53,6 +53,16 @@ struct vip_meta {
   uint32_t vip_num;
 };
 
+// real's definition for lookup
+struct real_definition {
+  union {
+    __be32 dst;
+    __be32 dstv6[4];
+  };
+  __u8 flags;
+  __u64 real_flags;  //real flags
+};
+
 // generic struct for statistics counters
 struct lb_stats {
   uint64_t v1;

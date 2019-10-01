@@ -46,6 +46,7 @@ message VipMeta {
 message Real {
   string address = 1;
   int32 weight = 2;
+  int64 flags = 3;
 }
 
 message QuicReal {

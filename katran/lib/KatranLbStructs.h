@@ -66,6 +66,7 @@ struct RealMeta {
 struct NewReal {
   std::string address;
   uint32_t weight;
+  uint64_t flags;
 };
 
 /**

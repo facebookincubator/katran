@@ -521,7 +521,8 @@ class KatranLb {
   /**
    * update(add or remove) reals map in forwarding plane
    */
-  bool updateRealsMap(const folly::IPAddress& real, uint32_t num);
+  bool updateRealsMap(const folly::IPAddress& real,
+                      uint64_t flags, uint32_t num);
 
   /**
    * helper function to get stats from counter on specified possition
