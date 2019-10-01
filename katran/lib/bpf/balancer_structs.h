@@ -85,6 +85,7 @@ struct real_definition {
     __be32 dstv6[4];
   };
   __u8 flags;
+  __u64 r_flags;
 };
 
 // per vip statistics

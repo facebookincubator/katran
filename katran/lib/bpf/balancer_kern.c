@@ -505,6 +505,10 @@ static inline int process_packet(void *data, __u64 off, void *data_end,
     return XDP_DROP;
   }
 
+  if(dst->real_flags & F_XDP_PASS_ONLY) {
+    return XDP_PASS;
+  }
+
   if (dst->flags & F_IPV6) {
     if(!encap_v6(xdp, cval, is_ipv6, &pckt, dst, pkt_bytes)) {
       return XDP_DROP;
