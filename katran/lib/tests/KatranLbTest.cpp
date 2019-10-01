@@ -53,7 +53,7 @@ class KatranLbTest : public ::testing::Test {
     v1.port = 443;
     v1.proto = 6;
     v2.address = "fc01::2";
-    v1.port = 443;
+    v2.port = 443;
     v2.proto = 6;
     r1.address = "192.168.1.1";
     r1.weight = 10;
@@ -70,11 +70,13 @@ class KatranLbTest : public ::testing::Test {
         k = (i * 256 + j);
         if (k <= 4096) {
           real1.address = folly::sformat("10.0.{}.{}", i, j);
+          real1.flags = 1;
           newReals1.push_back(real1);
           qreal1.address = real1.address;
           qreal1.id = k;
           qReals1.push_back(qreal1);
           real2.address = folly::sformat("10.1.{}.{}", i, j);
+          real2.flags = 2;
           newReals2.push_back(real2);
           qreal2.address = real2.address;
           qreal2.id = k;
@@ -190,6 +192,8 @@ TEST_F(KatranLbTest, testUpdateRealsHelper) {
   ASSERT_TRUE(lb.modifyRealsForVip(action, newReals2, v2));
   // v1 has all reals;
   ASSERT_EQ(lb.getRealsForVip(v1).size(), 4096);
+  // check flags
+  ASSERT_EQ(lb.getRealsForVip(v1)[0].flags, 1);
   // v2 has 0 reals because when we were trying to add new ones there was no
   // more space for new reals.
   ASSERT_EQ(lb.getRealsForVip(v2).size(), 0);
@@ -205,6 +209,8 @@ TEST_F(KatranLbTest, testUpdateRealsHelper) {
   ASSERT_TRUE(lb.modifyRealsForVip(action, newReals2, v2));
   ASSERT_EQ(lb.getRealsForVip(v2).size(), 4096);
   ASSERT_EQ(lb.getNumToRealMap().size(), 4096);
+  // check flags
+  ASSERT_EQ(lb.getRealsForVip(v2)[0].flags, 2);
 };
 
 TEST_F(KatranLbTest, testUpdateQuicRealsHelper) {
