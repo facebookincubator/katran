@@ -611,7 +611,7 @@ bool KatranLb::modifyRealsForVip(
           continue;
         }
         if (!config_.testing) {
-          updateRealsMap(real, real.flags, rnum);
+          updateRealsMap(raddr, real.flags, rnum);
         }
         ureal.updatedReal.num = rnum;
       }
@@ -1278,7 +1278,7 @@ bool KatranLb::updateVipMap(
   return true;
 }
 
-bool KatranLb::updateRealsMap(const folly::IPAddress &real, uint64_t flags, uint32_t num) {
+bool KatranLb::updateRealsMap(const folly::IPAddress &real, const uint64_t flags, uint32_t num) {
   auto real_addr = IpHelpers::parseAddrToBe(real);
   real_definition real_def = {};
   real_def.flags = real_addr.flags;
