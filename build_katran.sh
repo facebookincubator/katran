@@ -444,8 +444,8 @@ get_libbpf() {
 build_katran() {
     pushd .
     KATRAN_BUILD_DIR=$BUILD_DIR/build
-    rm -rf "$KATRAN_BUILD_DIR"
-    mkdir -p "$KATRAN_BUILD_DIR"
+    # rm -rf "$KATRAN_BUILD_DIR"
+    # mkdir -p "$KATRAN_BUILD_DIR"
 
     cd "$KATRAN_BUILD_DIR" || exit
     LIB_BPF_PREFIX="$INSTALL_DIR"
@@ -458,12 +458,15 @@ build_katran() {
       ../..
     make -j "$NCPUS"
     popd
-     ./build_bpf_modules_opensource.sh 2>/dev/null
+"${ROOT_DIR}"/build_bpf_modules_opensource.sh            	  \
+        -s "${ROOT_DIR}"                          \
+        -b "${BUILD_DIR}"                         \
+        2>/dev/null
 }
 
 test_katran() {
     pushd .
-    cd "$BUILD_DIR"/katran/lib/tests/
+    cd "$BUILD_DIR"/build/katran/lib/tests/
     ctest -v ./*
     cd ../testing/
     ctest -v ./*
@@ -489,6 +492,5 @@ if [ "$BUILD_EXAMPLE_GRPC" -eq 1 ]; then
   get_grpc
 fi
 if [ -z "$INSTALL_DEPS_ONLY" ]; then
-  build_katran
-  test_katran
+  build_katran && test_katran
 fi
