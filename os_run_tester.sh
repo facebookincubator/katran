@@ -17,6 +17,16 @@
 
 set -xeo pipefail
 
+# By default this script assumes to be invoked from the root dir.
+if [ -z "${KATRAN_BUILD_DIR}" ]
+then
+    KATRAN_BUILD_DIR=$(pwd)/_build/build
+fi
 
-sudo sh -c "$(pwd)/build/katran/lib/testing/katran_tester -balancer_prog $(pwd)/deps/bpfprog/bpf/balancer_kern.o -test_from_fixtures=true $1"
-sudo sh -c "$(pwd)/build/katran/decap/testing/xdpdecap_tester -decap_prog $(pwd)/deps/bpfprog/bpf/decap_kern.o -test_from_fixtures=true $1"
+if [ -z "${DEPS_DIR}" ]
+then
+    DEPS_DIR=$(pwd)/_build/deps
+fi
+
+sudo sh -c "${KATRAN_BUILD_DIR}/katran/lib/testing/katran_tester -balancer_prog ${DEPS_DIR}/bpfprog/bpf/balancer_kern.o -test_from_fixtures=true $1"
+sudo sh -c "${KATRAN_BUILD_DIR}/katran/decap/testing/xdpdecap_tester -decap_prog ${DEPS_DIR}/bpfprog/bpf/decap_kern.o -test_from_fixtures=true $1"

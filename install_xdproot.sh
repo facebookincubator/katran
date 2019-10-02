@@ -23,7 +23,18 @@ if [ -z "$out" ]; then
     sudo mount -t bpf bpffs /sys/fs/bpf/
 fi
 
+# By default this script assumes to be invoked from the root dir.
+if [ -z "${KATRAN_BUILD_DIR}" ]
+then
+    KATRAN_BUILD_DIR=$(pwd)/_build/build
+fi
+
+if [ -z "${DEPS_DIR}" ]
+then
+    DEPS_DIR=$(pwd)/_build/deps
+fi
+
 if [ ! -f "/sys/fs/bpf/jmp_${INTERFACE}" ]; then
     echo "Assuming ${INTERFACE} exists. please change script to actual interface if it does not"
-    sudo sh -c "$(pwd)/build/katran/lib/xdproot -bpfprog $(pwd)/deps/bpfprog/bpf/xdp_root.o -bpfpath=/sys/fs/bpf/jmp_${INTERFACE} -intf=${INTERFACE}"
+    sudo sh -c "${KATRAN_BUILD_DIR}/katran/lib/xdproot -bpfprog ${DEPS_DIR}/bpfprog/bpf/xdp_root.o -bpfpath=/sys/fs/bpf/jmp_${INTERFACE} -intf=${INTERFACE}"
 fi
