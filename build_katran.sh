@@ -464,7 +464,7 @@ build_katran() {
 
 test_katran() {
     pushd .
-    cd "$BUILD_DIR"/katran/lib/tests/
+    cd "$BUILD_DIR"/build/katran/lib/tests/
     ctest -v ./*
     cd ../testing/
     ctest -v ./*
