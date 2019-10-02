@@ -1,10 +1,9 @@
-cmake_minimum_required (VERSION 3.0)
 project (katranserver-proj)
 set (CMAKE_CXX_STANDARD 14)
 
 # thrift cmake macro
 find_program(THRIFT1 thrift1)
-include (${CMAKE_SOURCE_DIR}/deps/fbthrift/ThriftLibrary.cmake)
+include (${CMAKE_PREFIX_PATH}/fbthrift/ThriftLibrary.cmake)
 set(THRIFT_PREFIX "katran/if")
 set(THRIFT_DIR ${CMAKE_BINARY_DIR}/thrift-out/${THRIFT_PREFIX})
 file(MAKE_DIRECTORY ${THRIFT_DIR})

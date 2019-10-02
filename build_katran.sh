@@ -17,6 +17,10 @@
 
 set -xeo pipefail
 NCPUS=$(grep -c processor < /proc/cpuinfo)
+# default to 4 threads for a reasonable build speed (e.g in travis)
+if (( NCPUS < 4 )); then
+  NCPUS=4
+fi
 ROOT_DIR=$(pwd)
 
 # Useful constants
@@ -28,8 +32,8 @@ usage() {
 cat 1>&2 <<EOF
 
 Usage ${0##*/} [-h|?] [-p PATH] [-i INSTALL_DIR]
-  -p BUILD_DIR                       (optional): Path of the base dir for mvfst
-  -i INSTALL_DIR                     (optional): install prefix path
+  -p BUILD_DIR                       (optional): Path to the base dir for katran
+  -i INSTALL_DIR                     (optional): Install prefix path
   -h|?                                           Show this help message
 EOF
 }
@@ -187,7 +191,6 @@ get_gtest() {
     git clone --depth 1 https://github.com/google/googletest
     mkdir -p "$GTEST_BUILD_DIR"
     cd "$GTEST_BUILD_DIR"
-    # cmake ..
     cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo         \
       -DCMAKE_PREFIX_PATH="$INSTALL_DIR"            \
       -DCMAKE_INSTALL_PREFIX="$INSTALL_DIR"         \
@@ -382,11 +385,10 @@ get_grpc() {
         sudo apt-get install -y golang
     fi
     GRPC_DIR=$DEPS_DIR/grpc
-    GRPC_BUILD_DIR=$DEPS_DIR/grpc/grpc/build/
+    GRPC_BUILD_DIR=$DEPS_DIR/grpc/build/
     rm -rf "$GRPC_DIR"
     pushd .
-    mkdir -p "$GRPC_DIR"
-    cd "$GRPC_DIR"
+    cd "$DEPS_DIR"
     echo -e "${COLOR_GREEN}[ INFO ] Cloning grpc repo ${COLOR_OFF}"
     git clone  --depth 1 https://github.com/grpc/grpc
     # this is to deal with a nested dir
@@ -394,8 +396,6 @@ get_grpc() {
     git submodule update --init
     mkdir -p "$GRPC_BUILD_DIR"
     cd "$GRPC_BUILD_DIR" || exit
-    ls "$GRPC_BUILD_DIR"
-    # cmake ..
     cmake -DCXX_STD=gnu++14                         \
       -DCMAKE_BUILD_TYPE=RelWithDebInfo             \
       -DCMAKE_PREFIX_PATH="$INSTALL_DIR"            \
@@ -404,7 +404,7 @@ get_grpc() {
 
     make -j "$NCPUS"
     make install
-    cd ../third_party/protobuf
+    cd "$GRPC_DIR"/third_party/protobuf
     make && make install
     echo -e "${COLOR_GREEN}grpc is installed ${COLOR_OFF}"
     popd
