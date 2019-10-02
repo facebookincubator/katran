@@ -456,7 +456,10 @@ build_katran() {
       ../..
     make -j "$NCPUS"
     popd
-     ./build_bpf_modules_opensource.sh 2>/dev/null
+    "${ROOT_DIR}"/build_bpf_modules_opensource.sh \
+        -s "${ROOT_DIR}"                          \
+        -b "${BUILD_DIR}"                         \
+        2>/dev/null
 }
 
 test_katran() {
