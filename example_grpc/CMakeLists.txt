@@ -3,7 +3,7 @@ project(katran_grpc)
 set (CMAKE_CXX_STANDARD 14)
 
 find_library(PROTOBUF libprotobuf.a protobuf)
-set(GRPC_BUILD_PATH "${CMAKE_SOURCE_DIR}/deps/grpc/build/")
+set(GRPC_BUILD_PATH "${CMAKE_PREFIX_DIR}/grpc/grpc/build/")
 set(GRPC_LIBRARIES_PATH "${GRPC_BUILD_PATH}")
 set(CARES_LIBRARIES_PATH "${GRPC_LIBRARIES_PATH}/third_party/cares/cares/lib")
 find_library(ADDR_SORT libaddress_sorting.a address_sorting PATHS ${GRPC_LIBRARIES_PATH} NO_DEFAULT_PATH)
@@ -98,4 +98,6 @@ target_link_libraries(katran_server_grpc
   "-Wl,--end-group"
 )
 
-install(TARGETS katran_server_grpc)
+install(TARGETS katran_server_grpc
+  DESTINATION example
+)

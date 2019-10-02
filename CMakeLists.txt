@@ -9,6 +9,8 @@ set(CMAKE_MODULE_PATH
   ${CMAKE_MODULE_PATH})
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
+# for modules vended by fbcode_builder and getdeps
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/build/fbcode_builder/CMake)
 
 # KATRAN_FBCODE_ROOT is where the top level katran/ directory resides, so
 # an #include <katran/path/to/file> will resolve to
@@ -26,13 +28,9 @@ set(CMAKE_CXX_STANDARD 14)
 
 # Dependencies
 find_package(folly CONFIG REQUIRED)
-find_package(Fizz REQUIRED)
 find_package(Glog REQUIRED)
 find_package(Gflags REQUIRED)
 find_package(Threads)
-
-SET(LIBFIZZ_LIBRARY ${FIZZ_LIBRARIES})
-SET(LIBFIZZ_INCLUDE_DIR ${FIZZ_INCLUDE_DIR})
 
 include_directories(".")
 add_subdirectory(katran)

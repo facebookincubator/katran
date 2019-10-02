@@ -1,10 +1,19 @@
 find_library(LIBELF libelf.a elf)
+# To support build for katran with user-supplied libbpf path
+set(LIB_BPF_PREFIX "" CACHE STRING "USER Supplied Prefix for libppf path")
+if ( LIB_BPF_PREFIX )
+  set(ENV{PKG_CONFIG_PATH} "$ENV{PKG_CONFIG_PATH}:${LIB_BPF_PREFIX}/lib/pkgconfig")
+endif()
+
 # Look for libbpf.  It is important to use its pkg-config file as that is
 # responsible for locating its libelf dependency.
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(BPF REQUIRED libbpf)
 add_library(Bpf INTERFACE IMPORTED)
-set_property(TARGET Bpf PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${BPF_INCLUDE_DIRS})
+set_property(TARGET Bpf PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${BPF_INCLUDEDIR})
+if ( LIB_BPF_PREFIX )
+  set(BPF_LINK_LIBRARIES "${LIB_BPF_PREFIX}/lib/libbpf.a")
+endif()
 set_property(TARGET Bpf PROPERTY INTERFACE_LINK_LIBRARIES ${BPF_LINK_LIBRARIES})
 set_property(TARGET Bpf PROPERTY INTERFACE_LINK_OPTIONS ${BPF_STATIC_LDFLAGS})
 set_property(TARGET Bpf PROPERTY INTERFACE_COMPILE_OPTIONS ${BPF_STATIC_CFLAGS_OTHER})
