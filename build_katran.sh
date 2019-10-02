@@ -444,8 +444,8 @@ get_libbpf() {
 build_katran() {
     pushd .
     KATRAN_BUILD_DIR=$BUILD_DIR/build
-    # rm -rf "$KATRAN_BUILD_DIR"
-    # mkdir -p "$KATRAN_BUILD_DIR"
+    rm -rf "$KATRAN_BUILD_DIR"
+    mkdir -p "$KATRAN_BUILD_DIR"
 
     cd "$KATRAN_BUILD_DIR" || exit
     LIB_BPF_PREFIX="$INSTALL_DIR"
@@ -458,7 +458,7 @@ build_katran() {
       ../..
     make -j "$NCPUS"
     popd
-"${ROOT_DIR}"/build_bpf_modules_opensource.sh            	  \
+    "${ROOT_DIR}"/build_bpf_modules_opensource.sh \
         -s "${ROOT_DIR}"                          \
         -b "${BUILD_DIR}"                         \
         2>/dev/null
