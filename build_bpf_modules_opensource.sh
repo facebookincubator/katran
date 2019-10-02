@@ -41,7 +41,7 @@ while getopts ":hb:s:m" arg; do
     s)
       SRC_DIR="${OPTARG}"
       ;;
-    h | *) # Display help.
+    h) # Display help.
       usage
       exit 0
       ;;
@@ -51,13 +51,13 @@ done
 # Validate required parameters
 if [ -z "${BUILD_DIR-}" ] ; then
   echo -e "[ INFO ] BUILD_DIR is not set. So setting it as default to $(pwd)"
-  BUILD_DIR=$(pwd)
+  BUILD_DIR="$(pwd)/_build/"
 fi
 
 # Validate required parameters
 if [ -z "${SRC_DIR-}" ] ; then
-  echo -e "[ INFO ] SRC_DIR is not set. So setting it as default to $(pwd)/.. "
-  SRC_DIR="${BUILD_DIR}"/..
+  echo -e "[ INFO ] SRC_DIR is not set. So setting it as default to $(pwd) "
+  SRC_DIR="$(pwd)"
 fi
 
 

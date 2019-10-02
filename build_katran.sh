@@ -16,7 +16,7 @@
  # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 set -xeo pipefail
-NCPUS=$(grep -c processor < /proc/cpuinfo)
+NCPUS=$(nproc)
 # default to 4 threads for a reasonable build speed (e.g in travis)
 if (( NCPUS < 4 )); then
   NCPUS=4
