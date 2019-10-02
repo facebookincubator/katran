@@ -1,6 +1,7 @@
 # katran
 
-[![Build Status](https://travis-ci.org/facebookincubator/katran.svg?branch=master)](https://travis-ci.org/facebookincubator/katran)
+[![Travis Build Status](https://travis-ci.org/facebookincubator/katran.svg?branch=master)](https://travis-ci.org/facebookincubator/katran)
+[![CI Status](https://github.com/facebookincubator/katran/workflows/CI/badge.svg?branch=master)](https://github.com/facebookincubator/katran/actions?workflow=CI)
 
 Katran is a C++ library and [`BPF`](https://en.wikipedia.org/wiki/Berkeley_Packet_Filter) program to build high-performance
 layer 4 load balancing forwarding plane. Katran leverages [`XDP infrastructure`](https://www.iovisor.org/technology/xdp)
