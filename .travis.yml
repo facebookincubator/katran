@@ -1,40 +1,12 @@
-# Facebook projects that use `fbcode_builder` for continuous integration
-# share this Travis configuration to run builds via Docker.
+sudo: required
 
-# Docker disables IPv6 in containers by default. Enable it for unit tests that need [::1].
-before_script:
-  - if [[ "$TRAVIS_OS_NAME" != "osx" ]];
-    then
-      sudo build/fbcode_builder/docker_enable_ipv6.sh;
-    fi
+services:
+  - docker
 
-env:
-  global:
-    - travis_cache_dir=$HOME/travis_ccache
-    # Travis times out after 50 minutes. Very generously leave 10 minutes
-    # for setup (e.g.  cache download, compression, and upload), so we never
-    # fail to cache the progress we made.
-    - docker_build_timeout=40m
-
-cache:
-  # Our build caches can be 200-300MB, so increase the timeout to 7 minutes
-  # to make sure we never fail to cache the progress we made.
-  timeout: 420
-  directories:
-  - $HOME/travis_ccache  # see docker_build_with_ccache.sh
-
-# Ugh, `services:` must be in the matrix, or we get `docker: command not found`
-#   https://github.com/travis-ci/travis-ci/issues/5142
-matrix:
-  include:
-    - env: ['os_image=ubuntu:18.04', gcc_version=7]
-      services: [docker]
-
-addons:
-  apt:
-    packages: python2.7
+before_install:
+  - docker pull ubuntu:18.04
 
 script:
-  # We don't want to write the script inline because of Travis kludginess --
-  # it looks like it escapes " and \ in scripts when using `matrix:`.
-  - ./build/fbcode_builder/travis_docker_build.sh
+  - docker run --rm -v $PWD:/katran ubuntu:18.04 /bin/sh -c "
+    apt-get update && apt-get install -y git sudo wget;
+    cd /katran && ./build_katran.sh"
