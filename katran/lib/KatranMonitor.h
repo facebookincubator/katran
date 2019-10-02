@@ -18,6 +18,7 @@
 #include <memory>
 #include <thread>
 #include <vector>
+#include <folly/io/IOBuf.h>
 #include <folly/MPMCQueue.h>
 
 #include "katran/lib/KatranLbStructs.h"
@@ -51,6 +52,8 @@ class KatranMonitor {
 
   PcapWriterStats getWriterStats();
 
+  std::unique_ptr<folly::IOBuf> getEventBuffer(int event);
+
  private:
   /**
    * main config
@@ -77,6 +80,12 @@ class KatranMonitor {
    * thread which runs pcap writer
    */
   std::thread writerThread_;
+
+  /**
+   * vector of iobufs where we store packets if IOBUF storage
+   * is being used
+   */
+  std::vector<std::unique_ptr<folly::IOBuf>> buffers_;
 };
 
 } // namespace katran

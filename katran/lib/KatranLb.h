@@ -482,6 +482,18 @@ class KatranLb {
   bool restartKatranMonitor(uint32_t limit);
 
   /**
+   * @param int event monitoring event it. see balancer_consts.h
+   * @return unique_ptr<IOBuf> on success or nullptr otherwise
+   *
+   * getKatranMonitorEventBuffer return iobuf which contains all the packets
+   * for specified event. if event number was not defined or
+   * PcapStorageFormat was not set to IOBUF nullptr would be returned.
+   * This function is not thread safe. underlying IOBuf, when accessed while
+   * monitoring is still running, could point to partially written packet
+   */
+  std::unique_ptr<folly::IOBuf> getKatranMonitorEventBuffer(int event);
+
+  /**
    * @return KatranMonitorStats stats from katran monitor
    *
    * if katran introspection is enabled: return stats from monitor. such as

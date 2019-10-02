@@ -86,6 +86,14 @@ enum class AddressType {
 };
 
 /**
+ * types of monitoring
+ */
+enum class PcapStorageFormat {
+  FILE,
+  IOBUF,
+};
+
+/**
  * @param uint32_t nCpus number of cpus
  * @param uint32_t pages number of pages for even pipe shared memory
  * @param int mapFd descriptor of event pipe map
@@ -107,6 +115,8 @@ struct KatranMonitorConfig {
   uint32_t snapLen{kDefaultMonitorSnapLen};
   uint32_t maxEvents{kDefaultMonitorMaxEvents};
   std::string path{"/tmp/katran_pcap"};
+  PcapStorageFormat storage{PcapStorageFormat::FILE};
+  uint32_t bufferSize{0};
 };
 
 /**
@@ -188,6 +198,7 @@ struct KatranConfig {
 struct KatranMonitorStats {
   uint32_t limit{0};
   uint32_t amount{0};
+  uint32_t bufferFull{0};
 };
 
 /**

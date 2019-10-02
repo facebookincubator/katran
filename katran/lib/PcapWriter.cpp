@@ -81,13 +81,13 @@ bool PcapWriter::writePcapHeader(uint32_t writerId) {
     LOG(ERROR) << "no writer w/ specified ID: " << writerId;
     return false;
   }
-  if (!dataWriters_[writerId]->available(sizeof(struct pcap_hdr_s))) {
-    LOG(ERROR) << "DataWriter failed to write a header. Too few space.";
-    return false;
-  }
   if (headerExists_[writerId]) {
     VLOG(4) << "header already exists";
     return true;
+  }
+  if (!dataWriters_[writerId]->available(sizeof(struct pcap_hdr_s))) {
+    LOG(ERROR) << "DataWriter failed to write a header. Not enough space.";
+    return false;
   }
   struct pcap_hdr_s hdr {
     .magic_number = kPcapWriterMagic, .version_major = kVersionMajor,
@@ -116,7 +116,7 @@ void PcapWriter::run(std::shared_ptr<folly::MPMCQueue<PcapMsg>> queue) {
     }
     if (!dataWriters_[kDefaultWriter]->available(
             msg.getCapturedLen() + sizeof(pcaprec_hdr_s))) {
-      LOG(INFO) << "DataWriter is full.";
+      ++bufferFull_;
       break;
     }
     writePacket(msg, kDefaultWriter);
@@ -129,6 +129,7 @@ PcapWriterStats PcapWriter::getStats() {
   Guard lock(cntrLock_);
   stats.limit = packetLimit_;
   stats.amount = packetAmount_;
+  stats.bufferFull = bufferFull_;
   return stats;
 }
 
@@ -183,6 +184,7 @@ void PcapWriter::runMulti(
     msg.getPcapMsg().trim(snaplen);
     if (!dataWriters_[msg.getEventId()]->available(
             msg.getPcapMsg().getCapturedLen() + sizeof(pcaprec_hdr_s))) {
+      ++bufferFull_;
       continue;
     }
     writePacket(msg.getPcapMsg(), msg.getEventId());
