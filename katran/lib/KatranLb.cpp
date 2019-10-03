@@ -42,6 +42,7 @@ constexpr uint32_t kDefaultStatsIndex = 0;
 constexpr folly::StringPiece kEmptyString = "";
 constexpr uint32_t kSrcV4Pos = 0;
 constexpr uint32_t kSrcV6Pos = 1;
+constexpr uint32_t kRecirculationIndex = 0;
 } // namespace
 
 KatranLb::KatranLb(const KatranConfig& config)
@@ -323,6 +324,17 @@ void KatranLb::setupGueEnvironment() {
   }
 }
 
+void KatranLb::enableRecirculation() {
+  uint32_t key = kRecirculationIndex;
+  int balancer_fd = getKatranProgFd();
+  auto res = bpfAdapter_.bpfUpdateMap(
+    bpfAdapter_.getMapFdByName("katran_subprograms"), &key, &balancer_fd);
+  if (res < 0) {
+      throw std::runtime_error("can not update katran_subprograms for recirculation");
+  }
+
+}
+
 void KatranLb::featureDiscovering() {
   int res;
   res = bpfAdapter_.getMapFdByName("lpm_src_v4");
@@ -377,6 +389,10 @@ void KatranLb::loadBpfProgs() {
 
   if (features_.gueEncap) {
     setupGueEnvironment();
+  }
+
+  if (features_.inlineDecap) {
+    enableRecirculation();
   }
 
   // add values to main prog ctl_array

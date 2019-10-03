@@ -647,6 +647,13 @@ class KatranLb {
   void setupGueEnvironment();
 
   /**
+   * enableRecirculation enables katran to use recirculation technics, where some codepaths
+   * inside xdp forwarding plane, after packets monipulation, rerun whole load balancer's code
+   * (e.g. after decapsulation). it is acheaving this by register itself in internal programs array
+   */
+  void enableRecirculation();
+
+  /**
    * main configurations of katran
    */
   KatranConfig config_;
