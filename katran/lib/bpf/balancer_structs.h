@@ -44,6 +44,8 @@ struct packet_description {
   struct flow_key flow;
   __u32 real_index;
   __u8 flags;
+  // dscp / ToS value in client's packet
+  __u8 tos;
 };
 
 // value for ctl array, could contain e.g. mac address of default router

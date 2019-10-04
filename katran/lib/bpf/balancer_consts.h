@@ -201,6 +201,11 @@
 #define DEFAULT_TOS 0
 #endif
 
+// specify whether to copy inner packets dscp value to outer encapped packet
+#ifndef COPY_INNER_PACKET_TOS
+#define COPY_INNER_PACKET_TOS 1
+#endif
+
 // initial value for jhash hashing function, used to pick up a real server
 #ifndef INIT_JHASH_SEED
 #define INIT_JHASH_SEED CH_RINGS_SIZE

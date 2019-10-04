@@ -184,12 +184,17 @@ static inline int process_l3_headers(struct packet_description *pckt,
     iph_len = sizeof(struct ipv6hdr);
     *protocol = ip6h->nexthdr;
     pckt->flow.proto = *protocol;
-
     if (decrement_ttl) {
       if(!--ip6h->hop_limit) {
         // ttl 0
         return XDP_DROP;
       }
+    }
+
+    // copy tos from the packet
+    if (ip6h->flow_lbl) {
+      pckt->tos = (ip6h->priority << 4) & 0xF0;
+      pckt->tos = pckt->tos | ((ip6h->flow_lbl[0] >> 4) & 0x0F);
     }
 
     *pkt_bytes = bpf_ntohs(ip6h->payload_len);
@@ -224,6 +229,7 @@ static inline int process_l3_headers(struct packet_description *pckt,
         // ttl 0
         return XDP_DROP;
       }
+      pckt->tos = iph->tos;
       csum = iph->check + 0x0001;
       iph->check = (csum & 0xffff) + (csum >> 16);
     }
