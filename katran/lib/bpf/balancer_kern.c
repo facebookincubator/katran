@@ -227,10 +227,10 @@ static inline int process_l3_headers(struct packet_description *pckt,
         // ttl 0
         return XDP_DROP;
       }
-      pckt->tos = iph->tos;
       csum = iph->check + 0x0001;
       iph->check = (csum & 0xffff) + (csum >> 16);
     }
+    pckt->tos = iph->tos;
 
     *protocol = iph->protocol;
     pckt->flow.proto = *protocol;
