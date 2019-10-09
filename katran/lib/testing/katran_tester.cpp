@@ -69,10 +69,10 @@ const std::vector<std::string> kReals = {
 const std::vector<::katran::lb_stats> kRealStats = {
     {3, 152},
     {7, 346},
-    {4, 236},
+    {5, 291},
     {2, 92},
     {1, 38},
-    {2, 121},
+    {3, 156},
 };
 
 constexpr uint16_t kVipPort = 80;
@@ -324,12 +324,12 @@ void testLbCounters(katran::KatranLb& lb) {
   vip.proto = kTcp;
   LOG(INFO) << "Testing counter's sanity. Printing on errors only";
   auto stats = lb.getStatsForVip(vip);
-  if ((stats.v1 != 3) || (stats.v2 != 193)) {
+  if ((stats.v1 != 4) || (stats.v2 != 248)) {
     VLOG(2) << "pckts: " << stats.v1 << " bytes: " << stats.v2;
-    LOG(INFO) << "per Vip counter is incorrect";
+    LOG(INFO) << "per Vip counter is incorrect for vip:" << vip.address;
   }
   stats = lb.getLruStats();
-  if ((stats.v1 != 19) || (stats.v2 != 11)) {
+  if ((stats.v1 != 21) || (stats.v2 != 11)) {
     VLOG(2) << "Total pckts: " << stats.v1 << " LRU misses: " << stats.v2;
     LOG(INFO) << "LRU counter is incorrect";
   }
@@ -339,7 +339,7 @@ void testLbCounters(katran::KatranLb& lb) {
     LOG(INFO) << "per pckt type LRU miss counter is incorrect";
   }
   stats = lb.getLruFallbackStats();
-  if (stats.v1 != 15) {
+  if (stats.v1 != 17) {
     VLOG(2) << "FallbackLRU hits: " << stats.v1;
     LOG(INFO) << "LRU fallback counter is incorrect";
   }

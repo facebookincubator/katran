@@ -159,7 +159,8 @@ void XdpTester::testFromFixture() {
       auto output_test_pckt = parser_.convertPacketToBase64(std::move(buf));
       if (output_test_pckt != config_.outputData[i].first) {
         VLOG(2) << "output packet not equal to expected one; expected pkt="
-                << output_test_pckt;
+                << output_test_pckt
+                << ", actual=" << config_.outputData[i].first;
         test_result = "\033[31mFailed\033[0m";
       }
     }
