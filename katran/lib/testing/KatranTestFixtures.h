@@ -248,7 +248,7 @@ const std::vector<std::pair<std::string, std::string>> outputTestFixtures = {
   },
   //3
   {
-    "AADerb6vAgAAAAAACABFAABLAAAAAEAEXCGsEGh7CgAAA0WMADcAAQAAQAaswsCoAQEKyAEBemkAUAAAAAAAAAAAUBAgACfkAABrYXRyYW4gdGVzdCBwa3Q=",
+    "AADerb6vAgAAAAAACABFjABLAAAAAEAEW5WsEGh7CgAAA0WMADcAAQAAQAaswsCoAQEKyAEBemkAUAAAAAAAAAAAUBAgACfkAABrYXRyYW4gdGVzdCBwa3Q=",
     "XDP_TX"
   },
   //4
