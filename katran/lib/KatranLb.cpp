@@ -439,7 +439,8 @@ void KatranLb::attachBpfProgs() {
       }
       throw std::invalid_argument(folly::sformat(
           "can't attach healthchecking bpf prog "
-          "to main inteface, error: {}",
+          "to given inteface: {}, error: {}",
+          config_.hcInterface,
           folly::errnoStr(errno)));
     }
   }
