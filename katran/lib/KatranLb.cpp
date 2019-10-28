@@ -81,22 +81,27 @@ KatranLb::KatranLb(const KatranConfig& config)
     if (config_.enableHc) {
       res = bpfAdapter_.getInterfaceIndex(config_.hcInterface);
       if (res == 0) {
-        throw std::invalid_argument(
-            "can't resolve ifindex for healthcheck intf");
+        throw std::invalid_argument(folly::sformat(
+            "can't resolve ifindex for healthcheck interface, error: {}",
+            folly::errnoStr(errno)));
       }
       ctl.ifindex = res;
       ctlValues_[kHcIntfPos] = ctl;
 
       res = bpfAdapter_.getInterfaceIndex(config_.v4TunInterface);
       if (!res) {
-        throw std::invalid_argument("can't resolve ifindex for v4tun intf");
+        throw std::invalid_argument(folly::sformat(
+            "can't resolve ifindex for v4tunel intf, error: {}",
+            folly::errnoStr(errno)));
       }
       ctl.ifindex = res;
       ctlValues_[kIpv4TunPos] = ctl;
 
       res = bpfAdapter_.getInterfaceIndex(config_.v6TunInterface);
       if (res == 0) {
-        throw std::invalid_argument("can't resolve ifindex for v6tun intf");
+        throw std::invalid_argument(folly::sformat(
+            "can't resolve ifindex for v6tunel intf, error: {}",
+            folly::errnoStr(errno)));
       }
       ctl.ifindex = res;
       ctlValues_[kIpv6TunPos] = ctl;
@@ -104,7 +109,9 @@ KatranLb::KatranLb(const KatranConfig& config)
 
     res = bpfAdapter_.getInterfaceIndex(config_.mainInterface);
     if (res == 0) {
-      throw std::invalid_argument("can't resolve ifindex for main intf");
+      throw std::invalid_argument(folly::sformat(
+          "can't resolve ifindex for main intf, error: {}",
+          folly::errnoStr(errno)));
     }
     ctl.ifindex = res;
     ctlValues_[kMainIntfPos] = ctl;
@@ -122,7 +129,9 @@ KatranLb::~KatranLb() {
       res = bpfAdapter_.bpfMapDeleteElement(rootMapFd_, &config_.rootMapPos);
     }
     if (res != 0) {
-      LOG(INFO) << "wasn't able to delete main bpf prog";
+      LOG(INFO) << folly::sformat(
+          "wasn't able to delete main bpf prog, error: {}",
+          folly::errnoStr(errno));
     }
     if (config_.enableHc) {
       res = bpfAdapter_.deleteTcBpfFilter(
@@ -132,7 +141,9 @@ KatranLb::~KatranLb() {
           config_.priority,
           BPF_TC_EGRESS);
       if (res != 0) {
-        LOG(INFO) << "wasn't able to delete hc bpf prog";
+        LOG(INFO) << folly::sformat(
+            "wasn't able to delete hc bpf prog, error: {}",
+            folly::errnoStr(errno));
       }
     }
   }
@@ -168,13 +179,16 @@ void KatranLb::initialSanityChecking() {
 
   res = getKatranProgFd();
   if (res < 0) {
-    throw std::invalid_argument("can't get fd for prog: xdp-balancer");
+    throw std::invalid_argument(folly::sformat(
+        "can't get fd for prog: xdp-balancer, error: {}",
+        folly::errnoStr(errno)));
   }
 
   if (config_.enableHc) {
     res = getHealthcheckerProgFd();
     if (res < 0) {
-      throw std::invalid_argument("can't get fd for prog: cls-hc");
+      throw std::invalid_argument(folly::sformat(
+          "can't get fd for prog: cls-hc, error: {}", folly::errnoStr(errno)));
     }
     maps.push_back("hc_ctrl_map");
     maps.push_back("hc_reals_map");
@@ -187,7 +201,8 @@ void KatranLb::initialSanityChecking() {
     res = bpfAdapter_.getMapFdByName(map);
     if (res < 0) {
       VLOG(4) << "missing map: " << map;
-      throw std::invalid_argument("map not found");
+      throw std::invalid_argument(
+          folly::sformat("map not found, error: {}", folly::errnoStr(errno)));
     }
   }
 }
@@ -237,7 +252,9 @@ void KatranLb::initLrus() {
       lru_fd = createLruMap(per_core_lru_size, lru_map_flags, numa_node);
       if (lru_fd < 0) {
         LOG(FATAL) << "can't creat lru for core: " << core;
-        throw std::runtime_error("cant create LRU for forwarding core");
+        throw std::runtime_error(folly::sformat(
+            "can't create LRU for forwarding core, error: {}",
+            folly::errnoStr(errno)));
       }
       lruMapsFd_[core] = lru_fd;
     }
@@ -261,8 +278,9 @@ void KatranLb::initLrus() {
   }
   res = bpfAdapter_.setInnerMapPrototype("lru_maps_mapping", lru_proto_fd);
   if (res < 0) {
-    throw std::runtime_error(
-        "can't update inner_maps_fds w/ prototype for main lru");
+    throw std::runtime_error(folly::sformat(
+        "can't update inner_maps_fds w/ prototype for main lru, error: {}",
+        folly::errnoStr(errno)));
   }
 }
 
@@ -277,7 +295,9 @@ void KatranLb::attachLrus() {
     res = bpfAdapter_.bpfUpdateMap(
         bpfAdapter_.getMapFdByName("lru_maps_mapping"), &key, &map_fd);
     if (res < 0) {
-      throw std::runtime_error("cant attach lru to forwarding core");
+      throw std::runtime_error(folly::sformat(
+          "can't attach lru to forwarding core, error: {}",
+          folly::errnoStr(errno)));
     }
   }
 }
@@ -314,13 +334,15 @@ void KatranLb::loadBpfProgs() {
   // loading bpf progs.
   res = bpfAdapter_.loadBpfProg(config_.balancerProgPath);
   if (res) {
-    throw std::invalid_argument("can't load main bpf prog");
+    throw std::invalid_argument("can't load main bpf program");
   }
 
   if (config_.enableHc) {
     res = bpfAdapter_.loadBpfProg(config_.healthcheckingProgPath);
     if (res) {
-      throw std::invalid_argument("can't load healthchecking bpf prog");
+      throw std::invalid_argument(folly::sformat(
+          "can't load healthchecking bpf program, error: {}",
+          folly::errnoStr(errno)));
     }
   }
 
@@ -337,7 +359,9 @@ void KatranLb::loadBpfProgs() {
         &ctlValues_[ctl_key]);
 
     if (res != 0) {
-      throw std::invalid_argument("can't update ctl array for main prog");
+      throw std::invalid_argument(folly::sformat(
+          "can't update ctl array for main program, error: {}",
+          folly::errnoStr(errno)));
     }
   }
 
@@ -351,7 +375,9 @@ void KatranLb::loadBpfProgs() {
           &ctlValues_[ctl_key].ifindex);
 
       if (res != 0) {
-        throw std::invalid_argument("can't update ctrl map for hc prog");
+        throw std::invalid_argument(folly::sformat(
+            "can't update ctrl map for hc program, error: {}",
+            folly::errnoStr(errno)));
       }
     }
   }
@@ -364,7 +390,7 @@ void KatranLb::loadBpfProgs() {
 
 void KatranLb::attachBpfProgs() {
   if (!progsLoaded_) {
-    throw std::invalid_argument("failed to attach bpf progs: progs not loaded");
+    throw std::invalid_argument("failed to attach bpf prog: prog not loaded");
   }
   int res;
   auto main_fd = bpfAdapter_.getProgFdByName("xdp-balancer");
@@ -374,19 +400,22 @@ void KatranLb::attachBpfProgs() {
     res = bpfAdapter_.modifyXdpProg(
         main_fd, interface_index, config_.xdpAttachFlags);
     if (res != 0) {
-      throw std::invalid_argument(
+      throw std::invalid_argument(folly::sformat(
           "can't attach main bpf prog "
-          "to main inteface");
+          "to main inteface, error: {}",
+          folly::errnoStr(errno)));
     }
   } else {
     // we are in "shared" mode and must register ourself in root xdp prog
     rootMapFd_ = bpfAdapter_.getPinnedBpfObject(config_.rootMapPath);
     if (rootMapFd_ < 0) {
-      throw std::invalid_argument("can't get fd of xdp's root map");
+      throw std::invalid_argument(folly::sformat(
+          "can't get fd of xdp's root map, error: {}", folly::errnoStr(errno)));
     }
     res = bpfAdapter_.bpfUpdateMap(rootMapFd_, &config_.rootMapPos, &main_fd);
     if (res) {
-      throw std::invalid_argument("can't register in root array");
+      throw std::invalid_argument(folly::sformat(
+          "can't register in root array, error: {}", folly::errnoStr(errno)));
     }
   }
 
@@ -406,9 +435,10 @@ void KatranLb::attachBpfProgs() {
       } else {
         bpfAdapter_.bpfMapDeleteElement(rootMapFd_, &config_.rootMapPos);
       }
-      throw std::invalid_argument(
+      throw std::invalid_argument(folly::sformat(
           "can't attach healthchecking bpf prog "
-          "to main inteface");
+          "to main inteface, error: {}",
+          folly::errnoStr(errno)));
     }
   }
   progsAttached_ = true;
@@ -509,7 +539,8 @@ std::vector<VipKey> KatranLb::getAllVips() {
 uint32_t KatranLb::getVipFlags(const VipKey& vip) {
   auto vip_iter = vips_.find(vip);
   if (vip_iter == vips_.end()) {
-    throw std::invalid_argument("trying to get flags from non-existing vip");
+    throw std::invalid_argument(folly::sformat(
+        "trying to get flags from non-existing vip: {}", vip.address));
   }
   return vip_iter->second.getVipFlags();
 }
@@ -520,7 +551,8 @@ bool KatranLb::modifyVip(const VipKey& vip, uint32_t flag, bool set) {
 
   auto vip_iter = vips_.find(vip);
   if (vip_iter == vips_.end()) {
-    LOG(INFO) << "trying to modify non-existing vip";
+    LOG(INFO) << folly::sformat(
+        "trying to modify non-existing vip: {}", vip.address);
     return false;
   }
   if (set) {
@@ -559,7 +591,8 @@ bool KatranLb::modifyRealsForVip(
 
   auto vip_iter = vips_.find(vip);
   if (vip_iter == vips_.end()) {
-    LOG(INFO) << "trying to modify reals for non existing vip";
+    LOG(INFO) << folly::sformat(
+        "trying to modify reals for non existing vip: {}", vip.address);
     return false;
   }
   auto cur_reals = vip_iter->second.getReals();
@@ -587,7 +620,8 @@ bool KatranLb::modifyRealsForVip(
               cur_reals.begin(), cur_reals.end(), real_iter->second.num) ==
           cur_reals.end()) {
         // this real doesn't belong to this vip
-        LOG(INFO) << "trying to delete non-existing real for the VIP";
+        LOG(INFO) << folly::sformat(
+            "trying to delete non-existing real for the VIP: {}", vip.address);
         continue;
       }
       ureal.updatedReal.num = real_iter->second.num;
@@ -628,7 +662,8 @@ bool KatranLb::modifyRealsForVip(
       res = bpfAdapter_.bpfUpdateMap(ch_fd, &key, &pos.real);
       if (res != 0) {
         lbStats_.bpfFailedCalls++;
-        LOG(INFO) << "can't update ch ring";
+        LOG(INFO) << "can't update ch ring"
+                  << ", error: " << folly::errnoStr(errno);
       }
     }
   }
@@ -638,7 +673,8 @@ bool KatranLb::modifyRealsForVip(
 std::vector<NewReal> KatranLb::getRealsForVip(const VipKey& vip) {
   auto vip_iter = vips_.find(vip);
   if (vip_iter == vips_.end()) {
-    throw std::invalid_argument("trying to get real from non-existing vip");
+    throw std::invalid_argument(folly::sformat(
+        "trying to get real from non-existing vip: {}", vip.address));
   }
   auto vip_reals_ids = vip_iter->second.getRealsAndWeight();
   std::vector<NewReal> reals(vip_reals_ids.size());
@@ -820,7 +856,7 @@ KatranLb::getSrcRoutingRuleCidr() {
 
 const std::unordered_map<uint32_t, std::string> KatranLb::getNumToRealMap() {
   std::unordered_map<uint32_t, std::string> reals;
-  for (const auto& real: numToReals_) {
+  for (const auto& real : numToReals_) {
     reals[real.first] = real.second.str();
   }
   return reals;
@@ -910,7 +946,8 @@ bool KatranLb::modifyLpmMap(
       auto res = bpfAdapter_.bpfUpdateMap(
           bpfAdapter_.getMapFdByName(mapName), &key_v4, value);
       if (res != 0) {
-        LOG(INFO) << "can't add new element into " << mapName;
+        LOG(INFO) << "can't add new element into " << mapName
+                  << ", error: " << folly::errnoStr(errno);
         lbStats_.bpfFailedCalls++;
         return false;
       }
@@ -918,7 +955,8 @@ bool KatranLb::modifyLpmMap(
       auto res = bpfAdapter_.bpfMapDeleteElement(
           bpfAdapter_.getMapFdByName(mapName), &key_v4);
       if (res != 0) {
-        LOG(INFO) << "can't delete element from " << mapName;
+        LOG(INFO) << "can't delete element from " << mapName
+                  << ", error: " << folly::errnoStr(errno);
         lbStats_.bpfFailedCalls++;
         return false;
       }
@@ -933,7 +971,8 @@ bool KatranLb::modifyLpmMap(
       auto res = bpfAdapter_.bpfUpdateMap(
           bpfAdapter_.getMapFdByName(mapName), &key_v6, value);
       if (res != 0) {
-        LOG(INFO) << "can't add new element into " << mapName;
+        LOG(INFO) << "can't add new element into " << mapName
+                  << ", error: " << folly::errnoStr(errno);
         lbStats_.bpfFailedCalls++;
         return false;
       }
@@ -941,7 +980,8 @@ bool KatranLb::modifyLpmMap(
       auto res = bpfAdapter_.bpfMapDeleteElement(
           bpfAdapter_.getMapFdByName(mapName), &key_v6);
       if (res != 0) {
-        LOG(INFO) << "can't delete element from " << mapName;
+        LOG(INFO) << "can't delete element from " << mapName
+                  << ", error: " << folly::errnoStr(errno);
         lbStats_.bpfFailedCalls++;
         return false;
       }
@@ -1016,7 +1056,8 @@ bool KatranLb::modifyDecapDst(
     auto res = bpfAdapter_.bpfUpdateMap(
         bpfAdapter_.getMapFdByName("decap_dst"), &addr, &flags);
     if (res != 0) {
-      LOG(ERROR) << "error while adding dst for inline decap " << dst;
+      LOG(ERROR) << "error while adding dst for inline decap " << dst
+                 << ", error: " << folly::errnoStr(errno);
       lbStats_.bpfFailedCalls++;
       return false;
     }
@@ -1024,7 +1065,8 @@ bool KatranLb::modifyDecapDst(
     auto res = bpfAdapter_.bpfMapDeleteElement(
         bpfAdapter_.getMapFdByName("decap_dst"), &addr);
     if (res != 0) {
-      LOG(ERROR) << "error while deleting dst for inline decap " << dst;
+      LOG(ERROR) << "error while deleting dst for inline decap " << dst
+                 << ", error: " << folly::errnoStr(errno);
       lbStats_.bpfFailedCalls++;
       return false;
     }
@@ -1083,7 +1125,8 @@ void KatranLb::modifyQuicRealsMapping(
       rnum = mapping.second;
       res = bpfAdapter_.bpfUpdateMap(quic_mapping_fd, &id, &rnum);
       if (res != 0) {
-        LOG(ERROR) << "can't update quic mapping";
+        LOG(ERROR) << "can't update quic mapping, error: "
+                   << folly::errnoStr(errno);
         lbStats_.bpfFailedCalls++;
       }
     }
@@ -1195,7 +1238,8 @@ bool KatranLb::addHealthcheckerDst(
     auto res = bpfAdapter_.bpfUpdateMap(
         bpfAdapter_.getMapFdByName("hc_reals_map"), &key, &addr);
     if (res != 0) {
-      LOG(INFO) << "can't add new real for healthchecking";
+      LOG(INFO) << "can't add new real for healthchecking, error: "
+                << folly::errnoStr(errno);
       lbStats_.bpfFailedCalls++;
       return false;
     }
@@ -1221,7 +1265,8 @@ bool KatranLb::delHealthcheckerDst(const uint32_t somark) {
     auto res = bpfAdapter_.bpfMapDeleteElement(
         bpfAdapter_.getMapFdByName("hc_reals_map"), &key);
     if (res) {
-      LOG(INFO) << "can't remove hc w/ somark: " << key;
+      LOG(INFO) << "can't remove hc w/ somark: " << key
+                << ", error: " << folly::errnoStr(errno);
       lbStats_.bpfFailedCalls++;
       return false;
     }
@@ -1265,7 +1310,8 @@ bool KatranLb::updateVipMap(
     auto res = bpfAdapter_.bpfUpdateMap(
         bpfAdapter_.getMapFdByName("vip_map"), &vip_def, meta);
     if (res != 0) {
-      LOG(INFO) << "can't add new element into vip_map";
+      LOG(INFO) << "can't add new element into vip_map, error: "
+                << folly::errnoStr(errno);
       lbStats_.bpfFailedCalls++;
       return false;
     }
@@ -1273,7 +1319,8 @@ bool KatranLb::updateVipMap(
     auto res = bpfAdapter_.bpfMapDeleteElement(
         bpfAdapter_.getMapFdByName("vip_map"), &vip_def);
     if (res != 0) {
-      LOG(INFO) << "can't delete element from vip_map";
+      LOG(INFO) << "can't delete element from vip_map, error: "
+                << folly::errnoStr(errno);
       lbStats_.bpfFailedCalls++;
       return false;
     }
@@ -1286,7 +1333,7 @@ bool KatranLb::updateRealsMap(const folly::IPAddress& real, uint32_t num) {
   auto res = bpfAdapter_.bpfUpdateMap(
       bpfAdapter_.getMapFdByName("reals"), &num, &real_addr);
   if (res != 0) {
-    LOG(INFO) << "can't add new real";
+    LOG(INFO) << "can't add new real, error: " << folly::errnoStr(errno);
     lbStats_.bpfFailedCalls++;
     return false;
   } else {
