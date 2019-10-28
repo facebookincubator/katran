@@ -215,6 +215,24 @@ struct KatranLbStats {
 };
 
 /**
+ * @param uint64_t packetsProcessed number of packets processed for the
+ * healthcheck prog
+ * @param uint64_t packetsDropped total number of packets dropped
+ * @param uint64_t packetsSkipped total number of packets without action taken
+ * @param uint64_t packetsTooBig total number of packets larger than
+ * prespecified max size for a packet
+ *
+ * struct to record packet level counters for events in health-check program
+ * NOTE: this must be kept in sync with 'hc_stats' in healthchecking_ipip.c
+ */
+struct HealthCheckProgStats {
+  uint64_t packetsProcessed{0};
+  uint64_t packetsDropped{0};
+  uint64_t packetsSkipped{0};
+  uint64_t packetsTooBig{0};
+};
+
+/**
  * @param srcRouting flag which indicates that source based routing feature has
  * been enabled/compiled in bpf forwarding plane
  * @param inlineDecap flag which indicates that inline decapsulation feature has

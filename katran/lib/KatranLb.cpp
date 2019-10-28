@@ -38,6 +38,7 @@ constexpr int kMaxForwardingCores = 128;
 constexpr int kFirstElem = 0;
 constexpr int kError = -1;
 constexpr uint32_t kMaxQuicId = 65535; // 2^16-1
+constexpr uint32_t kDefaultStatsIndex = 0;
 constexpr folly::StringPiece kEmptyString = "";
 } // namespace
 
@@ -192,6 +193,7 @@ void KatranLb::initialSanityChecking() {
     }
     maps.push_back("hc_ctrl_map");
     maps.push_back("hc_reals_map");
+    maps.push_back("hc_stats_map");
   }
 
   // some sanity checking. we will check that all maps exists, so in later
@@ -1204,6 +1206,32 @@ lb_stats KatranLb::getLbStats(uint32_t position, const std::string& map) {
     }
   }
   return sum_stat;
+}
+
+HealthCheckProgStats KatranLb::getStatsForHealthCheckProgram() {
+  unsigned int nr_cpus = BpfAdapter::getPossibleCpus();
+  if (nr_cpus < 0) {
+    LOG(ERROR) << "Error while getting number of possible cpus";
+    return HealthCheckProgStats();
+  }
+  uint32_t stats_index = kDefaultStatsIndex;
+  HealthCheckProgStats stats[nr_cpus];
+  HealthCheckProgStats total_stats = {};
+  if (!config_.testing) {
+    auto res = bpfAdapter_.bpfMapLookupElement(
+        bpfAdapter_.getMapFdByName("hc_stats_map"), &stats_index, stats);
+    if (res) {
+      lbStats_.bpfFailedCalls++;
+    } else {
+      for (auto& perCpuStat : stats) {
+        total_stats.packetsProcessed += perCpuStat.packetsProcessed;
+        total_stats.packetsSkipped += perCpuStat.packetsSkipped;
+        total_stats.packetsDropped += perCpuStat.packetsDropped;
+        total_stats.packetsTooBig += perCpuStat.packetsTooBig;
+      }
+    }
+  }
+  return total_stats;
 }
 
 bool KatranLb::addHealthcheckerDst(

@@ -27,6 +27,19 @@
 #define REDIRECT_EGRESS 0
 #define DEFAULT_TTL 64
 
+// Specify max packet size to avoid packets exceed mss (after encapsulation)
+#ifndef MAX_PACKET_SIZE
+#define MAX_PACKET_SIZE 1474
+#endif
+
+// position in stats map where we are storing generic counters.
+#define GENERIC_STATS_INDEX 0
+
+// size of stats map.
+#define STATS_SIZE 1
+
+#define NO_FLAGS 0
+
 #define V6DADDR (1 << 0)
 
 struct hc_real_definition {
@@ -37,18 +50,35 @@ struct hc_real_definition {
   __u8 flags;
 };
 
+// struct to record packet level for counters for relevant events
+struct hc_stats {
+  __u64 pckts_processed;
+  __u64 pckts_dropped;
+  __u64 pckts_skipped;
+  __u64 pckts_too_big;
+};
+
 struct bpf_map_def SEC("maps") hc_ctrl_map = {
-  .type = BPF_MAP_TYPE_ARRAY,
-  .key_size = sizeof(__u32),
-  .value_size = sizeof(__u32),
-  .max_entries = CTRL_MAP_SIZE,
+    .type = BPF_MAP_TYPE_ARRAY,
+    .key_size = sizeof(__u32),
+    .value_size = sizeof(__u32),
+    .max_entries = CTRL_MAP_SIZE,
 };
 
 struct bpf_map_def SEC("maps") hc_reals_map = {
-  .type = BPF_MAP_TYPE_HASH,
-  .key_size = sizeof(__u32),
-  .value_size = sizeof(struct hc_real_definition),
-  .max_entries = REALS_MAP_SIZE,
+    .type = BPF_MAP_TYPE_HASH,
+    .key_size = sizeof(__u32),
+    .value_size = sizeof(struct hc_real_definition),
+    .max_entries = REALS_MAP_SIZE,
+};
+
+// map which contains counters for monitoring
+struct bpf_map_def SEC("maps") hc_stats_map = {
+    .type = BPF_MAP_TYPE_PERCPU_ARRAY,
+    .key_size = sizeof(__u32),
+    .value_size = sizeof(struct hc_stats),
+    .max_entries = STATS_SIZE,
+    .map_flags = NO_FLAGS,
 };
 
 SEC("cls-hc")
@@ -62,7 +92,16 @@ int healthchecker(struct __sk_buff *skb)
   __u32 v6_intf_pos = 2;
   struct bpf_tunnel_key tkey = {};
 
+  __u32 stats_key = GENERIC_STATS_INDEX;
+  struct hc_stats* prog_stats;
+
+  prog_stats = bpf_map_lookup_elem(&hc_stats_map, &stats_key);
+  if (!prog_stats) {
+    return 1;
+  }
+
   if (skb->mark == 0) {
+    prog_stats->pckts_skipped += 1;
     return TC_ACT_UNSPEC;
   }
 
@@ -71,41 +110,47 @@ int healthchecker(struct __sk_buff *skb)
   if(!real) {
     // some strange (w/ fwmark; but not a healthcheck)
     // local packet to the VIP.
+    prog_stats->pckts_skipped += 1;
     return TC_ACT_UNSPEC;
   }
 
-  __u32 *v4_intf_ifindex = bpf_map_lookup_elem(&hc_ctrl_map,
-                                               &v4_intf_pos);
-  if (!v4_intf_ifindex) {
-    // we dont have ifindex for ipip v4 interface
-    // not much we can do w/o it. we will drop packet so hc would fail
+  if (skb->len > MAX_PACKET_SIZE) {
+    // do not allow packets bigger than the specified size (typically adv-mss)
+    prog_stats->pckts_dropped += 1;
+    prog_stats->pckts_too_big += 1;
     return TC_ACT_SHOT;
   }
 
-  __u32 *v6_intf_ifindex = bpf_map_lookup_elem(&hc_ctrl_map,
-                                               &v6_intf_pos);
+  __u32* v4_intf_ifindex = bpf_map_lookup_elem(&hc_ctrl_map, &v4_intf_pos);
+  if (!v4_intf_ifindex) {
+    // we dont have ifindex for ipip v4 interface
+    // not much we can do without it. Drop packet so that hc will fail
+    prog_stats->pckts_dropped += 1;
+    return TC_ACT_SHOT;
+  }
+
+  __u32* v6_intf_ifindex = bpf_map_lookup_elem(&hc_ctrl_map, &v6_intf_pos);
   if (!v6_intf_ifindex) {
-    // ditto
+    prog_stats->pckts_dropped += 1;
     return TC_ACT_SHOT;
   }
 
   tkey.tunnel_ttl = DEFAULT_TTL;
 
-  // to prevent recursion, when encaped packed would run thru this filter
+  // to prevent recursion, when encaped packet would run through this filter
   skb->mark = 0;
 
-  if(real->flags == V6DADDR) {
-    //the dst is v6.
+  if (real->flags == V6DADDR) {
+    // the dst is v6.
     tun_flag = BPF_F_TUNINFO_IPV6;
     memcpy(tkey.remote_ipv6, real->v6daddr, 16);
     ifindex = *v6_intf_ifindex;
   } else {
-    //the dst is v4
+    // the dst is v4
     tkey.remote_ipv4 = real->daddr;
     ifindex = *v4_intf_ifindex;
-
   }
-
+  prog_stats->pckts_processed += 1;
   bpf_skb_set_tunnel_key(skb, &tkey, sizeof(tkey), tun_flag);
   return bpf_redirect(ifindex, REDIRECT_EGRESS);
 }

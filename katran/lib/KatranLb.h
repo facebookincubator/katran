@@ -512,6 +512,11 @@ class KatranLb {
   }
 
   /**
+   * record packet level counters for relevant events in health-check program
+   */
+  HealthCheckProgStats getStatsForHealthCheckProgram();
+
+  /**
    * @param KatranFlow 5 tuple which describes a flow
    * @return string address of the real.
    *
