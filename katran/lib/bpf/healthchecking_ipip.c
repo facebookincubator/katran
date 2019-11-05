@@ -23,7 +23,11 @@
 #include "bpf_helpers.h"
 
 #define CTRL_MAP_SIZE 4
+
+#ifndef REALS_MAP_SIZE
 #define REALS_MAP_SIZE 4096
+#endif
+
 #define REDIRECT_EGRESS 0
 #define DEFAULT_TTL 64
 
