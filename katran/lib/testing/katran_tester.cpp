@@ -27,6 +27,7 @@
 
 #include "KatranOptionalTestFixtures.h"
 #include "KatranTestFixtures.h"
+#include "KatranGueTestFixtures.h"
 #include "XdpTester.h"
 #include "katran/lib/KatranLb.h"
 #include "katran/lib/KatranLbStructs.h"
@@ -41,6 +42,7 @@ DEFINE_bool(print_base64, false, "print packets in base64 from pcap file");
 DEFINE_bool(test_from_fixtures, false, "run tests on predefined dataset");
 DEFINE_bool(perf_testing, false, "run perf tests on predefined dataset");
 DEFINE_bool(optional_tests, false, "run optional (kernel specific) tests");
+DEFINE_bool(gue, false, "run GUE tests instead of IPIP ones");
 DEFINE_int32(repeat, 1000000, "perf test runs for single packet");
 DEFINE_int32(position, -1, "perf test runs for single packet");
 DEFINE_bool(iobuf_storage, false, "test iobuf storage for katran monitor");
@@ -383,8 +385,13 @@ int main(int argc, char** argv) {
   katran::TesterConfig config;
   config.inputFileName = FLAGS_pcap_input;
   config.outputFileName = FLAGS_pcap_output;
-  config.inputData = katran::testing::inputTestFixtures;
-  config.outputData = katran::testing::outputTestFixtures;
+  if (FLAGS_gue) {
+    config.inputData = katran::testing::inputGueTestFixtures;
+    config.outputData = katran::testing::outputGueTestFixtures;
+  } else {
+    config.inputData = katran::testing::inputTestFixtures;
+    config.outputData = katran::testing::outputTestFixtures;
+  }
   katran::XdpTester tester(config);
   if (FLAGS_print_base64) {
     if (FLAGS_pcap_input.empty()) {
@@ -410,7 +417,11 @@ int main(int argc, char** argv) {
                                kNoExternalMap,
                                kDefaultKatranPos,
                                kNoHc};
+
   kconfig.monitorConfig = kmconfig;
+  kconfig.katranSrcV4 = "10.0.13.37";
+  kconfig.katranSrcV6 = "fc00:2307::1337";
+
   katran::KatranLb lb(kconfig);
   lb.loadBpfProgs();
   auto balancer_prog_fd = lb.getKatranProgFd();

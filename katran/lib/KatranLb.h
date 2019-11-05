@@ -640,6 +640,12 @@ class KatranLb {
    */
   bool changeKatranMonitorForwardingState(KatranMonitorState state);
 
+  /*
+   * setupGueEnvironment prepare katran to run w/ GUE encap (e.g. setting up
+   * src addresses for outer packets)
+   */
+  void setupGueEnvironment();
+
   /**
    * main configurations of katran
    */

@@ -40,6 +40,8 @@ constexpr int kError = -1;
 constexpr uint32_t kMaxQuicId = 65535; // 2^16-1
 constexpr uint32_t kDefaultStatsIndex = 0;
 constexpr folly::StringPiece kEmptyString = "";
+constexpr uint32_t kSrcV4Pos = 0;
+constexpr uint32_t kSrcV6Pos = 1;
 } // namespace
 
 KatranLb::KatranLb(const KatranConfig& config)
@@ -304,6 +306,23 @@ void KatranLb::attachLrus() {
   }
 }
 
+void KatranLb::setupGueEnvironment() {
+  auto srcv4 = IpHelpers::parseAddrToBe(folly::IPAddress(config_.katranSrcV4));
+  auto srcv6 = IpHelpers::parseAddrToBe(folly::IPAddress(config_.katranSrcV6));
+  uint32_t key = kSrcV4Pos;
+  auto res = bpfAdapter_.bpfUpdateMap(
+    bpfAdapter_.getMapFdByName("pckt_srcs"), &key, &srcv4);
+  if (res < 0) {
+      throw std::runtime_error("can not update src v4 address for GUE packet");
+  }
+  key = kSrcV6Pos;
+  res = bpfAdapter_.bpfUpdateMap(
+    bpfAdapter_.getMapFdByName("pckt_srcs"), &key, &srcv6);
+  if (res < 0) {
+      throw std::runtime_error("can not update src v6 address for GUE packet");
+  }
+}
+
 void KatranLb::featureDiscovering() {
   int res;
   res = bpfAdapter_.getMapFdByName("lpm_src_v4");
@@ -320,6 +339,11 @@ void KatranLb::featureDiscovering() {
   if (res >= 0) {
     VLOG(2) << "katran introspection is enabled";
     features_.introspection = true;
+  }
+  res = bpfAdapter_.getMapFdByName("pckt_srcs");
+  if (res >= 0) {
+    VLOG(2) << "GUE encapsulation is enabled";
+    features_.gueEncap = true;
   }
 }
 
@@ -350,6 +374,10 @@ void KatranLb::loadBpfProgs() {
 
   initialSanityChecking();
   featureDiscovering();
+
+  if (features_.gueEncap) {
+    setupGueEnvironment();
+  }
 
   // add values to main prog ctl_array
   std::vector<uint32_t> balancer_ctl_keys = {kMacAddrPos};

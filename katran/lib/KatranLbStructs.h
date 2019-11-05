@@ -40,6 +40,7 @@ constexpr unsigned int kDefaultLruSize = 8000000;
 constexpr uint32_t kNoFlags = 0;
 std::string kNoExternalMap = "";
 std::string kDefaultHcInterface = "";
+std::string kAddressNotSpecified = "";
 } // namespace
 
 /**
@@ -143,6 +144,8 @@ struct KatranMonitorConfig {
  * @param std::string hcInterface interface where we want to attach hc bpf prog
  * @param KatranMonitorConfig monitorConfig for katran introspection
  * @param memlockUnlimited should katran set memlock to unlimited by default
+ * @param katranSrcV4 string ipv4 source address for GUE packets
+ * @param katranSrcV6 string ipv6 source address for GUE packets
  *
  * note about rootMapPath and rootMapPos:
  * katran has two modes of operation.
@@ -186,6 +189,8 @@ struct KatranConfig {
   uint32_t xdpAttachFlags = kNoFlags;
   struct KatranMonitorConfig monitorConfig;
   bool memlockUnlimited = true;
+  std::string katranSrcV4 = kAddressNotSpecified;
+  std::string katranSrcV6 = kAddressNotSpecified;
 };
 
 /**
@@ -244,6 +249,7 @@ struct KatranFeatures {
   bool srcRouting{false};
   bool inlineDecap{false};
   bool introspection{false};
+  bool gueEncap{false};
 };
 
 /**
