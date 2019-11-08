@@ -12,6 +12,7 @@ find_library(GRPC libgrpc.a grpc PATHS ${GRPC_LIBRARIES_PATH} NO_DEFAULT_PATH)
 find_library(GRPC++ libgrpc++.a grpc++ PATHS ${GRPC_LIBRARIES_PATH} NO_DEFAULT_PATH)
 find_library(CARES libcares.a cares PATHS ${CARES_LIBRARIES_PATH} NO_DEFAULT_PATH)
 find_library(GRPC_UNSECURE libgrpc_unsecure.a grpc_unsecure PATHS ${GRPC_LIBRARIES_PATH} NO_DEFAULT_PATH)
+find_library(UPB libupb.a grpc PATHS ${GRPC_LIBRARIES_PATH} NO_DEFAULT_PATH)
 find_library(LIBIBERTY libiberty.a iberty)
 find_library(DL dl)
 find_library(EVENT libevent.a event)
@@ -93,6 +94,7 @@ target_link_libraries(katran_server_grpc
   "${LIBIBERTY}"
   "${GRPC_UNSECURE}"
   "${LIBZ}"
+  "${UPB}"
   katran_service_handler
   grpc_signal_handler
   "-Wl,--end-group"

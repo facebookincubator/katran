@@ -397,6 +397,7 @@ get_grpc() {
     mkdir -p "$GRPC_BUILD_DIR"
     cd "$GRPC_BUILD_DIR" || exit
     cmake -DCXX_STD=gnu++14                         \
+      -DCMAKE_CXX_FLAGS=-Wno-unused-result          \
       -DCMAKE_BUILD_TYPE=RelWithDebInfo             \
       -DCMAKE_PREFIX_PATH="$INSTALL_DIR"            \
       -DCMAKE_INSTALL_PREFIX="$INSTALL_DIR"         \
