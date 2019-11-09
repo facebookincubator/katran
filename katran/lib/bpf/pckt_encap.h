@@ -356,6 +356,43 @@ static inline bool gue_encap_v6(struct xdp_md *xdp, struct ctl_value *cval,
   return true;
 }
 
+__attribute__((__always_inline__)) static inline bool
+gue_decap_v4(struct xdp_md* xdp, void** data, void** data_end) {
+  struct eth_hdr* new_eth;
+  struct eth_hdr* old_eth;
+  old_eth = *data;
+  new_eth = *data + sizeof(struct iphdr) + sizeof(struct udphdr);
+  memcpy(new_eth->eth_source, old_eth->eth_source, 6);
+  memcpy(new_eth->eth_dest, old_eth->eth_dest, 6);
+  new_eth->eth_proto = BE_ETH_P_IP;
+  if (bpf_xdp_adjust_head(xdp, (int)(sizeof(struct iphdr) + sizeof(struct udphdr)))) {
+    return false;
+  }
+  *data = (void*)(long)xdp->data;
+  *data_end = (void*)(long)xdp->data_end;
+  return true;
+}
+
+__attribute__((__always_inline__)) static inline bool
+gue_decap_v6(struct xdp_md* xdp, void** data, void** data_end, bool inner_v4) {
+  struct eth_hdr* new_eth;
+  struct eth_hdr* old_eth;
+  old_eth = *data;
+  new_eth = *data + sizeof(struct ipv6hdr) + sizeof(struct udphdr);
+  memcpy(new_eth->eth_source, old_eth->eth_source, 6);
+  memcpy(new_eth->eth_dest, old_eth->eth_dest, 6);
+  if (inner_v4) {
+    new_eth->eth_proto = BE_ETH_P_IP;
+  } else {
+    new_eth->eth_proto = BE_ETH_P_IPV6;
+  }
+  if (bpf_xdp_adjust_head(xdp, (int)(sizeof(struct ipv6hdr) + sizeof(struct udphdr)))) {
+    return false;
+  }
+  *data = (void*)(long)xdp->data;
+  *data_end = (void*)(long)xdp->data_end;
+  return true;
+}
 #endif // of GUE_ENCAP
 
 

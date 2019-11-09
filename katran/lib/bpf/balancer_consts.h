@@ -25,6 +25,11 @@
 #define BE_ETH_P_IP 8
 #define BE_ETH_P_IPV6 56710
 
+
+// GUE variant 1 using first four bits of inner packet as a pseudo header
+// we are using last two of this four bits to distinct v4 vs v6. see RFC for more details
+#define GUEV1_IPV6MASK 0x30
+
 // functions could return ether drop, pass, tx or we need to further
 // process a packet to figure out what to do with it
 #define FURTHER_PROCESSING -1
@@ -113,8 +118,6 @@
 #define F_ICMP (1 << 0)
 // tcp packet had syn flag set
 #define F_SYN_SET (1 << 1)
-// packet was decapsulated inline
-#define F_INLINE_DECAP (1 << 2)
 
 // ttl for outer ipip packet
 #ifndef DEFAULT_TTL
@@ -243,7 +246,14 @@
  *
  * LPM_SRC_LOOKUP - allow to do src based routing/dst decision override
  *
- * INLINE_DECAP - allow do to inline ipip decapsulation in XDP context
+ * INLINE_DECAP_GENERIC - enables features to allow pckt specific inline decapsulation
+ * 
+ * INLINE_DECAP - allow to do inline decapsulation for ipip and enables additional features
+ * to do so
+ * 
+ * INLINE_DECAP_IPIP - allow do to inline ipip decapsulation in XDP context
+ * 
+ * INLINE_DECAP_GUE - allow to do inline gue decapsulation in XDP context
  *
  * GUE_ENCAP - use GUE (draft-ietf-intarea-gue) as encapsulation method
  *
@@ -251,8 +261,28 @@
  * have triggered specific events
  */
 #ifdef LPM_SRC_LOOKUP
+#ifndef INLINE_DECAP
+#ifndef INLINE_DECAP_GUE
 #define INLINE_DECAP
+#endif // of INLINE_DECAP_GUE
+#endif // of INLINE_DECAP
+#endif // of LPM_SRC_LOOKUP
+
+#ifdef INLINE_DECAP
+#define INLINE_DECAP_IPIP
 #endif
+
+#ifdef INLINE_DECAP_IPIP
+#ifndef INLINE_DECAP_GENERIC
+#define INLINE_DECAP_GENERIC
+#endif // of INLINE_DECAP_GENERIC
+#endif // of INLINE_DECAP_IPIP
+
+#ifdef INLINE_DECAP_GUE
+#ifndef INLINE_DECAP_GENERIC
+#define INLINE_DECAP_GENERIC
+#endif // of INLINE_DECAP_GENERIC
+#endif // of INLINE_DECAP_GUE
 
 #ifdef GUE_ENCAP
 #define PCKT_ENCAP_V4 gue_encap_v4
