@@ -17,6 +17,7 @@
 #include "KatranLb.h"
 
 #include <algorithm>
+#include <array>
 #include <iterator>
 #include <stdexcept>
 
@@ -43,6 +44,8 @@ constexpr folly::StringPiece kEmptyString = "";
 constexpr uint32_t kSrcV4Pos = 0;
 constexpr uint32_t kSrcV6Pos = 1;
 constexpr uint32_t kRecirculationIndex = 0;
+constexpr uint32_t kHcSrcMacPos = 0;
+constexpr uint32_t kHcDstMacPos = 1;
 } // namespace
 
 KatranLb::KatranLb(const KatranConfig& config)
@@ -312,15 +315,48 @@ void KatranLb::setupGueEnvironment() {
   auto srcv6 = IpHelpers::parseAddrToBe(folly::IPAddress(config_.katranSrcV6));
   uint32_t key = kSrcV4Pos;
   auto res = bpfAdapter_.bpfUpdateMap(
-    bpfAdapter_.getMapFdByName("pckt_srcs"), &key, &srcv4);
+      bpfAdapter_.getMapFdByName("pckt_srcs"), &key, &srcv4);
   if (res < 0) {
-      throw std::runtime_error("can not update src v4 address for GUE packet");
+    throw std::runtime_error("can not update src v4 address for GUE packet");
   }
   key = kSrcV6Pos;
   res = bpfAdapter_.bpfUpdateMap(
-    bpfAdapter_.getMapFdByName("pckt_srcs"), &key, &srcv6);
+      bpfAdapter_.getMapFdByName("pckt_srcs"), &key, &srcv6);
   if (res < 0) {
-      throw std::runtime_error("can not update src v6 address for GUE packet");
+    throw std::runtime_error("can not update src v6 address for GUE packet");
+  }
+}
+
+void KatranLb::setupHcEnvironment() {
+  auto map_fd = bpfAdapter_.getMapFdByName("hc_pckt_srcs_map");
+  auto srcv4 = IpHelpers::parseAddrToBe(folly::IPAddress(config_.katranSrcV4));
+  auto srcv6 = IpHelpers::parseAddrToBe(folly::IPAddress(config_.katranSrcV6));
+  uint32_t key = kSrcV4Pos;
+  auto res = bpfAdapter_.bpfUpdateMap(map_fd, &key, &srcv4);
+  if (res < 0) {
+    throw std::runtime_error("can not update src v4 address for GUE packet");
+  }
+  key = kSrcV6Pos;
+  res = bpfAdapter_.bpfUpdateMap(map_fd, &key, &srcv6);
+  if (res < 0) {
+    throw std::runtime_error("can not update src v6 address for GUE packet");
+  }
+
+  std::array<struct hc_mac, 2> macs;
+  // populating mac addresses for healthchecking
+  if (config_.localMac.size() != 6) {
+    throw std::invalid_argument("src mac's size is not equal to six byte");
+  }
+  for (int i = 0; i < 6; i++) {
+    macs[kHcSrcMacPos].mac[i] = config_.localMac[i];
+    macs[kHcDstMacPos].mac[i] = config_.defaultMac[i];
+  }
+  for (auto position : {kHcSrcMacPos, kHcDstMacPos}) {
+    res = bpfAdapter_.bpfUpdateMap(
+        bpfAdapter_.getMapFdByName("hc_pckt_macs"), &position, &macs[position]);
+    if (res < 0) {
+      throw std::runtime_error("can not update healthchecks mac address");
+    }
   }
 }
 
@@ -328,11 +364,11 @@ void KatranLb::enableRecirculation() {
   uint32_t key = kRecirculationIndex;
   int balancer_fd = getKatranProgFd();
   auto res = bpfAdapter_.bpfUpdateMap(
-    bpfAdapter_.getMapFdByName("katran_subprograms"), &key, &balancer_fd);
+      bpfAdapter_.getMapFdByName("katran_subprograms"), &key, &balancer_fd);
   if (res < 0) {
-      throw std::runtime_error("can not update katran_subprograms for recirculation");
+    throw std::runtime_error(
+        "can not update katran_subprograms for recirculation");
   }
-
 }
 
 void KatranLb::featureDiscovering() {
@@ -356,6 +392,11 @@ void KatranLb::featureDiscovering() {
   if (res >= 0) {
     VLOG(2) << "GUE encapsulation is enabled";
     features_.gueEncap = true;
+  }
+  res = bpfAdapter_.getMapFdByName("hc_pckt_srcs_map");
+  if (res >= 0) {
+    VLOG(2) << "Direct healthchecking is enabled";
+    features_.directHealthchecking = true;
   }
 }
 
@@ -412,7 +453,8 @@ void KatranLb::loadBpfProgs() {
   }
 
   if (config_.enableHc) {
-    std::vector<uint32_t> hc_ctl_keys = {kIpv4TunPos, kIpv6TunPos};
+    std::vector<uint32_t> hc_ctl_keys = {
+        kIpv4TunPos, kIpv6TunPos, kMainIntfPos};
 
     for (auto ctl_key : hc_ctl_keys) {
       res = bpfAdapter_.bpfUpdateMap(
@@ -425,6 +467,9 @@ void KatranLb::loadBpfProgs() {
             "can't update ctrl map for hc program, error: {}",
             folly::errnoStr(errno)));
       }
+    }
+    if (features_.directHealthchecking) {
+      setupHcEnvironment();
     }
   }
   progsLoaded_ = true;
@@ -511,6 +556,18 @@ bool KatranLb::changeMac(const std::vector<uint8_t> newMac) {
       lbStats_.bpfFailedCalls++;
       VLOG(4) << "can't add new mac address";
       return false;
+    }
+    if (features_.directHealthchecking) {
+      key = kHcDstMacPos;
+      res = bpfAdapter_.bpfUpdateMap(
+          bpfAdapter_.getMapFdByName("hc_pckt_macs"),
+          &key,
+          &ctlValues_[kMacAddrPos].mac);
+      if (res != 0) {
+        lbStats_.bpfFailedCalls++;
+        VLOG(4) << "can't add new mac address for direct healthchecks";
+        return false;
+      }
     }
   }
   return true;
@@ -910,24 +967,24 @@ const std::unordered_map<uint32_t, std::string> KatranLb::getNumToRealMap() {
 }
 
 bool KatranLb::changeKatranMonitorForwardingState(KatranMonitorState state) {
-    uint32_t key = kIntrospectionGkPos;
-    struct ctl_value value;
-    switch (state) {
-      case KatranMonitorState::ENABLED:
-        value.value = 1;
-        break;
-      case KatranMonitorState::DISABLED:
-        value.value = 0;
-        break;
-    }
-    auto res = bpfAdapter_.bpfUpdateMap(
+  uint32_t key = kIntrospectionGkPos;
+  struct ctl_value value;
+  switch (state) {
+    case KatranMonitorState::ENABLED:
+      value.value = 1;
+      break;
+    case KatranMonitorState::DISABLED:
+      value.value = 0;
+      break;
+  }
+  auto res = bpfAdapter_.bpfUpdateMap(
       bpfAdapter_.getMapFdByName("ctl_array"), &key, &value);
-    if (res != 0) {
-      LOG(INFO) << "can't change state of introspection forwarding plane";
-      lbStats_.bpfFailedCalls++;
-      return false;
-    }
-    return true;
+  if (res != 0) {
+    LOG(INFO) << "can't change state of introspection forwarding plane";
+    lbStats_.bpfFailedCalls++;
+    return false;
+  }
+  return true;
 }
 
 bool KatranLb::stopKatranMonitor() {
@@ -947,7 +1004,6 @@ std::unique_ptr<folly::IOBuf> KatranLb::getKatranMonitorEventBuffer(int event) {
   }
   return monitor_->getEventBuffer(event);
 }
-
 
 bool KatranLb::restartKatranMonitor(uint32_t limit) {
   if (!features_.introspection) {
@@ -1301,8 +1357,7 @@ bool KatranLb::addHealthcheckerDst(
     return false;
   }
   // for md bassed tunnels remote_ipv4 must be in host endian format
-  // and v6 in be
-  if (hcaddr.isV4()) {
+  if (hcaddr.isV4() && !features_.directHealthchecking) {
     addr = IpHelpers::parseAddrToInt(hcaddr);
   } else {
     addr = IpHelpers::parseAddrToBe(hcaddr);

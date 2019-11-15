@@ -24,7 +24,7 @@
 #include "katran/decap/testing/XdpDecapTestFixtures.h"
 #include "katran/decap/XdpDecap.h"
 #include "katran/decap/XdpDecapStructs.h"
-#include "katran/lib/testing/XdpTester.h"
+#include "katran/lib/testing/BpfTester.h"
 
 DEFINE_string(pcap_input, "", "path to input pcap file");
 DEFINE_string(pcap_output, "", "path to output pcap file");
@@ -55,7 +55,7 @@ int main(int argc, char** argv) {
   config.outputFileName = FLAGS_pcap_output;
   config.inputData = katran::testing::inputTestFixtures;
   config.outputData = katran::testing::outputTestFixtures;
-  katran::XdpTester tester(config);
+  katran::BpfTester tester(config);
   if (FLAGS_print_base64) {
     if (FLAGS_pcap_input.empty()) {
       std::cout << "pcap_input is not specified! exiting";

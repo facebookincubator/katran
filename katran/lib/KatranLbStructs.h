@@ -146,6 +146,7 @@ struct KatranMonitorConfig {
  * @param memlockUnlimited should katran set memlock to unlimited by default
  * @param katranSrcV4 string ipv4 source address for GUE packets
  * @param katranSrcV6 string ipv6 source address for GUE packets
+ * @param std::vector<uint8_t> localMac mac address of local server
  *
  * note about rootMapPath and rootMapPos:
  * katran has two modes of operation.
@@ -191,6 +192,7 @@ struct KatranConfig {
   bool memlockUnlimited = true;
   std::string katranSrcV4 = kAddressNotSpecified;
   std::string katranSrcV6 = kAddressNotSpecified;
+  std::vector<uint8_t> localMac;
 };
 
 /**
@@ -244,12 +246,16 @@ struct HealthCheckProgStats {
  * been enabled/compiled in bpf forwarding plane
  * @param introspection flag which indicates that katran introspection is
  * enabled
+ * @param gueEncap flag which indicates that GUE instead of IPIP should be used
+ * @param directHealthchecking flag which inidcates that hc encapsulation would
+ * be directly created instead of using tunnel interfaces
  */
 struct KatranFeatures {
   bool srcRouting{false};
   bool inlineDecap{false};
   bool introspection{false};
   bool gueEncap{false};
+  bool directHealthchecking{false};
 };
 
 /**

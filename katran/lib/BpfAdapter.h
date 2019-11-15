@@ -407,6 +407,10 @@ class BpfAdapter {
    * @param uint32_t* size_out size of the output packet. optional
    * @param uint32_t* retval return value of the program
    * @param uint32_t* duration how long did it take to run a test
+   * @param void* ctx_in optional pointer to context
+   * @param uint32_t ctx_size_in size of the context
+   * @param void* ctx_out optional pointer to output context
+   * @param uint32_t* ctx_size_out pointer to the size of ctx after test run
    * @return int result of the test. 0 on success, non 0 otherwise
    *
    * helper function which allow user to test xdp program by specifying
@@ -422,7 +426,11 @@ class BpfAdapter {
       void* data_out,
       uint32_t* size_out = nullptr,
       uint32_t* retval = nullptr,
-      uint32_t* duration = nullptr);
+      uint32_t* duration = nullptr,
+      void* ctx_in = nullptr,
+      uint32_t ctx_size_in = 0,
+      void* ctx_out = nullptr,
+      uint32_t* ctx_size_out = nullptr);
 
   /**
    * @param int prog_fd descriptor of the program

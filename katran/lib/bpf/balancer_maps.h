@@ -46,7 +46,6 @@ struct bpf_map_def SEC("maps") lru_maps_mapping = {
   .max_entries = MAX_SUPPORTED_CPUS,
   .map_flags = NO_FLAGS,
 };
-BPF_ANNOTATE_KV_PAIR(lru_maps_mapping, __u32, __u32);
 
 // fallback lru. we should never hit this one outside of unittests
 struct bpf_map_def SEC("maps") fallback_lru_cache = {

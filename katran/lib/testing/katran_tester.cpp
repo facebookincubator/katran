@@ -20,25 +20,28 @@
 #include <thread>
 #include <vector>
 
-#include <folly/Range.h>
 #include <folly/File.h>
 #include <folly/FileUtil.h>
+#include <folly/Range.h>
 #include <gflags/gflags.h>
 
-#include "katran/lib/testing/KatranOptionalTestFixtures.h"
-#include "katran/lib/testing/KatranGueOptionalTestFixtures.h"
-#include "katran/lib/testing/KatranTestFixtures.h"
-#include "katran/lib/testing/KatranGueTestFixtures.h"
-#include "katran/lib/testing/XdpTester.h"
 #include "katran/lib/KatranLb.h"
 #include "katran/lib/KatranLbStructs.h"
+#include "katran/lib/testing/BpfTester.h"
+#include "katran/lib/testing/KatranGueOptionalTestFixtures.h"
+#include "katran/lib/testing/KatranGueTestFixtures.h"
+#include "katran/lib/testing/KatranHCTestFixtures.h"
+#include "katran/lib/testing/KatranOptionalTestFixtures.h"
+#include "katran/lib/testing/KatranTestFixtures.h"
 
 DEFINE_string(pcap_input, "", "path to input pcap file");
 DEFINE_string(pcap_output, "", "path to output pcap file");
-DEFINE_string(monitor_output,
-  "/tmp/katran_pcap", "output file for katran monitoring");
+DEFINE_string(
+    monitor_output,
+    "/tmp/katran_pcap",
+    "output file for katran monitoring");
 DEFINE_string(balancer_prog, "./balancer_kern.o", "path to balancer bpf prog");
-DEFINE_string(healtchecking_prog, "", "path to healthchecking bpf prog");
+DEFINE_string(healthchecking_prog, "", "path to healthchecking bpf prog");
 DEFINE_bool(print_base64, false, "print packets in base64 from pcap file");
 DEFINE_bool(test_from_fixtures, false, "run tests on predefined dataset");
 DEFINE_bool(perf_testing, false, "run perf tests on predefined dataset");
@@ -50,15 +53,16 @@ DEFINE_bool(iobuf_storage, false, "test iobuf storage for katran monitor");
 
 namespace {
 const std::string kMainInterface = "lo";
-const std::string kV4TunInterface = "ipip0";
-const std::string kV6TunInterface = "ipip60";
+const std::string kV4TunInterface = "lo";
+const std::string kV6TunInterface = "lo";
 const std::string kNoExternalMap = "";
 const std::vector<uint8_t> kDefaultMac = {0x00, 0x00, 0xDE, 0xAD, 0xBE, 0xAF};
+const std::vector<uint8_t> kLocalMac = {0x00, 0xFF, 0xDE, 0xAD, 0xBE, 0xAF};
 constexpr uint32_t kDefaultPriority = 2307;
 constexpr uint32_t kDefaultKatranPos = 8;
 constexpr uint32_t kMonitorLimit = 1024;
 constexpr bool kNoHc = false;
-constexpr uint32_t k1Mbyte = 1024*1024;
+constexpr uint32_t k1Mbyte = 1024 * 1024;
 const std::vector<std::string> kReals = {
     "10.0.0.1",
     "10.0.0.2",
@@ -207,10 +211,9 @@ void testKatranMonitor(katran::KatranLb& lb) {
   auto buf = lb.getKatranMonitorEventBuffer(0);
   if (buf != nullptr) {
     LOG(INFO) << "buffer length is: " << buf->length();
-    auto pcap_file = folly::File(FLAGS_monitor_output.c_str(),
-       O_RDWR | O_CREAT | O_TRUNC);
-    auto res = folly::writeFull(pcap_file.fd(), buf->data(),
-      buf->length());
+    auto pcap_file =
+        folly::File(FLAGS_monitor_output.c_str(), O_RDWR | O_CREAT | O_TRUNC);
+    auto res = folly::writeFull(pcap_file.fd(), buf->data(), buf->length());
     if (res < 0) {
       LOG(ERROR) << "error while trying to write katran monitor output";
     }
@@ -271,6 +274,11 @@ void prepareLbData(katran::KatranLb& lb) {
   lb.addVip(vip);
   lb.modifyVip(vip, kQuicVip);
   addReals(lb, vip, reals6);
+
+  // adding healthchecking dst
+  lb.addHealthcheckerDst(1, "10.0.0.1");
+  lb.addHealthcheckerDst(2, "10.0.0.2");
+  lb.addHealthcheckerDst(3, "fc00::1");
 }
 
 void prepareOptionalLbData(katran::KatranLb& lb) {
@@ -294,6 +302,18 @@ void preparePerfTestingLbData(katran::KatranLb& lb) {
   for (auto& dst : kReals) {
     lb.addInlineDecapDst(dst);
   }
+}
+
+void testHcFromFixture(katran::KatranLb& lb, katran::BpfTester& tester) {
+  if (lb.getHealthcheckerProgFd() < 0) {
+    LOG(INFO) << "Healthchecking not enabled. Skipping HC related tests";
+    return;
+  }
+  tester.resetTestFixtures(
+      katran::testing::inputHCTestFixtures,
+      katran::testing::outputHCTestFixtures);
+  auto ctxs = katran::testing::getInputCtxsForHcTest();
+  tester.testClsFromFixture(lb.getHealthcheckerProgFd(), ctxs);
 }
 
 void testOptionalLbCounters(katran::KatranLb& lb) {
@@ -393,7 +413,7 @@ int main(int argc, char** argv) {
     config.inputData = katran::testing::inputTestFixtures;
     config.outputData = katran::testing::outputTestFixtures;
   }
-  katran::XdpTester tester(config);
+  katran::BpfTester tester(config);
   if (FLAGS_print_base64) {
     if (FLAGS_pcap_input.empty()) {
       std::cout << "pcap_input is not specified! exiting";
@@ -412,16 +432,17 @@ int main(int argc, char** argv) {
                                kV4TunInterface,
                                kV6TunInterface,
                                FLAGS_balancer_prog,
-                               FLAGS_healtchecking_prog,
+                               FLAGS_healthchecking_prog,
                                kDefaultMac,
                                kDefaultPriority,
                                kNoExternalMap,
-                               kDefaultKatranPos,
-                               kNoHc};
+                               kDefaultKatranPos};
 
+  kconfig.enableHc = FLAGS_healthchecking_prog.empty() ? false : true;
   kconfig.monitorConfig = kmconfig;
   kconfig.katranSrcV4 = "10.0.13.37";
   kconfig.katranSrcV6 = "fc00:2307::1337";
+  kconfig.localMac = kLocalMac;
 
   katran::KatranLb lb(kconfig);
   lb.loadBpfProgs();
@@ -438,18 +459,19 @@ int main(int argc, char** argv) {
     if (FLAGS_iobuf_storage) {
       testKatranMonitor(lb);
     }
+    testHcFromFixture(lb, tester);
     if (FLAGS_optional_tests) {
       prepareOptionalLbData(lb);
       LOG(INFO) << "Running optional tests. they could fail if requirements "
                 << "are not satisfied";
       if (FLAGS_gue) {
-      tester.resetTestFixtures(
-          katran::testing::inputGueOptionalTestFixtures,
-          katran::testing::outputGueOptionalTestFixtures);
+        tester.resetTestFixtures(
+            katran::testing::inputGueOptionalTestFixtures,
+            katran::testing::outputGueOptionalTestFixtures);
       } else {
-      tester.resetTestFixtures(
-          katran::testing::inputOptionalTestFixtures,
-          katran::testing::outputOptionalTestFixtures);
+        tester.resetTestFixtures(
+            katran::testing::inputOptionalTestFixtures,
+            katran::testing::outputOptionalTestFixtures);
       }
       tester.testFromFixture();
       testOptionalLbCounters(lb);

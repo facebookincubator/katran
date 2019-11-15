@@ -75,7 +75,7 @@ enum class KatranMonitorState {
   ENABLED,
 };
 
-}
+} // namespace
 
 /**
  * This class implements all routines to interact with katran load balancer
@@ -646,10 +646,17 @@ class KatranLb {
    */
   void setupGueEnvironment();
 
+  /*
+   * setupHcEnvironment prepare katran to run healthchecks (e.g. setting up
+   * src addresses for outer packets)
+   */
+  void setupHcEnvironment();
+
   /**
-   * enableRecirculation enables katran to use recirculation technics, where some codepaths
-   * inside xdp forwarding plane, after packets monipulation, rerun whole load balancer's code
-   * (e.g. after decapsulation). it is acheaving this by register itself in internal programs array
+   * enableRecirculation enables katran to use recirculation technics, where
+   * some codepaths inside xdp forwarding plane, after packets monipulation,
+   * rerun whole load balancer's code (e.g. after decapsulation). it is
+   * acheaving this by register itself in internal programs array
    */
   void enableRecirculation();
 
