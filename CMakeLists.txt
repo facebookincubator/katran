@@ -27,6 +27,7 @@ set(CMAKE_CXX_COMPILER_ID "Clang")
 set(CMAKE_CXX_STANDARD 14)
 
 # Dependencies
+find_package(fmt CONFIG REQUIRED)
 find_package(folly CONFIG REQUIRED)
 find_package(Glog REQUIRED)
 find_package(Gflags REQUIRED)
