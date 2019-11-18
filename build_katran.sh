@@ -473,6 +473,7 @@ test_katran() {
 }
 
 get_dev_tools
+get_fmt
 get_folly
 get_clang
 get_required_libs
@@ -484,7 +485,6 @@ if [ "$BUILD_EXAMPLE_THRIFT" -eq 1 ]; then
   get_wangle
   get_zstd
   get_rsocket
-  get_fmt
   get_fbthrift
 fi
 if [ "$BUILD_EXAMPLE_GRPC" -eq 1 ]; then
