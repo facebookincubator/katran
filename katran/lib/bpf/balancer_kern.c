@@ -240,7 +240,7 @@ static inline int process_l3_headers(struct packet_description *pckt,
 __attribute__((__always_inline__))
 static inline int process_encaped_pckt(void **data, void **data_end,
                                        struct xdp_md *xdp, bool *is_ipv6,
-                                       __u8 *protocol) {
+                                       __u8 *protocol, bool pass) {
   int action;
   if (*protocol == IPPROTO_IPIP) {
     if (*is_ipv6) {
@@ -276,6 +276,10 @@ static inline int process_encaped_pckt(void **data, void **data_end,
   if (action >= 0) {
     return action;
   }
+  if (pass) {
+    // pass packet to kernel after decapsulation
+    return XDP_PASS;
+  }
   return recirculate(xdp);
 }
 #endif // INLINE_DECAP
@@ -306,6 +310,7 @@ static inline int process_packet(void *data, __u64 off, void *data_end,
 
   #ifdef INLINE_DECAP
   if (protocol == IPPROTO_IPIP || protocol == IPPROTO_IPV6) {
+    bool pass = true;
     struct address dst_addr = {};
     if (is_ipv6) {
       memcpy(dst_addr.addrv6, pckt.flow.dstv6, 16);
@@ -320,10 +325,11 @@ static inline int process_packet(void *data, __u64 off, void *data_end,
       if (!data_stats) {
         return XDP_DROP;
       }
+      pass = false;
       data_stats->v1 += 1;
     }
 
-    return process_encaped_pckt(&data, &data_end, xdp, &is_ipv6, &protocol);
+    return process_encaped_pckt(&data, &data_end, xdp, &is_ipv6, &protocol, pass);
   }
   #endif // INLINE_DECAP
 
