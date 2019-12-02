@@ -10,6 +10,7 @@
 #include <stdbool.h>
 
 #include "balancer_consts.h"
+#include "balancer_helpers.h"
 #include "balancer_structs.h"
 #include "balancer_maps.h"
 #include "bpf.h"
@@ -70,15 +71,14 @@ static inline bool get_packet_dst(struct real_definition **real,
   bool under_flood = false;
   bool src_found = false;
   __u32 *real_pos;
-  __u64 cur_time;
+  __u64 cur_time = 0;
   __u32 hash;
   __u32 key;
 
   under_flood = is_under_flood(&cur_time);
 
   #ifdef LPM_SRC_LOOKUP
-  if ((vip_info->flags & F_SRC_ROUTING) && !(pckt->flags & F_INLINE_DECAP) &&
-      !under_flood) {
+  if ((vip_info->flags & F_SRC_ROUTING) && !under_flood) {
     __u32 *lpm_val;
     if (is_ipv6) {
       struct v6_lpm_key lpm_key_v6 = {};
@@ -169,8 +169,7 @@ __attribute__((__always_inline__))
 static inline int process_l3_headers(struct packet_description *pckt,
                                      __u8 *protocol, __u64 off,
                                      __u16 *pkt_bytes, void *data,
-                                     void *data_end, bool is_ipv6,
-                                     bool decrement_ttl) {
+                                     void *data_end, bool is_ipv6) {
   __u64 iph_len;
   int action;
   struct iphdr *iph;
@@ -184,12 +183,6 @@ static inline int process_l3_headers(struct packet_description *pckt,
     iph_len = sizeof(struct ipv6hdr);
     *protocol = ip6h->nexthdr;
     pckt->flow.proto = *protocol;
-    if (decrement_ttl) {
-      if(!--ip6h->hop_limit) {
-        // ttl 0
-        return XDP_DROP;
-      }
-    }
 
     // copy tos from the packet
     pckt->tos = (ip6h->priority << 4) & 0xF0;
@@ -220,18 +213,7 @@ static inline int process_l3_headers(struct packet_description *pckt,
       // contains ip options, and we dont support em
       return XDP_DROP;
     }
-
-    if (decrement_ttl) {
-      u32 csum;
-      if (!--iph->ttl) {
-        // ttl 0
-        return XDP_DROP;
-      }
-      csum = iph->check + 0x0001;
-      iph->check = (csum & 0xffff) + (csum >> 16);
-    }
     pckt->tos = iph->tos;
-
     *protocol = iph->protocol;
     pckt->flow.proto = *protocol;
     *pkt_bytes = bpf_ntohs(iph->tot_len);
@@ -254,63 +236,49 @@ static inline int process_l3_headers(struct packet_description *pckt,
   return FURTHER_PROCESSING;
 }
 
+#ifdef INLINE_DECAP
 __attribute__((__always_inline__))
 static inline int process_encaped_pckt(void **data, void **data_end,
                                        struct xdp_md *xdp, bool *is_ipv6,
-                                       struct packet_description *pckt,
-                                       __u8 *protocol, __u64 off,
-                                       __u16 *pkt_bytes, bool decrement_ttl) {
+                                       __u8 *protocol) {
   int action;
   if (*protocol == IPPROTO_IPIP) {
     if (*is_ipv6) {
-      if ((*data + sizeof(struct ipv6hdr) +
-           sizeof(struct eth_hdr)) > *data_end) {
+      int offset = sizeof(struct ipv6hdr) + sizeof(struct eth_hdr);
+      if ((*data + offset) > *data_end) {
         return XDP_DROP;
       }
+      action = decrement_ttl(*data, *data_end, offset, false);
       if (!decap_v6(xdp, data, data_end, true)) {
         return XDP_DROP;
       }
       *is_ipv6 = false;
     } else {
-      if ((*data + sizeof(struct iphdr) +
-           sizeof(struct eth_hdr)) > *data_end) {
+      int offset = sizeof(struct iphdr) + sizeof(struct eth_hdr);
+      if ((*data + offset) > *data_end) {
         return XDP_DROP;
       }
+      action = decrement_ttl(*data, *data_end, offset, false);
       if (!decap_v4(xdp, data, data_end)) {
         return XDP_DROP;
       }
     }
-    off = sizeof(struct eth_hdr);
-    if (*data + off > *data_end) {
-      return XDP_DROP;
-    }
-    action = process_l3_headers(
-      pckt, protocol, off, pkt_bytes, *data, *data_end, false, decrement_ttl);
-    if (action >= 0) {
-      return action;
-    }
-    *protocol = pckt->flow.proto;
   } else if (*protocol == IPPROTO_IPV6) {
-    if ((*data + sizeof(struct ipv6hdr) +
-         sizeof(struct eth_hdr)) > *data_end) {
+    int offset = sizeof(struct ipv6hdr) + sizeof(struct eth_hdr);
+    if ((*data + offset) > *data_end) {
       return XDP_DROP;
     }
+    action = decrement_ttl(*data, *data_end, offset, true);
     if (!decap_v6(xdp, data, data_end, false)) {
       return XDP_DROP;
     }
-    off = sizeof(struct eth_hdr);
-    if (*data + off > *data_end) {
-      return XDP_DROP;
-    }
-    action = process_l3_headers(
-      pckt, protocol, off, pkt_bytes, *data, *data_end, true, decrement_ttl);
-    if (action >= 0) {
-      return action;
-    }
-    *protocol = pckt->flow.proto;
   }
-  return FURTHER_PROCESSING;
+  if (action >= 0) {
+    return action;
+  }
+  return recirculate(xdp);
 }
+#endif // INLINE_DECAP
 
 __attribute__((__always_inline__))
 static inline int process_packet(void *data, __u64 off, void *data_end,
@@ -330,7 +298,7 @@ static inline int process_packet(void *data, __u64 off, void *data_end,
   __u32 mac_addr_pos = 0;
   __u16 pkt_bytes;
   action = process_l3_headers(
-    &pckt, &protocol, off, &pkt_bytes, data, data_end, is_ipv6, false);
+    &pckt, &protocol, off, &pkt_bytes, data, data_end, is_ipv6);
   if (action >= 0) {
     return action;
   }
@@ -346,12 +314,6 @@ static inline int process_packet(void *data, __u64 off, void *data_end,
     }
     __u32 *decap_dst_flags = bpf_map_lookup_elem(&decap_dst, &dst_addr);
 
-    action = process_encaped_pckt(&data, &data_end, xdp, &is_ipv6, &pckt,
-                                  &protocol, off, &pkt_bytes, decap_dst_flags);
-    if (action >= 0) {
-      return action;
-    }
-
     if (decap_dst_flags) {
       __u32 stats_key = MAX_VIPS + REMOTE_ENCAP_CNTRS;
       data_stats = bpf_map_lookup_elem(&stats, &stats_key);
@@ -359,14 +321,11 @@ static inline int process_packet(void *data, __u64 off, void *data_end,
         return XDP_DROP;
       }
       data_stats->v1 += 1;
-      pckt.flags |= F_INLINE_DECAP;
-    } else {
-      // it's ipip encapsulated packet but not to decap dst. so just pass
-      // decapsulated packet to the kernel
-      return XDP_PASS;
     }
+
+    return process_encaped_pckt(&data, &data_end, xdp, &is_ipv6, &protocol);
   }
-  #endif
+  #endif // INLINE_DECAP
 
   if (protocol == IPPROTO_TCP) {
     if (!parse_tcp(data, data_end, is_ipv6, &pckt)) {

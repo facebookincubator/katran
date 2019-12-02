@@ -303,12 +303,12 @@ void testOptionalLbCounters(katran::KatranLb& lb) {
     LOG(INFO) << "icmp packet too big counter is incorrect";
   }
   stats = lb.getSrcRoutingStats();
-  if (stats.v1 != 2 || stats.v2 != 4) {
+  if (stats.v1 != 2 || stats.v2 != 6) {
     VLOG(2) << "lpm src. local pckts: " << stats.v1 << " remote:" << stats.v2;
     LOG(INFO) << "source based routing counter is incorrect";
   }
   stats = lb.getInlineDecapStats();
-  if (stats.v1 != 2) {
+  if (stats.v1 != 4) {
     VLOG(2) << "inline decapsulated pckts: " << stats.v1;
     LOG(INFO) << "inline decapsulated packet's counter is incorrect";
   }

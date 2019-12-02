@@ -20,6 +20,8 @@
  * This file contains common used routines. such as csum helpers etc
  */
 
+#include <linux/in.h>
+#include <linux/ip.h>
 #include <linux/ipv6.h>
 
 #include "balancer_consts.h"
@@ -117,6 +119,46 @@ static inline void submit_event(struct xdp_md *ctx, void *map,
   md.data_len = min_helper(size, MAX_EVENT_SIZE);
   flags |= (__u64) md.data_len << 32;
   bpf_perf_event_output(ctx, map, flags, &md, sizeof(struct event_metadata));
+}
+
+#ifdef INLINE_DECAP
+__attribute__((__always_inline__))
+static inline int recirculate(struct xdp_md *ctx) {
+  int i = RECIRCULATION_INDEX;
+  bpf_tail_call(ctx, &katran_subprograms, i);
+  // we should never hit this
+  return XDP_PASS;
+}
+#endif // INLINE_DECAP
+
+__attribute__((__always_inline__))
+static inline int decrement_ttl(void *data, void *data_end, int offset, bool is_ipv6) {
+  struct iphdr *iph;
+  struct ipv6hdr *ip6h;
+
+  if (is_ipv6) {
+    if ((data + offset + sizeof(struct ipv6hdr)) > data_end) {
+      return XDP_DROP;
+    }
+    ip6h = (struct ipv6hdr*)(data + offset);
+    if(!--ip6h->hop_limit) {
+      // ttl 0
+      return XDP_DROP;
+    }
+  } else {
+    if ((data + offset + sizeof(struct iphdr)) > data_end) {
+      return XDP_DROP;
+    }
+    iph = (struct iphdr*)(data + offset);
+    __u32 csum;
+    if (!--iph->ttl) {
+      // ttl 0
+      return XDP_DROP;
+    }
+    csum = iph->check + 0x0001;
+    iph->check = (csum & 0xffff) + (csum >> 16);
+  }
+  return FURTHER_PROCESSING;
 }
 
 #endif

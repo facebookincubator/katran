@@ -65,6 +65,13 @@
 #define MAX_QUIC_REALS 65535 // 2^16-1
 
 #define CTL_MAP_SIZE 16
+
+// size of internal prog array
+#define SUBPROGRAMS_ARRAY_SIZE 1
+// position where katran would register itself in prog array
+// for recirculation
+#define RECIRCULATION_INDEX 0
+
 #define CH_RINGS_SIZE (MAX_VIPS * RING_SIZE)
 #define STATS_MAP_SIZE (MAX_VIPS * 2)
 
