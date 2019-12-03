@@ -7,18 +7,6 @@ find_library(DL dl)
 find_library(LIBIBERTY libiberty.a iberty)
 find_library(EVENT_CORE libevent_core.a event_core)
 
-add_library(pcap_writer
-  PcapWriter.h
-  PcapStructs.h
-  PcapWriter.cpp
-  PcapMsg.h
-  PcapMsg.cpp
-)
-
-target_link_libraries(pcap_writer
-  "Folly::folly"
-)
-
 add_library(xdp_event_logger
   XdpEventLogger.h
   XdpEventReader.h
@@ -27,7 +15,7 @@ add_library(xdp_event_logger
 )
 
 target_link_libraries(xdp_event_logger
-  pcap_writer
+  pcapwriter
   "Folly::folly"
   "glog::glog"
 )

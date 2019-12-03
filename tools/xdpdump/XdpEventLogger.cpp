@@ -14,17 +14,11 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#include "XdpEventLogger.h"
+#include "tools/xdpdump/XdpEventLogger.h"
 
 #include <folly/Conv.h>
 #include <folly/IPAddress.h>
 #include <glog/logging.h>
-
-extern "C" {
-#include <linux/if_ether.h>
-#include <linux/ip.h>
-#include <linux/udp.h>
-}
 
 namespace xdpdump {
 
