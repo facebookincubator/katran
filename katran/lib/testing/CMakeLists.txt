@@ -42,6 +42,7 @@ add_library(xdptester STATIC
     KatranTestFixtures.h
     KatranGueTestFixtures.h
     KatranOptionalTestFixtures.h
+    KatranGueOptionalTestFixtures.h
 )
 
 target_link_libraries(xdptester

@@ -121,7 +121,7 @@ static inline void submit_event(struct xdp_md *ctx, void *map,
   bpf_perf_event_output(ctx, map, flags, &md, sizeof(struct event_metadata));
 }
 
-#ifdef INLINE_DECAP
+#ifdef INLINE_DECAP_GENERIC
 __attribute__((__always_inline__))
 static inline int recirculate(struct xdp_md *ctx) {
   int i = RECIRCULATION_INDEX;
@@ -129,7 +129,7 @@ static inline int recirculate(struct xdp_md *ctx) {
   // we should never hit this
   return XDP_PASS;
 }
-#endif // INLINE_DECAP
+#endif // of INLINE_DECAP_GENERIC
 
 __attribute__((__always_inline__))
 static inline int decrement_ttl(void *data, void *data_end, int offset, bool is_ipv6) {

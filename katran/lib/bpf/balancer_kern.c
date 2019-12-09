@@ -236,11 +236,39 @@ static inline int process_l3_headers(struct packet_description *pckt,
   return FURTHER_PROCESSING;
 }
 
-#ifdef INLINE_DECAP
+#ifdef INLINE_DECAP_GENERIC
 __attribute__((__always_inline__))
-static inline int process_encaped_pckt(void **data, void **data_end,
-                                       struct xdp_md *xdp, bool *is_ipv6,
-                                       __u8 *protocol, bool pass) {
+static inline int check_decap_dst(struct packet_description *pckt,
+                                  bool is_ipv6, bool *pass) {
+    struct address dst_addr = {};
+    struct lb_stats *data_stats;
+
+    if (is_ipv6) {
+      memcpy(dst_addr.addrv6, pckt->flow.dstv6, 16);
+    } else {
+      dst_addr.addr = pckt->flow.dst;
+    }
+    __u32 *decap_dst_flags = bpf_map_lookup_elem(&decap_dst, &dst_addr);
+
+    if (decap_dst_flags) {
+      *pass = false;
+      __u32 stats_key = MAX_VIPS + REMOTE_ENCAP_CNTRS;
+      data_stats = bpf_map_lookup_elem(&stats, &stats_key);
+      if (!data_stats) {
+        return XDP_DROP;
+      }
+      data_stats->v1 += 1;
+    }
+    return FURTHER_PROCESSING;
+}
+
+#endif // of INLINE_DECAP_GENERIC
+
+#ifdef INLINE_DECAP_IPIP
+__attribute__((__always_inline__))
+static inline int process_encaped_ipip_pckt(void **data, void **data_end,
+                                            struct xdp_md *xdp, bool *is_ipv6,
+                                            __u8 *protocol, bool pass) {
   int action;
   if (*protocol == IPPROTO_IPIP) {
     if (*is_ipv6) {
@@ -282,7 +310,60 @@ static inline int process_encaped_pckt(void **data, void **data_end,
   }
   return recirculate(xdp);
 }
-#endif // INLINE_DECAP
+#endif // of INLINE_DECAP_IPIP
+
+#ifdef INLINE_DECAP_GUE
+__attribute__((__always_inline__))
+static inline int process_encaped_gue_pckt(void **data, void **data_end,
+                                           struct xdp_md *xdp, bool is_ipv6,
+                                           bool pass) {
+  int offset = 0;
+  int action;
+  if (is_ipv6) {
+    __u8 v6 = 0;
+    offset = sizeof(struct ipv6hdr) + sizeof(struct eth_hdr) +
+      sizeof(struct udphdr);
+    // 1 byte for gue v1 marker to figure out what is internal protocol
+    if ((*data + offset + 1) > *data_end) {
+      return XDP_DROP;
+    }
+    v6 = ((__u8*)(*data))[offset];
+    v6 &= GUEV1_IPV6MASK;
+    if (v6) {
+      // inner packet is ipv6 as well
+      action = decrement_ttl(*data, *data_end, offset, true);
+      if (!gue_decap_v6(xdp, data, data_end, false)) {
+        return XDP_DROP;
+      }
+    } else {
+      // inner packet is ipv4
+      action = decrement_ttl(*data, *data_end, offset, false);
+      if (!gue_decap_v6(xdp, data, data_end, true)) {
+        return XDP_DROP;
+      }
+    }
+  } else {
+    offset = sizeof(struct iphdr) + sizeof(struct eth_hdr) +
+      sizeof(struct udphdr);
+    if ((*data + offset) > *data_end) {
+      return XDP_DROP;
+    }
+    action = decrement_ttl(*data, *data_end, offset, false);
+    if (!gue_decap_v4(xdp, data, data_end)) {
+        return XDP_DROP;
+    }
+  }
+  if (action >= 0) {
+    return action;
+  }
+  if (pass) {
+    return XDP_PASS;
+  }
+  return recirculate(xdp);
+}
+#endif // of INLINE_DECAP_GUE
+
+
 
 __attribute__((__always_inline__))
 static inline int process_packet(void *data, __u64 off, void *data_end,
@@ -308,30 +389,17 @@ static inline int process_packet(void *data, __u64 off, void *data_end,
   }
   protocol = pckt.flow.proto;
 
-  #ifdef INLINE_DECAP
+  #ifdef INLINE_DECAP_IPIP
   if (protocol == IPPROTO_IPIP || protocol == IPPROTO_IPV6) {
     bool pass = true;
-    struct address dst_addr = {};
-    if (is_ipv6) {
-      memcpy(dst_addr.addrv6, pckt.flow.dstv6, 16);
-    } else {
-      dst_addr.addr = pckt.flow.dst;
+    action = check_decap_dst(&pckt, is_ipv6, &pass);
+    if (action >= 0) {
+      return action;
     }
-    __u32 *decap_dst_flags = bpf_map_lookup_elem(&decap_dst, &dst_addr);
-
-    if (decap_dst_flags) {
-      __u32 stats_key = MAX_VIPS + REMOTE_ENCAP_CNTRS;
-      data_stats = bpf_map_lookup_elem(&stats, &stats_key);
-      if (!data_stats) {
-        return XDP_DROP;
-      }
-      pass = false;
-      data_stats->v1 += 1;
-    }
-
-    return process_encaped_pckt(&data, &data_end, xdp, &is_ipv6, &protocol, pass);
+    return process_encaped_ipip_pckt(
+        &data, &data_end, xdp, &is_ipv6, &protocol, pass);
   }
-  #endif // INLINE_DECAP
+#endif // INLINE_DECAP_IPIP
 
   if (protocol == IPPROTO_TCP) {
     if (!parse_tcp(data, data_end, is_ipv6, &pckt)) {
@@ -341,6 +409,16 @@ static inline int process_packet(void *data, __u64 off, void *data_end,
     if (!parse_udp(data, data_end, is_ipv6, &pckt)) {
       return XDP_DROP;
     }
+  #ifdef INLINE_DECAP_GUE
+    if (pckt.flow.port16[1] == bpf_htons(GUE_DPORT)) {
+      bool pass = true;
+      action = check_decap_dst(&pckt, is_ipv6, &pass);
+      if (action >= 0) {
+        return action;
+      }
+      return process_encaped_gue_pckt(&data, &data_end, xdp, is_ipv6, pass);
+    }
+  #endif // of INLINE_DECAP_GUE
   } else {
     // send to tcp/ip stack
     return XDP_PASS;

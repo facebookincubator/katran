@@ -141,7 +141,7 @@ struct bpf_map_def SEC("maps") lpm_src_v6 = {
 BPF_ANNOTATE_KV_PAIR(lpm_src_v6, struct v6_lpm_key, __u32);
 
 #endif
-#ifdef INLINE_DECAP
+#ifdef INLINE_DECAP_GENERIC
 struct bpf_map_def SEC("maps") decap_dst = {
   .type = BPF_MAP_TYPE_HASH,
   .key_size = sizeof(struct address),

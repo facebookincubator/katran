@@ -25,10 +25,11 @@
 #include <folly/FileUtil.h>
 #include <gflags/gflags.h>
 
-#include "KatranOptionalTestFixtures.h"
-#include "KatranTestFixtures.h"
-#include "KatranGueTestFixtures.h"
-#include "XdpTester.h"
+#include "katran/lib/testing/KatranOptionalTestFixtures.h"
+#include "katran/lib/testing/KatranGueOptionalTestFixtures.h"
+#include "katran/lib/testing/KatranTestFixtures.h"
+#include "katran/lib/testing/KatranGueTestFixtures.h"
+#include "katran/lib/testing/XdpTester.h"
 #include "katran/lib/KatranLb.h"
 #include "katran/lib/KatranLbStructs.h"
 
@@ -441,9 +442,15 @@ int main(int argc, char** argv) {
       prepareOptionalLbData(lb);
       LOG(INFO) << "Running optional tests. they could fail if requirements "
                 << "are not satisfied";
+      if (FLAGS_gue) {
+      tester.resetTestFixtures(
+          katran::testing::inputGueOptionalTestFixtures,
+          katran::testing::outputGueOptionalTestFixtures);
+      } else {
       tester.resetTestFixtures(
           katran::testing::inputOptionalTestFixtures,
           katran::testing::outputOptionalTestFixtures);
+      }
       tester.testFromFixture();
       testOptionalLbCounters(lb);
     }
