@@ -1,4 +1,4 @@
-# katran
+![alt text](logo.png "Katran")
 
 [![Travis Build Status](https://travis-ci.org/facebookincubator/katran.svg?branch=master)](https://travis-ci.org/facebookincubator/katran)
 [![CI Status](https://github.com/facebookincubator/katran/workflows/CI/badge.svg?branch=master)](https://github.com/facebookincubator/katran/actions?workflow=CI)
