@@ -105,7 +105,7 @@ int healthchecker(struct __sk_buff *skb)
   // to prevent recursion, if encapsulated packet would run through this filter
   skb->mark = 0;
 
-  if (!hc_encap_ipip(skb, real, ethh, is_ipv6)) {
+  if (!HC_ENCAP(skb, real, ethh, is_ipv6)) {
     prog_stats->pckts_dropped += 1;
     return TC_ACT_SHOT;
   }

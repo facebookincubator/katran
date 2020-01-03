@@ -286,9 +286,11 @@
 #ifdef GUE_ENCAP
 #define PCKT_ENCAP_V4 gue_encap_v4
 #define PCKT_ENCAP_V6 gue_encap_v6
+#define HC_ENCAP hc_encap_gue
 #else
 #define PCKT_ENCAP_V4 encap_v4
 #define PCKT_ENCAP_V6 encap_v6
+#define HC_ENCAP hc_encap_ipip
 #endif
 
 
