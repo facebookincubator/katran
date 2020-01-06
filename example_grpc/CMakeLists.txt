@@ -6,6 +6,8 @@ find_library(PROTOBUF libprotobuf.a protobuf)
 set(GRPC_BUILD_PATH "${CMAKE_PREFIX_PATH}/grpc/build")
 set(GRPC_LIBRARIES_PATH "${GRPC_BUILD_PATH}")
 set(CARES_LIBRARIES_PATH "${GRPC_LIBRARIES_PATH}/third_party/cares/cares/lib")
+set(ABSL_LIBRARIES_PATH "${GRPC_LIBRARIES_PATH}/third_party/abseil-cpp/absl")
+
 find_library(ADDR_SORT libaddress_sorting.a address_sorting PATHS ${GRPC_LIBRARIES_PATH} NO_DEFAULT_PATH)
 find_library(GPR libgpr.a gpr PATHS ${GRPC_LIBRARIES_PATH} NO_DEFAULT_PATH)
 find_library(GRPC libgrpc.a grpc PATHS ${GRPC_LIBRARIES_PATH} NO_DEFAULT_PATH)
@@ -16,6 +18,9 @@ find_library(UPB libupb.a grpc PATHS ${GRPC_LIBRARIES_PATH} NO_DEFAULT_PATH)
 find_library(LIBIBERTY libiberty.a iberty)
 find_library(DL dl)
 find_library(EVENT libevent.a event)
+find_library(ABSL_BASE libabsl_absl_base.a absl_absl_base "${ABSL_LIBRARIES_PATH}/base" NO_DEFAULT_PATH)
+find_library(ABSL_BASE_THROW libabsl_absl_throw_delegate.a absl_absl_throw_delegate "${ABSL_LIBRARIES_PATH}/base" NO_DEFAULT_PATH)
+find_library(ABSL_STRINGS libabsl_absl_strings.a absl_absl_strings "${ABSL_LIBRARIES_PATH}/strings" NO_DEFAULT_PATH)
 find_package(Protobuf REQUIRED)
 
 set(PROTO_PATH "${CMAKE_SOURCE_DIR}/example_grpc/protos")
@@ -95,6 +100,8 @@ target_link_libraries(katran_server_grpc
   "${GRPC_UNSECURE}"
   "${LIBZ}"
   "${UPB}"
+  "${ABSL_BASE_THROW}"
+  "${ABSL_STRINGS}"
   katran_service_handler
   grpc_signal_handler
   "-Wl,--end-group"
