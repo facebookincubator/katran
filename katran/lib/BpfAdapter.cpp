@@ -427,9 +427,34 @@ int BpfAdapter::testXdpProg(
     void* data_out,
     uint32_t* size_out,
     uint32_t* retval,
-    uint32_t* duration) {
-  return bpf_prog_test_run(
-      prog_fd, repeat, data, data_size, data_out, size_out, retval, duration);
+    uint32_t* duration,
+    void* ctx_in,
+    uint32_t ctx_size_in,
+    void* ctx_out,
+    uint32_t* ctx_size_out) {
+  struct bpf_prog_test_run_attr attr = {};
+  attr.prog_fd = prog_fd;
+  attr.repeat = repeat;
+  attr.data_in = data;
+  attr.data_size_in = data_size;
+  attr.data_out = data_out;
+  attr.ctx_in = ctx_in;
+  attr.ctx_size_in = ctx_size_in;
+  attr.ctx_out = ctx_out;
+  auto ret = bpf_prog_test_run_xattr(&attr);
+  if (size_out) {
+    *size_out = attr.data_size_out;
+  }
+  if (retval) {
+    *retval = attr.retval;
+  }
+  if (duration) {
+    *duration = attr.duration;
+  }
+  if (ctx_size_out) {
+    *ctx_size_out = attr.ctx_size_out;
+  }
+  return ret;
 }
 
 int BpfAdapter::modifyXdpProg(

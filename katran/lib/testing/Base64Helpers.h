@@ -26,7 +26,7 @@ namespace katran {
 
 /**
  * helper class to do base64 encoding/decoding.
- * built to be as simple as possible. only intented to be used in XdpTester
+ * built to be as simple as possible. only intented to be used in BpfTester
  */
 class Base64Helpers {
  public:

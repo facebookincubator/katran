@@ -14,11 +14,9 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#include "katran/lib/testing/XdpTester.h"
+#include "katran/lib/testing/BpfTester.h"
 
 #include <iostream>
-#include <string>
-#include <unordered_map>
 
 #include <folly/Format.h>
 #include <folly/io/IOBuf.h>
@@ -30,19 +28,31 @@ namespace {
 // xdp works in 1 page per packet mode. on x86 it's 4k
 constexpr uint64_t kMaxXdpPcktSize = 4096;
 constexpr int kTestRepeatCount = 1;
-std::unordered_map<uint32_t, std::string> kXdpCodes{
+std::unordered_map<int, std::string> kXdpCodes{
     {0, "XDP_ABORTED"},
     {1, "XDP_DROP"},
     {2, "XDP_PASS"},
     {3, "XDP_TX"},
 };
+std::unordered_map<int, std::string> kTcCodes{
+    {-1, "TC_ACT_UNSPEC"},
+    {0, "TC_ACT_OK"},
+    {1, "TC_ACT_RECLASSIFY"},
+    {2, "TC_ACT_SHOT"},
+    {3, "TC_ACT_PIPE"},
+    {4, "TC_ACT_STOLEN"},
+    {5, "TC_ACT_QUEUED"},
+    {6, "TC_ACT_REPEAT"},
+    {7, "TC_ACT_REDIRECT"},
+};
+
 constexpr uint32_t kNanosecInSec = 1000000000;
 } // namespace
 
-XdpTester::XdpTester(const TesterConfig& config)
+BpfTester::BpfTester(const TesterConfig& config)
     : config_(config), parser_(config.inputFileName, config.outputFileName) {}
 
-void XdpTester::printPcktBase64() {
+void BpfTester::printPcktBase64() {
   if (config_.inputFileName.empty()) {
     LOG(INFO) << "can't print packet. no input pcap file specified";
     return;
@@ -58,7 +68,7 @@ void XdpTester::printPcktBase64() {
   }
 }
 
-void XdpTester::writePcapOutput(std::unique_ptr<folly::IOBuf>&& buf) {
+void BpfTester::writePcapOutput(std::unique_ptr<folly::IOBuf>&& buf) {
   if (config_.outputFileName.empty()) {
     VLOG(2) << "no output file specified";
     return;
@@ -70,7 +80,7 @@ void XdpTester::writePcapOutput(std::unique_ptr<folly::IOBuf>&& buf) {
   }
 }
 
-void XdpTester::testPcktsFromPcap() {
+void BpfTester::testPcktsFromPcap() {
   if (config_.inputFileName.empty() || config_.bpfProgFd < 0) {
     LOG(INFO) << "can't run pcap based tests. input pcap file or bpf prog fd "
               << "aren't specified";
@@ -113,7 +123,36 @@ void XdpTester::testPcktsFromPcap() {
   }
 }
 
-void XdpTester::testFromFixture() {
+void BpfTester::testFromFixture() {
+  runBpfTesterFromFixtures(config_.bpfProgFd, kXdpCodes, {});
+}
+
+void BpfTester::testClsFromFixture(
+    int progFd,
+    std::vector<struct __sk_buff> ctxs_in) {
+  std::vector<void*> ctxs;
+  for (auto& ctx : ctxs_in) {
+    ctxs.push_back(&ctx);
+  }
+  runBpfTesterFromFixtures(progFd, kTcCodes, {});
+}
+
+void BpfTester::runBpfTesterFromFixtures(
+    int progFd,
+    std::unordered_map<int, std::string> retvalTranslation,
+    std::vector<void*> ctxs_in,
+    uint32_t ctx_size) {
+  if (ctxs_in.size() != 0) {
+    if (ctx_size == 0) {
+      LOG(INFO)
+          << "size of single ctx value must be non zero if ctxs are specified";
+      return;
+    }
+    if (ctxs_in.size() != config_.inputData.size()) {
+      LOG(INFO) << "ctxs and input datasets must have equal number of elements";
+      return;
+    }
+  }
   // for inputData format is <pckt_base64, test description>
   // for outputData format is <expected_pckt_base64, xdp_return_code_string>
   if (config_.inputData.size() != config_.outputData.size()) {
@@ -126,37 +165,44 @@ void XdpTester::testFromFixture() {
   std::string ret_val_str;
   std::string test_result;
   for (int i = 0; i < config_.inputData.size(); i++) {
-    auto buf = folly::IOBuf::create(kMaxXdpPcktSize);
+    void* ctx_in = ctxs_in.size() != 0 ? ctxs_in[i] : nullptr;
+    auto pckt_buf = folly::IOBuf::create(kMaxXdpPcktSize);
     auto input_pckt = parser_.getPacketFromBase64(config_.inputData[i].first);
     writePcapOutput(input_pckt->cloneOne());
     auto res = adapter_.testXdpProg(
-        config_.bpfProgFd,
+        progFd,
         kTestRepeatCount,
         input_pckt->writableData(),
         input_pckt->length(),
-        buf->writableData(),
+        pckt_buf->writableData(),
         &output_pckt_size,
-        &prog_ret_val);
+        &prog_ret_val,
+        nullptr, // duration
+        ctx_in,
+        ctx_size);
     if (res < 0) {
-      LOG(INFO) << "failed to run bpf test on pckt #" << pckt_num;
+      LOG(INFO) << "failed to run bpf test on pckt #" << pckt_num << " errno "
+                << errno << " : " << folly::errnoStr(errno);
       ++pckt_num;
       continue;
     }
-    if (prog_ret_val > 3) {
+    auto ret_val_iter = retvalTranslation.find(prog_ret_val);
+    if (ret_val_iter == retvalTranslation.end()) {
       ret_val_str = "UNKNOWN";
     } else {
-      ret_val_str = kXdpCodes[prog_ret_val];
+      ret_val_str = ret_val_iter->second;
     }
     // adjust IOBuf so data data_end will acount for writen data
-    buf->append(output_pckt_size);
-    writePcapOutput(buf->cloneOne());
+    pckt_buf->append(output_pckt_size);
+    writePcapOutput(pckt_buf->cloneOne());
     if (ret_val_str != config_.outputData[i].second) {
       VLOG(2) << "value from test: " << ret_val_str
               << " expected: " << config_.outputData[i].second;
       test_result = "\033[31mFailed\033[0m";
     } else {
       test_result = "\033[32mPassed\033[0m";
-      auto output_test_pckt = parser_.convertPacketToBase64(std::move(buf));
+      auto output_test_pckt =
+          parser_.convertPacketToBase64(std::move(pckt_buf));
       if (output_test_pckt != config_.outputData[i].first) {
         VLOG(2) << "output packet not equal to expected one; expected pkt="
                 << output_test_pckt
@@ -171,7 +217,7 @@ void XdpTester::testFromFixture() {
   }
 }
 
-void XdpTester::resetTestFixtures(
+void BpfTester::resetTestFixtures(
     const std::vector<std::pair<std::string, std::string>>& inputData,
     const std::vector<std::pair<std::string, std::string>>& outputData) {
   //
@@ -179,7 +225,7 @@ void XdpTester::resetTestFixtures(
   config_.outputData = outputData;
 }
 
-void XdpTester::testPerfFromFixture(uint32_t repeat, const int position) {
+void BpfTester::testPerfFromFixture(uint32_t repeat, const int position) {
   // for inputData format is <pckt_base64, test description>
   int first_index{0}, last_index{0};
   uint32_t duration{0};

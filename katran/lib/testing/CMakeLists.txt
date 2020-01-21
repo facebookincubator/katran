@@ -36,16 +36,17 @@ target_link_libraries(pcap_parser
     "${BOOST_SYSTEM}"
 )
 
-add_library(xdptester STATIC
-    XdpTester.h
-    XdpTester.cpp
+add_library(bpftester STATIC
+    BpfTester.h
+    BpfTester.cpp
     KatranTestFixtures.h
+    KatranHCTestFixtures.h
     KatranGueTestFixtures.h
     KatranOptionalTestFixtures.h
     KatranGueOptionalTestFixtures.h
 )
 
-target_link_libraries(xdptester
+target_link_libraries(bpftester
     "Folly::folly"
     "glog::glog"
     pcap_parser
@@ -72,7 +73,7 @@ add_executable(katran_tester katran_tester.cpp)
 
 target_link_libraries(katran_tester
   katranlb
-  xdptester
+  bpftester
   ${GFLAGS}
   ${GTEST}
 )

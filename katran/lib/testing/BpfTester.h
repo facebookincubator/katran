@@ -18,16 +18,17 @@
 
 #include <memory>
 #include <string>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
-#include "katran/lib/testing/PcapParser.h"
 #include "katran/lib/BpfAdapter.h"
+#include "katran/lib/testing/PcapParser.h"
 
 namespace katran {
 
 /**
- * structure with config params for XdpTester.
+ * structure with config params for BpfTester.
  */
 struct TesterConfig {
   /**
@@ -66,9 +67,9 @@ struct TesterConfig {
  * it could either use pcap file for input data (and optional write result
  * to output file in pcap format as well) or predefined test fixtures.
  */
-class XdpTester {
+class BpfTester {
  public:
-  explicit XdpTester(const TesterConfig& config);
+  explicit BpfTester(const TesterConfig& config);
   /**
    * helper function to print packets to stdout in base64 format from input
    * pcap file. use case: create data for text fixtures.
@@ -99,6 +100,14 @@ class XdpTester {
   void testFromFixture();
 
   /**
+   * @param int progFd descriptor of bpf program
+   * @param std::vector<struct __skb_buff> input contexts for test run
+   * helper function to run tests on data from test fixtures
+   * for clsact(tc) based bpf program. optional ctxs could be specified
+   */
+  void testClsFromFixture(int progFd, std::vector<struct __sk_buff> ctxs_in);
+
+  /**
    * @param vector<string, string> new input fixtures
    * @param vector<string, string> new output fixtures
    * helper function which set test fixtures to new values
@@ -123,6 +132,14 @@ class XdpTester {
   void writePcapOutput(std::unique_ptr<folly::IOBuf>&& buf);
 
  private:
+  // helper to run bpf tester from fixtures. if len of ctxs is not null - it
+  // must be the same as the size of input fixtures
+  void runBpfTesterFromFixtures(
+      int progFd,
+      std::unordered_map<int, std::string> retvalTranslation,
+      std::vector<void*> ctxs_in,
+      uint32_t ctx_size = 0);
+
   TesterConfig config_;
   PcapParser parser_;
   BpfAdapter adapter_;

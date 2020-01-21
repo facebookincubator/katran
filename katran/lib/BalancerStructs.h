@@ -30,6 +30,11 @@ struct ctl_value {
   };
 };
 
+// mac address for healthchecking
+struct hc_mac {
+  uint8_t mac[6];
+};
+
 // vip's definition for lookup
 struct vip_definition {
   union {

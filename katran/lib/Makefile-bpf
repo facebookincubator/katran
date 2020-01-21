@@ -8,13 +8,13 @@ PFLAGS = $(DEBUGFLAGS)
 
 INCLUDEFLAGS = -I$(obj)/usr/include \
 	       -I$(obj)/include \
-	       #-I$(obj)/bpfprog/include \
 
 
 
 always = bpf/balancer_kern.o
 always += bpf/adapter_integration_test_kern.o
 always += bpf/healthchecking_ipip.o
+always += bpf/healthchecking_kern.o
 always += bpf/xdp_pktcntr.o
 always += bpf/xdp_root.o
 

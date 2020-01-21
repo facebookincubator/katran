@@ -34,68 +34,9 @@
 #include "bpf.h"
 #include "bpf_endian.h"
 #include "bpf_helpers.h"
+#include "encap_helpers.h"
 #include "pckt_parsing.h"
 
-__attribute__((__always_inline__)) static inline void create_v4_hdr(
-    struct iphdr* iph,
-    struct packet_description* pckt,
-    __u32 saddr,
-    __u32 daddr,
-    __u16 pkt_bytes,
-    __u8 proto) {
-  __u64 csum = 0;
-  iph->version = 4;
-  iph->ihl = 5;
-  iph->frag_off = 0;
-  iph->protocol = proto;
-  iph->check = 0;
-#ifdef COPY_INNER_PACKET_TOS
-  if (pckt) {
-    iph->tos = pckt->tos;
-  }
-#else
-  iph->tos = DEFAULT_TOS;
-#endif
-  iph->tot_len = bpf_htons(pkt_bytes + sizeof(struct iphdr));
-  iph->daddr = daddr;
-  iph->saddr = saddr;
-  iph->ttl = DEFAULT_TTL;
-  ipv4_csum_inline(iph, &csum);
-  iph->check = csum;
-}
-
-__attribute__((__always_inline__)) static inline void create_v6_hdr(
-    struct ipv6hdr* ip6h,
-    struct packet_description* pckt,
-    __u32* saddr,
-    __u32* daddr,
-    __u16 payload_len,
-    __u8 proto) {
-  ip6h->version = 6;
-  memset(ip6h->flow_lbl, 0, sizeof(ip6h->flow_lbl));
-#ifdef COPY_INNER_PACKET_TOS
-  if (pckt) {
-    ip6h->priority = (pckt->tos & 0xF0) >> 4;
-    ip6h->flow_lbl[0] = (pckt->tos & 0x0F) << 4;
-  }
-#else
-  ip6h->priority = DEFAULT_TOS;
-#endif
-  ip6h->nexthdr = proto;
-  ip6h->payload_len = bpf_htons(payload_len);
-  ip6h->hop_limit = DEFAULT_TTL;
-  memcpy(ip6h->saddr.s6_addr32, saddr, 16);
-  memcpy(ip6h->daddr.s6_addr32, daddr, 16);
-}
-
-__attribute__((__always_inline__))
-static inline void create_udp_hdr(struct udphdr *udph, __u16 sport, __u16 dport,
-                                  __u16 len, __u16 csum) {
-  udph->source = sport;
-  udph->dest = bpf_htons(dport);
-  udph->len = bpf_htons(len);
-  udph->check = csum;
-}
 
 __attribute__((__always_inline__)) static inline bool encap_v6(
     struct xdp_md* xdp,
@@ -144,7 +85,7 @@ __attribute__((__always_inline__)) static inline bool encap_v6(
   saddr[2] = IPIP_V6_PREFIX3;
   saddr[3] = ip_suffix;
 
-  create_v6_hdr(ip6h, pckt, saddr, dst->dstv6, payload_len, proto);
+  create_v6_hdr(ip6h, pckt->tos, saddr, dst->dstv6, payload_len, proto);
 
   return true;
 }
@@ -182,7 +123,7 @@ __attribute__((__always_inline__)) static inline bool encap_v4(
 
   create_v4_hdr(
       iph,
-      pckt,
+      pckt->tos,
       ((0xFFFF0000 & ip_suffix) | IPIP_V4_PREFIX),
       dst->dst,
       pkt_bytes,
@@ -286,7 +227,7 @@ static inline bool gue_encap_v4(struct xdp_md *xdp, struct ctl_value *cval,
 
   create_v4_hdr(
     iph,
-    pckt,
+    pckt->tos,
     ipv4_src,
     dst->dst,
     pkt_bytes + sizeof(struct udphdr),
@@ -351,7 +292,7 @@ static inline bool gue_encap_v6(struct xdp_md *xdp, struct ctl_value *cval,
     pkt_bytes,
     GUE_CSUM);
 
-  create_v6_hdr(ip6h, pckt, src->dstv6, dst->dstv6, pkt_bytes, IPPROTO_UDP);
+  create_v6_hdr(ip6h, pckt->tos, src->dstv6, dst->dstv6, pkt_bytes, IPPROTO_UDP);
 
   return true;
 }

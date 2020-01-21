@@ -101,7 +101,7 @@ int healthchecker(struct __sk_buff *skb)
 
   prog_stats = bpf_map_lookup_elem(&hc_stats_map, &stats_key);
   if (!prog_stats) {
-    return 1;
+    return TC_ACT_UNSPEC;
   }
 
   if (skb->mark == 0) {
@@ -112,14 +112,13 @@ int healthchecker(struct __sk_buff *skb)
   struct hc_real_definition *real = bpf_map_lookup_elem(&hc_reals_map,
                                                      &somark);
   if(!real) {
-    // some strange (w/ fwmark; but not a healthcheck)
-    // local packet to the VIP.
+    // some strange (w/ fwmark; but not a healthcheck) local packet
     prog_stats->pckts_skipped += 1;
     return TC_ACT_UNSPEC;
   }
 
   if (skb->len > MAX_PACKET_SIZE) {
-    // do not allow packets bigger than the specified size (typically adv-mss)
+    // do not allow packets bigger than the specified size
     prog_stats->pckts_dropped += 1;
     prog_stats->pckts_too_big += 1;
     return TC_ACT_SHOT;
