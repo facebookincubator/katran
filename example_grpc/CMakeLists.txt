@@ -21,6 +21,7 @@ find_library(EVENT libevent.a event)
 find_library(ABSL_BASE libabsl_absl_base.a absl_absl_base "${ABSL_LIBRARIES_PATH}/base" NO_DEFAULT_PATH)
 find_library(ABSL_BASE_THROW libabsl_absl_throw_delegate.a absl_absl_throw_delegate "${ABSL_LIBRARIES_PATH}/base" NO_DEFAULT_PATH)
 find_library(ABSL_STRINGS libabsl_absl_strings.a absl_absl_strings "${ABSL_LIBRARIES_PATH}/strings" NO_DEFAULT_PATH)
+find_library(ABSL_BAD_OPTIONAL libabsl_absl_bad_optional_access.a absl_absl_bad_optional_access "${ABSL_LIBRARIES_PATH}/types" NO_DEFAULT_PATH)
 find_package(Protobuf REQUIRED)
 
 set(PROTO_PATH "${CMAKE_SOURCE_DIR}/example_grpc/protos")
@@ -102,6 +103,7 @@ target_link_libraries(katran_server_grpc
   "${UPB}"
   "${ABSL_BASE_THROW}"
   "${ABSL_STRINGS}"
+  "${ABSL_BAD_OPTIONAL}"
   katran_service_handler
   grpc_signal_handler
   "-Wl,--end-group"
