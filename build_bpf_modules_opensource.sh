@@ -47,6 +47,7 @@ while getopts ":hb:s:m" arg; do
       ;;
   esac
 done
+shift $((OPTIND -1))
 
 # Validate required parameters
 if [ -z "${BUILD_DIR-}" ] ; then
