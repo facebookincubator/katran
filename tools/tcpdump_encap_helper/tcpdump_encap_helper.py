@@ -22,6 +22,7 @@ CHUNK_SIZE = 10
 EMPTY_FILTER = 2
 V4_HDR_SIZE = 20
 V6_HDR_SIZE = 40
+UDP_HDR_SIZE = 8
 V4_SRC_OFFSET = 12
 V4_DST_OFFSET = 16
 V4_PROTO_OFFSET = 9
@@ -73,9 +74,10 @@ def modify_filter(tcpdump_filters, value, offset, size, v6=False):
     return tcpdump_filters
 
 
-def create_tcpdump_line_v6(args):
+def create_tcpdump_line_v6(args, offset):
     """
     @param args cli arguments
+    @param int offset of internal header compare to external one
     @return None
     IPv6 Header Format
 
@@ -108,7 +110,7 @@ def create_tcpdump_line_v6(args):
             tcpdump_filters = modify_filter(
                 tcpdump_filters,
                 v6_chunk,
-                V6_HDR_SIZE + V6_SRC_OFFSET + chunk_offset,
+                offset + V6_SRC_OFFSET + chunk_offset,
                 V6_PART_SIZE,
                 True,
             )
@@ -119,30 +121,31 @@ def create_tcpdump_line_v6(args):
             tcpdump_filters = modify_filter(
                 tcpdump_filters,
                 v6_chunk,
-                V6_HDR_SIZE + V6_DST_OFFSET + chunk_offset,
+                offset + V6_DST_OFFSET + chunk_offset,
                 V6_PART_SIZE,
                 True,
             )
             chunk_offset += V6_PART_SIZE
     if args.proto:
         tcpdump_filters = modify_filter(
-            tcpdump_filters, args.proto, V6_HDR_SIZE + V6_PROTO_OFFSET, PROTO_SIZE, True
+            tcpdump_filters, args.proto, offset + V6_PROTO_OFFSET, PROTO_SIZE, True
         )
     if args.sport:
         tcpdump_filters = modify_filter(
-            tcpdump_filters, args.sport, 2 * V6_HDR_SIZE + SPORT_OFFSET, PORT_SIZE, True
+            tcpdump_filters, args.sport, offset + V6_HDR_SIZE + SPORT_OFFSET, PORT_SIZE, True
         )
     if args.dport:
         tcpdump_filters = modify_filter(
-            tcpdump_filters, args.dport, 2 * V6_HDR_SIZE + DPORT_OFFSET, PORT_SIZE, True
+            tcpdump_filters, args.dport, offset + V6_HDR_SIZE + DPORT_OFFSET, PORT_SIZE, True
         )
     print('"(' + " and ".join(tcpdump_filters) + ')"')
 
 
-def create_tcpdump_line_v4(args, offset):
+def create_tcpdump_line_v4(args, offset, encap_v6=False):
     """
     @param object args cli arguments
     @param int offset of internal header compare to external one
+    @param bool encap_v6 flag to indicate that outer packet is ipv6
     @return None
 
     IP header format:
@@ -169,7 +172,7 @@ def create_tcpdump_line_v4(args, offset):
             ipv4_in_hex(args.src),
             offset + V4_SRC_OFFSET,
             V4_ADDR_SIZE,
-            offset == V6_HDR_SIZE,
+            encap_v6,
         )
     if args.dst:
         tcpdump_filters = modify_filter(
@@ -177,7 +180,7 @@ def create_tcpdump_line_v4(args, offset):
             ipv4_in_hex(args.dst),
             offset + V4_DST_OFFSET,
             V4_ADDR_SIZE,
-            offset == V6_HDR_SIZE,
+            encap_v6,
         )
     if args.proto:
         tcpdump_filters = modify_filter(
@@ -185,7 +188,7 @@ def create_tcpdump_line_v4(args, offset):
             args.proto,
             offset + V4_PROTO_OFFSET,
             PROTO_SIZE,
-            offset == V6_HDR_SIZE,
+            encap_v6,
         )
     if args.sport:
         tcpdump_filters = modify_filter(
@@ -193,7 +196,7 @@ def create_tcpdump_line_v4(args, offset):
             args.sport,
             offset + V4_HDR_SIZE + SPORT_OFFSET,
             PORT_SIZE,
-            offset == V6_HDR_SIZE,
+            encap_v6,
         )
     if args.dport:
         tcpdump_filters = modify_filter(
@@ -201,7 +204,7 @@ def create_tcpdump_line_v4(args, offset):
             args.dport,
             offset + V4_HDR_SIZE + DPORT_OFFSET,
             PORT_SIZE,
-            offset == V6_HDR_SIZE,
+            encap_v6,
         )
     print('"(' + " and ".join(tcpdump_filters) + ')"')
 
@@ -210,7 +213,7 @@ def parse_args():
     parser = argparse.ArgumentParser(
         description=(
             "this is a tool which helps to create a filter to match "
-            "fields from internal header of IPIP packet"
+            "fields from internal header of IPIP/GUE packet"
         )
     )
     parser.add_argument(
@@ -220,6 +223,14 @@ def parse_args():
         help=(
             "mode of the filter. possible values: 4 (for ipip) "
             "6 (for ip6ip6), 46 (for ip4ip6)"
+        ),
+    )
+    parser.add_argument(
+        "-g",
+        "--gue",
+        action = 'store_true',
+        help=(
+            "run helper in GUE mode (instead of default IPIP)"
         ),
     )
     parser.add_argument(
@@ -262,12 +273,18 @@ def parse_args():
 
 def main():
     args = parse_args()
+    offset = 0
+    if args.gue:
+        offset += UDP_HDR_SIZE
     if args.mode == "4":
-        create_tcpdump_line_v4(args, V4_HDR_SIZE)
+        offset += V4_HDR_SIZE
+        create_tcpdump_line_v4(args, offset)
     elif args.mode == "6":
-        create_tcpdump_line_v6(args)
+        offset += V6_HDR_SIZE
+        create_tcpdump_line_v6(args, offset)
     elif args.mode == "46":
-        create_tcpdump_line_v4(args, V6_HDR_SIZE)
+        offset += V6_HDR_SIZE
+        create_tcpdump_line_v4(args, offset, True)
 
 
 if __name__ == "__main__":
