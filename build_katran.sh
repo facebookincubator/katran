@@ -390,7 +390,9 @@ get_grpc() {
     pushd .
     cd "$DEPS_DIR"
     echo -e "${COLOR_GREEN}[ INFO ] Cloning grpc repo ${COLOR_OFF}"
-    git clone  --depth 1 https://github.com/grpc/grpc
+    # pin specific release of grpc to avoid build failures
+    # with new changes in grpc/absl
+    git clone  --depth 1 https://github.com/grpc/grpc --branch v1.27.1
     # this is to deal with a nested dir
     cd grpc
     git submodule update --init
