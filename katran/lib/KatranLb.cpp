@@ -1335,6 +1335,25 @@ HealthCheckProgStats KatranLb::getStatsForHealthCheckProgram() {
   return total_stats;
 }
 
+KatranBpfMapStats KatranLb::getBpfMapStats(const std::string& map) {
+  KatranBpfMapStats map_stats = {0};
+  int res = bpfAdapter_.getBpfMapMaxSize(map);
+  if (res < 0) {
+    lbStats_.bpfFailedCalls++;
+      LOG(ERROR) << "Error gathering map stats for " << map;
+  } else {
+    map_stats.maxEntries = res;
+  }
+  res = bpfAdapter_.getBpfMapUsedSize(map);
+  if (res < 0) {
+    lbStats_.bpfFailedCalls++;
+    LOG(ERROR) << "Error gathering map stats for " << map;
+  } else {
+    map_stats.currentEntries = res;
+  }
+  return map_stats;
+}
+
 bool KatranLb::addHealthcheckerDst(
     const uint32_t somark,
     const std::string& dst) {

@@ -209,6 +209,17 @@ struct KatranMonitorStats {
 };
 
 /**
+ * @param uint32_t maxEntries size of the bpf map in the kernel
+ * @param uint32_t currentEntries number of entries we are managing
+ *
+ * generic bpf map stats
+ */
+struct KatranBpfMapStats {
+  uint32_t maxEntries{0};
+  uint32_t currentEntries{0};
+};
+
+/**
  * @param uint64_t bpfFailedCalls number of failed syscalls
  * @param uint64_t addrValidationFailed times provided ipaddress was invalid
  *

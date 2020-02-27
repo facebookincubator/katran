@@ -190,6 +190,33 @@ class BpfAdapter {
    */
   static int getPinnedBpfObject(const std::string& path);
 
+
+  /**
+   * @param int fd of the object (e.g. map)
+   * @param bpf_map_info* pointer of pre-allocated bpf map info to populate
+   * @return int 0 on success; non-zero otherwise
+   *
+   * helper function to get the metadata of a bpf map
+   */
+  static int getBpfMapInfo(const int& fd, struct bpf_map_info* info);
+
+  /**
+   * @param string name of the bpf map
+   * @return int >=0 on success; negative on failure
+   *
+   * helper function to get the max number of entries in a bpf map
+   */
+  int getBpfMapMaxSize(const std::string& name);
+
+  /**
+   * @param string name of the bpf map
+   * @return int >=0 on success; negative on failure
+   *
+   * helper function to get the current number of entries in a bpf map
+   * O(N) on the map size -- this walks every key in the map
+   */
+  int getBpfMapUsedSize(const std::string& name);
+
   /**
    * @param const string& interface name
    * @return int interface index, or 0 if interface can't be found

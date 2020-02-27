@@ -516,6 +516,7 @@ class KatranLb {
    */
   HealthCheckProgStats getStatsForHealthCheckProgram();
 
+  KatranBpfMapStats getBpfMapStats(const std::string& map);
   /**
    * @param KatranFlow 5 tuple which describes a flow
    * @return string address of the real.

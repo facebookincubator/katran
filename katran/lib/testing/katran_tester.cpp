@@ -340,6 +340,36 @@ void testOptionalLbCounters(katran::KatranLb& lb) {
   LOG(INFO) << "Testing of optional counters is complite";
 }
 
+void validateMapSize(
+    katran::KatranLb& lb,
+    const std::string& map_name,
+    int expected_current,
+    int expected_max) {
+  auto map_stats = lb.getBpfMapStats(map_name);
+  VLOG(3) << map_name << ": " << map_stats.currentEntries << "/"
+            << map_stats.maxEntries;
+  if (expected_max != map_stats.maxEntries) {
+    LOG(INFO) << map_name
+              << ": max size is incorrect: " << map_stats.maxEntries;
+  }
+  if (expected_current != map_stats.currentEntries) {
+    LOG(INFO) << map_name
+              << ": current size is incorrect: " << map_stats.currentEntries;
+  }
+}
+
+void preTestLbCounters(katran::KatranLb& lb) {
+  validateMapSize(lb, "vip_map", 0, katran::kDefaultMaxVips);
+  validateMapSize(
+      lb, "reals", katran::kDefaultMaxReals, katran::kDefaultMaxReals);
+  if (!FLAGS_healthchecking_prog.empty()) {
+    validateMapSize(lb, "hc_reals_map", 0, katran::kDefaultMaxReals);
+  }
+  LOG(INFO) << "Initial testing of counters is complete";
+  return;
+}
+
+
 void testLbCounters(katran::KatranLb& lb) {
   katran::VipKey vip;
   vip.address = "10.200.1.1";
@@ -395,6 +425,13 @@ void testLbCounters(katran::KatranLb& lb) {
               << "number of failed ip address validations is non zero";
   }
 
+  validateMapSize(lb, "vip_map", 8, katran::kDefaultMaxVips);
+  validateMapSize(
+      lb, "reals", katran::kDefaultMaxReals, katran::kDefaultMaxReals);
+  if (!FLAGS_healthchecking_prog.empty()) {
+    validateMapSize(lb, "hc_reals_map", 3, katran::kDefaultMaxReals);
+  }
+
   LOG(INFO) << "Testing of counters is complete";
   return;
 }
@@ -447,6 +484,7 @@ int main(int argc, char** argv) {
   katran::KatranLb lb(kconfig);
   lb.loadBpfProgs();
   auto balancer_prog_fd = lb.getKatranProgFd();
+  preTestLbCounters(lb);
   prepareLbData(lb);
   tester.setBpfProgFd(balancer_prog_fd);
   if (!FLAGS_pcap_input.empty()) {

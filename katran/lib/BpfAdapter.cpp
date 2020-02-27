@@ -320,6 +320,61 @@ int BpfAdapter::getPinnedBpfObject(const std::string& path) {
   return bpf_obj_get(path.c_str());
 }
 
+int BpfAdapter::getBpfMapInfo(const int& fd, struct bpf_map_info* info) {
+  uint32_t info_size = sizeof(struct bpf_map_info);
+  return bpf_obj_get_info_by_fd(fd, info, &info_size);
+}
+
+int BpfAdapter::getBpfMapMaxSize(const std::string& name) {
+  struct bpf_map_info info = {0};
+  int fd = getMapFdByName(name);
+  if (fd < 0) {
+    LOG(ERROR) << "Error while retrieving fd for " << name << "=" << fd;
+    return fd;
+  }
+  int err = getBpfMapInfo(fd, &info);
+  if (err) {
+    LOG(ERROR) << "Error while retrieving map metadata for " << name << " : "
+               << folly::errnoStr(err);
+    return -1;
+  }
+  return info.max_entries;
+}
+
+int BpfAdapter::getBpfMapUsedSize(const std::string& name) {
+  int num_entries = 0, err = 0;
+  void *prev_key = nullptr;
+  struct bpf_map_info info;
+  int fd = getMapFdByName(name);
+  if (fd < 0) {
+    LOG(ERROR) << "Error while retrieving fd for " << name << ": " << fd;
+    return fd;
+  }
+  err = getBpfMapInfo(fd, &info);
+  if (err) {
+    LOG(ERROR) << "Error while retrieving map metadata for " << name << ": "
+               << folly::errnoStr(err);
+    return -1;
+  }
+
+  // Walk the keys to get the current number of entries
+  unsigned char key[info.key_size];
+  while (0 == (err = bpf_map_get_next_key(fd, prev_key, &key))) {
+    num_entries++;
+    prev_key = &key;
+  }
+
+  // Normal case: we reached the last element; err is -1, errno is ENOENT
+  if (err == -1 && errno == ENOENT) {
+    VLOG(3) << "Found " << num_entries << " entries for map " << name;
+    return num_entries;
+  } else {
+    LOG(ERROR) << "Error determining size of " << name << "err=" << err
+               << " errno=" << folly::errnoStr(errno);
+    return -errno;
+  }
+}
+
 int BpfAdapter::getInterfaceIndex(const std::string& interface_name) {
   int ifindex = if_nametoindex(interface_name.c_str());
   if (!ifindex) {
