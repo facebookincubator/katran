@@ -296,6 +296,10 @@ static inline bool gue_encap_v6(struct xdp_md *xdp, struct ctl_value *cval,
 
   return true;
 }
+#endif // of GUE_ENCAP
+
+
+#ifdef INLINE_DECAP_GUE
 
 __attribute__((__always_inline__)) static inline bool
 gue_decap_v4(struct xdp_md* xdp, void** data, void** data_end) {
@@ -336,7 +340,7 @@ gue_decap_v6(struct xdp_md* xdp, void** data, void** data_end, bool inner_v4) {
   *data_end = (void*)(long)xdp->data_end;
   return true;
 }
-#endif // of GUE_ENCAP
+#endif // of INLINE_DECAP_GUE
 
 
 
