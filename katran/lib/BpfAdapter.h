@@ -486,6 +486,21 @@ class BpfAdapter {
       enum bpf_attach_type type);
 
   /**
+   * @param string path to cgroup directory
+   * @param enum bpf_attach_type type of attachment
+   * @param string progPrefix Prefix to match with each bpf-program name in
+   *        the specified group before detaching the program
+   * @return int 0 on success, non 0 otherwise
+   *
+   * helper function to detach all bpf progs with matching program name
+   * prefix from specified cgroup
+   */
+  static int detachCgroupProgByPrefix(
+      const std::string& cgroup,
+      enum bpf_attach_type type,
+      const std::string& progPrefix);
+
+  /**
    * @param int bpf prog fd
    * @param string path to cgroup directory
    * @param enum bpf_attach_type type of attachment
@@ -510,6 +525,24 @@ class BpfAdapter {
   static std::vector<uint32_t> getCgroupProgsIds(
       const std::string& cgroup,
       enum bpf_attach_type type);
+
+  /**
+   * @param int Fd of a valid bpf program
+   * @param bpf_prog_info info object to be populated with result
+   * @return 0 if successful
+   *
+   * helper function to get info about a valid bpf program
+   */
+  static int getBpfProgInfo(int progFd, ::bpf_prog_info& info);
+
+  /**
+   * @param int Fd of a valid bpf program
+   * @return bpf_prog_info object with info about the given program
+   * @throws std::runtime_exception on error
+   *
+   * helper function to get info about a valid bpf program
+   */
+  static bpf_prog_info getBpfProgInfo(int progFd);
 
   /**
    * @param string name of the shared map

@@ -18,6 +18,7 @@
 
 #include <folly/CppAttributes.h>
 #include <folly/FileUtil.h>
+#include <folly/Format.h>
 #include <folly/ScopeGuard.h>
 #include <folly/String.h>
 #include <glog/logging.h>
@@ -805,6 +806,9 @@ int BpfAdapter::detachCgroupProg(
     for (auto& id : progs_ids) {
       VLOG(2) << "detaching id: " << id;
       auto fd = bpfProgGetFdById(id);
+      if (fd < 0) {
+        return -1;
+      }
       res = bpf_prog_detach2(fd, target_fd, type);
       ::close(fd);
       if (res) {
@@ -813,6 +817,50 @@ int BpfAdapter::detachCgroupProg(
     }
   }
   return res;
+}
+
+int BpfAdapter::detachCgroupProgByPrefix(
+    const std::string& cgroup,
+    enum bpf_attach_type type,
+    const std::string& progPrefix) {
+  auto target_fd = getDirFd(cgroup);
+  if (target_fd < 0) {
+    return -1;
+  }
+  SCOPE_EXIT {
+    ::close(target_fd);
+  };
+  auto progs_ids = getCgroupProgsIds(cgroup, type);
+  if (progs_ids.empty()) {
+    LOG(ERROR) << folly::format(
+        "No bpf program found in cgroup {} of given type ", cgroup);
+    return -1;
+  }
+  for (auto& id : progs_ids) {
+    auto fd = bpfProgGetFdById(id);
+    if (fd < 0) {
+      return -1;
+    }
+    // do not let the fd leak
+    SCOPE_EXIT {
+      ::close(fd);
+    };
+
+    auto bpfProgInfo = getBpfProgInfo(fd);
+    folly::StringPiece progName = bpfProgInfo.name;
+    if (progName.startsWith(progPrefix)) {
+      VLOG(2) << folly::format(
+          "Detaching bpf-prog {} with id {} by prefix match; given prefix: {}",
+          progName,
+          id,
+          progPrefix);
+      auto res = bpf_prog_detach2(fd, target_fd, type);
+      if (res) {
+        return res;
+      }
+    }
+  }
+  return 0;
 }
 
 int BpfAdapter::detachCgroupProg(
@@ -852,6 +900,24 @@ std::vector<uint32_t> BpfAdapter::getCgroupProgsIds(
     }
   }
   return result;
+}
+
+int BpfAdapter::getBpfProgInfo(int progFd, ::bpf_prog_info& info) {
+  uint32_t infoLen = sizeof(info);
+  return ::bpf_obj_get_info_by_fd(progFd, &info, &infoLen);
+}
+
+bpf_prog_info BpfAdapter::getBpfProgInfo(int progFd) {
+  ::bpf_prog_info info = {};
+  if (getBpfProgInfo(progFd, info)) {
+    throw std::runtime_error(
+        folly::format(
+            "error while looking up info on bpf program: {}, error: {}",
+            progFd,
+            folly::errnoStr(errno))
+            .str());
+  }
+  return info;
 }
 
 int BpfAdapter::getPossibleCpus() {
