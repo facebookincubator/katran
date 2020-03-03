@@ -46,6 +46,7 @@ DEFINE_bool(print_base64, false, "print packets in base64 from pcap file");
 DEFINE_bool(test_from_fixtures, false, "run tests on predefined dataset");
 DEFINE_bool(perf_testing, false, "run perf tests on predefined dataset");
 DEFINE_bool(optional_tests, false, "run optional (kernel specific) tests");
+DEFINE_bool(optional_counter_tests, false, "run optional (kernel specific) counter tests");
 DEFINE_bool(gue, false, "run GUE tests instead of IPIP ones");
 DEFINE_int32(repeat, 1000000, "perf test runs for single packet");
 DEFINE_int32(position, -1, "perf test runs for single packet");
@@ -358,7 +359,7 @@ void validateMapSize(
   }
 }
 
-void preTestLbCounters(katran::KatranLb& lb) {
+void preTestOptionalLbCounters(katran::KatranLb& lb) {
   validateMapSize(lb, "vip_map", 0, katran::kDefaultMaxVips);
   validateMapSize(
       lb, "reals", katran::kDefaultMaxReals, katran::kDefaultMaxReals);
@@ -369,6 +370,16 @@ void preTestLbCounters(katran::KatranLb& lb) {
   return;
 }
 
+
+void postTestOptionalLbCounters(katran::KatranLb& lb) {
+  validateMapSize(lb, "vip_map", 8, katran::kDefaultMaxVips);
+  validateMapSize(
+      lb, "reals", katran::kDefaultMaxReals, katran::kDefaultMaxReals);
+  if (!FLAGS_healthchecking_prog.empty()) {
+    validateMapSize(lb, "hc_reals_map", 3, katran::kDefaultMaxReals);
+  }
+  LOG(INFO) << "Followup testing of counters is complete";
+}
 
 void testLbCounters(katran::KatranLb& lb) {
   katran::VipKey vip;
@@ -425,13 +436,6 @@ void testLbCounters(katran::KatranLb& lb) {
               << "number of failed ip address validations is non zero";
   }
 
-  validateMapSize(lb, "vip_map", 8, katran::kDefaultMaxVips);
-  validateMapSize(
-      lb, "reals", katran::kDefaultMaxReals, katran::kDefaultMaxReals);
-  if (!FLAGS_healthchecking_prog.empty()) {
-    validateMapSize(lb, "hc_reals_map", 3, katran::kDefaultMaxReals);
-  }
-
   LOG(INFO) << "Testing of counters is complete";
   return;
 }
@@ -484,7 +488,9 @@ int main(int argc, char** argv) {
   katran::KatranLb lb(kconfig);
   lb.loadBpfProgs();
   auto balancer_prog_fd = lb.getKatranProgFd();
-  preTestLbCounters(lb);
+  if (FLAGS_optional_counter_tests) {
+    preTestOptionalLbCounters(lb);
+  }
   prepareLbData(lb);
   tester.setBpfProgFd(balancer_prog_fd);
   if (!FLAGS_pcap_input.empty()) {
@@ -493,6 +499,9 @@ int main(int argc, char** argv) {
   } else if (FLAGS_test_from_fixtures) {
     tester.testFromFixture();
     testLbCounters(lb);
+    if (FLAGS_optional_counter_tests) {
+      postTestOptionalLbCounters(lb);
+    }
     testSimulator(lb);
     if (FLAGS_iobuf_storage) {
       testKatranMonitor(lb);
