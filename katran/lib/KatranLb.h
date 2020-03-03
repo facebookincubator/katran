@@ -516,7 +516,13 @@ class KatranLb {
    */
   HealthCheckProgStats getStatsForHealthCheckProgram();
 
+  /**
+   * @param map string name of the bpf map
+   * @return KatranBpfMapStats struct holding the max and current entry count
+   * Could throw std::runtime_error on failure
+   */
   KatranBpfMapStats getBpfMapStats(const std::string& map);
+
   /**
    * @param KatranFlow 5 tuple which describes a flow
    * @return string address of the real.

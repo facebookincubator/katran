@@ -1339,15 +1339,17 @@ KatranBpfMapStats KatranLb::getBpfMapStats(const std::string& map) {
   KatranBpfMapStats map_stats = {0};
   int res = bpfAdapter_.getBpfMapMaxSize(map);
   if (res < 0) {
-    lbStats_.bpfFailedCalls++;
-      LOG(ERROR) << "Error gathering map stats for " << map;
+    throw std::runtime_error(folly::sformat(
+        "Failed to gather max entry count for map '{}'. res: {}", map, res));
   } else {
     map_stats.maxEntries = res;
   }
   res = bpfAdapter_.getBpfMapUsedSize(map);
   if (res < 0) {
-    lbStats_.bpfFailedCalls++;
-    LOG(ERROR) << "Error gathering map stats for " << map;
+    throw std::runtime_error(folly::sformat(
+        "Failed to gather current entry count for map '{}'. res: {}",
+        map,
+        res));
   } else {
     map_stats.currentEntries = res;
   }
