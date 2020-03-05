@@ -62,6 +62,8 @@ add_library(bpfadapter STATIC
     BpfLoader.cpp
     BpfAdapter.h
     BpfLoader.h
+    Netlink.cpp
+    Netlink.h
     linux_includes/bpf.h
     linux_includes/bpf_common.h
     linux_includes/bpf_helpers.h

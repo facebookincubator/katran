@@ -15,6 +15,7 @@
  */
 
 #include "BpfAdapter.h"
+#include "Netlink.h"
 
 #include <folly/CppAttributes.h>
 #include <folly/FileUtil.h>
@@ -52,22 +53,13 @@ namespace {
 // netlink/tc magic constants (from iproute2/tc source code)
 constexpr short MAX_MSG_SIZE = 4096;
 constexpr unsigned TCA_BPF_PRIO_1 = 1;
-constexpr int TC_HANDLE = 0x1;
-constexpr int TC_CLASS_ID = 1;
-constexpr int TC_ACTION_OK = TC_ACT_OK;
 constexpr int kMaxProgsToQuery = 1024;
-std::array<const char, 4> kBpfKind = {"bpf"};
 std::array<const char, 5> kTcActKind = {"gact"};
 constexpr int kMaxPathLen = 255;
 constexpr folly::StringPiece kPossibleCpusFile(
     "/sys/devices/system/cpu/possible");
 constexpr folly::StringPiece kOnlineCpusFile("/sys/devices/system/cpu/online");
 
-// from linux/pkt_cls.h bpf specific constants
-/* BPF classifier */
-#ifndef TCA_BPF_FLAG_ACT_DIRECT
-#define TCA_BPF_FLAG_ACT_DIRECT (1 << 0)
-#endif
 enum {
   TCA_BPF_UNSPEC,
   TCA_BPF_ACT,
@@ -184,6 +176,51 @@ int getCpuCount(const folly::StringPiece file) {
 } // namespace
 
 namespace katran {
+
+static int NetlinkRoundtrip(const NetlinkMessage& msg) {
+  const struct nlmsghdr* nlh =
+      reinterpret_cast<const struct nlmsghdr*>(msg.data());
+
+  struct mnl_socket* nl = mnl_socket_open(NETLINK_ROUTE);
+  if (!nl) {
+    PLOG(ERROR) << "Unable to open netlink socket";
+    return -1;
+  }
+  SCOPE_EXIT {
+    mnl_socket_close(nl);
+  };
+
+  if (mnl_socket_bind(nl, 0, MNL_SOCKET_AUTOPID) < 0) {
+    PLOG(ERROR) << "Unable to bind netlink socket";
+    return -1;
+  }
+
+  unsigned int portId = mnl_socket_get_portid(nl);
+
+  if (VLOG_IS_ON(4)) {
+    // Dump netlink message for debugging
+    mnl_nlmsg_fprintf(stderr, nlh, nlh->nlmsg_len, sizeof(struct ifinfomsg));
+  }
+
+  if (mnl_socket_sendto(nl, nlh, nlh->nlmsg_len) < 0) {
+    PLOG(ERROR) << "Error sending netlink message";
+    return -1;
+  }
+
+  char buf[MNL_SOCKET_BUFFER_SIZE];
+  int ret = mnl_socket_recvfrom(nl, buf, sizeof(buf));
+  while (ret > 0) {
+    ret = mnl_cb_run(buf, ret, msg.seq(), portId, nullptr, nullptr);
+    if (ret <= MNL_CB_STOP) {
+      break;
+    }
+    ret = mnl_socket_recvfrom(nl, buf, sizeof(buf));
+  }
+  if (ret < 0) {
+    PLOG(ERROR) << "Error receiving netlink message";
+  }
+  return ret;
+}
 
 BpfAdapter::BpfAdapter(bool set_limits) {
   if (set_limits) {
@@ -517,154 +554,12 @@ int BpfAdapter::modifyXdpProg(
     const int prog_fd,
     const unsigned int ifindex,
     const uint32_t flags) {
-  //
-  char buf[MNL_SOCKET_BUFFER_SIZE];
-  struct nlmsghdr* nlh;
-  struct ifinfomsg* ifinfo;
   unsigned int seq = static_cast<unsigned int>(std::time(nullptr));
-
-  // Construct netlink message header
-  nlh = mnl_nlmsg_put_header(buf);
-  nlh->nlmsg_type = RTM_SETLINK;
-  nlh->nlmsg_flags = NLM_F_REQUEST | NLM_F_ACK;
-  nlh->nlmsg_seq = seq;
-
-  // Construct ifinfo message header
-  ifinfo = reinterpret_cast<struct ifinfomsg*>(
-      mnl_nlmsg_put_extra_header(nlh, sizeof(struct ifinfomsg)));
-  ifinfo->ifi_family = AF_UNSPEC;
-  ifinfo->ifi_index = ifindex;
-
-  // Additional nested attribues
-  {
-    struct nlattr* xdp_atr = mnl_attr_nest_start(nlh, IFLA_XDP);
-    mnl_attr_put_u32(nlh, IFLA_XDP_FD, prog_fd);
-    if (flags > 0) {
-      mnl_attr_put_u32(nlh, IFLA_XDP_FLAGS, flags);
-    }
-    mnl_attr_nest_end(nlh, xdp_atr);
-  }
-
-  // Perform netlink communication
-  struct mnl_socket* nl = mnl_socket_open(NETLINK_ROUTE);
-  if (!nl) {
-    PLOG(ERROR) << "Unable to open netlink socket";
-    return -1;
-  }
-  SCOPE_EXIT {
-    mnl_socket_close(nl);
-  };
-
-  if (mnl_socket_bind(nl, 0, MNL_SOCKET_AUTOPID) < 0) {
-    PLOG(ERROR) << "Unable to bind netlink socket";
-    return -1;
-  }
-
-  unsigned int portId = mnl_socket_get_portid(nl);
-
-  if (VLOG_IS_ON(4)) {
-    // Dump netlink message for debugging
-    mnl_nlmsg_fprintf(stderr, nlh, nlh->nlmsg_len, sizeof(struct ifinfomsg));
-  }
-
-  if (mnl_socket_sendto(nl, nlh, nlh->nlmsg_len) < 0) {
-    PLOG(ERROR) << "Error sending netlink message";
-    return -1;
-  }
-
-  int ret = mnl_socket_recvfrom(nl, buf, sizeof(buf));
-  while (ret > 0) {
-    ret = mnl_cb_run(buf, ret, seq, portId, nullptr, nullptr);
-    if (ret <= MNL_CB_STOP) {
-      break;
-    }
-    ret = mnl_socket_recvfrom(nl, buf, sizeof(buf));
-  }
-  if (ret < 0) {
-    PLOG(ERROR) << "Error receiving netlink message";
-  }
-
-  return ret;
+  auto msg = NetlinkMessage::XDP(seq, prog_fd, ifindex, flags);
+  return NetlinkRoundtrip(msg);
 }
 
 int BpfAdapter::modifyTcBpfFilter(
-    /**
-      format of netlink msg:
-      +-------------------------------+
-      |type                           |
-      +-------------------------------+
-      |flags                          |
-      +-------------------------------+
-      |seq                            |
-      +-------------------------------+
-      |##### TC's header #####        |
-      +-------------------------------+
-      |family                         |
-      +-------------------------------+
-      |ifindex                        |
-      +-------------------------------+
-      |parent                         |
-      +-------------------------------+
-      |tcm_info                       |
-      +-------------------------------+
-      |TCA_KIND                       |
-      +-------------------------------+
-      |TCA_options (nested)           |
-      +-------------------------------+
-      |bpf prog fd                    |
-      +-------------------------------+
-      |bpf flags                      |
-      +-------------------------------+
-      |bpf name                       |
-      +-------------------------------+
-      |TCA bpf act (nested)           |
-      +-------------------------------+
-      |TCA bpf prio (nested)          |
-      +-------------------------------+
-      |TCA act  kind                  |
-      +-------------------------------+
-      |TCA act options (nested)       |
-      +-------------------------------+
-      |TCA gact params                |
-      +-------------------------------+
-      |end of TCA act options         |
-      +-------------------------------+
-      |end of TCA bpf prio            |
-      +-------------------------------+
-      |end of TCA bpf act             |
-      +-------------------------------+
-      |end of TCA options             |
-      +-------------------------------+
-
-      netlink's header:
-
-      1) type: depends of command, add/delete/modify filter (actual constanst in
-         helpers above)
-      2) flags: depends of the type; could be create/ create + exclusive / 0 (in
-         case of delitation)
-      3) seq - seq number for this message, we are going to use cur time in sec
-
-      tc related headers and fields:
-      1) family: either 0 for deletation or ETH_P_ALL if we are adding new
-      filter 2) ifindex: index of interface where we are going to attach our
-      prog. 3) parent: for bpf this field indicates the direction of the filter.
-         either ingress or egress.
-      4) tcm_info: for tc's filter this field combines protocol and priority
-         (rfc3549 3.1.3)
-      5) TCA_KIND: for bpf it's "bpf"
-      bpf's specific options:
-      1) bpf_prog_fd: file descriptor of already loaded bpf program
-      2) bpf_flags: bpf related flags; for our use case use are using
-         "direct action" (for imediate return after BPF run)
-      3) bpf_name: name of bpf prog (to identify it, e.g. in tc show output), no
-         special meaning behind this.
-      4) act_kind: for bpf's related filter it's fixed to "gact"
-      5) gact params: we only specify default action as TC_ACT_OK (we are going
-         to hit this only if bpf prog exits w/ TC_ACT_PIPE and there is not
-      filter after it)
-
-    */
-
     const int cmd,
     const unsigned int flags,
     const uint32_t priority,
@@ -672,99 +567,10 @@ int BpfAdapter::modifyTcBpfFilter(
     const unsigned int ifindex,
     const std::string& bpf_name,
     const int direction) {
-  char buf[MNL_SOCKET_BUFFER_SIZE];
-  struct nlmsghdr* nlh;
-  struct tcmsg* tc;
   unsigned int seq = static_cast<unsigned int>(std::time(nullptr));
-  uint32_t protocol = 0;
-  unsigned int bpfFlags = TCA_BPF_FLAG_ACT_DIRECT;
-
-  // Construct netlink message header
-  nlh = mnl_nlmsg_put_header(buf);
-  nlh->nlmsg_type = cmd;
-  nlh->nlmsg_flags = NLM_F_REQUEST | NLM_F_ACK | flags;
-  nlh->nlmsg_seq = seq;
-
-  // Construct tc message header
-  tc = reinterpret_cast<struct tcmsg*>(
-      mnl_nlmsg_put_extra_header(nlh, sizeof(struct tcmsg)));
-  tc->tcm_family = AF_UNSPEC;
-  tc->tcm_ifindex = ifindex;
-  tc->tcm_parent = direction;
-
-  if (cmd == RTM_NEWTFILTER && flags & NLM_F_CREATE) {
-    protocol = htons(ETH_P_ALL);
-  }
-  tc->tcm_info = TC_H_MAKE(priority << 16, protocol);
-
-  // Additional nested attribues
-  mnl_attr_put(nlh, TCA_KIND, kBpfKind.size(), kBpfKind.data());
-  {
-    struct nlattr* options = mnl_attr_nest_start(nlh, TCA_OPTIONS);
-    mnl_attr_put_u32(nlh, ::TCA_BPF_FD, prog_fd);
-    mnl_attr_put_u32(nlh, ::TCA_BPF_FLAGS, bpfFlags);
-    mnl_attr_put(nlh, ::TCA_BPF_NAME, bpf_name.size() + 1, bpf_name.c_str());
-    {
-      struct nlattr* act = mnl_attr_nest_start(nlh, ::TCA_BPF_ACT);
-      {
-        struct nlattr* prio = mnl_attr_nest_start(nlh, TCA_BPF_PRIO_1);
-        mnl_attr_put(nlh, ::TCA_ACT_KIND, kTcActKind.size(), kTcActKind.data());
-        {
-          struct nlattr* actOptions =
-              mnl_attr_nest_start(nlh, ::TCA_ACT_OPTIONS);
-          struct tc_gact gactParm;
-          memset(&gactParm, 0, sizeof(gactParm));
-          gactParm.action = TC_ACT_OK;
-          mnl_attr_put(nlh, ::TCA_GACT_PARMS, sizeof(gactParm), &gactParm);
-          mnl_attr_nest_end(nlh, actOptions);
-        }
-        mnl_attr_nest_end(nlh, prio);
-      }
-      mnl_attr_nest_end(nlh, act);
-    }
-    mnl_attr_nest_end(nlh, options);
-  }
-
-  // Perform netlink communication
-  struct mnl_socket* nl = mnl_socket_open(NETLINK_ROUTE);
-  if (!nl) {
-    PLOG(ERROR) << "Unable to open netlink socket";
-    return -1;
-  }
-  SCOPE_EXIT {
-    mnl_socket_close(nl);
-  };
-
-  if (mnl_socket_bind(nl, 0, MNL_SOCKET_AUTOPID) < 0) {
-    PLOG(ERROR) << "Unable to bind netlink socket";
-    return -1;
-  }
-
-  unsigned int portId = mnl_socket_get_portid(nl);
-
-  if (VLOG_IS_ON(4)) {
-    // Dump netlink message for debugging
-    mnl_nlmsg_fprintf(stderr, nlh, nlh->nlmsg_len, sizeof(struct tcmsg));
-  }
-
-  if (mnl_socket_sendto(nl, nlh, nlh->nlmsg_len) < 0) {
-    PLOG(ERROR) << "Error sending netlink message";
-    return -1;
-  }
-
-  int ret = mnl_socket_recvfrom(nl, buf, sizeof(buf));
-  while (ret > 0) {
-    ret = mnl_cb_run(buf, ret, seq, portId, nullptr, nullptr);
-    if (ret <= MNL_CB_STOP) {
-      break;
-    }
-    ret = mnl_socket_recvfrom(nl, buf, sizeof(buf));
-  }
-  if (ret < 0) {
-    PLOG(ERROR) << "Error receiving netlink message";
-  }
-
-  return ret;
+  auto msg = NetlinkMessage::TC(
+      seq, cmd, flags, priority, prog_fd, ifindex, bpf_name, direction);
+  return NetlinkRoundtrip(msg);
 }
 
 int BpfAdapter::getDirFd(const std::string& path) {
