@@ -201,7 +201,7 @@ void XdpDump::detach() {
   auto bpfError = bpf_delete_elem(jmpFd_, &kMapPos);
   if (bpfError) {
     throw std::runtime_error("Error while deleting key from map: " +
-                             folly::toStdString(folly::errnoStr(errno)));
+                             folly::errnoStr(errno));
   }
 }
 
