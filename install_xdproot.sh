@@ -18,6 +18,10 @@
 # Example script to start and run xdproot program
 set -xeo pipefail
 INTERFACE="enp0s3"
+if [ -f /etc/redhat-release ]; then
+    INTERFACE="eth0"
+fi
+
 out=$(mount | grep bpffs) || true
 if [ -z "$out" ]; then
     sudo mount -t bpf bpffs /sys/fs/bpf/

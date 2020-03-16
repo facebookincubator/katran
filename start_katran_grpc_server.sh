@@ -18,6 +18,9 @@
 # this script will start simple_katran_server w/ xdproot
 set -xeo pipefail
 INTERFACE="enp0s3"
+if [ -f /etc/redhat-release ]; then
+  INTERFACE="eth0"
+fi
 
 # By default this script assumes to be invoked from the root dir.
 if [ -z "${KATRAN_BUILD_DIR}" ]
