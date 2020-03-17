@@ -128,7 +128,7 @@ get_required_libs() {
 
 
 get_libevent() {
-    if ![ -f /etc/redhat-release ]; then
+    if [ ! -f /etc/redhat-release ]; then
         # not needed on ubuntu as it is available as a package
         return
     fi
@@ -161,7 +161,7 @@ get_libevent() {
 }
 
 get_gflags() {
-    if ![ -f /etc/redhat-release ]; then
+    if [ ! -f /etc/redhat-release ]; then
         # not needed on ubuntu as it is available as a package
         return
     fi
