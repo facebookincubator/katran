@@ -533,6 +533,14 @@ class KatranLb {
    */
   const std::string getRealForFlow(const KatranFlow& flow);
 
+  /**
+   * @param src ip address of the src
+   * @return true is the update is successful
+   *
+   * Adds source ip to be used by Katran when it encapsulates packet with GUE
+   */
+  bool addGueSrcIp(const folly::IPAddress& src);
+
  private:
   /**
    * update vipmap(add or remove vip) in forwarding plane

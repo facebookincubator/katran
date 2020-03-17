@@ -390,6 +390,30 @@ void KatranLb::setupHcEnvironment() {
   }
 }
 
+bool KatranLb::addGueSrcIp(const folly::IPAddress& src) {
+  auto srcBe = IpHelpers::parseAddrToBe(src);
+  uint32_t key = src.isV4() ? kSrcV4Pos : kSrcV6Pos;
+  // update map for hc_pckt_src
+  auto res = bpfAdapter_.bpfUpdateMap(
+      bpfAdapter_.getMapFdByName("hc_pckt_srcs_map"), &key, &srcBe);
+  if (res) {
+    LOG(ERROR) << "cannot insert src address in map: hc_pckt_srcs_map";
+    return false;
+  }
+  VLOG(3) << "Successfully updated hc_pckt_srcs_map with ip: " << src.str();
+
+  // update map for pckt_src
+  res = bpfAdapter_.bpfUpdateMap(
+      bpfAdapter_.getMapFdByName("pckt_srcs"), &key, &srcBe);
+  if (res) {
+    LOG(ERROR) << "cannot insert src address in map: pckt_srcs";
+    return false;
+  }
+  VLOG(3) << "Successfully updated pckt_srcs with ip: " << src.str();
+
+  return true;
+}
+
 void KatranLb::enableRecirculation() {
   uint32_t key = kRecirculationIndex;
   int balancer_fd = getKatranProgFd();
