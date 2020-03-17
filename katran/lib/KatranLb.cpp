@@ -311,35 +311,65 @@ void KatranLb::attachLrus() {
 }
 
 void KatranLb::setupGueEnvironment() {
-  auto srcv4 = IpHelpers::parseAddrToBe(folly::IPAddress(config_.katranSrcV4));
-  auto srcv6 = IpHelpers::parseAddrToBe(folly::IPAddress(config_.katranSrcV6));
-  uint32_t key = kSrcV4Pos;
-  auto res = bpfAdapter_.bpfUpdateMap(
-      bpfAdapter_.getMapFdByName("pckt_srcs"), &key, &srcv4);
-  if (res < 0) {
-    throw std::runtime_error("can not update src v4 address for GUE packet");
+  if (config_.katranSrcV4.empty() && config_.katranSrcV6.empty()) {
+    throw std::runtime_error(
+        "No source address provided to use as source GUE encapsulation");
   }
-  key = kSrcV6Pos;
-  res = bpfAdapter_.bpfUpdateMap(
-      bpfAdapter_.getMapFdByName("pckt_srcs"), &key, &srcv6);
-  if (res < 0) {
-    throw std::runtime_error("can not update src v6 address for GUE packet");
+  if (!config_.katranSrcV4.empty()) {
+    auto srcv4 =
+        IpHelpers::parseAddrToBe(folly::IPAddress(config_.katranSrcV4));
+    uint32_t key = kSrcV4Pos;
+    auto res = bpfAdapter_.bpfUpdateMap(
+        bpfAdapter_.getMapFdByName("pckt_srcs"), &key, &srcv4);
+    if (res < 0) {
+      throw std::runtime_error("can not update src v4 address for GUE packet");
+    }
+  } else {
+    LOG(ERROR) << "Empty IPV4 address provided to use as source in GUE encap";
+  }
+  if (!config_.katranSrcV6.empty()) {
+    auto srcv6 =
+        IpHelpers::parseAddrToBe(folly::IPAddress(config_.katranSrcV6));
+    auto key = kSrcV6Pos;
+    auto res = bpfAdapter_.bpfUpdateMap(
+        bpfAdapter_.getMapFdByName("pckt_srcs"), &key, &srcv6);
+    if (res < 0) {
+      throw std::runtime_error("can not update src v6 address for GUE packet");
+    }
+  } else {
+    LOG(ERROR) << "Empty IPV6 address provided to use as source in GUE encap";
   }
 }
 
 void KatranLb::setupHcEnvironment() {
   auto map_fd = bpfAdapter_.getMapFdByName("hc_pckt_srcs_map");
-  auto srcv4 = IpHelpers::parseAddrToBe(folly::IPAddress(config_.katranSrcV4));
-  auto srcv6 = IpHelpers::parseAddrToBe(folly::IPAddress(config_.katranSrcV6));
-  uint32_t key = kSrcV4Pos;
-  auto res = bpfAdapter_.bpfUpdateMap(map_fd, &key, &srcv4);
-  if (res < 0) {
-    throw std::runtime_error("can not update src v4 address for GUE packet");
+  if (config_.katranSrcV4.empty() && config_.katranSrcV6.empty()) {
+    throw std::runtime_error(
+        "No source address provided for direct healthchecking");
   }
-  key = kSrcV6Pos;
-  res = bpfAdapter_.bpfUpdateMap(map_fd, &key, &srcv6);
-  if (res < 0) {
-    throw std::runtime_error("can not update src v6 address for GUE packet");
+  if (!config_.katranSrcV4.empty()) {
+    auto srcv4 =
+        IpHelpers::parseAddrToBe(folly::IPAddress(config_.katranSrcV4));
+    uint32_t key = kSrcV4Pos;
+    auto res = bpfAdapter_.bpfUpdateMap(map_fd, &key, &srcv4);
+    if (res < 0) {
+      throw std::runtime_error(
+          "can not update src v4 address for direct healthchecking");
+    }
+  } else {
+    LOG(ERROR) << "Empty IPV4 address provided to use as source in healthcheck";
+  }
+  if (!config_.katranSrcV6.empty()) {
+    auto srcv6 =
+        IpHelpers::parseAddrToBe(folly::IPAddress(config_.katranSrcV6));
+    auto key = kSrcV6Pos;
+    auto res = bpfAdapter_.bpfUpdateMap(map_fd, &key, &srcv6);
+    if (res < 0) {
+      throw std::runtime_error(
+          "can not update src v6 address for direct healthchecking");
+    }
+  } else {
+    LOG(ERROR) << "Empty IPV6 address provided to use as source in healthcheck";
   }
 
   std::array<struct hc_mac, 2> macs;
@@ -352,7 +382,7 @@ void KatranLb::setupHcEnvironment() {
     macs[kHcDstMacPos].mac[i] = config_.defaultMac[i];
   }
   for (auto position : {kHcSrcMacPos, kHcDstMacPos}) {
-    res = bpfAdapter_.bpfUpdateMap(
+    auto res = bpfAdapter_.bpfUpdateMap(
         bpfAdapter_.getMapFdByName("hc_pckt_macs"), &position, &macs[position]);
     if (res < 0) {
       throw std::runtime_error("can not update healthchecks mac address");
