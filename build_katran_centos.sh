@@ -467,11 +467,12 @@ get_libbpf() {
     echo -e "${COLOR_GREEN}[ INFO ] Cloning libbpf repo ${COLOR_OFF}"
     git clone --depth 1 https://github.com/libbpf/libbpf || true
     cd "${LIBBPF_DIR}"/src
-    make -j 2
-    DESTDIR="$INSTALL_DIR" make install || true
-    cd "$LIBBPF_DIR"
-    mkdir -p "$INSTALL_DIR"/lib/
+    make
 
+    #on centos the cp -fpR used was throwing an error, so just use a regular cp -R
+    sed -i 's/cp -fpR/cp -R/g' Makefile
+    DESTDIR="$INSTALL_DIR" make install
+    cd "$LIBBPF_DIR"
     cp -r include/uapi "$INSTALL_DIR"/usr/include/bpf/
     cd "$INSTALL_DIR"/usr/include/bpf
     # override to use local bpf.h instead of system wide
@@ -481,7 +482,6 @@ get_libbpf() {
     cd "$INSTALL_DIR"
     mv "$INSTALL_DIR"/usr/include/bpf "$INSTALL_DIR"/include/
     cp -r "$INSTALL_DIR"/usr/lib64/* "$INSTALL_DIR"/lib/
-
     echo -e "${COLOR_GREEN}libbpf is installed ${COLOR_OFF}"
     popd
     touch "${DEPS_DIR}/libbpf_installed"
@@ -521,13 +521,13 @@ test_katran() {
 
 get_dev_tools
 get_required_libs
-get_libbpf
 get_libevent
 get_fmt
 get_gflags
 get_folly
 get_clang
 get_gtest
+get_libbpf
 if [ "$BUILD_EXAMPLE_THRIFT" -eq 1 ]; then
   get_mstch
   get_fizz
