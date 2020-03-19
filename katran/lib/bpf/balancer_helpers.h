@@ -27,7 +27,7 @@
 
 #include "balancer_consts.h"
 #include "balancer_structs.h"
-#include "balancer_maps.h"
+#include "control_data_maps.h"
 #include "bpf.h"
 #include "bpf_helpers.h"
 #include "csum_helpers.h"
@@ -39,6 +39,7 @@
                                 ##__VA_ARGS__);                 \
 })
 
+#ifdef KATRAN_INTROSPECTION
 /**
  * helper to print blob of data into perf pipe
  */
@@ -59,6 +60,7 @@ static inline void submit_event(struct xdp_md *ctx, void *map,
   flags |= (__u64) md.data_len << 32;
   bpf_perf_event_output(ctx, map, flags, &md, sizeof(struct event_metadata));
 }
+#endif
 
 #ifdef INLINE_DECAP_GENERIC
 __attribute__((__always_inline__))

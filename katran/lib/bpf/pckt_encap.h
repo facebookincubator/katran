@@ -30,7 +30,7 @@
 #include "balancer_consts.h"
 #include "balancer_helpers.h"
 #include "balancer_structs.h"
-#include "balancer_maps.h"
+#include "control_data_maps.h"
 #include "bpf.h"
 #include "bpf_endian.h"
 #include "bpf_helpers.h"

@@ -18,7 +18,8 @@
 #define __BALANCER_MAPS_H
 
 /*
- * This file contains definition of all maps which has been used by balancer
+ * This file contains definition of maps used by the balancer typically
+ * involving information pertaining to proper forwarding of packets
  */
 
 #include "bpf.h"
@@ -107,19 +108,6 @@ struct bpf_map_def SEC("maps") quic_mapping = {
 };
 BPF_ANNOTATE_KV_PAIR(quic_mapping, __u32, __u32);
 
-// control array. contains metadata such as default router mac
-// and/or interfaces ifindexes
-// indexes:
-// 0 - default's mac
-struct bpf_map_def SEC("maps") ctl_array = {
-  .type = BPF_MAP_TYPE_ARRAY,
-  .key_size = sizeof(__u32),
-  .value_size = sizeof(struct ctl_value),
-  .max_entries = CTL_MAP_SIZE,
-  .map_flags = NO_FLAGS,
-};
-BPF_ANNOTATE_KV_PAIR(ctl_array, __u32, struct ctl_value);
-
 #ifdef LPM_SRC_LOOKUP
 struct bpf_map_def SEC("maps") lpm_src_v4 = {
   .type = BPF_MAP_TYPE_LPM_TRIE,
@@ -140,49 +128,5 @@ struct bpf_map_def SEC("maps") lpm_src_v6 = {
 BPF_ANNOTATE_KV_PAIR(lpm_src_v6, struct v6_lpm_key, __u32);
 
 #endif
-#ifdef INLINE_DECAP_GENERIC
-struct bpf_map_def SEC("maps") decap_dst = {
-  .type = BPF_MAP_TYPE_HASH,
-  .key_size = sizeof(struct address),
-  .value_size = sizeof(__u32),
-  .max_entries = MAX_VIPS,
-  .map_flags = NO_FLAGS,
-};
-BPF_ANNOTATE_KV_PAIR(decap_dst, struct address, __u32);
 
-struct bpf_map_def SEC("maps") katran_subprograms = {
-  .type = BPF_MAP_TYPE_PROG_ARRAY,
-  .key_size = sizeof(__u32),
-  .value_size = sizeof(__u32),
-  .max_entries = SUBPROGRAMS_ARRAY_SIZE,
-};
-BPF_ANNOTATE_KV_PAIR(katran_subprograms, __u32, __u32);
-#endif
-
-#ifdef KATRAN_INTROSPECTION
-
-struct bpf_map_def SEC("maps") event_pipe = {
-  .type = BPF_MAP_TYPE_PERF_EVENT_ARRAY,
-  .key_size = sizeof(int),
-  .value_size = sizeof(__u32),
-  .max_entries = MAX_SUPPORTED_CPUS,
-  .map_flags = NO_FLAGS,
-};
-BPF_ANNOTATE_KV_PAIR(event_pipe, int, __u32);
-
-#endif
-
-#ifdef GUE_ENCAP
-// map which src ip address for outer ip packet while using GUE encap
-// NOTE: This is not a stable API. This is to be reworked when static
-// variables will be available in mainline kernels
-struct bpf_map_def SEC("maps") pckt_srcs = {
-  .type = BPF_MAP_TYPE_ARRAY,
-  .key_size = sizeof(__u32),
-  .value_size = sizeof(struct real_definition),
-  .max_entries = 2,
-  .map_flags = NO_FLAGS,
-};
-BPF_ANNOTATE_KV_PAIR(pckt_srcs, __u32, struct real_definition);
-#endif
 #endif // of _BALANCER_MAPS
