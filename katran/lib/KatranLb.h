@@ -537,9 +537,10 @@ class KatranLb {
    * @param src ip address of the src
    * @return true is the update is successful
    *
-   * Adds source ip to be used by Katran when it encapsulates packet with GUE
+   * Adds source ip to be used by Katran when it encapsulates packet.
+   * It replaces existing one if present for the IP of given type (v4 or v6)
    */
-  bool addGueSrcIp(const folly::IPAddress& src);
+  bool addSrcIpForPcktEncap(const folly::IPAddress& src);
 
  private:
   /**

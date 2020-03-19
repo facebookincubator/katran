@@ -390,7 +390,7 @@ void KatranLb::setupHcEnvironment() {
   }
 }
 
-bool KatranLb::addGueSrcIp(const folly::IPAddress& src) {
+bool KatranLb::addSrcIpForPcktEncap(const folly::IPAddress& src) {
   auto srcBe = IpHelpers::parseAddrToBe(src);
   uint32_t key = src.isV4() ? kSrcV4Pos : kSrcV6Pos;
   // update map for hc_pckt_src
