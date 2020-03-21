@@ -86,26 +86,110 @@ if [ -z "$BUILD_EXAMPLE_GRPC" ]; then
 fi
 
 get_dev_tools() {
-    sudo apt-get update
-    sudo apt-get install -y   \
-        build-essential       \
-        cmake                 \
-        libbison-dev          \
-        bison                 \
-        flex                  \
-        bc                    \
-        libbpfcc-dev
+    if [ -f /etc/redhat-release ]; then
+        sudo yum install -y epel-release
+        sudo yum-config-manager --enable PowerTools
+        sudo yum groupinstall -y "Development Tools"
+        sudo yum install -y cmake
+    else
+        sudo apt-get update
+        sudo apt-get install -y   \
+            build-essential       \
+            cmake                 \
+            libbison-dev          \
+            bison                 \
+            flex                  \
+            bc                    \
+            libbpfcc-dev
+    fi
 }
 
 get_required_libs() {
-    sudo apt-get install -y    \
-        libgoogle-glog-dev     \
-        libgflags-dev          \
-        libelf-dev             \
-        libmnl-dev             \
-        liblzma-dev            \
-        libre2-dev
-    sudo apt-get install -y libsodium-dev
+    if [ -f /etc/redhat-release ]; then
+        sudo yum install -y \
+            git \
+            elfutils-libelf-devel \
+            libmnl-devel \
+            xz-devel \
+            re2-devel \
+            libatomic-static \
+            libsodium-static
+    else
+        sudo apt-get install -y    \
+            libgoogle-glog-dev     \
+            libgflags-dev          \
+            libelf-dev             \
+            libmnl-dev             \
+            liblzma-dev            \
+            libre2-dev
+        sudo apt-get install -y libsodium-dev
+    fi
+}
+
+
+get_libevent() {
+    if [ ! -f /etc/redhat-release ]; then
+        # not needed on ubuntu as it is available as a package
+        return
+    fi
+
+    if [ -f "${DEPS_DIR}/libevent_installed" ]; then
+        return
+    fi
+
+    EVENT_DIR=$DEPS_DIR/event
+    EVENT_BUILD_DIR=$DEPS_DIR/event/_build
+    rm -rf "$EVENT_DIR"
+    pushd .
+    echo -e "${COLOR_GREEN}[ INFO ] Cloning libevent repo ${COLOR_OFF}"
+    git clone https://github.com/libevent/libevent --depth 1 --branch release-2.1.11-stable "$EVENT_DIR"
+    echo -e "${COLOR_GREEN}[ INFO ] Building libevent ${COLOR_OFF}"
+    mkdir -p "$EVENT_BUILD_DIR"
+    cd "$EVENT_BUILD_DIR" || exit
+
+    cmake -DEVENT__DISABLE_SAMPLES=on -DEVENT__DISABLE_TESTS=on -DCXX_STD=gnu++14       \
+      -DCMAKE_BUILD_TYPE=RelWithDebInfo             \
+      -DCMAKE_PREFIX_PATH="$INSTALL_DIR"            \
+      -DCMAKE_INSTALL_PREFIX="$INSTALL_DIR"         \
+      ..
+
+    make -j "$NCPUS"
+    make install
+    echo -e "${COLOR_GREEN}Libevent is installed ${COLOR_OFF}"
+    popd
+    touch "${DEPS_DIR}/libevent_installed"
+}
+
+get_gflags() {
+    if [ ! -f /etc/redhat-release ]; then
+        # not needed on ubuntu as it is available as a package
+        return
+    fi
+
+    if [ -f "${DEPS_DIR}/gflags_installed" ]; then
+        return
+    fi
+    GFLAGS_DIR=$DEPS_DIR/gflags
+    GFLAGS_BUILD_DIR=$DEPS_DIR/gflags/_build
+    rm -rf "$GFLAGS_DIR"
+    pushd .
+    echo -e "${COLOR_GREEN}[ INFO ] Cloning gflags repo ${COLOR_OFF}"
+    git clone https://github.com/gflags/gflags --depth 1 --branch v2.2.2 "$GFLAGS_DIR"
+    echo -e "${COLOR_GREEN}[ INFO ] Building gflags ${COLOR_OFF}"
+    mkdir -p "$GFLAGS_BUILD_DIR"
+    cd "$GFLAGS_BUILD_DIR" || exit
+
+    cmake  -DCXX_STD=gnu++14                        \
+      -DCMAKE_BUILD_TYPE=RelWithDebInfo             \
+      -DCMAKE_PREFIX_PATH="$INSTALL_DIR"            \
+      -DCMAKE_INSTALL_PREFIX="$INSTALL_DIR"         \
+      ..
+
+    make -j "$NCPUS"
+    make install
+    echo -e "${COLOR_GREEN}Gflags is installed ${COLOR_OFF}"
+    popd
+    touch "${DEPS_DIR}/gflags_installed"
 }
 
 get_folly() {
@@ -116,29 +200,49 @@ get_folly() {
     FOLLY_BUILD_DIR=$DEPS_DIR/folly/build
 
     rm -rf "$FOLLY_DIR"
-    sudo apt-get install -y       \
-        g++                       \
-        automake                  \
-        autoconf                  \
-        autoconf-archive          \
-        libtool                   \
-        libboost-all-dev          \
-        libevent-dev              \
-        libdouble-conversion-dev  \
-        libgoogle-glog-dev        \
-        libgflags-dev             \
-        liblz4-dev                \
-        liblzma-dev               \
-        libsnappy-dev             \
-        make                      \
-        zlib1g-dev                \
-        binutils-dev              \
-        libjemalloc-dev           \
-        libssl-dev                \
-        pkg-config                \
-        libiberty-dev             \
-        libunwind8-dev            \
-        libdwarf-dev
+    if [ -f /etc/redhat-release ]; then
+        sudo yum install -y \
+            boost-devel \
+            boost-static \
+            lz4-devel \
+            xz-devel \
+            snappy-devel \
+            zlib-devel \
+            zlib-static \
+            glog-devel \
+            python3-scons \
+            double-conversion-devel \
+            openssl-devel \
+            libdwarf-devel \
+            elfutils-devel elfutils-devel-static \
+            libunwind-devel \
+            bzip2-devel \
+            binutils-devel
+    else
+        sudo apt-get install -y       \
+            g++                       \
+            automake                  \
+            autoconf                  \
+            autoconf-archive          \
+            libtool                   \
+            libboost-all-dev          \
+            libevent-dev              \
+            libdouble-conversion-dev  \
+            libgoogle-glog-dev        \
+            libgflags-dev             \
+            liblz4-dev                \
+            liblzma-dev               \
+            libsnappy-dev             \
+            make                      \
+            zlib1g-dev                \
+            binutils-dev              \
+            libjemalloc-dev           \
+            libssl-dev                \
+            pkg-config                \
+            libiberty-dev             \
+            libunwind8-dev            \
+            libdwarf-dev
+    fi
 
     pushd .
     echo -e "${COLOR_GREEN}[ INFO ] Cloning folly repo ${COLOR_OFF}"
@@ -163,16 +267,21 @@ get_clang() {
     if [ -f "${DEPS_DIR}/clang_installed" ]; then
         return
     fi
-    CLANG_DIR=$DEPS_DIR/clang
-    rm -rf "$CLANG_DIR"
-    pushd .
-    mkdir -p "$CLANG_DIR"
-    cd "$CLANG_DIR"
-    echo -e "${COLOR_GREEN}[ INFO ] Downloading Clang ${COLOR_OFF}"
-    wget http://releases.llvm.org/8.0.0/clang+llvm-8.0.0-x86_64-linux-gnu-ubuntu-18.04.tar.xz
-    tar xvf ./clang+llvm-8.0.0-x86_64-linux-gnu-ubuntu-18.04.tar.xz
-    echo -e "${COLOR_GREEN}Clang is installed ${COLOR_OFF}"
-    popd
+
+    if [ -f /etc/redhat-release ]; then
+        sudo yum install -y clang llvm
+    else
+        CLANG_DIR=$DEPS_DIR/clang
+        rm -rf "$CLANG_DIR"
+        pushd .
+        mkdir -p "$CLANG_DIR"
+        cd "$CLANG_DIR"
+        echo -e "${COLOR_GREEN}[ INFO ] Downloading Clang ${COLOR_OFF}"
+        wget http://releases.llvm.org/8.0.0/clang+llvm-8.0.0-x86_64-linux-gnu-ubuntu-18.04.tar.xz
+        tar xvf ./clang+llvm-8.0.0-x86_64-linux-gnu-ubuntu-18.04.tar.xz
+        echo -e "${COLOR_GREEN}Clang is installed ${COLOR_OFF}"
+        popd
+    fi
     touch "${DEPS_DIR}/clang_installed"
 }
 
@@ -382,10 +491,14 @@ get_grpc() {
     fi
     GO_INSTALLED=$(which go || true)
     if [ -z "$GO_INSTALLED" ]; then
-        sudo apt-get install -y golang
+        if [ -f /etc/centos-release ]; then
+            sudo yum install -y golang
+        else
+            sudo apt-get install -y golang
+        fi
     fi
     GRPC_DIR=$DEPS_DIR/grpc
-    GRPC_BUILD_DIR=$DEPS_DIR/grpc/build/
+    GRPC_BUILD_DIR=$DEPS_DIR/grpc/_build/
     rm -rf "$GRPC_DIR"
     pushd .
     cd "$DEPS_DIR"
@@ -403,6 +516,11 @@ get_grpc() {
       -DCMAKE_BUILD_TYPE=RelWithDebInfo             \
       -DCMAKE_PREFIX_PATH="$INSTALL_DIR"            \
       -DCMAKE_INSTALL_PREFIX="$INSTALL_DIR"         \
+      -DgRPC_BUILD_GRPC_CSHARP_PLUGIN=OFF           \
+      -DgRPC_BUILD_GRPC_NODE_PLUGIN=OFF             \
+      -DgRPC_BUILD_GRPC_OBJECTIVE_C_PLUGIN=OFF      \
+      -DgRPC_BUILD_GRPC_PHP_PLUGIN=OFF              \
+      -DgRPC_BUILD_GRPC_RUBY_PLUGIN=OFF             \
       ..
 
     make -j "$NCPUS"
@@ -426,6 +544,10 @@ get_libbpf() {
     git clone --depth 1 https://github.com/libbpf/libbpf || true
     cd "${LIBBPF_DIR}"/src
     make
+    #on centos the cp -fpR used was throwing an error, so just use a regular cp -R
+    if [ -f /etc/redhat-release ]; then
+        sed -i 's/cp -fpR/cp -R/g' Makefile
+    fi
     DESTDIR="$INSTALL_DIR" make install
     cd "$LIBBPF_DIR"
     cp -r include/uapi "$INSTALL_DIR"/usr/include/bpf/
@@ -475,10 +597,12 @@ test_katran() {
 }
 
 get_dev_tools
+get_required_libs
+get_libevent
 get_fmt
+get_gflags
 get_folly
 get_clang
-get_required_libs
 get_gtest
 get_libbpf
 if [ "$BUILD_EXAMPLE_THRIFT" -eq 1 ]; then
