@@ -100,12 +100,12 @@ jobs:
     - name: Build libbpf
       run: python3 build/fbcode_builder/getdeps.py build --no-tests libbpf
     - name: Build katran
-      run: python3 build/fbcode_builder/getdeps.py build --src-dir=. katran
+      run: python3 build/fbcode_builder/getdeps.py build --src-dir=. katran  --project-install-prefix katran:/usr/local
     - name: Copy artifacts
-      run: python3 build/fbcode_builder/getdeps.py fixup-dyn-deps --src-dir=. katran _artifacts/linux
+      run: python3 build/fbcode_builder/getdeps.py fixup-dyn-deps --src-dir=. katran _artifacts/linux --final-install-prefix /usr/local
     - uses: actions/upload-artifact@master
       with:
         name: katran
         path: _artifacts
     - name: Test katran
-      run: python3 build/fbcode_builder/getdeps.py test --src-dir=. katran
+      run: python3 build/fbcode_builder/getdeps.py test --src-dir=. katran  --project-install-prefix katran:/usr/local
