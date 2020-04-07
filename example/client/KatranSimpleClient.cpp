@@ -25,7 +25,7 @@
 #include <folly/init/Init.h>
 #include <re2/re2.h>
 #include <thrift/lib/cpp/async/TAsyncSSLSocket.h>
-#include <thrift/lib/cpp/async/TAsyncSocket.h>
+#include <folly/io/async/AsyncSocket.h>
 #include <thrift/lib/cpp2/async/HeaderClientChannel.h>
 
 #include "KatranSimpleClient.h"
@@ -34,7 +34,7 @@ using namespace apache::thrift;
 using namespace apache::thrift::protocol;
 using namespace apache::thrift::transport;
 using apache::thrift::HeaderClientChannel;
-using apache::thrift::async::TAsyncSocket;
+using folly::AsyncSocket;
 
 namespace {
 constexpr uint64_t IPPROTO_TCP = 6;
@@ -460,7 +460,7 @@ QuicReal KatranSimpleClient::parseToQuicReal(const std::string &mapping) {
 
 std::unique_ptr<KatranServiceAsyncClient>
 KatranSimpleClient::createKatranClient(const folly::SocketAddress &addr) {
-  TAsyncSocket::UniquePtr sock(new TAsyncSocket(&evb_, addr));
+  AsyncSocket::UniquePtr sock(new AsyncSocket(&evb_, addr));
   sock->setZeroCopy(true);
   auto channel = HeaderClientChannel::newChannel(std::move(sock));
   channel->setProtocolId(apache::thrift::protocol::T_COMPACT_PROTOCOL);
