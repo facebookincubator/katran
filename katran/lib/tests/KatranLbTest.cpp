@@ -34,6 +34,7 @@ class KatranLbTest : public ::testing::Test {
                         "",
                         1,
                         true,
+                        false,
                         512,
                         4096,
                         65537,

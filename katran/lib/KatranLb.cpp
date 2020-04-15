@@ -176,19 +176,23 @@ AddressType KatranLb::validateAddress(
 void KatranLb::initialSanityChecking() {
   int res;
 
-  std::vector<std::string> maps = {"vip_map",
-                                   "ch_rings",
-                                   "reals",
-                                   "stats",
-                                   "ctl_array",
-                                   "lru_maps_mapping",
-                                   "quic_mapping"};
+  std::vector<std::string> maps;
 
-  res = getKatranProgFd();
-  if (res < 0) {
-    throw std::invalid_argument(folly::sformat(
+  if (!config_.disableForwarding) {
+    maps.push_back("ctl_array");
+    maps.push_back("vip_map");
+    maps.push_back("ch_rings");
+    maps.push_back("reals");
+    maps.push_back("stats");
+    maps.push_back("lru_maps_mapping");
+    maps.push_back("quic_mapping");
+
+    res = getKatranProgFd();
+    if (res < 0) {
+      throw std::invalid_argument(folly::sformat(
         "can't get fd for prog: xdp-balancer, error: {}",
         folly::errnoStr(errno)));
+    }
   }
 
   if (config_.enableHc) {
@@ -403,13 +407,15 @@ bool KatranLb::addSrcIpForPcktEncap(const folly::IPAddress& src) {
   VLOG(3) << "Successfully updated hc_pckt_srcs_map with ip: " << src.str();
 
   // update map for pckt_src
-  res = bpfAdapter_.bpfUpdateMap(
+  if (!config_.disableForwarding) {
+    res = bpfAdapter_.bpfUpdateMap(
       bpfAdapter_.getMapFdByName("pckt_srcs"), &key, &srcBe);
-  if (res) {
-    LOG(ERROR) << "cannot insert src address in map: pckt_srcs";
-    return false;
+    if (res) {
+      LOG(ERROR) << "cannot insert src address in map: pckt_srcs";
+      return false;
+    }
+    VLOG(3) << "Successfully updated pckt_srcs with ip: " << src.str();
   }
-  VLOG(3) << "Successfully updated pckt_srcs with ip: " << src.str();
 
   return true;
 }
@@ -463,11 +469,13 @@ void KatranLb::startIntrospectionRoutines() {
 
 void KatranLb::loadBpfProgs() {
   int res;
-  initLrus();
-  // loading bpf progs.
-  res = bpfAdapter_.loadBpfProg(config_.balancerProgPath);
-  if (res) {
-    throw std::invalid_argument("can't load main bpf program");
+
+  if (!config_.disableForwarding) {
+    initLrus();
+    res = bpfAdapter_.loadBpfProg(config_.balancerProgPath);
+    if (res) {
+      throw std::invalid_argument("can't load main bpf program");
+    }
   }
 
   if (config_.enableHc) {
@@ -482,27 +490,29 @@ void KatranLb::loadBpfProgs() {
   initialSanityChecking();
   featureDiscovering();
 
-  if (features_.gueEncap) {
+  if (!config_.disableForwarding && features_.gueEncap) {
     setupGueEnvironment();
   }
 
-  if (features_.inlineDecap) {
+  if (!config_.disableForwarding && features_.inlineDecap) {
     enableRecirculation();
   }
 
-  // add values to main prog ctl_array
-  std::vector<uint32_t> balancer_ctl_keys = {kMacAddrPos};
+  if (!config_.disableForwarding) {
+    // add values to main prog ctl_array
+    std::vector<uint32_t> balancer_ctl_keys = {kMacAddrPos};
 
-  for (auto ctl_key : balancer_ctl_keys) {
-    res = bpfAdapter_.bpfUpdateMap(
+    for (auto ctl_key : balancer_ctl_keys) {
+      res = bpfAdapter_.bpfUpdateMap(
         bpfAdapter_.getMapFdByName("ctl_array"),
         &ctl_key,
         &ctlValues_[ctl_key]);
 
-    if (res != 0) {
-      throw std::invalid_argument(folly::sformat(
+      if (res != 0) {
+        throw std::invalid_argument(folly::sformat(
           "can't update ctl array for main program, error: {}",
           folly::errnoStr(errno)));
+      }
     }
   }
 
@@ -527,10 +537,13 @@ void KatranLb::loadBpfProgs() {
     }
   }
   progsLoaded_ = true;
-  if (features_.introspection) {
+  if (!config_.disableForwarding && features_.introspection) {
     startIntrospectionRoutines();
   }
-  attachLrus();
+
+  if (!config_.disableForwarding) {
+    attachLrus();
+  }
 }
 
 void KatranLb::attachBpfProgs() {
@@ -550,7 +563,7 @@ void KatranLb::attachBpfProgs() {
           "to main inteface, error: {}",
           folly::errnoStr(errno)));
     }
-  } else {
+  } else if (!config_.disableForwarding) {
     // we are in "shared" mode and must register ourself in root xdp prog
     rootMapFd_ = bpfAdapter_.getPinnedBpfObject(config_.rootMapPath);
     if (rootMapFd_ < 0) {
@@ -602,18 +615,21 @@ bool KatranLb::changeMac(const std::vector<uint8_t> newMac) {
     ctlValues_[kMacAddrPos].mac[i] = newMac[i];
   }
   if (!config_.testing) {
-    auto res = bpfAdapter_.bpfUpdateMap(
+    if (!config_.disableForwarding) {
+      auto res = bpfAdapter_.bpfUpdateMap(
         bpfAdapter_.getMapFdByName("ctl_array"),
         &key,
         &ctlValues_[kMacAddrPos].mac);
-    if (res != 0) {
-      lbStats_.bpfFailedCalls++;
-      VLOG(4) << "can't add new mac address";
-      return false;
+      if (res != 0) {
+        lbStats_.bpfFailedCalls++;
+        VLOG(4) << "can't add new mac address";
+        return false;
+      }
     }
+
     if (features_.directHealthchecking) {
       key = kHcDstMacPos;
-      res = bpfAdapter_.bpfUpdateMap(
+      auto res = bpfAdapter_.bpfUpdateMap(
           bpfAdapter_.getMapFdByName("hc_pckt_macs"),
           &key,
           &ctlValues_[kMacAddrPos].mac);
@@ -634,6 +650,11 @@ std::vector<uint8_t> KatranLb::getMac() {
 }
 
 bool KatranLb::addVip(const VipKey& vip, const uint32_t flags) {
+  if (config_.disableForwarding) {
+    LOG(ERROR) << "Ignoring addVip call on non-forwarding instance";
+    return false;
+  }
+
   if (validateAddress(vip.address) == AddressType::INVALID) {
     LOG(ERROR) << "Invalid Vip address: " << vip.address;
     return false;
@@ -662,6 +683,11 @@ bool KatranLb::addVip(const VipKey& vip, const uint32_t flags) {
 }
 
 bool KatranLb::delVip(const VipKey& vip) {
+  if (config_.disableForwarding) {
+    LOG(ERROR) << "Ignoring delVip call on non-forwarding instance";
+    return false;
+  }
+
   LOG(INFO) << folly::format(
       "deleting vip: {}:{}:{}", vip.address, vip.port, vip.proto);
 
@@ -686,6 +712,11 @@ bool KatranLb::delVip(const VipKey& vip) {
 }
 
 std::vector<VipKey> KatranLb::getAllVips() {
+  if (config_.disableForwarding) {
+    LOG(ERROR) << "getAllVips called on non-forwarding instance";
+    return std::vector<VipKey>();
+  }
+
   std::vector<VipKey> vips(vips_.size());
   int i = 0;
   for (auto& vip : vips_) {
@@ -695,6 +726,12 @@ std::vector<VipKey> KatranLb::getAllVips() {
 }
 
 uint32_t KatranLb::getVipFlags(const VipKey& vip) {
+  if (config_.disableForwarding) {
+    LOG(ERROR) << "getVipFlags called on non-forwarding instance";
+    throw std::invalid_argument(
+        "getVipFlags called on non-forwarding instance");
+  }
+
   auto vip_iter = vips_.find(vip);
   if (vip_iter == vips_.end()) {
     throw std::invalid_argument(folly::sformat(
@@ -728,12 +765,20 @@ bool KatranLb::modifyVip(const VipKey& vip, uint32_t flag, bool set) {
 }
 
 bool KatranLb::addRealForVip(const NewReal& real, const VipKey& vip) {
+  if (config_.disableForwarding) {
+    LOG(ERROR) << "addRealForVip called on non-forwarding instance";
+    return false;
+  }
   std::vector<NewReal> reals;
   reals.push_back(real);
   return modifyRealsForVip(ModifyAction::ADD, reals, vip);
 }
 
 bool KatranLb::delRealForVip(const NewReal& real, const VipKey& vip) {
+  if (config_.disableForwarding) {
+    LOG(ERROR) << "delRealForVip called on non-forwarding instance";
+    return false;
+  }
   std::vector<NewReal> reals;
   reals.push_back(real);
   return modifyRealsForVip(ModifyAction::DEL, reals, vip);
@@ -743,6 +788,11 @@ bool KatranLb::modifyRealsForVip(
     const ModifyAction action,
     const std::vector<NewReal>& reals,
     const VipKey& vip) {
+  if (config_.disableForwarding) {
+    LOG(ERROR) << "delRealForVip called on non-forwarding instance";
+    return false;
+  }
+
   UpdateReal ureal;
   std::vector<UpdateReal> ureals;
   ureal.action = action;
@@ -829,6 +879,11 @@ bool KatranLb::modifyRealsForVip(
 }
 
 std::vector<NewReal> KatranLb::getRealsForVip(const VipKey& vip) {
+  if (config_.disableForwarding) {
+    LOG(ERROR) << "getRealsForVip called on non-forwarding instance";
+    return std::vector<NewReal>();
+  }
+
   auto vip_iter = vips_.find(vip);
   if (vip_iter == vips_.end()) {
     throw std::invalid_argument(folly::sformat(
@@ -846,6 +901,11 @@ std::vector<NewReal> KatranLb::getRealsForVip(const VipKey& vip) {
 }
 
 int64_t KatranLb::getIndexForReal(const std::string& real) {
+  if (config_.disableForwarding) {
+    LOG(ERROR) << "getIndexForReal called on non-forwarding instance";
+    return -1;
+  }
+
   if (validateAddress(real) != AddressType::INVALID) {
     folly::IPAddress raddr(real);
     auto real_iter = reals_.find(raddr);
@@ -860,6 +920,10 @@ int KatranLb::addSrcRoutingRule(
     const std::vector<std::string>& srcs,
     const std::string& dst) {
   int num_errors = 0;
+  if (config_.disableForwarding) {
+    LOG(ERROR) << "addSrcRoutingRule called on non-forwarding instance";
+    return kError;
+  }
   if (!features_.srcRouting && !config_.testing) {
     LOG(ERROR) << "Source based routing is not enabled in forwarding plane";
     return kError;
@@ -898,6 +962,10 @@ int KatranLb::addSrcRoutingRule(
 int KatranLb::addSrcRoutingRule(
     const std::vector<folly::CIDRNetwork>& srcs,
     const std::string& dst) {
+  if (config_.disableForwarding) {
+    LOG(ERROR) << "addSrcRoutingRule called on non-forwarding instance";
+    return kError;
+  }
   if (!features_.srcRouting && !config_.testing) {
     LOG(ERROR) << "Source based routing is not enabled in forwarding plane";
     return kError;
@@ -927,6 +995,10 @@ int KatranLb::addSrcRoutingRule(
 }
 
 bool KatranLb::delSrcRoutingRule(const std::vector<std::string>& srcs) {
+  if (config_.disableForwarding) {
+    LOG(ERROR) << "delSrcRoutingRule called on non-forwarding instance";
+    return false;
+  }
   if (!features_.srcRouting && !config_.testing) {
     LOG(ERROR) << "Source based routing is not enabled in forwarding plane";
     return false;
@@ -942,6 +1014,10 @@ bool KatranLb::delSrcRoutingRule(const std::vector<std::string>& srcs) {
 }
 
 bool KatranLb::delSrcRoutingRule(const std::vector<folly::CIDRNetwork>& srcs) {
+  if (config_.disableForwarding) {
+    LOG(ERROR) << "delSrcRoutingRule called on non-forwarding instance";
+    return false;
+  }
   if (!features_.srcRouting && !config_.testing) {
     LOG(ERROR) << "Source based routing is not enabled in forwarding plane";
     return false;
@@ -964,6 +1040,10 @@ bool KatranLb::delSrcRoutingRule(const std::vector<folly::CIDRNetwork>& srcs) {
 }
 
 bool KatranLb::clearAllSrcRoutingRules() {
+  if (config_.disableForwarding) {
+    LOG(ERROR) << "clearAllSrcRoutingRules called on non-forwarding instance";
+    return false;
+  }
   if (!features_.srcRouting && !config_.testing) {
     LOG(ERROR) << "Source based routing is not enabled in forwarding plane";
     return false;
@@ -985,6 +1065,10 @@ uint32_t KatranLb::getSrcRoutingRuleSize() {
 
 std::unordered_map<std::string, std::string> KatranLb::getSrcRoutingRule() {
   std::unordered_map<std::string, std::string> src_mapping;
+  if (config_.disableForwarding) {
+    LOG(ERROR) << "getSrcRoutingRule called on non-forwarding instance";
+    return src_mapping;
+  }
   if (!features_.srcRouting && !config_.testing) {
     LOG(ERROR) << "Source based routing is not enabled in forwarding plane";
     return src_mapping;
@@ -1001,6 +1085,10 @@ std::unordered_map<std::string, std::string> KatranLb::getSrcRoutingRule() {
 std::unordered_map<folly::CIDRNetwork, std::string>
 KatranLb::getSrcRoutingRuleCidr() {
   std::unordered_map<folly::CIDRNetwork, std::string> src_mapping;
+  if (config_.disableForwarding) {
+    LOG(ERROR) << "getSrcRoutingRuleCidr called on non-forwarding instance";
+    return src_mapping;
+  }
   if (!features_.srcRouting && !config_.testing) {
     LOG(ERROR) << "Source based routing is not enabled in forwarding plane";
     return src_mapping;
@@ -1042,6 +1130,11 @@ bool KatranLb::changeKatranMonitorForwardingState(KatranMonitorState state) {
 }
 
 bool KatranLb::stopKatranMonitor() {
+  if (config_.disableForwarding) {
+    LOG(ERROR) << "stopKatranMonitor called on non-forwarding instance";
+    return false;
+  }
+
   if (!features_.introspection) {
     return false;
   }
@@ -1053,14 +1146,14 @@ bool KatranLb::stopKatranMonitor() {
 }
 
 std::unique_ptr<folly::IOBuf> KatranLb::getKatranMonitorEventBuffer(int event) {
-  if (!features_.introspection) {
+  if (!features_.introspection || config_.disableForwarding) {
     return nullptr;
   }
   return monitor_->getEventBuffer(event);
 }
 
 bool KatranLb::restartKatranMonitor(uint32_t limit) {
-  if (!features_.introspection) {
+  if (!features_.introspection || config_.disableForwarding) {
     return false;
   }
   if (!changeKatranMonitorForwardingState(KatranMonitorState::ENABLED)) {
@@ -1072,7 +1165,7 @@ bool KatranLb::restartKatranMonitor(uint32_t limit) {
 
 KatranMonitorStats KatranLb::getKatranMonitorStats() {
   struct KatranMonitorStats stats;
-  if (!features_.introspection) {
+  if (!features_.introspection || config_.disableForwarding) {
     return stats;
   }
   auto writer_stats = monitor_->getWriterStats();
@@ -1148,6 +1241,10 @@ bool KatranLb::modifyLpmMap(
 }
 
 bool KatranLb::addInlineDecapDst(const std::string& dst) {
+  if (config_.disableForwarding) {
+    LOG(ERROR) << "addInlineDecapDst called on non-forwarding instance";
+    return false;
+  }
   if (!features_.inlineDecap && !config_.testing) {
     LOG(ERROR) << "source based routing is not enabled in forwarding plane";
     return false;
@@ -1174,6 +1271,10 @@ bool KatranLb::addInlineDecapDst(const std::string& dst) {
 }
 
 bool KatranLb::delInlineDecapDst(const std::string& dst) {
+  if (config_.disableForwarding) {
+    LOG(ERROR) << "delInlineDecapDst called on non-forwarding instance";
+    return false;
+  }
   if (!features_.inlineDecap && !config_.testing) {
     LOG(ERROR) << "source based routing is not enabled in forwarding plane";
     return false;
@@ -1197,6 +1298,10 @@ bool KatranLb::delInlineDecapDst(const std::string& dst) {
 }
 
 std::vector<std::string> KatranLb::getInlineDecapDst() {
+  if (config_.disableForwarding) {
+    LOG(ERROR) << "getInlineDecapDst called on non-forwarding instance";
+    return std::vector<std::string>();
+  }
   std::vector<std::string> dsts;
   for (auto& dst : decapDsts_) {
     dsts.push_back(dst.str());
@@ -1234,6 +1339,10 @@ bool KatranLb::modifyDecapDst(
 void KatranLb::modifyQuicRealsMapping(
     const ModifyAction action,
     const std::vector<QuicReal>& reals) {
+  if (config_.disableForwarding) {
+    LOG(ERROR) << "modifyQuicRealsMapping ignored for non-forwarding instance";
+    return;
+  }
   std::unordered_map<uint32_t, uint32_t> to_update;
   QuicReal qreal;
   for (auto& real : reals) {
@@ -1292,6 +1401,10 @@ void KatranLb::modifyQuicRealsMapping(
 
 std::vector<QuicReal> KatranLb::getQuicRealsMapping() {
   std::vector<QuicReal> reals;
+  if (config_.disableForwarding) {
+    LOG(ERROR) << "getQuicRealsMapping called on non-forwarding instance";
+    return reals;
+  }
   QuicReal real;
   for (auto& mapping : quicMapping_) {
     real.address = mapping.first.str();
@@ -1340,6 +1453,10 @@ lb_stats KatranLb::getRealStats(uint32_t index) {
 }
 
 lb_stats KatranLb::getLbStats(uint32_t position, const std::string& map) {
+  if (config_.disableForwarding) {
+    LOG(ERROR) << "getLbStats called on non-forwarding instance";
+    return lb_stats{};
+  }
   unsigned int nr_cpus = BpfAdapter::getPossibleCpus();
   if (nr_cpus < 0) {
     LOG(ERROR) << "Error while getting number of possible cpus";
@@ -1488,6 +1605,10 @@ std::unordered_map<uint32_t, std::string> KatranLb::getHealthcheckersDst() {
 }
 
 const std::string KatranLb::getRealForFlow(const KatranFlow& flow) {
+  if (config_.disableForwarding) {
+    LOG(ERROR) << "getRealForFlow called on a non-forwarding instance";
+    return kEmptyString.data();
+  }
   if (!progsLoaded_) {
     LOG(ERROR) << "bpf programs are not loaded";
     return kEmptyString.data();

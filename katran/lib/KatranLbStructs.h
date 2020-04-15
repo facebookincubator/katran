@@ -132,6 +132,7 @@ struct KatranMonitorConfig {
  * @param string rootMapPath path to pinned map from root xdp prog
  * @param rootMapPos position inside rootMap
  * @param bool enableHc flag, is set - we will load healthchecking bpf prog
+ * @param bool disableForwarding flag - if set, we don't load the forwarding (xdp) bpf program
  * @param uint32_t maxVips maximum allowed vips to configure
  * @param uint32_t maxReals maximum allowed reals to configure
  * @param uint32_t chRingSize size of ch ring for each real
@@ -177,6 +178,7 @@ struct KatranConfig {
   std::string rootMapPath = kNoExternalMap;
   uint32_t rootMapPos = kDefaultKatranPos;
   bool enableHc = true;
+  bool disableForwarding = false;
   uint32_t maxVips = kDefaultMaxVips;
   uint32_t maxReals = kDefaultMaxReals;
   uint32_t chRingSize = kLbDefaultChRingSize;
