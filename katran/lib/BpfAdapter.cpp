@@ -158,7 +158,7 @@ int getCpuCount(const folly::StringPiece file) {
     LOG(ERROR) << "Can't read number of cpus from " << file;
     return kError;
   }
-  VLOG(2) << "cpus file " << file << " content: " << cpus;
+  VLOG(3) << "cpus file " << file << " content: " << cpus;
   std::vector<uint32_t> range;
   folly::split("-", cpus, range);
   if (range.size() == 2) {
