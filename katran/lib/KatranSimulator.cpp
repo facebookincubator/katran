@@ -25,7 +25,6 @@
 extern "C" {
 #include <arpa/inet.h>
 #include <linux/if_ether.h>
-#include <linux/in.h>
 #include <linux/ip.h>
 #include <linux/ipv6.h>
 #include <linux/udp.h>
