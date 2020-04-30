@@ -104,7 +104,7 @@ jobs:
     - name: Build katran
       run: python3 build/fbcode_builder/getdeps.py --allow-system-packages build --src-dir=. katran  --project-install-prefix katran:/usr/local
     - name: Copy artifacts
-      run: python3 build/fbcode_builder/getdeps.py --allow-system-packages fixup-dyn-deps --src-dir=. katran _artifacts/linux  --project-install-prefix katran:/usr/local --final-install-prefix /usr/local
+      run: python3 build/fbcode_builder/getdeps.py --allow-system-packages fixup-dyn-deps --strip --src-dir=. katran _artifacts/linux  --project-install-prefix katran:/usr/local --final-install-prefix /usr/local
     - uses: actions/upload-artifact@master
       with:
         name: katran
