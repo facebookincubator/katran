@@ -24,7 +24,7 @@ namespace katran {
 class NetlinkMessage {
  public:
   /**
-   * Constructs a netlink message used tocontrol the lifecycle of a BPF
+   * Constructs a netlink message used to control the lifecycle of a BPF
    * program on the network scheduler.
    *
    * @param seq          Sequence number for message.
@@ -46,6 +46,14 @@ class NetlinkMessage {
       unsigned ifindex,
       const std::string& bpf_name,
       int direction);
+
+  /**
+   * Constructs a netlink message used to attach clsact qdisk
+   * to specified interface
+   *
+   * @param ifindex      Network interface index
+   */
+  static NetlinkMessage QD(unsigned ifindex);
 
   /**
    * Constructs a netlink message used to control the lifecycle of an XDP BPF

@@ -22,6 +22,7 @@ namespace {
 // netlink/tc magic constants (from iproute2/tc source code)
 std::array<const char, 4> kBpfKind = {"bpf"};
 std::array<const char, 5> kTcActKind = {"gact"};
+std::array<const char, 7> kClsActKind = {"clsact"};
 constexpr unsigned TCA_BPF_PRIO_1 = 1;
 } // namespace
 
@@ -168,6 +169,35 @@ NetlinkMessage NetlinkMessage::TC(
     }
     mnl_attr_nest_end(nlh, options);
   }
+
+  ret.buf_.resize(nlh->nlmsg_len);
+  return ret;
+}
+
+NetlinkMessage NetlinkMessage::QD(unsigned ifindex) {
+  NetlinkMessage ret;
+  unsigned char* buf = ret.buf_.data();
+
+  struct nlmsghdr* nlh;
+  struct tcmsg* tc;
+  uint32_t protocol = 0;
+  unsigned int bpfFlags = TCA_BPF_FLAG_ACT_DIRECT;
+
+  // Construct netlink message header
+  nlh = mnl_nlmsg_put_header(buf);
+  nlh->nlmsg_flags = NLM_F_REQUEST | NLM_F_ACK | NLM_F_EXCL | NLM_F_CREATE;
+  nlh->nlmsg_type = RTM_NEWQDISC;
+
+  // Construct tc message header
+  tc = reinterpret_cast<struct tcmsg*>(
+      mnl_nlmsg_put_extra_header(nlh, sizeof(struct tcmsg)));
+  tc->tcm_family = AF_UNSPEC;
+  tc->tcm_parent = TC_H_CLSACT;
+  tc->tcm_handle = TC_H_MAKE(TC_H_CLSACT, 0);
+  tc->tcm_ifindex = ifindex;
+
+  // Additional nested attribues
+  mnl_attr_put(nlh, TCA_KIND, kClsActKind.size(), kClsActKind.data());
 
   ret.buf_.resize(nlh->nlmsg_len);
   return ret;
