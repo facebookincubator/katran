@@ -180,8 +180,6 @@ NetlinkMessage NetlinkMessage::QD(unsigned ifindex) {
 
   struct nlmsghdr* nlh;
   struct tcmsg* tc;
-  uint32_t protocol = 0;
-  unsigned int bpfFlags = TCA_BPF_FLAG_ACT_DIRECT;
 
   // Construct netlink message header
   nlh = mnl_nlmsg_put_header(buf);
