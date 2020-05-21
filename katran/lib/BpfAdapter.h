@@ -190,7 +190,6 @@ class BpfAdapter {
    */
   static int getPinnedBpfObject(const std::string& path);
 
-
   /**
    * @param int fd of the object (e.g. map)
    * @param bpf_map_info* pointer of pre-allocated bpf map info to populate
@@ -634,6 +633,11 @@ class BpfAdapter {
       const unsigned int ifindex,
       const std::string& bpf_name,
       const int direction = BPF_TC_INGRESS);
+
+  /**
+   * helper function to add clsact qdisk to interface for healthchecking
+   */
+  static int addClsActQD(const unsigned int ifindex);
 
   /**
    * Generic wrapper to add bpf prog to tc.

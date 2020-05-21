@@ -381,7 +381,7 @@ int BpfAdapter::getBpfMapMaxSize(const std::string& name) {
 
 int BpfAdapter::getBpfMapUsedSize(const std::string& name) {
   int num_entries = 0, err = 0;
-  void *prev_key = nullptr;
+  void* prev_key = nullptr;
   struct bpf_map_info info;
   int fd = getMapFdByName(name);
   if (fd < 0) {
@@ -470,6 +470,7 @@ int BpfAdapter::addTcBpfFilter(
     const std::string& bpf_name,
     const uint32_t priority,
     const int direction) {
+  addClsActQD(ifindex);
   return genericAttachBpfProgToTc(
       prog_fd, ifindex, bpf_name, priority, direction);
 }
@@ -570,6 +571,11 @@ int BpfAdapter::modifyTcBpfFilter(
   unsigned int seq = static_cast<unsigned int>(std::time(nullptr));
   auto msg = NetlinkMessage::TC(
       seq, cmd, flags, priority, prog_fd, ifindex, bpf_name, direction);
+  return NetlinkRoundtrip(msg);
+}
+
+int BpfAdapter::addClsActQD(const unsigned int ifindex) {
+  auto msg = NetlinkMessage::QD(ifindex);
   return NetlinkRoundtrip(msg);
 }
 
