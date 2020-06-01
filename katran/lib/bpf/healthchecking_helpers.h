@@ -46,7 +46,7 @@ __attribute__((__always_inline__)) static inline bool hc_encap_ipip(
   int adjust_len;
   __u32 key;
 
-  pkt_len = skb->data_end - skb->data - sizeof(struct ethhdr);
+  pkt_len = skb->len - sizeof(struct ethhdr);
 
   if (real->flags == V6DADDR) {
     __u8 proto = IPPROTO_IPV6;
@@ -110,7 +110,7 @@ __attribute__((__always_inline__)) static inline bool hc_encap_gue(
   int adjust_len;
   __u32 key;
 
-  pkt_len = skb->data_end - skb->data - sizeof(struct ethhdr);
+  pkt_len = skb->len - sizeof(struct ethhdr);
 
   if (real->flags == V6DADDR) {
     sport = gue_sport(real->v6daddr[0] | real->v6daddr[3]);
