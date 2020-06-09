@@ -20,7 +20,7 @@
 // introspection events, they are defined regardless because they are used in
 // constants which does not depend on the introspection flag
 #define TCP_NONSYN_LRUMISS 0
-#define ICMP_TOOBIG 1
+#define PACKET_TOOBIG 1
 
 #ifdef KATRAN_INTROSPECTION
 // Introspection enabled, enable helpers
@@ -32,11 +32,11 @@
 #define REPORT_TCP_NONSYN_LRUMISS(xdp, data, size, meta_only)   \
                REPORT_EVENT(xdp, TCP_NONSYN_LRUMISS,            \
                             data, size, meta_only)
-#define REPORT_ICMP_TOOBIG(xdp, data, size, meta_only)          \
+#define REPORT_PACKET_TOOBIG(xdp, data, size, meta_only)          \
                REPORT_EVENT(xdp, ICMP_TOOBIG,                   \
                             data, size, meta_only)
 #else
 // Introspection disabled, define helpers to be nop
 #define REPORT_TCP_NONSYN_LRUMISS(...) {}
-#define REPORT_ICMP_TOOBIG(...) {}
+#define REPORT_PACKET_TOOBIG(...) {}
 #endif
