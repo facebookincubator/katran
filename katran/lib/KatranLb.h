@@ -542,6 +542,16 @@ class KatranLb {
    */
   bool addSrcIpForPcktEncap(const folly::IPAddress& src);
 
+  /**
+   * Get a shared pointer to the monitor
+   *
+   * This helps construct a monitoring service without upper layer handler
+   * (i.e. KatranServiceHandler)
+   */
+  std::shared_ptr<KatranMonitor> getKatranMonitor() {
+    return monitor_;
+  }
+
  private:
   /**
    * update vipmap(add or remove vip) in forwarding plane
@@ -689,7 +699,7 @@ class KatranLb {
   /**
    * implements all introspection related routines
    */
-  std::unique_ptr<KatranMonitor> monitor_;
+  std::shared_ptr<KatranMonitor> monitor_;
 
   /**
    * vector of unused possitions for vips and reals. for each element

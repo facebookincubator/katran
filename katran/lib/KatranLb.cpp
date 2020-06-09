@@ -464,7 +464,7 @@ void KatranLb::startIntrospectionRoutines() {
   auto monitor_config = config_.monitorConfig;
   monitor_config.nCpus = katran::BpfAdapter::getPossibleCpus();
   monitor_config.mapFd = bpfAdapter_.getMapFdByName("event_pipe");
-  monitor_ = std::make_unique<KatranMonitor>(monitor_config);
+  monitor_ = std::make_shared<KatranMonitor>(monitor_config);
 }
 
 void KatranLb::loadBpfProgs() {
