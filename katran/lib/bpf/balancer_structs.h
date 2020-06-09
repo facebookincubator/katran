@@ -114,6 +114,7 @@ struct address {
   };
 };
 
+#ifdef KATRAN_INTROSPECTION
 // metadata about packet, copied to the userspace through event pipe
 struct event_metadata {
   __u32 event;
@@ -121,5 +122,5 @@ struct event_metadata {
   __u32 data_len;
 } __attribute__((__packed__));
 
-
+#endif
 #endif // of _BALANCER_STRUCTS

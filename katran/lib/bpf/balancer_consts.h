@@ -300,12 +300,4 @@
 #define V4_SRC_INDEX 0
 #define V6_SRC_INDEX 1
 
-// maximum size of packets header which we would write to event pipe
-// if KATRAN_INTROSPECTION is enabled
-#ifndef MAX_EVENT_SIZE
-#define MAX_EVENT_SIZE 128
-#endif
-
-#define TCP_NONSYN_LRUMISS 0
-
 #endif // of __BALANCER_CONSTS_H

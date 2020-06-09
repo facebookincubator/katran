@@ -448,6 +448,7 @@ static inline int process_packet(void *data, __u64 off, void *data_end,
   }
 
   if (data_end - data > MAX_PCKT_SIZE) {
+    REPORT_ICMP_TOOBIG(xdp, data, data_end - data, false);
 #ifdef ICMP_TOOBIG_GENERATION
     __u32 stats_key = MAX_VIPS + ICMP_TOOBIG_CNTRS;
     data_stats = bpf_map_lookup_elem(&stats, &stats_key);
@@ -531,10 +532,7 @@ static inline int process_packet(void *data, __u64 off, void *data_end,
           // miss of non-syn tcp packet. could be either because of LRU trashing
           // or because another katran is restarting and all the sessions
           // have been reshuffled
-#ifdef KATRAN_INTROSPECTION
-          __u32 size = data_end - data;
-          submit_event(xdp, &event_pipe, TCP_NONSYN_LRUMISS, data, size);
-#endif
+          REPORT_TCP_NONSYN_LRUMISS(xdp, data, data_end - data, false);
           lru_stats->v2 += 1;
         }
       }

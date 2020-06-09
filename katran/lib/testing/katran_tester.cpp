@@ -23,6 +23,7 @@
 #include <folly/File.h>
 #include <folly/FileUtil.h>
 #include <folly/Range.h>
+#include <folly/Conv.h>
 #include <gflags/gflags.h>
 
 #include "katran/lib/KatranLb.h"
@@ -33,6 +34,7 @@
 #include "katran/lib/testing/KatranHCTestFixtures.h"
 #include "katran/lib/testing/KatranOptionalTestFixtures.h"
 #include "katran/lib/testing/KatranTestFixtures.h"
+#include "katran/lib/bpf/introspection.h"
 
 DEFINE_string(pcap_input, "", "path to input pcap file");
 DEFINE_string(pcap_output, "", "path to output pcap file");
@@ -208,15 +210,23 @@ void testSimulator(katran::KatranLb& lb) {
 void testKatranMonitor(katran::KatranLb& lb) {
   lb.stopKatranMonitor();
   std::this_thread::sleep_for(std::chrono::seconds(1));
-  // 0 - tcp non_syn lru miss
-  auto buf = lb.getKatranMonitorEventBuffer(0);
-  if (buf != nullptr) {
-    LOG(INFO) << "buffer length is: " << buf->length();
-    auto pcap_file =
-        folly::File(FLAGS_monitor_output.c_str(), O_RDWR | O_CREAT | O_TRUNC);
-    auto res = folly::writeFull(pcap_file.fd(), buf->data(), buf->length());
-    if (res < 0) {
-      LOG(ERROR) << "error while trying to write katran monitor output";
+  constexpr std::array<uint32_t, 2> events = {
+    TCP_NONSYN_LRUMISS,
+    ICMP_TOOBIG,
+  };
+
+  for (const auto event : events) {
+    auto buf = lb.getKatranMonitorEventBuffer(event);
+    std::string fname;
+    folly::toAppend(FLAGS_monitor_output, "_event_", event, &fname);
+    if (buf != nullptr) {
+      LOG(INFO) << "buffer length is: " << buf->length();
+      auto pcap_file =
+          folly::File(fname.c_str(), O_RDWR | O_CREAT | O_TRUNC);
+      auto res = folly::writeFull(pcap_file.fd(), buf->data(), buf->length());
+      if (res < 0) {
+        LOG(ERROR) << "error while trying to write katran monitor output";
+      }
     }
   }
 }
@@ -504,6 +514,7 @@ int main(int argc, char** argv) {
     }
     testSimulator(lb);
     if (FLAGS_iobuf_storage) {
+      LOG(INFO) << "Test katran monitor";
       testKatranMonitor(lb);
     }
     testHcFromFixture(lb, tester);
