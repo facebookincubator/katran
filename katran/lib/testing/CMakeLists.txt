@@ -68,12 +68,22 @@ katran_add_test(TARGET base64helpers-tests
   base64_helpers
 )
 
+add_library(katran_test_provision STATIC
+    KatranTestProvision.h
+    KatranTestProvision.cpp
+)
+
+target_link_libraries(katran_test_provision
+  katranlb
+)
+
 # katran_tester is a 'standalone' integration test
 add_executable(katran_tester katran_tester.cpp)
 
 target_link_libraries(katran_tester
   katranlb
   bpftester
+  katran_test_provision
   ${GFLAGS}
   ${GTEST}
 )
