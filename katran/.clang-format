@@ -56,7 +56,6 @@ ExperimentalAutoDetectBinPacking: false
 FixNamespaceComments: true
 ForEachMacros:   
   - FOR_EACH
-  - FOR_EACH_KV
   - FOR_EACH_R
   - FOR_EACH_RANGE
 IncludeBlocks:   Preserve
