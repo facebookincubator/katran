@@ -146,7 +146,7 @@ void testKatranMonitor(katran::KatranLb& lb) {
   std::this_thread::sleep_for(std::chrono::seconds(1));
   constexpr std::array<uint32_t, 2> events = {
     TCP_NONSYN_LRUMISS,
-    ICMP_TOOBIG,
+    PACKET_TOOBIG,
   };
 
   for (const auto event : events) {

@@ -448,7 +448,7 @@ static inline int process_packet(void *data, __u64 off, void *data_end,
   }
 
   if (data_end - data > MAX_PCKT_SIZE) {
-    REPORT_ICMP_TOOBIG(xdp, data, data_end - data, false);
+    REPORT_PACKET_TOOBIG(xdp, data, data_end - data, false);
 #ifdef ICMP_TOOBIG_GENERATION
     __u32 stats_key = MAX_VIPS + ICMP_TOOBIG_CNTRS;
     data_stats = bpf_map_lookup_elem(&stats, &stats_key);
