@@ -267,6 +267,11 @@ void testLbCounters(katran::KatranLb& lb) {
     VLOG(2) << "FallbackLRU hits: " << stats.v1;
     LOG(INFO) << "LRU fallback counter is incorrect";
   }
+  stats = lb.getQuicRoutingStats();
+  if (stats.v1 != 5 || stats.v2 != 4) {
+    LOG(INFO) << "Counters for QUIC packets routed with CH: " << stats.v1 << ",  with connection-id: " << stats.v2;
+    LOG(INFO) << "Counters for routing of QUIC packets is wrong.";
+  }
   for (int i = 0; i < kReals.size(); i++) {
     auto real = kReals[i];
     auto id = lb.getIndexForReal(real);

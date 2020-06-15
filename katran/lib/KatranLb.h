@@ -56,6 +56,7 @@ constexpr uint32_t kLruFallbackOffset = 3;
 constexpr uint32_t kIcmpTooBigOffset = 4;
 constexpr uint32_t kLpmSrcOffset = 5;
 constexpr uint32_t kInlineDecapOffset = 6;
+constexpr uint32_t kQuicRoutingOffset = 7;
 
 /**
  * LRU map related constants
@@ -394,6 +395,14 @@ class KatranLb {
    * maximum supported size.
    */
   lb_stats getIcmpTooBigStats();
+
+  /**
+   * @return struct lb_stats w/ statistic of QUIC routing stats
+   *
+   * helper function which returns how many QUIC packets were routed
+   * using the default 5-tuple hash vs using the connection-id
+   */
+  lb_stats getQuicRoutingStats();
 
   /**
    * @return struct lb_stats w/ src routing related statistics

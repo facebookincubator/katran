@@ -180,6 +180,8 @@
 #define REMOTE_ENCAP_CNTRS 6
 // max ammount of new connections per seconda per core for lru update
 // if we go beyond this value - we will bypass lru update.
+// offset of QUIC routing related stats
+#define QUIC_ROUTE_STATS 7
 #ifndef MAX_CONN_RATE
 #define MAX_CONN_RATE 125000
 #endif

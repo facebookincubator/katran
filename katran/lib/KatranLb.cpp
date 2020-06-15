@@ -1440,6 +1440,10 @@ lb_stats KatranLb::getIcmpTooBigStats() {
   return getLbStats(config_.maxVips + kIcmpTooBigOffset);
 }
 
+lb_stats KatranLb::getQuicRoutingStats() {
+  return getLbStats(config_.maxVips + kQuicRoutingOffset);
+}
+
 lb_stats KatranLb::getSrcRoutingStats() {
   return getLbStats(config_.maxVips + kLpmSrcOffset);
 }

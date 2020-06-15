@@ -472,10 +472,15 @@ static inline int process_packet(void *data, __u64 off, void *data_end,
     return XDP_DROP;
   }
 
-  // totall packets
+  // total packets
   data_stats->v1 += 1;
 
   if ((vip_info->flags & F_QUIC_VIP)) {
+    __u32 quic_stats_key = MAX_VIPS + QUIC_ROUTE_STATS;
+    struct lb_stats* quic_stats = bpf_map_lookup_elem(&stats, &quic_stats_key);
+    if (!quic_stats) {
+      return XDP_DROP;
+    }
     int real_index;
     real_index = parse_quic(data, data_end, is_ipv6, &pckt);
     if (real_index > 0) {
@@ -488,7 +493,13 @@ static inline int process_packet(void *data, __u64 off, void *data_end,
         if (!dst) {
           return XDP_DROP;
         }
+        quic_stats->v2 += 1;
+      } else {
+        // increment counter for the CH based routing
+        quic_stats->v1 += 1;
       }
+    } else {
+      quic_stats->v1 += 1;
     }
   }
 
