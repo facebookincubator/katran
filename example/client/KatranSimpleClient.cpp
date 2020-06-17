@@ -24,7 +24,6 @@
 #include <folly/String.h>
 #include <folly/init/Init.h>
 #include <re2/re2.h>
-#include <thrift/lib/cpp/async/TAsyncSSLSocket.h>
 #include <folly/io/async/AsyncSocket.h>
 #include <thrift/lib/cpp2/async/HeaderClientChannel.h>
 
