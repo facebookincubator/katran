@@ -94,7 +94,7 @@ bool PcapWriter::writePcapHeader(uint32_t writerId) {
     .version_minor = kVersionMinor, .thiszone = kGmt, .sigfigs = kAccuracy,
     .snaplen = snaplen_ ?: kMaxSnapLen, .network = kEthernet
   };
-  dataWriters_[writerId]->writeData(&hdr, sizeof(hdr));
+  dataWriters_[writerId]->writeHeader(&hdr, sizeof(hdr));
   headerExists_[writerId] = true;
   return true;
 }
@@ -174,7 +174,11 @@ void PcapWriter::runMulti(
       }
       continue;
     }
-    if (packetAmount_ >= packetLimit_) {
+    if (!packetLimitOverride_ && packetAmount_ >= packetLimit_) {
+      continue;
+    }
+    if (enabledEvents_.find(msg.getEventId()) == enabledEvents_.end()) {
+      LOG(INFO) << "event " << msg.getEventId() << " is not enabled, skipping";
       continue;
     }
     if (!writePcapHeader(msg.getEventId())) {

@@ -92,6 +92,7 @@ add_library(pcapwriter STATIC
     ByteRangeWriter.cpp
     FileWriter.cpp
     IOBufWriter.cpp
+    PipeWriter.cpp
     PcapMsg.cpp
     PcapMsgMeta.cpp
     PcapWriter.cpp
@@ -99,6 +100,7 @@ add_library(pcapwriter STATIC
     IOBufWriter.h
     DataWriter.h
     FileWriter.h
+    PipeWriter.h
     PcapMsg.h
     PcapMsgMeta.h
     PcapStructs.h

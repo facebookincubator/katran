@@ -19,6 +19,7 @@
 #include <thread>
 #include <vector>
 #include <folly/io/IOBuf.h>
+#include <folly/io/async/AsyncPipe.h>
 #include <folly/MPMCQueue.h>
 
 #include "katran/lib/KatranLbStructs.h"
@@ -30,8 +31,6 @@ class ScopedEventBaseThread;
 }
 
 namespace katran {
-
-
 
 class KatranEventReader;
 class PcapWriter;
@@ -53,6 +52,33 @@ class KatranMonitor {
   PcapWriterStats getWriterStats();
 
   std::unique_ptr<folly::IOBuf> getEventBuffer(int event);
+
+  /**
+   * Enable event
+   * Note: this does not start event loop nor does any internal synchronization.
+   * It only marks the event as "enabled".
+   */
+  bool enableWriterEvent(uint32_t event);
+
+  /**
+   * Disable event
+   */
+  bool disableWriterEvent(uint32_t event);
+
+  /**
+   * Get enabled events
+   */
+  std::set<uint32_t> getWriterEnabledEvents();
+
+  /**
+   * Tell the underlying pipe writer to use `writer`
+   */
+  void setAsyncPipeWriter(uint32_t event, std::shared_ptr<folly::AsyncPipeWriter> writer);
+
+  /**
+   * Disable and destroy (if any) the pipe writer for the event
+   */
+  void unsetAsyncPipeWriter(uint32_t event);
 
  private:
   /**

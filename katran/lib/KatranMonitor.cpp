@@ -21,9 +21,8 @@
 
 #include "katran/lib/FileWriter.h"
 #include "katran/lib/IOBufWriter.h"
+#include "katran/lib/PipeWriter.h"
 #include "katran/lib/KatranEventReader.h"
-
-
 
 namespace katran {
 
@@ -56,17 +55,24 @@ std::vector<std::shared_ptr<DataWriter>> data_writers;
       std::string fname;
       folly::toAppend(config_.path, "_", i, &fname);
       data_writers.push_back(std::make_shared<FileWriter>(fname));
-    } else {
-      // PcapStorageFormat::IOBuf
+    } else if (config_.storage == PcapStorageFormat::IOBUF) {
       buffers_.emplace_back(folly::IOBuf::create(config_.bufferSize));
       data_writers.push_back(
         std::make_shared<IOBufWriter>(buffers_.back().get()));
+    } else {
+      // PcapStorageFormat::PIPE
+      data_writers.push_back(std::make_shared<PipeWriter>());
     }
   }
 
   writer_ = std::make_shared<PcapWriter>(
       data_writers, config_.pcktLimit, config_.snapLen);
+  // Enable all events
+  for (int i = 0; i < config_.maxEvents; i++) {
+    enableWriterEvent(i);
+  }
   writerThread_ = std::thread([this](){writer_->runMulti(queue_);});
+
 }
 
 KatranMonitor::~KatranMonitor(){
@@ -92,6 +98,28 @@ void KatranMonitor::restartMonitor(uint32_t limit) {
   queue_->blockingWrite(std::move(msg));
 }
 
+bool KatranMonitor::enableWriterEvent(uint32_t event) {
+  if (!writer_ || event >= config_.maxEvents) {
+    return false;
+  }
+  return writer_->enableEvent(event);
+}
+
+std::set<uint32_t> KatranMonitor::getWriterEnabledEvents() {
+  if (!writer_) {
+    return {};
+  }
+  return writer_->getEnabledEvents();
+}
+
+bool KatranMonitor::disableWriterEvent(uint32_t event) {
+  if (!writer_ || event >= config_.maxEvents) {
+    return false;
+  }
+  writer_->disableEvent(event);
+  return true;
+}
+
 std::unique_ptr<folly::IOBuf> KatranMonitor::getEventBuffer(int event) {
   if (buffers_.size() == 0) {
     LOG(ERROR) << "PcapStorageFormat is not set to IOBuf";
@@ -102,6 +130,35 @@ std::unique_ptr<folly::IOBuf> KatranMonitor::getEventBuffer(int event) {
     return nullptr;
   }
   return buffers_[event]->cloneOne();
+}
+
+void KatranMonitor::setAsyncPipeWriter(uint32_t event, std::shared_ptr<folly::AsyncPipeWriter> writer) {
+  if (event > config_.maxEvents) {
+    LOG(ERROR) << "event id exceeds maxEvents";
+    return;
+  }
+  // If either casting or getDataWriter() fails, pipeWriter will be nullptr
+  auto pipeWriter = std::dynamic_pointer_cast<PipeWriter>(writer_->getDataWriter(event));
+  if (!pipeWriter) {
+    LOG(ERROR) << "no pipe writer for event " << event;
+    return;
+  }
+  pipeWriter->setWriterDestination(writer);
+  writer_->enableEvent(event);
+}
+
+void KatranMonitor::unsetAsyncPipeWriter(uint32_t event) {
+  if (event > config_.maxEvents) {
+    LOG(ERROR) << "event id exceeds maxEvents";
+    return;
+  }
+  auto pipeWriter = std::dynamic_pointer_cast<PipeWriter>(writer_->getDataWriter(event));
+  if (!pipeWriter) {
+    LOG(ERROR) << "no pipe writer for event " << event;
+    return;
+  }
+  writer_->disableEvent(event);
+  pipeWriter->unsetWriterDestination();
 }
 
 PcapWriterStats KatranMonitor::getWriterStats() {

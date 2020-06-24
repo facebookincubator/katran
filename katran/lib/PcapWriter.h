@@ -18,6 +18,7 @@
 
 #include <memory>
 #include <vector>
+#include <set>
 
 #include <folly/MPMCQueue.h>
 
@@ -110,6 +111,51 @@ class PcapWriter {
    */
   PcapWriterStats getStats();
 
+  /**
+   * return a shared pointer to the datawriter of the specific event
+   */
+  std::shared_ptr<DataWriter> getDataWriter(uint32_t event) {
+    // Bound check
+    if (event >= dataWriters_.size()) {
+      return nullptr;
+    }
+    return dataWriters_[event];
+  }
+
+  /**
+   * return enabled events
+   */
+  std::set<uint32_t> getEnabledEvents() {
+    return enabledEvents_;
+  }
+
+  /**
+   * enable one event
+   */
+  bool enableEvent(uint32_t event) {
+    if (event >= dataWriters_.size()) {
+      return false;
+    }
+    if (enabledEvents_.find(event) == enabledEvents_.end()) {
+      enabledEvents_.insert(event);
+    }
+    return true;
+  }
+
+  /**
+   * disable one event
+   */
+  void disableEvent(uint32_t event) {
+    enabledEvents_.erase(event);
+  }
+
+  /**
+   * override packetLimit
+   */
+  void overridePacketLimit(bool value) {
+    packetLimitOverride_ = value;
+  }
+
  private:
   /**
    * @param PcapMsg msg which contains packet to writer
@@ -140,6 +186,11 @@ class PcapWriter {
   std::vector<std::shared_ptr<DataWriter>> dataWriters_;
 
   /**
+   * set of events that're being actively monitored
+   */
+  std::set<uint32_t> enabledEvents_;
+
+  /**
    * internal table, which marks if pcap header was already written by specific
    * writer at corresponding index in dataWriters_
    */
@@ -154,6 +205,12 @@ class PcapWriter {
    * Max number of packets that can be written in a single batch
    */
   uint32_t packetLimit_{0};
+
+  /**
+   * Set this flag to true will override packetLimit_,
+   * effectively unlimit the number of packets that can be written.
+   */
+  bool packetLimitOverride_{false};
 
   /**
    * Number of bufferFull events: when writer does not have enough

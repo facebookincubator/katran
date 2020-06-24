@@ -29,11 +29,24 @@ class DataWriter {
 
   /**
    * @param const void *ptr data to write
-   * std::size_t size of the data
+   * @param std::size_t size of the data
    *
    * called when data needs to be written
    */
   virtual void writeData(const void* ptr, std::size_t size) = 0;
+
+  /**
+   * @param const void *ptr header data to write
+   * @param std::size_t size of the header data
+   *
+   * This is helpful for writers that want to take different code path
+   * for writing headers (e.g. record header)
+   * For those writers that do not differentiate header from data,
+   * the default implementation is simply writeData()
+   */
+  virtual void writeHeader(const void* ptr, std::size_t size) {
+    writeData(ptr, size);
+  }
 
   /**
    * @param amount -- amount of bytes to write.

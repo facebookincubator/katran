@@ -92,6 +92,7 @@ enum class AddressType {
 enum class PcapStorageFormat {
   FILE,
   IOBUF,
+  PIPE,
 };
 
 /**
