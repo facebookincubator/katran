@@ -20,6 +20,7 @@
 #include <functional>
 #include <string>
 #include <vector>
+#include "katran/lib/MonitoringStructs.h"
 
 namespace katran {
 
@@ -35,7 +36,6 @@ constexpr uint32_t kDefaultNumOfPages = 2;
 constexpr uint32_t kDefaultMonitorQueueSize = 4096;
 constexpr uint32_t kDefaultMonitorPcktLimit = 0;
 constexpr uint32_t kDefaultMonitorSnapLen = 128;
-constexpr uint32_t kDefaultMonitorMaxEvents = 4;
 constexpr unsigned int kDefaultLruSize = 8000000;
 constexpr uint32_t kNoFlags = 0;
 std::string kNoExternalMap = "";
@@ -115,7 +115,7 @@ struct KatranMonitorConfig {
   uint32_t queueSize{kDefaultMonitorQueueSize};
   uint32_t pcktLimit{kDefaultMonitorPcktLimit};
   uint32_t snapLen{kDefaultMonitorSnapLen};
-  uint32_t maxEvents{kDefaultMonitorMaxEvents};
+  std::set<MonitoringEventId> events{kAllEventIds};
   std::string path{"/tmp/katran_pcap"};
   PcapStorageFormat storage{PcapStorageFormat::FILE};
   uint32_t bufferSize{0};
@@ -133,7 +133,8 @@ struct KatranMonitorConfig {
  * @param string rootMapPath path to pinned map from root xdp prog
  * @param rootMapPos position inside rootMap
  * @param bool enableHc flag, is set - we will load healthchecking bpf prog
- * @param bool disableForwarding flag - if set, we don't load the forwarding (xdp) bpf program
+ * @param bool disableForwarding flag - if set, we don't load the forwarding
+ * (xdp) bpf program
  * @param uint32_t maxVips maximum allowed vips to configure
  * @param uint32_t maxReals maximum allowed reals to configure
  * @param uint32_t chRingSize size of ch ring for each real

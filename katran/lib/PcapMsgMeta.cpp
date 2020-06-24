@@ -14,6 +14,8 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 #include "katran/lib/PcapMsgMeta.h"
+#include <folly/Format.h>
+#include <folly/Utility.h>
 
 namespace katran {
 
@@ -44,8 +46,13 @@ PcapMsg& PcapMsgMeta::getPcapMsg() {
   return msg_;
 }
 
-uint32_t PcapMsgMeta::getEventId() {
-  return event_;
+MonitoringEventId PcapMsgMeta::getEventId() {
+  try {
+    return static_cast<MonitoringEventId>(event_);
+  } catch (const std::exception& e) {
+    LOG(ERROR) << folly::format("invalid event {}: {}", event_, e.what());
+    return MonitoringEventId::UNKNOWN;
+  }
 }
 
 } // namespace katran

@@ -31,7 +31,7 @@
 #include "katran/lib/testing/KatranHCTestFixtures.h"
 #include "katran/lib/testing/KatranOptionalTestFixtures.h"
 #include "katran/lib/testing/KatranTestFixtures.h"
-#include "katran/lib/bpf/introspection.h"
+#include "katran/lib/MonitoringStructs.h"
 
 using namespace katran::testing;
 
@@ -144,9 +144,9 @@ void testSimulator(katran::KatranLb& lb) {
 void testKatranMonitor(katran::KatranLb& lb) {
   lb.stopKatranMonitor();
   std::this_thread::sleep_for(std::chrono::seconds(1));
-  constexpr std::array<uint32_t, 2> events = {
-    TCP_NONSYN_LRUMISS,
-    PACKET_TOOBIG,
+  constexpr std::array<katran::MonitoringEventId, 2> events = {
+    katran::MonitoringEventId::TCP_NONSYN_LRUMISS,
+    katran::MonitoringEventId::PACKET_TOOBIG,
   };
 
   for (const auto event : events) {

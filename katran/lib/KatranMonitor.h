@@ -15,14 +15,15 @@
  */
 
 #pragma once
+#include <folly/MPMCQueue.h>
+#include <folly/io/IOBuf.h>
+#include <folly/io/async/AsyncPipe.h>
 #include <memory>
 #include <thread>
 #include <vector>
-#include <folly/io/IOBuf.h>
-#include <folly/io/async/AsyncPipe.h>
-#include <folly/MPMCQueue.h>
 
 #include "katran/lib/KatranLbStructs.h"
+#include "katran/lib/MonitoringStructs.h"
 #include "katran/lib/PcapMsgMeta.h"
 #include "katran/lib/PcapWriter.h"
 
@@ -51,34 +52,43 @@ class KatranMonitor {
 
   PcapWriterStats getWriterStats();
 
-  std::unique_ptr<folly::IOBuf> getEventBuffer(int event);
+  std::unique_ptr<folly::IOBuf> getEventBuffer(MonitoringEventId);
 
   /**
    * Enable event
    * Note: this does not start event loop nor does any internal synchronization.
    * It only marks the event as "enabled".
    */
-  bool enableWriterEvent(uint32_t event);
+  bool enableWriterEvent(MonitoringEventId event);
 
   /**
    * Disable event
    */
-  bool disableWriterEvent(uint32_t event);
+  bool disableWriterEvent(MonitoringEventId event);
 
   /**
    * Get enabled events
    */
-  std::set<uint32_t> getWriterEnabledEvents();
+  std::set<MonitoringEventId> getWriterEnabledEvents();
+
+  /**
+   * Get pacp storage format
+   */
+  PcapStorageFormat getStorageFormat() {
+    return config_.storage;
+  }
 
   /**
    * Tell the underlying pipe writer to use `writer`
    */
-  void setAsyncPipeWriter(uint32_t event, std::shared_ptr<folly::AsyncPipeWriter> writer);
+  void setAsyncPipeWriter(
+      MonitoringEventId event,
+      std::shared_ptr<folly::AsyncPipeWriter> writer);
 
   /**
    * Disable and destroy (if any) the pipe writer for the event
    */
-  void unsetAsyncPipeWriter(uint32_t event);
+  void unsetAsyncPipeWriter(MonitoringEventId event);
 
  private:
   /**
@@ -108,10 +118,11 @@ class KatranMonitor {
   std::thread writerThread_;
 
   /**
-   * vector of iobufs where we store packets if IOBUF storage
+   * map of iobufs where we store packets if IOBUF storage
    * is being used
    */
-  std::vector<std::unique_ptr<folly::IOBuf>> buffers_;
+  std::unordered_map<MonitoringEventId, std::unique_ptr<folly::IOBuf>>
+      buffers_;
 };
 
 } // namespace katran

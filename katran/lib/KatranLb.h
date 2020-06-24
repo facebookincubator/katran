@@ -31,6 +31,7 @@
 #include "katran/lib/IpHelpers.h"
 #include "katran/lib/KatranLbStructs.h"
 #include "katran/lib/KatranSimulator.h"
+#include "katran/lib/MonitoringStructs.h"
 #include "katran/lib/Vip.h"
 
 namespace katran {
@@ -491,7 +492,8 @@ class KatranLb {
   bool restartKatranMonitor(uint32_t limit);
 
   /**
-   * @param int event monitoring event it. see balancer_consts.h
+   * @param MonitoringEventId event monitoring event id. see
+   * introspection.h and MonitoringStructs.h
    * @return unique_ptr<IOBuf> on success or nullptr otherwise
    *
    * getKatranMonitorEventBuffer return iobuf which contains all the packets
@@ -500,7 +502,8 @@ class KatranLb {
    * This function is not thread safe. underlying IOBuf, when accessed while
    * monitoring is still running, could point to partially written packet
    */
-  std::unique_ptr<folly::IOBuf> getKatranMonitorEventBuffer(int event);
+  std::unique_ptr<folly::IOBuf> getKatranMonitorEventBuffer(
+      MonitoringEventId event);
 
   /**
    * @return KatranMonitorStats stats from katran monitor

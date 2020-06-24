@@ -17,12 +17,14 @@
 #pragma once
 
 #include <memory>
-#include <vector>
 #include <set>
+#include <unordered_map>
+#include <vector>
 
 #include <folly/MPMCQueue.h>
 
 #include "katran/lib/DataWriter.h"
+#include "katran/lib/MonitoringStructs.h"
 #include "katran/lib/PcapMsgMeta.h"
 
 struct PcapWriterStats {
@@ -63,7 +65,9 @@ class PcapWriter {
    *
    */
   PcapWriter(
-      std::vector<std::shared_ptr<DataWriter>>& dataWriters,
+      std::unordered_map<
+          MonitoringEventId,
+          std::shared_ptr<DataWriter>>& dataWriters,
       uint32_t packetLimit,
       uint32_t snaplen);
 
@@ -114,38 +118,32 @@ class PcapWriter {
   /**
    * return a shared pointer to the datawriter of the specific event
    */
-  std::shared_ptr<DataWriter> getDataWriter(uint32_t event) {
-    // Bound check
-    if (event >= dataWriters_.size()) {
+  std::shared_ptr<DataWriter> getDataWriter(MonitoringEventId event) {
+    auto it = dataWriters_.find(event);
+    if (it == dataWriters_.end()) {
       return nullptr;
     }
-    return dataWriters_[event];
+    return it->second;
   }
 
   /**
    * return enabled events
    */
-  std::set<uint32_t> getEnabledEvents() {
+  std::set<MonitoringEventId> getEnabledEvents() {
     return enabledEvents_;
   }
 
   /**
    * enable one event
    */
-  bool enableEvent(uint32_t event) {
-    if (event >= dataWriters_.size()) {
-      return false;
-    }
-    if (enabledEvents_.find(event) == enabledEvents_.end()) {
-      enabledEvents_.insert(event);
-    }
-    return true;
+  bool enableEvent(MonitoringEventId event) {
+    return enabledEvents_.insert(event).second;
   }
 
   /**
    * disable one event
    */
-  void disableEvent(uint32_t event) {
+  void disableEvent(MonitoringEventId event) {
     enabledEvents_.erase(event);
   }
 
@@ -163,12 +161,12 @@ class PcapWriter {
    *
    * wrapper which implements all the writin logic
    */
-  void writePacket(const PcapMsg& msg, uint32_t writerId);
+  void writePacket(const PcapMsg& msg, MonitoringEventId writerId);
 
   /**
    * helper function to write pcap header
    */
-  bool writePcapHeader(uint32_t writerId);
+  bool writePcapHeader(MonitoringEventId writerId);
 
   /**
    * helper which restart writers
@@ -183,18 +181,19 @@ class PcapWriter {
   /**
    * vector of event to writers mapping. evnet id - position in the vector
    */
-  std::vector<std::shared_ptr<DataWriter>> dataWriters_;
+  std::unordered_map<MonitoringEventId, std::shared_ptr<DataWriter>>
+      dataWriters_;
 
   /**
    * set of events that're being actively monitored
    */
-  std::set<uint32_t> enabledEvents_;
+  std::set<MonitoringEventId> enabledEvents_;
 
   /**
    * internal table, which marks if pcap header was already written by specific
    * writer at corresponding index in dataWriters_
    */
-  std::vector<bool> headerExists_;
+  std::set<MonitoringEventId> headerExists_;
 
   /**
    * Amount of packets that have been written in PcapWriter.

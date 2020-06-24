@@ -14,6 +14,7 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 #pragma once
+#include "katran/lib/MonitoringStructs.h"
 #include "katran/lib/PcapMsg.h"
 
 namespace katran {
@@ -23,7 +24,7 @@ namespace katran {
  */
 class PcapMsgMeta {
  public:
-  PcapMsgMeta(){}
+  PcapMsgMeta() {}
 
   PcapMsgMeta(PcapMsg&& msg, uint32_t event);
 
@@ -31,7 +32,7 @@ class PcapMsgMeta {
 
   PcapMsgMeta(const PcapMsgMeta& msg) = delete;
 
-  ~PcapMsgMeta(){}
+  ~PcapMsgMeta() {}
 
   PcapMsgMeta& operator=(PcapMsgMeta&& msg) noexcept;
 
@@ -79,7 +80,7 @@ class PcapMsgMeta {
     packetLimit_ = limit;
   }
 
-  uint32_t getEventId();
+  MonitoringEventId getEventId();
 
  private:
   PcapMsg msg_;

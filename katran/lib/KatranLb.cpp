@@ -190,8 +190,8 @@ void KatranLb::initialSanityChecking() {
     res = getKatranProgFd();
     if (res < 0) {
       throw std::invalid_argument(folly::sformat(
-        "can't get fd for prog: xdp-balancer, error: {}",
-        folly::errnoStr(errno)));
+          "can't get fd for prog: xdp-balancer, error: {}",
+          folly::errnoStr(errno)));
     }
   }
 
@@ -409,7 +409,7 @@ bool KatranLb::addSrcIpForPcktEncap(const folly::IPAddress& src) {
   // update map for pckt_src
   if (!config_.disableForwarding) {
     res = bpfAdapter_.bpfUpdateMap(
-      bpfAdapter_.getMapFdByName("pckt_srcs"), &key, &srcBe);
+        bpfAdapter_.getMapFdByName("pckt_srcs"), &key, &srcBe);
     if (res) {
       LOG(ERROR) << "cannot insert src address in map: pckt_srcs";
       return false;
@@ -504,14 +504,14 @@ void KatranLb::loadBpfProgs() {
 
     for (auto ctl_key : balancer_ctl_keys) {
       res = bpfAdapter_.bpfUpdateMap(
-        bpfAdapter_.getMapFdByName("ctl_array"),
-        &ctl_key,
-        &ctlValues_[ctl_key]);
+          bpfAdapter_.getMapFdByName("ctl_array"),
+          &ctl_key,
+          &ctlValues_[ctl_key]);
 
       if (res != 0) {
         throw std::invalid_argument(folly::sformat(
-          "can't update ctl array for main program, error: {}",
-          folly::errnoStr(errno)));
+            "can't update ctl array for main program, error: {}",
+            folly::errnoStr(errno)));
       }
     }
   }
@@ -617,9 +617,9 @@ bool KatranLb::changeMac(const std::vector<uint8_t> newMac) {
   if (!config_.testing) {
     if (!config_.disableForwarding) {
       auto res = bpfAdapter_.bpfUpdateMap(
-        bpfAdapter_.getMapFdByName("ctl_array"),
-        &key,
-        &ctlValues_[kMacAddrPos].mac);
+          bpfAdapter_.getMapFdByName("ctl_array"),
+          &key,
+          &ctlValues_[kMacAddrPos].mac);
       if (res != 0) {
         lbStats_.bpfFailedCalls++;
         VLOG(4) << "can't add new mac address";
@@ -1145,7 +1145,8 @@ bool KatranLb::stopKatranMonitor() {
   return true;
 }
 
-std::unique_ptr<folly::IOBuf> KatranLb::getKatranMonitorEventBuffer(int event) {
+std::unique_ptr<folly::IOBuf> KatranLb::getKatranMonitorEventBuffer(
+    MonitoringEventId event) {
   if (!features_.introspection || config_.disableForwarding) {
     return nullptr;
   }

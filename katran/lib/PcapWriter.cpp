@@ -31,7 +31,7 @@ constexpr int32_t kGmt = 0;
 constexpr uint32_t kAccuracy = 0;
 constexpr uint32_t kMaxSnapLen = 0xFFFF; // 65535
 constexpr uint32_t kEthernet = 1;
-constexpr uint32_t kDefaultWriter = 0;
+constexpr MonitoringEventId kDefaultWriter = MonitoringEventId::TCP_NONSYN_LRUMISS;
 } // namespace
 
 PcapWriter::PcapWriter(
@@ -39,21 +39,24 @@ PcapWriter::PcapWriter(
     uint32_t packetLimit,
     uint32_t snaplen)
     : packetLimit_(packetLimit), snaplen_(snaplen) {
-  dataWriters_.push_back(dataWriter);
-  headerExists_.push_back(false);
+  dataWriters_.insert({kDefaultWriter, dataWriter});
+  headerExists_.insert(kDefaultWriter);
 }
 
 PcapWriter::PcapWriter(
-    std::vector<std::shared_ptr<DataWriter>>& dataWriters,
+    std::unordered_map<MonitoringEventId, std::shared_ptr<DataWriter>>&
+        dataWriters,
     uint32_t packetLimit,
     uint32_t snaplen)
     : dataWriters_(dataWriters), packetLimit_(packetLimit), snaplen_(snaplen) {
-  for (int i = 0; i < dataWriters_.size(); i++) {
-    headerExists_.push_back(false);
+  for (auto eventAndWriter : dataWriters_) {
+    headerExists_.insert(eventAndWriter.first);
   }
 }
 
-void PcapWriter::writePacket(const PcapMsg& msg, uint32_t writerId) {
+void PcapWriter::writePacket(
+    const PcapMsg& msg,
+    MonitoringEventId writerId) {
   auto unix_usec =
       std::chrono::duration_cast<std::chrono::microseconds>(
           std::chrono::high_resolution_clock::now().time_since_epoch())
@@ -68,24 +71,26 @@ void PcapWriter::writePacket(const PcapMsg& msg, uint32_t writerId) {
   };
   rec_hdr.incl_len = msg.getCapturedLen();
   rec_hdr.orig_len = msg.getOrigLen();
-  if (writerId >= dataWriters_.size()) {
+  auto writerIt = dataWriters_.find(writerId);
+  if (writerIt == dataWriters_.end()) {
     LOG(ERROR) << "no writer w/ specified ID: " << writerId;
     return;
   }
-  dataWriters_[writerId]->writeData(&rec_hdr, sizeof(rec_hdr));
-  dataWriters_[writerId]->writeData(msg.getRawBuffer(), msg.getCapturedLen());
+  writerIt->second->writeData(&rec_hdr, sizeof(rec_hdr));
+  writerIt->second->writeData(msg.getRawBuffer(), msg.getCapturedLen());
 }
 
-bool PcapWriter::writePcapHeader(uint32_t writerId) {
-  if (writerId >= dataWriters_.size()) {
-    LOG(ERROR) << "no writer w/ specified ID: " << writerId;
-    return false;
-  }
-  if (headerExists_[writerId]) {
+bool PcapWriter::writePcapHeader(MonitoringEventId writerId) {
+  if (headerExists_.find(writerId) != headerExists_.end()) {
     VLOG(4) << "header already exists";
     return true;
   }
-  if (!dataWriters_[writerId]->available(sizeof(struct pcap_hdr_s))) {
+  auto writerIt = dataWriters_.find(writerId);
+  if (writerIt == dataWriters_.end()) {
+    LOG(ERROR) << "No writer w/ specified ID: " << writerId;
+    return false;
+  }
+  if (!writerIt->second->available(sizeof(struct pcap_hdr_s))) {
     LOG(ERROR) << "DataWriter failed to write a header. Not enough space.";
     return false;
   }
@@ -94,8 +99,8 @@ bool PcapWriter::writePcapHeader(uint32_t writerId) {
     .version_minor = kVersionMinor, .thiszone = kGmt, .sigfigs = kAccuracy,
     .snaplen = snaplen_ ?: kMaxSnapLen, .network = kEthernet
   };
-  dataWriters_[writerId]->writeHeader(&hdr, sizeof(hdr));
-  headerExists_[writerId] = true;
+  writerIt->second->writeHeader(&hdr, sizeof(hdr));
+  headerExists_.insert(writerId);
   return true;
 }
 
@@ -114,7 +119,11 @@ void PcapWriter::run(std::shared_ptr<folly::MPMCQueue<PcapMsg>> queue) {
       LOG(INFO) << "Empty message was received. Writer thread is stopping.";
       break;
     }
-    if (!dataWriters_[kDefaultWriter]->available(
+    auto writerIt = dataWriters_.find(kDefaultWriter);
+    if (writerIt == dataWriters_.end()) {
+      LOG(ERROR) << "No writer w/ specified Id: " << kDefaultWriter;
+    }
+    if (writerIt->second->available(
             msg.getCapturedLen() + sizeof(pcaprec_hdr_s))) {
       ++bufferFull_;
       break;
@@ -136,12 +145,10 @@ PcapWriterStats PcapWriter::getStats() {
 void PcapWriter::restartWriters(uint32_t packetLimit) {
   // as we are going to overrite all data writers. we would need to rewrite
   // headers
-  for (int i = 0; i < headerExists_.size(); i++) {
-    headerExists_[i] = false;
-  }
+  headerExists_.clear();
 
-  for (auto& writer : dataWriters_) {
-    writer->restart();
+  for (auto& eventAndWriter : dataWriters_) {
+    eventAndWriter.second->restart();
   }
 
   packetLimit_ = packetLimit;
@@ -149,8 +156,8 @@ void PcapWriter::restartWriters(uint32_t packetLimit) {
 }
 
 void PcapWriter::stopWriters() {
-  for (auto& writer : dataWriters_) {
-    writer->stop();
+  for (auto& eventAndWriter : dataWriters_) {
+    eventAndWriter.second->stop();
   }
   packetLimit_ = 0;
   packetAmount_ = packetLimit_;
@@ -177,21 +184,26 @@ void PcapWriter::runMulti(
     if (!packetLimitOverride_ && packetAmount_ >= packetLimit_) {
       continue;
     }
-    if (enabledEvents_.find(msg.getEventId()) == enabledEvents_.end()) {
-      LOG(INFO) << "event " << msg.getEventId() << " is not enabled, skipping";
+    auto eventId = msg.getEventId();
+    if (enabledEvents_.find(eventId) == enabledEvents_.end()) {
+      LOG(INFO) << "event " << eventId << " is not enabled, skipping";
       continue;
     }
-    if (!writePcapHeader(msg.getEventId())) {
+    if (!writePcapHeader(eventId)) {
       LOG(ERROR) << "DataWriter failed to write a header";
       continue;
     }
     msg.getPcapMsg().trim(snaplen);
-    if (!dataWriters_[msg.getEventId()]->available(
+    auto writerIt = dataWriters_.find(eventId);
+    if (writerIt == dataWriters_.end()) {
+      LOG(ERROR) << "No writer w/ specified Id: " << eventId;
+    }
+    if (!writerIt->second->available(
             msg.getPcapMsg().getCapturedLen() + sizeof(pcaprec_hdr_s))) {
       ++bufferFull_;
       continue;
     }
-    writePacket(msg.getPcapMsg(), msg.getEventId());
+    writePacket(msg.getPcapMsg(), eventId);
     ++packetAmount_;
   }
 }

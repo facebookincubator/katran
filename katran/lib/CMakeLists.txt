@@ -96,6 +96,7 @@ add_library(pcapwriter STATIC
     PcapMsg.cpp
     PcapMsgMeta.cpp
     PcapWriter.cpp
+    MonitoringStructs.cpp
     ByteRangeWriter.h
     IOBufWriter.h
     DataWriter.h
@@ -105,6 +106,7 @@ add_library(pcapwriter STATIC
     PcapMsgMeta.h
     PcapStructs.h
     PcapWriter.h
+    MonitoringStructs.h
 )
 
 set(PCAPWRITER_DEPS
