@@ -19,6 +19,8 @@
 
 namespace katran {
 
+using EventId = monitoring::EventId;
+
 PcapMsgMeta::PcapMsgMeta(PcapMsg&& msg, uint32_t event)
     : msg_(std::move(msg)), event_(event){};
 
@@ -46,12 +48,12 @@ PcapMsg& PcapMsgMeta::getPcapMsg() {
   return msg_;
 }
 
-MonitoringEventId PcapMsgMeta::getEventId() {
+EventId PcapMsgMeta::getEventId() {
   try {
-    return static_cast<MonitoringEventId>(event_);
+    return static_cast<EventId>(event_);
   } catch (const std::exception& e) {
     LOG(ERROR) << folly::format("invalid event {}: {}", event_, e.what());
-    return MonitoringEventId::UNKNOWN;
+    return EventId::UNKNOWN;
   }
 }
 

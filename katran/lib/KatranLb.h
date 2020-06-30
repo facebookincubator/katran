@@ -492,7 +492,7 @@ class KatranLb {
   bool restartKatranMonitor(uint32_t limit);
 
   /**
-   * @param MonitoringEventId event monitoring event id. see
+   * @param monitoring::EventId event monitoring event id. see
    * introspection.h and MonitoringStructs.h
    * @return unique_ptr<IOBuf> on success or nullptr otherwise
    *
@@ -503,7 +503,7 @@ class KatranLb {
    * monitoring is still running, could point to partially written packet
    */
   std::unique_ptr<folly::IOBuf> getKatranMonitorEventBuffer(
-      MonitoringEventId event);
+      monitoring::EventId event);
 
   /**
    * @return KatranMonitorStats stats from katran monitor

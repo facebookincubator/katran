@@ -46,6 +46,7 @@ constexpr uint32_t kSrcV6Pos = 1;
 constexpr uint32_t kRecirculationIndex = 0;
 constexpr uint32_t kHcSrcMacPos = 0;
 constexpr uint32_t kHcDstMacPos = 1;
+using EventId = monitoring::EventId;
 } // namespace
 
 KatranLb::KatranLb(const KatranConfig& config)
@@ -1146,7 +1147,7 @@ bool KatranLb::stopKatranMonitor() {
 }
 
 std::unique_ptr<folly::IOBuf> KatranLb::getKatranMonitorEventBuffer(
-    MonitoringEventId event) {
+    EventId event) {
   if (!features_.introspection || config_.disableForwarding) {
     return nullptr;
   }

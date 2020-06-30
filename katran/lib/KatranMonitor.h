@@ -52,24 +52,24 @@ class KatranMonitor {
 
   PcapWriterStats getWriterStats();
 
-  std::unique_ptr<folly::IOBuf> getEventBuffer(MonitoringEventId);
+  std::unique_ptr<folly::IOBuf> getEventBuffer(monitoring::EventId);
 
   /**
    * Enable event
    * Note: this does not start event loop nor does any internal synchronization.
    * It only marks the event as "enabled".
    */
-  bool enableWriterEvent(MonitoringEventId event);
+  bool enableWriterEvent(monitoring::EventId event);
 
   /**
    * Disable event
    */
-  bool disableWriterEvent(MonitoringEventId event);
+  bool disableWriterEvent(monitoring::EventId event);
 
   /**
    * Get enabled events
    */
-  std::set<MonitoringEventId> getWriterEnabledEvents();
+  std::set<monitoring::EventId> getWriterEnabledEvents();
 
   /**
    * Get pacp storage format
@@ -82,13 +82,13 @@ class KatranMonitor {
    * Tell the underlying pipe writer to use `writer`
    */
   void setAsyncPipeWriter(
-      MonitoringEventId event,
+      monitoring::EventId event,
       std::shared_ptr<folly::AsyncPipeWriter> writer);
 
   /**
    * Disable and destroy (if any) the pipe writer for the event
    */
-  void unsetAsyncPipeWriter(MonitoringEventId event);
+  void unsetAsyncPipeWriter(monitoring::EventId event);
 
  private:
   /**
@@ -121,7 +121,7 @@ class KatranMonitor {
    * map of iobufs where we store packets if IOBUF storage
    * is being used
    */
-  std::unordered_map<MonitoringEventId, std::unique_ptr<folly::IOBuf>>
+  std::unordered_map<monitoring::EventId, std::unique_ptr<folly::IOBuf>>
       buffers_;
 };
 

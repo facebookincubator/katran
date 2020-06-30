@@ -28,6 +28,7 @@ namespace katran {
 
 namespace {
 constexpr uint32_t kNoSample = 1;
+using monitoring::EventId;
 }
 
 KatranMonitor::KatranMonitor(const KatranMonitorConfig& config)
@@ -48,7 +49,7 @@ KatranMonitor::KatranMonitor(const KatranMonitorConfig& config)
     throw std::runtime_error("none of eventReaders were initialized");
   }
 
-  std::unordered_map<MonitoringEventId, std::shared_ptr<DataWriter>>
+  std::unordered_map<EventId, std::shared_ptr<DataWriter>>
       data_writers;
   for (auto event : config_.events) {
     if (config_.storage == PcapStorageFormat::FILE) {
@@ -98,21 +99,21 @@ void KatranMonitor::restartMonitor(uint32_t limit) {
   queue_->blockingWrite(std::move(msg));
 }
 
-bool KatranMonitor::enableWriterEvent(MonitoringEventId event) {
+bool KatranMonitor::enableWriterEvent(EventId event) {
   if (!writer_) {
     return false;
   }
   return writer_->enableEvent(event);
 }
 
-std::set<MonitoringEventId> KatranMonitor::getWriterEnabledEvents() {
+std::set<EventId> KatranMonitor::getWriterEnabledEvents() {
   if (!writer_) {
     return {};
   }
   return writer_->getEnabledEvents();
 }
 
-bool KatranMonitor::disableWriterEvent(MonitoringEventId event) {
+bool KatranMonitor::disableWriterEvent(EventId event) {
   if (!writer_) {
     return false;
   }
@@ -121,7 +122,7 @@ bool KatranMonitor::disableWriterEvent(MonitoringEventId event) {
 }
 
 std::unique_ptr<folly::IOBuf> KatranMonitor::getEventBuffer(
-    MonitoringEventId event) {
+    EventId event) {
   if (buffers_.size() == 0) {
     LOG(ERROR) << "PcapStorageFormat is not set to IOBuf";
     return nullptr;
@@ -135,7 +136,7 @@ std::unique_ptr<folly::IOBuf> KatranMonitor::getEventBuffer(
 }
 
 void KatranMonitor::setAsyncPipeWriter(
-    MonitoringEventId event,
+    EventId event,
     std::shared_ptr<folly::AsyncPipeWriter> writer) {
   // If either casting or getDataWriter() fails, pipeWriter will be nullptr
   auto pipeWriter =
@@ -148,7 +149,7 @@ void KatranMonitor::setAsyncPipeWriter(
   writer_->enableEvent(event);
 }
 
-void KatranMonitor::unsetAsyncPipeWriter(MonitoringEventId event) {
+void KatranMonitor::unsetAsyncPipeWriter(EventId event) {
   auto pipeWriter =
       std::dynamic_pointer_cast<PipeWriter>(writer_->getDataWriter(event));
   if (!pipeWriter) {

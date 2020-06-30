@@ -144,9 +144,9 @@ void testSimulator(katran::KatranLb& lb) {
 void testKatranMonitor(katran::KatranLb& lb) {
   lb.stopKatranMonitor();
   std::this_thread::sleep_for(std::chrono::seconds(1));
-  constexpr std::array<katran::MonitoringEventId, 2> events = {
-    katran::MonitoringEventId::TCP_NONSYN_LRUMISS,
-    katran::MonitoringEventId::PACKET_TOOBIG,
+  constexpr std::array<katran::monitoring::EventId, 2> events = {
+    katran::monitoring::EventId::TCP_NONSYN_LRUMISS,
+    katran::monitoring::EventId::PACKET_TOOBIG,
   };
 
   for (const auto event : events) {

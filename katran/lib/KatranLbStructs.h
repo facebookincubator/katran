@@ -115,7 +115,7 @@ struct KatranMonitorConfig {
   uint32_t queueSize{kDefaultMonitorQueueSize};
   uint32_t pcktLimit{kDefaultMonitorPcktLimit};
   uint32_t snapLen{kDefaultMonitorSnapLen};
-  std::set<MonitoringEventId> events{kAllEventIds};
+  std::set<monitoring::EventId> events{monitoring::kAllEventIds};
   std::string path{"/tmp/katran_pcap"};
   PcapStorageFormat storage{PcapStorageFormat::FILE};
   uint32_t bufferSize{0};

@@ -80,7 +80,7 @@ class PcapMsgMeta {
     packetLimit_ = limit;
   }
 
-  MonitoringEventId getEventId();
+  monitoring::EventId getEventId();
 
  private:
   PcapMsg msg_;

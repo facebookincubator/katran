@@ -31,7 +31,8 @@ constexpr int32_t kGmt = 0;
 constexpr uint32_t kAccuracy = 0;
 constexpr uint32_t kMaxSnapLen = 0xFFFF; // 65535
 constexpr uint32_t kEthernet = 1;
-constexpr MonitoringEventId kDefaultWriter = MonitoringEventId::TCP_NONSYN_LRUMISS;
+using EventId = monitoring::EventId;
+constexpr EventId kDefaultWriter = EventId::TCP_NONSYN_LRUMISS;
 } // namespace
 
 PcapWriter::PcapWriter(
@@ -44,7 +45,7 @@ PcapWriter::PcapWriter(
 }
 
 PcapWriter::PcapWriter(
-    std::unordered_map<MonitoringEventId, std::shared_ptr<DataWriter>>&
+    std::unordered_map<EventId, std::shared_ptr<DataWriter>>&
         dataWriters,
     uint32_t packetLimit,
     uint32_t snaplen)
@@ -56,7 +57,7 @@ PcapWriter::PcapWriter(
 
 void PcapWriter::writePacket(
     const PcapMsg& msg,
-    MonitoringEventId writerId) {
+    EventId writerId) {
   auto unix_usec =
       std::chrono::duration_cast<std::chrono::microseconds>(
           std::chrono::high_resolution_clock::now().time_since_epoch())
@@ -80,7 +81,7 @@ void PcapWriter::writePacket(
   writerIt->second->writeData(msg.getRawBuffer(), msg.getCapturedLen());
 }
 
-bool PcapWriter::writePcapHeader(MonitoringEventId writerId) {
+bool PcapWriter::writePcapHeader(EventId writerId) {
   if (headerExists_.find(writerId) != headerExists_.end()) {
     VLOG(4) << "header already exists";
     return true;

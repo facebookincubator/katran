@@ -66,7 +66,7 @@ class PcapWriter {
    */
   PcapWriter(
       std::unordered_map<
-          MonitoringEventId,
+          monitoring::EventId,
           std::shared_ptr<DataWriter>>& dataWriters,
       uint32_t packetLimit,
       uint32_t snaplen);
@@ -118,7 +118,7 @@ class PcapWriter {
   /**
    * return a shared pointer to the datawriter of the specific event
    */
-  std::shared_ptr<DataWriter> getDataWriter(MonitoringEventId event) {
+  std::shared_ptr<DataWriter> getDataWriter(monitoring::EventId event) {
     auto it = dataWriters_.find(event);
     if (it == dataWriters_.end()) {
       return nullptr;
@@ -129,21 +129,21 @@ class PcapWriter {
   /**
    * return enabled events
    */
-  std::set<MonitoringEventId> getEnabledEvents() {
+  std::set<monitoring::EventId> getEnabledEvents() {
     return enabledEvents_;
   }
 
   /**
    * enable one event
    */
-  bool enableEvent(MonitoringEventId event) {
+  bool enableEvent(monitoring::EventId event) {
     return enabledEvents_.insert(event).second;
   }
 
   /**
    * disable one event
    */
-  void disableEvent(MonitoringEventId event) {
+  void disableEvent(monitoring::EventId event) {
     enabledEvents_.erase(event);
   }
 
@@ -161,12 +161,12 @@ class PcapWriter {
    *
    * wrapper which implements all the writin logic
    */
-  void writePacket(const PcapMsg& msg, MonitoringEventId writerId);
+  void writePacket(const PcapMsg& msg, monitoring::EventId writerId);
 
   /**
    * helper function to write pcap header
    */
-  bool writePcapHeader(MonitoringEventId writerId);
+  bool writePcapHeader(monitoring::EventId writerId);
 
   /**
    * helper which restart writers
@@ -181,19 +181,19 @@ class PcapWriter {
   /**
    * vector of event to writers mapping. evnet id - position in the vector
    */
-  std::unordered_map<MonitoringEventId, std::shared_ptr<DataWriter>>
+  std::unordered_map<monitoring::EventId, std::shared_ptr<DataWriter>>
       dataWriters_;
 
   /**
    * set of events that're being actively monitored
    */
-  std::set<MonitoringEventId> enabledEvents_;
+  std::set<monitoring::EventId> enabledEvents_;
 
   /**
    * internal table, which marks if pcap header was already written by specific
    * writer at corresponding index in dataWriters_
    */
-  std::set<MonitoringEventId> headerExists_;
+  std::set<monitoring::EventId> headerExists_;
 
   /**
    * Amount of packets that have been written in PcapWriter.
