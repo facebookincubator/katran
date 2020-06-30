@@ -33,7 +33,7 @@
                REPORT_EVENT(xdp, TCP_NONSYN_LRUMISS,            \
                             data, size, meta_only)
 #define REPORT_PACKET_TOOBIG(xdp, data, size, meta_only)          \
-               REPORT_EVENT(xdp, ICMP_TOOBIG,                   \
+               REPORT_EVENT(xdp, PACKET_TOOBIG,                   \
                             data, size, meta_only)
 #else
 // Introspection disabled, define helpers to be nop
