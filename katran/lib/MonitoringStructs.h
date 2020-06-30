@@ -22,6 +22,14 @@ enum class EventId : uint8_t {
 // A set of all valid events
 extern std::set<EventId> kAllEventIds;
 
+// Enum of response status
+enum ResponseStatus {
+  OK = 0,
+  NOT_SUPPORTED = 1,
+  TOOMANY_CLIENTS = 2,
+  INTERNAL_ERROR = 3,
+};
+
 // Helper function converting event to string
 std::string toString(const EventId& eventId);
 
@@ -51,7 +59,7 @@ class ClientSubscriptionIf {
   /**
    * Return true if this subscription contains the event
    */
-  virtual bool hasEvent(const EventId& event) = 0;
+  virtual bool hasEvent(const EventId& event_id) = 0;
 };
 
 using ClientSubscriptionMap =

@@ -153,6 +153,8 @@ add_library(katranlb STATIC
     Vip.cpp
     EventPipeCallback.h
     EventPipeCallback.cpp
+    MonitoringServiceCore.h
+    MonitoringServiceCore.cpp
 )
 
 target_link_libraries(katranlb

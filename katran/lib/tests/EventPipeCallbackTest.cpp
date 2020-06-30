@@ -99,7 +99,8 @@ TEST_F(EventPipeCallbackTest, SimpleCallbackTest) {
     subsmap.insert({i, mockSubscription});
   }
   eventPipeCb_ = std::make_unique<EventPipeCallback>(
-      EventId::TCP_NONSYN_LRUMISS, folly::Synchronized(std::move(subsmap)));
+      EventId::TCP_NONSYN_LRUMISS,
+      folly::Synchronized<ClientSubscriptionMap>(std::move(subsmap)));
   eventPipeCb_->enable();
   reader_->setReadCB(eventPipeCb_.get());
 

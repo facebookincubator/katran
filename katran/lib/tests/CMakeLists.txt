@@ -41,3 +41,23 @@ katran_add_test(TARGET vip-tests
   ${PTHREAD}
   "Folly::folly"
 )
+
+katran_add_test(TARGET eventpipe-callback-test
+  SOURCES
+  EventPipeCallbackTest.cpp
+  DEPENDS
+  katranlb
+  ${GTEST}
+  ${PTHREAD}
+  "Folly::folly"
+)
+
+katran_add_test(TARGET monitoring-servvice-core-test
+  SOURCES
+  MonitoringServiceCoreTest.cpp
+  DEPENDS
+  katranlb
+  ${GTEST}
+  ${PTHREAD}
+  "Folly::folly"
+)
