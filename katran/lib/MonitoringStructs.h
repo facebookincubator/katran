@@ -1,10 +1,11 @@
 // Copyright 2004-present Facebook. All Rights Reserved.
 
 #pragma once
-
+#include <memory>
 #include <ostream>
 #include <set>
 #include <string>
+#include <unordered_map>
 
 namespace katran {
 namespace monitoring {
@@ -26,6 +27,35 @@ std::string toString(const EventId& eventId);
 
 // Helper operator definition that makes logging easier
 std::ostream& operator<<(std::ostream& os, const EventId& eventId);
+
+struct Event {
+  EventId id;
+  uint32_t pktsize;
+  std::string data;
+};
+
+using ClientId = uint32_t;
+using EventIds = std::set<EventId>;
+
+/**
+ * A helper class to store both subscribed events and publisher
+ */
+class ClientSubscriptionIf {
+ public:
+  virtual ~ClientSubscriptionIf() = default;
+  /**
+   * Stream event to client.
+   */
+  virtual void sendEvent(const Event& event) = 0;
+
+  /**
+   * Return true if this subscription contains the event
+   */
+  virtual bool hasEvent(const EventId& event) = 0;
+};
+
+using ClientSubscriptionMap =
+    std::unordered_map<ClientId, std::shared_ptr<ClientSubscriptionIf>>;
 
 } // namespace monitoring
 } // namespace katran

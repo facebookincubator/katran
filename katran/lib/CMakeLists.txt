@@ -151,6 +151,8 @@ add_library(katranlb STATIC
     BalancerStructs.h
     Vip.h
     Vip.cpp
+    EventPipeCallback.h
+    EventPipeCallback.cpp
 )
 
 target_link_libraries(katranlb

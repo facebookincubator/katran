@@ -22,6 +22,7 @@
 #include "katran/lib/FileWriter.h"
 #include "katran/lib/IOBufWriter.h"
 #include "katran/lib/KatranEventReader.h"
+#include "katran/lib/MonitoringStructs.h"
 #include "katran/lib/PipeWriter.h"
 
 namespace katran {
@@ -29,7 +30,7 @@ namespace katran {
 namespace {
 constexpr uint32_t kNoSample = 1;
 using monitoring::EventId;
-}
+} // namespace
 
 KatranMonitor::KatranMonitor(const KatranMonitorConfig& config)
     : config_(config) {
@@ -49,8 +50,7 @@ KatranMonitor::KatranMonitor(const KatranMonitorConfig& config)
     throw std::runtime_error("none of eventReaders were initialized");
   }
 
-  std::unordered_map<EventId, std::shared_ptr<DataWriter>>
-      data_writers;
+  std::unordered_map<EventId, std::shared_ptr<DataWriter>> data_writers;
   for (auto event : config_.events) {
     if (config_.storage == PcapStorageFormat::FILE) {
       std::string fname;
@@ -69,7 +69,8 @@ KatranMonitor::KatranMonitor(const KatranMonitorConfig& config)
 
   writer_ = std::make_shared<PcapWriter>(
       data_writers, config_.pcktLimit, config_.snapLen);
-  // Enable all events
+  // Initialize all events.
+  // This will not start event loop, but only mark all events as "enabled".
   for (auto event : config_.events) {
     enableWriterEvent(event);
   }
@@ -121,8 +122,7 @@ bool KatranMonitor::disableWriterEvent(EventId event) {
   return true;
 }
 
-std::unique_ptr<folly::IOBuf> KatranMonitor::getEventBuffer(
-    EventId event) {
+std::unique_ptr<folly::IOBuf> KatranMonitor::getEventBuffer(EventId event) {
   if (buffers_.size() == 0) {
     LOG(ERROR) << "PcapStorageFormat is not set to IOBuf";
     return nullptr;
