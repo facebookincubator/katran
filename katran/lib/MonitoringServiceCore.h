@@ -199,7 +199,7 @@ class MonitoringServiceCore
   /**
    * Limit on the number of monitoring clients (inclusive)
    */
-  ClientId client_limit_;
+  ClientId client_limit_{kDefaultClientLimit};
 
   /**
    * Set of monitoring events enabled

@@ -10,6 +10,8 @@
 namespace katran {
 namespace monitoring {
 
+constexpr auto kDefaultClientLimit = 10;
+
 // This is the internal enum for event id. Protocol specific types will need to
 // be casted to/from this type. One can take advantage of the UNKNOWN event id
 // for handling casting exception.
