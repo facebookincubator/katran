@@ -124,7 +124,7 @@ void PcapWriter::run(std::shared_ptr<folly::MPMCQueue<PcapMsg>> queue) {
     if (writerIt == dataWriters_.end()) {
       LOG(ERROR) << "No writer w/ specified Id: " << kDefaultWriter;
     }
-    if (writerIt->second->available(
+    if (!writerIt->second->available(
             msg.getCapturedLen() + sizeof(pcaprec_hdr_s))) {
       ++bufferFull_;
       break;
