@@ -41,7 +41,6 @@ PcapWriter::PcapWriter(
     uint32_t snaplen)
     : packetLimit_(packetLimit), snaplen_(snaplen) {
   dataWriters_.insert({kDefaultWriter, dataWriter});
-  headerExists_.insert(kDefaultWriter);
 }
 
 PcapWriter::PcapWriter(
@@ -49,11 +48,7 @@ PcapWriter::PcapWriter(
         dataWriters,
     uint32_t packetLimit,
     uint32_t snaplen)
-    : dataWriters_(dataWriters), packetLimit_(packetLimit), snaplen_(snaplen) {
-  for (auto eventAndWriter : dataWriters_) {
-    headerExists_.insert(eventAndWriter.first);
-  }
-}
+    : dataWriters_(dataWriters), packetLimit_(packetLimit), snaplen_(snaplen) {}
 
 void PcapWriter::writePacket(
     const PcapMsg& msg,
