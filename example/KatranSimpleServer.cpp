@@ -34,7 +34,7 @@ using lb::katran::KatranSimpleServiceHandler;
 DEFINE_int32(port, 12307, "Service port");
 DEFINE_int32(thriftMaxRequests, 50000, "Maximum number of active requests");
 DEFINE_bool(thriftEnableCodel, true, "Enable Codel queuing timeout");
-DEFINE_int32(thriftMinCompressBytes, 200, "Minimum response compression size");
+
 DEFINE_int32(num_io_threads, 1, "number of IO threads for thrift server");
 DEFINE_string(intf, "eth0", "main interface");
 DEFINE_string(ipip_intf, "ipip0", "ipip (v4) encap interface");
@@ -109,7 +109,7 @@ int main(int argc, char** argv) {
 
   server->setMaxRequests(FLAGS_thriftMaxRequests);
   server->setEnableCodel(FLAGS_thriftEnableCodel);
-  server->setMinCompressBytes(FLAGS_thriftMinCompressBytes);
+
 
   server->setPort(FLAGS_port);
   server->setInterface(handler);
