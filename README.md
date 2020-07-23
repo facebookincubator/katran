@@ -7,32 +7,32 @@ Katran is a C++ library and [`BPF`](https://en.wikipedia.org/wiki/Berkeley_Packe
 layer 4 load balancing forwarding plane. Katran leverages [`XDP infrastructure`](https://www.iovisor.org/technology/xdp)
 from the kernel to provide an in-kernel facility for fast packet's processing.
 
-### Katran's key features:
+## Katran's key features
 
 1. Blazing fast (especially w/ XDP in driver mode).
 2. Performance scaling linearly with a number of NIC's RX queues.
 3. RSS friendly encapsulation.
 
-See the detailed features' description below - 
+See the detailed features' description below : 
 
-### Documentation's sections:
+## Documentation's sections
 
 1. [`README`](README.md) (this file) - a generic overview of katran.
 2. [`USAGE`](USAGE.md) - the detailed description of how katran's library can be used, configured or changed.
 3. [`DEVELOPING`](DEVELOPING.md) - description of how developing process looks like: how to build and test katran.
 4. [`EXAMPLE`](EXAMPLE.md) - output of how to run provided examples (thrift and [`gRPC services`](https://grpc.io/docs/), which leverage katran library)
 
-### Examples of usage:
+## Examples of usage
 
 We provide simple examples of katran library usage w/ thrift and gRPC endpoints. 
 Please refer to [`Examples`](EXAMPLE.md) for more detailed information.
 
-### Installation:
+## Installation
 
 We provide a shell script that automates the build of katran for Ubuntu 18.04. 
 To build and install katran library and thrift/gRPC examples - you need to run `build_katran.sh` script. 
 It should take care of all the required dependencies. 
-If you need to build it for other Linux distributions, you need to make sure that -
+If you need to build it for other Linux distributions, you need to make sure that :
 
 1. it runs on recent linux kernel (4.13+)
 2. you have installed:
@@ -42,11 +42,11 @@ If you need to build it for other Linux distributions, you need to make sure tha
 
 Additionally, if you want to build examples, [`fbthrift`](https://github.com/facebook/fbthrift) and [`gRPC`](https://github.com/grpc/grpc) must be installed, as well!
 
-### Motivation behind layer 4 load balancing:
+## Motivation behind layer 4 load balancing
 
 Layer 4 load balancer (lb) enables to easily scale out Layer7 load balancers (the
 ones which terminate TCP sessions). Benefits of L4 lb over other
-techniques for scaling L7 lb is that it is - 
+techniques for scaling L7 lb is that it is : 
 
 1. compared to DNS it doesn't need to wait for TTL to redirect traffic from failed
 L7 lb.
@@ -56,7 +56,7 @@ related issues (which triggers mass ECMP reshuffle)/ enable better handling
 of adding/removing of L7 lbs from the pool as well as provide better support for
 unequal load balancing.
 
-### Environment requirements for katran to run:
+## Environment requirements for katran to run
 
 There are special requirements for katran to work properly. However, we do
 believe that most of the potential users of the library can easily satisfy
@@ -115,7 +115,7 @@ which is then used to pick a real server, different L4 lbs are consistent in rea
 even w/o explicit state sharing amongst each other. This feature allows us to restart/drain single 
 L4 lb w/o affecting TCP sessions, going to the L7 lbs.
 
-### katran's features description:
+## katran's features description
 
 1. __Fast :__ katran uses XDP for packet forwarding, which allows
 to run packet handling routines right after packet has been received by
@@ -150,10 +150,10 @@ consume any CPU if there is no traffic to serve.
 performance penalties on the same server (compare to some of other
 "kernel bypass" technologies)
 
-### Trivia:
+## Trivia
 
 katran is named (it's actually an alternative name) after __[spiny dogfish shark](https://en.wikipedia.org/wiki/Spiny_dogfish)__.
 
-### License
+## License
 
 katran is GPL-2.0 licensed, as found in the LICENSE file.
