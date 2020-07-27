@@ -5,7 +5,7 @@
 This guide contains information on how you can build and test katran's
 BPF forwarding plane and cpp library to control it.
 
-### Formating:
+### Formatting:
 
 We are using clang-format for C++ code formatting. Please make sure that code is properly
 formatted before sending PR. You can format it with `clang-format -i <path/to/file>`
@@ -14,8 +14,8 @@ deps folder: `./deps/clang/clang+llvm-5.0.0-linux-x86_64-ubuntu16.04/bin/clang-f
 
 ### Build and compile.
 
-You can build initial version with `build_katran.sh` script (if you are using
-ubuntu 18.04). It will download all required dependencies as build
+You can build the initial version with `build_katran.sh` script (if you are using
+ubuntu 18.04). It will download all required dependencies and build
 actual binaries. However, you can build everything separately.
 
 ### BPF forwarding plane
@@ -35,7 +35,7 @@ healthchecks
 
 To be able to build C++ library (and examples) you need to:
 
-1. create (if not exists already) __`build dir`__
+1. create (if it doesn't exist already) __`build dir`__
 2. run `cmake ..` inside this __`build dir`__
 
 ## Testing
@@ -68,11 +68,11 @@ $
 
 ### BPF
 
-We have developed special framework for the BPF program testing. It is based on
+We have developed a special framework for the BPF program testing. It is based on
 `bpf_prog_test_run`. This framework allow us to specify predefined test fixtures (input and expected output)
-to make sure that for specified input BPF program produces expected output. Test fixtures in our case contains
-base64 encoded packets. You can check `katran/lib/testing/KatranTestFixtures.h` for examples. To run this tests
-you just need to run `./os_run_tester.sh` script (this script requires root privileges)
+to make sure that for a specified input, the BPF program produces expected output. Test fixtures in our case contain
+base64 encoded packets. You can check `katran/lib/testing/KatranTestFixtures.h` for examples. To run these tests
+you just need to run `./os_run_tester.sh` script (this script requires root privileges).
 
 ```
 $ ./os_run_tester.sh
