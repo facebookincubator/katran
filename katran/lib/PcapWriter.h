@@ -65,9 +65,8 @@ class PcapWriter {
    *
    */
   PcapWriter(
-      std::unordered_map<
-          monitoring::EventId,
-          std::shared_ptr<DataWriter>>& dataWriters,
+      std::unordered_map<monitoring::EventId, std::shared_ptr<DataWriter>>&
+          dataWriters,
       uint32_t packetLimit,
       uint32_t snaplen);
 

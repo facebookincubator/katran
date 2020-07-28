@@ -44,15 +44,12 @@ PcapWriter::PcapWriter(
 }
 
 PcapWriter::PcapWriter(
-    std::unordered_map<EventId, std::shared_ptr<DataWriter>>&
-        dataWriters,
+    std::unordered_map<EventId, std::shared_ptr<DataWriter>>& dataWriters,
     uint32_t packetLimit,
     uint32_t snaplen)
     : dataWriters_(dataWriters), packetLimit_(packetLimit), snaplen_(snaplen) {}
 
-void PcapWriter::writePacket(
-    const PcapMsg& msg,
-    EventId writerId) {
+void PcapWriter::writePacket(const PcapMsg& msg, EventId writerId) {
   auto unix_usec =
       std::chrono::duration_cast<std::chrono::microseconds>(
           std::chrono::high_resolution_clock::now().time_since_epoch())

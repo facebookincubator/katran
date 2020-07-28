@@ -52,11 +52,22 @@ katran_add_test(TARGET eventpipe-callback-test
   "Folly::folly"
 )
 
-katran_add_test(TARGET monitoring-servvice-core-test
+katran_add_test(TARGET monitoring-service-core-test
   SOURCES
   MonitoringServiceCoreTest.cpp
   DEPENDS
   katranlb
+  ${GTEST}
+  ${PTHREAD}
+  "Folly::folly"
+)
+
+katran_add_test(TARGET pcap-writer-test
+  SOURCES
+  PcapWriterTest.cpp
+  DEPENDS
+  katranlb
+  ${GMOCK}
   ${GTEST}
   ${PTHREAD}
   "Folly::folly"
