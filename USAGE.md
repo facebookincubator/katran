@@ -155,7 +155,7 @@ lb.attachBpfProgs();
 
 ### Optionally (if going to be used) add healthchecking endpoints
 
-katran's healtchecking forwarding plane, if enabled, works in such a way that all
+katran's healthchecking forwarding plane, if enabled, works in such a way that all
 packets with specified socket mark (which can be added with
 setsockopt syscall (level SOL_SOCKET, optname SO_MARK)) will be forwarded to
 configured real. See [Examples](EXAMPLE.md) for more info on healthchecks.
@@ -210,7 +210,7 @@ forwarded to the real servers (by default if there is no match w/ port - packets
 would be send to the kernel for further processing)
 
 
-Next step is to add a VIP to load balancer
+Next step is to add a VIP to load balancer:
 
 ```c
 lb.addVip(vip);
