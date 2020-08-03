@@ -673,13 +673,35 @@ bool KatranLb::addVip(const VipKey& vip, const uint32_t flags) {
   }
   auto vip_num = vipNums_[0];
   vipNums_.pop_front();
-  vips_.emplace(vip, Vip(vip_num, flags, config_.chRingSize));
+  vips_.emplace(
+      vip, Vip(vip_num, flags, config_.chRingSize, config_.hashFunction));
   if (!config_.testing) {
     vip_meta meta;
     meta.vip_num = vip_num;
     meta.flags = flags;
     updateVipMap(ModifyAction::ADD, vip, &meta);
   }
+  return true;
+}
+
+bool KatranLb::changeHashFunctionForVip(const VipKey& vip, HashFunctions func) {
+  if (config_.disableForwarding) {
+    LOG(ERROR) << "Ignoring addVip call on non-forwarding instance";
+    return false;
+  }
+
+  if (validateAddress(vip.address) == AddressType::INVALID) {
+    LOG(ERROR) << "Invalid Vip address: " << vip.address;
+    return false;
+  }
+  auto vip_iter = vips_.find(vip);
+  if (vip_iter == vips_.end()) {
+    LOG(INFO) << "trying to change non existing vip";
+    return false;
+  }
+  vip_iter->second.setHashFunction(func);
+  auto positions = vip_iter->second.recalculateHashRing();
+  programHashRing(positions, vip_iter->second.getVipNum());
   return true;
 }
 
@@ -862,12 +884,19 @@ bool KatranLb::modifyRealsForVip(
 
   auto ch_positions = vip_iter->second.batchRealsUpdate(ureals);
   auto vip_num = vip_iter->second.getVipNum();
+  programHashRing(ch_positions, vip_num);
+  return true;
+}
+
+void KatranLb::programHashRing(
+    const std::vector<RealPos>& chPositions,
+    const uint32_t vipNum) {
   if (!config_.testing) {
     auto ch_fd = bpfAdapter_.getMapFdByName("ch_rings");
     uint32_t key;
     int res;
-    for (auto pos : ch_positions) {
-      key = vip_num * config_.chRingSize + pos.pos;
+    for (auto pos : chPositions) {
+      key = vipNum * config_.chRingSize + pos.pos;
       res = bpfAdapter_.bpfUpdateMap(ch_fd, &key, &pos.real);
       if (res != 0) {
         lbStats_.bpfFailedCalls++;
@@ -876,7 +905,6 @@ bool KatranLb::modifyRealsForVip(
       }
     }
   }
-  return true;
 }
 
 std::vector<NewReal> KatranLb::getRealsForVip(const VipKey& vip) {

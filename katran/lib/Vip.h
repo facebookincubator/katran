@@ -63,7 +63,8 @@ class Vip {
   explicit Vip(
       uint32_t vipNum,
       uint32_t vipFlags = 0,
-      uint32_t ringSize = kDefaultChRingSize);
+      uint32_t ringSize = kDefaultChRingSize,
+      HashFunctions func = HashFunctions::Maglev);
 
   /**
    * getters
@@ -143,12 +144,31 @@ class Vip {
    */
   std::vector<RealPos> batchRealsUpdate(std::vector<UpdateReal>& ureals);
 
+  /**
+   * @param HashFunctions hash function to use for hash ring generation
+   *
+   * helper, which allows to change hashing functiong for hash ring generation
+   */
+  void setHashFunction(HashFunctions func);
+
+  /**
+   * @return vector<RealPos> delta (in terms of real's position) for ch ring
+   * 
+   * helper function which recalculates hash ring for the Vip
+   */
+  std::vector<RealPos> recalculateHashRing();
+
  private:
   /**
    * helper function which will modify reals_ and return vector of reals after
    * this modification
    */
   std::vector<Endpoint> getEndpoints(std::vector<UpdateReal>& ureals);
+
+  /**
+   * helper function to calculate hash ring and return delta
+   */
+  std::vector<RealPos> calculateHashRing(std::vector<Endpoint> endpoints);
 
   /**
    * number which uniquely identifies this vip
@@ -177,6 +197,11 @@ class Vip {
    * for delta computation (between old and new ch rings)
    */
   std::vector<int> chRing_;
+
+  /**
+   * hash function to generate hash ring
+   */
+  std::unique_ptr<ConsistentHash> chash;
 };
 
 } // namespace katran

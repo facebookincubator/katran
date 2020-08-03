@@ -107,6 +107,8 @@ TEST_F(VipTestF, testGetReals) {
   ASSERT_EQ(delta.size(), 65537);
   delta = vip1.batchRealsUpdate(reals);
   ASSERT_EQ(delta.size(), 0);
-};
+  delta = vip1.recalculateHashRing();
+  ASSERT_EQ(delta.size(), 0);
+}
 
 } // namespace katran

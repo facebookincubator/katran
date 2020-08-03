@@ -17,6 +17,7 @@
 #pragma once
 
 #include <cstdint>
+#include <memory>
 #include <vector>
 
 namespace katran {
@@ -36,37 +37,33 @@ struct Endpoint {
 };
 
 /**
- * This class implements generic helpers to build Consisten hash rings for
- * specified Endpoints.
+ * ConsistentHash implements interface, which is used by CHHelpers class to
+ * generate hash ring
  */
-class CHHelpers {
+class ConsistentHash {
  public:
   /**
    * @param std::vector<Endpoints>& endpoints, which will be used for CH
    * @param uint32_t ring_size size of the CH ring
    * @return std::vector<int> vector, which describe CH ring.
-   * it's size would be ring_size and
-   * which will have Endpoints.num as a values.
-   *
-   * this helper function would implement Maglev's hash algo
-   * (more info: http://research.google.com/pubs/pub44824.html ; section 3.4)
-   * ring_size must be prime number.
-   * this function could throw because allocation for vector could fail.
    */
-  static std::vector<int> GenerateMaglevHash(
+  virtual std::vector<int> generateHashRing(
       std::vector<Endpoint> endpoints,
-      const uint32_t ring_size = kDefaultChRingSize);
+      const uint32_t ring_size = kDefaultChRingSize) = 0;
+};
 
- private:
-  /**
-   * helper function which will generate Maglev's permutation array for
-   * specified endpoint on specified possition
-   */
-  static void genMaglevPermuation(
-      std::vector<uint32_t>& permutation,
-      const Endpoint endpoint,
-      const uint32_t pos,
-      const uint32_t ring_size);
+enum class HashFunctions {
+  Maglev,
+};
+
+/**
+ * This class implements generic helpers to build Consisten hash rings for
+ * specified Endpoints.
+ */
+class CHHelpers {
+ public:
+  static std::unique_ptr<ConsistentHash> hashFunctionsFactory(
+      HashFunctions func);
 };
 
 } // namespace katran

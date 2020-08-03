@@ -19,7 +19,7 @@
 #include <iostream>
 #include <vector>
 
-#include "CHHelpers.h"
+#include "katran/lib/CHHelpers.h"
 
 DEFINE_int64(weight, 100, "weights per real");
 DEFINE_int64(freq, 1, "how often real would have diff weight");
@@ -44,10 +44,11 @@ int main(int argc, char** argv) {
     }
     endpoints.push_back(endpoint);
   }
-
-  auto ch1 = katran::CHHelpers::GenerateMaglevHash(endpoints);
+  auto maglev_hashing =
+      katran::CHHelpers::hashFunctionsFactory(katran::HashFunctions::Maglev);
+  auto ch1 = maglev_hashing->generateHashRing(endpoints);
   endpoints.pop_back();
-  auto ch2 = katran::CHHelpers::GenerateMaglevHash(endpoints);
+  auto ch2 = maglev_hashing->generateHashRing(endpoints);
 
   for (int i = 0; i < ch1.size(); i++) {
     freq[ch1[i]]++;

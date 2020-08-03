@@ -161,6 +161,14 @@ class KatranLb {
   bool modifyVip(const VipKey& vip, uint32_t flag, bool set = true);
 
   /**
+   * @param VipKey vip to modify
+   * @param HashFunctions func to generate hash ring
+   *
+   * helper function to change hash ring's hash function
+   */
+  bool changeHashFunctionForVip(const VipKey& vip, HashFunctions func);
+
+  /**
    * @param VipKey vip to get flags from
    * @return uint32_t flags of this vip
    *
@@ -697,6 +705,13 @@ class KatranLb {
    * acheaving this by register itself in internal programs array
    */
   void enableRecirculation();
+
+  /**
+   * program hash ring in forwarding plane
+   */
+  void programHashRing(
+      const std::vector<RealPos>& chPositions,
+      const uint32_t vipNum);
 
   /**
    * main configurations of katran
