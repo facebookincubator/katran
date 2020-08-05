@@ -24,10 +24,10 @@
 
 extern "C" {
 #include <arpa/inet.h>
-#include <linux/if_ether.h>
-#include <linux/ip.h>
 #include <linux/ipv6.h>
-#include <linux/udp.h>
+#include <netinet/if_ether.h>
+#include <netinet/ip.h>
+#include <netinet/udp.h>
 }
 
 namespace katran {
