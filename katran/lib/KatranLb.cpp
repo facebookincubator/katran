@@ -1346,7 +1346,6 @@ void KatranLb::modifyQuicRealsMapping(
     return;
   }
   std::unordered_map<uint32_t, uint32_t> to_update;
-  QuicReal qreal;
   for (auto& real : reals) {
     if (validateAddress(real.address) == AddressType::INVALID) {
       LOG(ERROR) << "Invalid quic real's address: " << real.address;
