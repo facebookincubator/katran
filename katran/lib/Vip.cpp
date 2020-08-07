@@ -28,16 +28,16 @@ Vip::Vip(
     uint32_t vipNum,
     uint32_t vipFlags,
     uint32_t ringSize,
-    HashFunctions func)
+    HashFunction func)
     : vipNum_(vipNum),
       vipFlags_(vipFlags),
       chRingSize_(ringSize),
       chRing_(ringSize, -1) {
-  chash = CHHelpers::hashFunctionsFactory(func);
+  chash = CHFactory::make(func);
 };
 
-void Vip::setHashFunction(HashFunctions func) {
-  chash = CHHelpers::hashFunctionsFactory(func);
+void Vip::setHashFunction(HashFunction func) {
+  chash = CHFactory::make(func);
 }
 
 std::vector<RealPos> Vip::calculateHashRing(std::vector<Endpoint> endpoints) {

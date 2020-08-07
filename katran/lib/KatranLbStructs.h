@@ -20,8 +20,8 @@
 #include <functional>
 #include <string>
 #include <vector>
-#include "katran/lib/MonitoringStructs.h"
 #include "katran/lib/CHHelpers.h"
+#include "katran/lib/MonitoringStructs.h"
 
 namespace katran {
 
@@ -151,7 +151,7 @@ struct KatranMonitorConfig {
  * @param katranSrcV4 string ipv4 source address for GUE packets
  * @param katranSrcV6 string ipv6 source address for GUE packets
  * @param std::vector<uint8_t> localMac mac address of local server
- * @param HashFunctions hashFunction to create hash ring
+ * @param HashFunction hashFunction to create hash ring
  *
  * note about rootMapPath and rootMapPos:
  * katran has two modes of operation.
@@ -199,7 +199,7 @@ struct KatranConfig {
   std::string katranSrcV4 = kAddressNotSpecified;
   std::string katranSrcV6 = kAddressNotSpecified;
   std::vector<uint8_t> localMac;
-  HashFunctions hashFunction = HashFunctions::Maglev;
+  HashFunction hashFunction = HashFunction::Maglev;
 };
 
 /**

@@ -64,7 +64,7 @@ class Vip {
       uint32_t vipNum,
       uint32_t vipFlags = 0,
       uint32_t ringSize = kDefaultChRingSize,
-      HashFunctions func = HashFunctions::Maglev);
+      HashFunction func = HashFunction::Maglev);
 
   /**
    * getters
@@ -145,15 +145,15 @@ class Vip {
   std::vector<RealPos> batchRealsUpdate(std::vector<UpdateReal>& ureals);
 
   /**
-   * @param HashFunctions hash function to use for hash ring generation
+   * @param HashFunction hash function to use for hash ring generation
    *
    * helper, which allows to change hashing functiong for hash ring generation
    */
-  void setHashFunction(HashFunctions func);
+  void setHashFunction(HashFunction func);
 
   /**
    * @return vector<RealPos> delta (in terms of real's position) for ch ring
-   * 
+   *
    * helper function which recalculates hash ring for the Vip
    */
   std::vector<RealPos> recalculateHashRing();

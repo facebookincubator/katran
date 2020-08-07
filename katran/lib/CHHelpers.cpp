@@ -17,10 +17,9 @@
 #include "katran/lib/CHHelpers.h"
 #include "katran/lib/MaglevHash.h"
 namespace katran {
-std::unique_ptr<ConsistentHash> CHHelpers::hashFunctionsFactory(
-    HashFunctions func) {
+std::unique_ptr<ConsistentHash> CHFactory::make(HashFunction func) {
   switch (func) {
-    case HashFunctions::Maglev:
+    case HashFunction::Maglev:
       return std::make_unique<MaglevHash>();
     default:
       // fallback to default maglev's implementation

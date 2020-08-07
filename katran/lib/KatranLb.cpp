@@ -684,7 +684,7 @@ bool KatranLb::addVip(const VipKey& vip, const uint32_t flags) {
   return true;
 }
 
-bool KatranLb::changeHashFunctionForVip(const VipKey& vip, HashFunctions func) {
+bool KatranLb::changeHashFunctionForVip(const VipKey& vip, HashFunction func) {
   if (config_.disableForwarding) {
     LOG(ERROR) << "Ignoring addVip call on non-forwarding instance";
     return false;

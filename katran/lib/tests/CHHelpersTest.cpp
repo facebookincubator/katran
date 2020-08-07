@@ -36,7 +36,7 @@ TEST(CHHelpersTest, testMaglevCHSameWeight) {
     endpoints.push_back(endpoint);
   }
 
-  auto maglev_hashing = CHHelpers::hashFunctionsFactory(HashFunctions::Maglev);
+  auto maglev_hashing = CHFactory::make(HashFunction::Maglev);
 
   auto maglev_ch = maglev_hashing->generateHashRing(endpoints);
 

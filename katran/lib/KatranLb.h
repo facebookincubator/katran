@@ -162,11 +162,11 @@ class KatranLb {
 
   /**
    * @param VipKey vip to modify
-   * @param HashFunctions func to generate hash ring
+   * @param HashFunction func to generate hash ring
    *
    * helper function to change hash ring's hash function
    */
-  bool changeHashFunctionForVip(const VipKey& vip, HashFunctions func);
+  bool changeHashFunctionForVip(const VipKey& vip, HashFunction func);
 
   /**
    * @param VipKey vip to get flags from

@@ -44,8 +44,7 @@ int main(int argc, char** argv) {
     }
     endpoints.push_back(endpoint);
   }
-  auto maglev_hashing =
-      katran::CHHelpers::hashFunctionsFactory(katran::HashFunctions::Maglev);
+  auto maglev_hashing = katran::CHFactory::make(katran::HashFunction::Maglev);
   auto ch1 = maglev_hashing->generateHashRing(endpoints);
   endpoints.pop_back();
   auto ch2 = maglev_hashing->generateHashRing(endpoints);

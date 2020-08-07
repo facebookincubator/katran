@@ -37,7 +37,7 @@ struct Endpoint {
 };
 
 /**
- * ConsistentHash implements interface, which is used by CHHelpers class to
+ * ConsistentHash implements interface, which is used by CHFactory class to
  * generate hash ring
  */
 class ConsistentHash {
@@ -50,20 +50,23 @@ class ConsistentHash {
   virtual std::vector<int> generateHashRing(
       std::vector<Endpoint> endpoints,
       const uint32_t ring_size = kDefaultChRingSize) = 0;
+  virtual ~ConsistentHash(){};
 };
 
-enum class HashFunctions {
+enum class HashFunction {
   Maglev,
 };
 
 /**
- * This class implements generic helpers to build Consisten hash rings for
+ * This class implements generic helpers to build Consistent hash rings for
  * specified Endpoints.
  */
-class CHHelpers {
+class CHFactory {
  public:
-  static std::unique_ptr<ConsistentHash> hashFunctionsFactory(
-      HashFunctions func);
+  /**
+   * @param HashFunction func to use for hash ring generation
+   */
+  static std::unique_ptr<ConsistentHash> make(HashFunction func);
 };
 
 } // namespace katran
