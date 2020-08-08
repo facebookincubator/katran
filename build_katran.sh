@@ -147,7 +147,7 @@ get_libevent() {
     mkdir -p "$EVENT_BUILD_DIR"
     cd "$EVENT_BUILD_DIR" || exit
 
-    cmake -DEVENT__DISABLE_SAMPLES=on -DEVENT__DISABLE_TESTS=on -DCXX_STD=gnu++14       \
+    cmake -DEVENT__DISABLE_SAMPLES=on -DEVENT__DISABLE_TESTS=on -DCXX_STD=gnu++17       \
       -DCMAKE_BUILD_TYPE=RelWithDebInfo             \
       -DCMAKE_PREFIX_PATH="$INSTALL_DIR"            \
       -DCMAKE_INSTALL_PREFIX="$INSTALL_DIR"         \
@@ -179,7 +179,7 @@ get_gflags() {
     mkdir -p "$GFLAGS_BUILD_DIR"
     cd "$GFLAGS_BUILD_DIR" || exit
 
-    cmake  -DCXX_STD=gnu++14                        \
+    cmake  -DCXX_STD=gnu++17                        \
       -DCMAKE_BUILD_TYPE=RelWithDebInfo             \
       -DCMAKE_PREFIX_PATH="$INSTALL_DIR"            \
       -DCMAKE_INSTALL_PREFIX="$INSTALL_DIR"         \
@@ -251,7 +251,7 @@ get_folly() {
     mkdir -p "$FOLLY_BUILD_DIR"
     cd "$FOLLY_BUILD_DIR" || exit
 
-    cmake  -DCXX_STD=gnu++14                        \
+    cmake  -DCXX_STD=gnu++17                        \
       -DCMAKE_BUILD_TYPE=RelWithDebInfo             \
       -DCMAKE_PREFIX_PATH="$INSTALL_DIR"            \
       -DCMAKE_INSTALL_PREFIX="$INSTALL_DIR"         \
@@ -418,7 +418,7 @@ get_fmt() {
     git clone https://github.com/fmtlib/fmt
     mkdir -p "$FMT_BUILD_DIR"
     cd "$FMT_BUILD_DIR"
-    cmake -DCXX_STD=gnu++14                         \
+    cmake -DCXX_STD=gnu++17                         \
       -DCMAKE_BUILD_TYPE=RelWithDebInfo             \
       -DCMAKE_PREFIX_PATH="$INSTALL_DIR"            \
       -DCMAKE_INSTALL_PREFIX="$INSTALL_DIR"         \
@@ -447,7 +447,7 @@ get_fbthrift() {
     git clone --depth 1 https://github.com/facebook/fbthrift || true
     mkdir -p "$FBTHRIFT_BUILD_DIR"
     cd "$FBTHRIFT_BUILD_DIR"
-    cmake -DCXX_STD=gnu++14                         \
+    cmake -DCXX_STD=gnu++17                         \
       -DCMAKE_BUILD_TYPE=RelWithDebInfo             \
       -DCMAKE_PREFIX_PATH="$INSTALL_DIR"            \
       -DCMAKE_INSTALL_PREFIX="$INSTALL_DIR"         \
@@ -473,7 +473,7 @@ get_rsocket() {
     git clone --depth 1 https://github.com/rsocket/rsocket-cpp || true
     mkdir -p "$RSOCKET_BUILD_DIR"
     cd "$RSOCKET_BUILD_DIR" || exit
-    cmake -DCXX_STD=gnu++14                         \
+    cmake -DCXX_STD=gnu++17                         \
       -DCMAKE_BUILD_TYPE=RelWithDebInfo             \
       -DCMAKE_PREFIX_PATH="$INSTALL_DIR"            \
       -DCMAKE_INSTALL_PREFIX="$INSTALL_DIR"         \
@@ -511,7 +511,7 @@ get_grpc() {
     git submodule update --init
     mkdir -p "$GRPC_BUILD_DIR"
     cd "$GRPC_BUILD_DIR" || exit
-    cmake -DCXX_STD=gnu++14                         \
+    cmake -DCXX_STD=gnu++17                         \
       -DCMAKE_CXX_FLAGS=-Wno-unused-result          \
       -DCMAKE_BUILD_TYPE=RelWithDebInfo             \
       -DCMAKE_PREFIX_PATH="$INSTALL_DIR"            \
