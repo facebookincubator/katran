@@ -24,18 +24,27 @@ bool compareEndpoints(const Endpoint& a, const Endpoint& b) {
   return a.hash < b.hash;
 };
 
-Vip::Vip(uint32_t vipNum, uint32_t vipFlags, uint32_t ringSize)
+Vip::Vip(
+    uint32_t vipNum,
+    uint32_t vipFlags,
+    uint32_t ringSize,
+    HashFunction func)
     : vipNum_(vipNum),
       vipFlags_(vipFlags),
       chRingSize_(ringSize),
-      chRing_(ringSize, -1){};
+      chRing_(ringSize, -1) {
+  chash = CHFactory::make(func);
+};
 
-std::vector<RealPos> Vip::batchRealsUpdate(std::vector<UpdateReal>& ureals) {
+void Vip::setHashFunction(HashFunction func) {
+  chash = CHFactory::make(func);
+}
+
+std::vector<RealPos> Vip::calculateHashRing(std::vector<Endpoint> endpoints) {
   std::vector<RealPos> delta;
   RealPos new_pos;
-  auto endpoints = getEndpoints(ureals);
   if (endpoints.size() != 0) {
-    auto new_ch_ring = CHHelpers::GenerateMaglevHash(endpoints, chRingSize_);
+    auto new_ch_ring = chash->generateHashRing(endpoints, chRingSize_);
 
     // compare new and old ch rings. send back only delta between em.
     for (int i = 0; i < chRingSize_; i++) {
@@ -48,7 +57,17 @@ std::vector<RealPos> Vip::batchRealsUpdate(std::vector<UpdateReal>& ureals) {
     }
   }
   return delta;
-};
+}
+
+std::vector<RealPos> Vip::batchRealsUpdate(std::vector<UpdateReal>& ureals) {
+  auto endpoints = getEndpoints(ureals);
+  return calculateHashRing(endpoints);
+}
+
+std::vector<RealPos> Vip::recalculateHashRing() {
+  auto reals = getRealsAndWeight();
+  return calculateHashRing(reals);
+}
 
 std::vector<RealPos> Vip::addReal(Endpoint real) {
   std::vector<UpdateReal> reals;
@@ -87,6 +106,7 @@ std::vector<Endpoint> Vip::getRealsAndWeight() {
     endpoint.hash = r.second.hash;
     endpoints[i++] = endpoint;
   }
+  std::sort(endpoints.begin(), endpoints.end(), compareEndpoints);
   return endpoints;
 }
 

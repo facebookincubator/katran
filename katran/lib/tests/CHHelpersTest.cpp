@@ -36,7 +36,9 @@ TEST(CHHelpersTest, testMaglevCHSameWeight) {
     endpoints.push_back(endpoint);
   }
 
-  auto maglev_ch = CHHelpers::GenerateMaglevHash(endpoints);
+  auto maglev_hashing = CHFactory::make(HashFunction::Maglev);
+
+  auto maglev_ch = maglev_hashing->generateHashRing(endpoints);
 
   for (int i = 0; i < maglev_ch.size(); i++) {
     // test that we have changed all points inside ch ring
