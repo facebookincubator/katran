@@ -1,6 +1,6 @@
 # wireshark plugin to parse GUE variant 1 encapsulation
 
-## instalation:
+## installation:
 in your home dir create this directory:
 ```
 mkdir -p ~/.config/wireshark/plugins/guev1
