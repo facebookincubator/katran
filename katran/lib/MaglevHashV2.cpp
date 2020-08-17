@@ -54,7 +54,6 @@ std::vector<int> MaglevHashV2::generateHashRing(
         cum_weight[i] -= max_weight;
         auto offset = permutation[2 * i];
         auto skip = permutation[2 * i + 1];
-        // our realization of "weights" for maglev's hash.
         auto cur = (offset + next[i] * skip) % ring_size;
         while (result[cur] >= 0) {
           next[i] += 1;
