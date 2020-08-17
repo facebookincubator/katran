@@ -56,6 +56,7 @@ class ConsistentHash {
 
 enum class HashFunction {
   Maglev,
+  MaglevV2,
 };
 
 /**

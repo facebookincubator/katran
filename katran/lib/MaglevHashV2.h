@@ -1,5 +1,4 @@
-/* Copyright (C) 2020-present, Facebook, Inc.
- *
+/*
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; version 2 of the License.
@@ -24,12 +23,12 @@
 namespace katran {
 
 /**
- * MaglevHash class implements Maglev's hash algo
- * (more info: http://research.google.com/pubs/pub44824.html ; section 3.4)
+ * MaglevHashV2 class implements another version of Maglev's hash which does not
+ * require the sum of all weights to be equal to the size of the hash ring.
  */
-class MaglevHash : public MaglevBase {
+class MaglevHashV2 : public MaglevBase {
  public:
-  MaglevHash() {}
+  MaglevHashV2() {}
   /**
    * @param std::vector<Endpoints>& endpoints, which will be used for CH
    * @param uint32_t ring_size size of the CH ring

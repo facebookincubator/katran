@@ -31,8 +31,12 @@ add_library(murmur3 STATIC
 add_library(chhelpers STATIC
     CHHelpers.h
     CHHelpers.cpp
+    MaglevBase.h
+    MaglevBase.cpp
     MaglevHash.h
     MaglevHash.cpp
+    MaglevHashV2.h
+    MaglevHashV2.cpp
 )
 
 target_link_libraries(chhelpers murmur3)

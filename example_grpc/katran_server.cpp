@@ -129,6 +129,7 @@ int main(int argc, char** argv) {
   config.forwardingCores = forwardingCores;
   config.numaNodes = numaNodes;
   config.hcInterface = FLAGS_hc_intf;
+  config.hashFunction = katran::HashFunction::MaglevV2;
 
   auto evb = std::make_shared<folly::EventBase>();
   std::thread t1([evb](){
