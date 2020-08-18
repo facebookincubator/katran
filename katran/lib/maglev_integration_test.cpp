@@ -23,8 +23,10 @@
 
 DEFINE_int64(weight, 100, "weights per real");
 DEFINE_int64(freq, 1, "how often real would have diff weight");
-DEFINE_int64(difweight, 1, "diff weight for test");
+DEFINE_int64(diffweight, 1, "diff weight for test");
 DEFINE_int64(nreals, 400, "number of reals");
+DEFINE_int64(npos, -1, "position to delete");
+DEFINE_bool(v2, false, "use v2 of maglev hash");
 int main(int argc, char** argv) {
   gflags::ParseCommandLineFlags(&argc, &argv, true);
 
@@ -40,13 +42,25 @@ int main(int argc, char** argv) {
     if (i % FLAGS_freq == 0) {
       endpoint.weight = FLAGS_weight;
     } else {
-      endpoint.weight = FLAGS_difweight;
+      endpoint.weight = FLAGS_diffweight;
     }
     endpoints.push_back(endpoint);
   }
-  auto maglev_hashing = katran::CHFactory::make(katran::HashFunction::Maglev);
+  auto hash_func = katran::HashFunction::Maglev;
+  if (FLAGS_v2) {
+    hash_func = katran::HashFunction::MaglevV2;
+  }
+  auto maglev_hashing = katran::CHFactory::make(hash_func);
   auto ch1 = maglev_hashing->generateHashRing(endpoints);
-  endpoints.pop_back();
+
+  int deleted_real_num{0};
+  if (FLAGS_npos >= 0 && FLAGS_npos < FLAGS_nreals) {
+    endpoints.erase(endpoints.begin() + FLAGS_npos);
+    deleted_real_num = FLAGS_npos;
+  } else {
+    deleted_real_num = FLAGS_nreals - 1;
+    endpoints.pop_back();
+  }
   auto ch2 = maglev_hashing->generateHashRing(endpoints);
 
   for (int i = 0; i < ch1.size(); i++) {
@@ -68,7 +82,7 @@ int main(int argc, char** argv) {
 
   for (int i = 0; i < ch1.size(); i++) {
     if (ch1[i] != ch2[i]) {
-      if (ch1[i] == (FLAGS_nreals - 1)) {
+      if (ch1[i] == deleted_real_num) {
         n1++;
         continue;
       }

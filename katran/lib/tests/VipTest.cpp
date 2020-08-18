@@ -24,7 +24,10 @@ namespace katran {
 
 class VipTestF : public ::testing::Test {
  protected:
-  VipTestF() : vip1(1), reals(100){};
+  VipTestF()
+      : vip1(1),
+        vip2(2, 0, kDefaultChRingSize, HashFunction::MaglevV2),
+        reals(100){};
 
   void SetUp() override {
     UpdateReal ureal;
@@ -39,38 +42,57 @@ class VipTestF : public ::testing::Test {
   };
 
   Vip vip1;
+  Vip vip2;
   std::vector<UpdateReal> reals;
 };
 
 TEST_F(VipTestF, testBatchUpdateReals) {
   // new ch ring, the size of the delta is equal to ring_size
   auto delta = vip1.batchRealsUpdate(reals);
+  auto delta2 = vip2.batchRealsUpdate(reals);
   ASSERT_EQ(delta.size(), vip1.getChRingSize());
+  ASSERT_EQ(delta2.size(), vip2.getChRingSize());
 
   // same batch of reals w/ same actions shouldn't generate any delta
   delta = vip1.batchRealsUpdate(reals);
+  delta2 = vip2.batchRealsUpdate(reals);
   ASSERT_EQ(delta.size(), 0);
+  ASSERT_EQ(delta2.size(), 0);
 
   delta = vip1.delReal(0);
+  delta2 = vip2.delReal(0);
   ASSERT_EQ(delta.size(), 1009);
-};
+  ASSERT_EQ(delta2.size(), 1020);
+}
 
 TEST_F(VipTestF, testBatchUpdateRealsWeight) {
   // new ch ring, the size of the delta is equal to ring_size
   auto delta = vip1.batchRealsUpdate(reals);
+  auto delta2 = vip2.batchRealsUpdate(reals);
   ASSERT_EQ(delta.size(), vip1.getChRingSize());
+  ASSERT_EQ(delta2.size(), vip2.getChRingSize());
 
   // same batch of reals w/ same actions shouldn't generate any delta
   delta = vip1.batchRealsUpdate(reals);
+  delta2 = vip2.batchRealsUpdate(reals);
   ASSERT_EQ(delta.size(), 0);
+  ASSERT_EQ(delta2.size(), 0);
 
   for (auto& real : reals) {
     real.updatedReal.weight = 13;
   }
 
   delta = vip1.batchRealsUpdate(reals);
+  delta2 = vip2.batchRealsUpdate(reals);
   ASSERT_EQ(delta.size(), 17);
-};
+  ASSERT_EQ(delta2.size(), 0);
+
+  reals[0] = UpdateReal{ModifyAction::ADD, 0, 26, 0};
+  delta = vip1.batchRealsUpdate(reals);
+  delta2 = vip2.batchRealsUpdate(reals);
+  ASSERT_EQ(delta.size(), 109);
+  ASSERT_EQ(delta2.size(), 1013);
+}
 
 TEST(VipTest, testAddRemoveReal) {
   Vip vip1(1);
@@ -89,7 +111,7 @@ TEST(VipTest, testAddRemoveReal) {
   // removing non-existing real
   delta = vip1.delReal(1);
   ASSERT_EQ(delta.size(), 0);
-};
+}
 
 TEST_F(VipTestF, testGetRealsAndWeight) {
   vip1.batchRealsUpdate(reals);
@@ -98,7 +120,7 @@ TEST_F(VipTestF, testGetRealsAndWeight) {
   for (auto& real : endpoints) {
     ASSERT_EQ(real.weight, 10);
   }
-};
+}
 
 TEST_F(VipTestF, testGetReals) {
   auto delta = vip1.batchRealsUpdate(reals);
