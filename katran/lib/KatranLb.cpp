@@ -1182,14 +1182,16 @@ std::unique_ptr<folly::IOBuf> KatranLb::getKatranMonitorEventBuffer(
   return monitor_->getEventBuffer(event);
 }
 
-bool KatranLb::restartKatranMonitor(uint32_t limit) {
+bool KatranLb::restartKatranMonitor(
+    uint32_t limit,
+    folly::Optional<PcapStorageFormat> storage) {
   if (!features_.introspection || config_.disableForwarding) {
     return false;
   }
   if (!changeKatranMonitorForwardingState(KatranMonitorState::ENABLED)) {
     return false;
   }
-  monitor_->restartMonitor(limit);
+  monitor_->restartMonitor(limit, storage);
   return true;
 }
 

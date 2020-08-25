@@ -19,12 +19,6 @@ bool MonitoringServiceCore::initialize(std::shared_ptr<KatranMonitor> monitor) {
     return false;
   }
   monitor_ = monitor;
-  if (monitor_->getStorageFormat() != ::katran::PcapStorageFormat::PIPE) {
-    LOG(ERROR) << "Passed in KatranMonitor does not support PIPE writers.\n";
-    throw std::runtime_error(
-        "MonitoringServiceCore cannot be initialized without "
-        "KatranMonitor with PIPE as PcapStorageFormat");
-  }
   // Get all the events that this monitor supports
   auto eventIds = monitor_->getWriterEnabledEvents();
 

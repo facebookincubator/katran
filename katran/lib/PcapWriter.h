@@ -126,6 +126,13 @@ class PcapWriter {
   }
 
   /**
+   * replace all existing data writers with the new ones
+   */
+  void resetWriters(
+      std::unordered_map<monitoring::EventId, std::shared_ptr<DataWriter>>&&
+          newDataWriters);
+
+  /**
    * return enabled events
    */
   std::set<monitoring::EventId> getEnabledEvents() {
@@ -222,7 +229,8 @@ class PcapWriter {
   const uint32_t snaplen_{0};
 
   /**
-   * lock which protects counters, such as packetAmount_ and packetLimit_
+   * lock which protects counters (e.g. packetAmount_ and packetLimit_) and
+   * dataWriters_
    */
   std::mutex cntrLock_;
 };

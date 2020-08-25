@@ -48,7 +48,9 @@ class KatranMonitor {
 
   void stopMonitor();
 
-  void restartMonitor(uint32_t limit);
+  void restartMonitor(
+      uint32_t limit,
+      folly::Optional<PcapStorageFormat> storage);
 
   PcapWriterStats getWriterStats();
 
@@ -91,6 +93,9 @@ class KatranMonitor {
   void unsetAsyncPipeWriter(monitoring::EventId event);
 
  private:
+  std::unordered_map<monitoring::EventId, std::shared_ptr<DataWriter>>
+  createWriters();
+
   /**
    * main config
    */
@@ -100,6 +105,15 @@ class KatranMonitor {
    * event readers for introspection
    */
   std::vector<std::unique_ptr<KatranEventReader>> readers_;
+
+  /**
+   * a copy of pipe writers' destinations, which allows pipe readers at the
+   * other end to survive monitor restart via re-binding
+   */
+  std::unordered_map<
+      monitoring::EventId,
+      std::shared_ptr<folly::AsyncPipeWriter>>
+      pipeWriterDests_;
 
   std::shared_ptr<PcapWriter> writer_;
 

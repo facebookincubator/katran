@@ -156,6 +156,19 @@ void PcapWriter::stopWriters() {
   packetAmount_ = packetLimit_;
 }
 
+void PcapWriter::resetWriters(
+    std::unordered_map<monitoring::EventId, std::shared_ptr<DataWriter>>&&
+        newDataWriters) {
+  // Writers should have been stopped
+  Guard lock(cntrLock_);
+  // Gracefully stop
+  for (auto& eventAndWriter : dataWriters_) {
+    eventAndWriter.second->stop();
+  }
+  dataWriters_.clear();
+  dataWriters_ = std::move(newDataWriters);
+}
+
 void PcapWriter::runMulti(
     std::shared_ptr<folly::MPMCQueue<PcapMsgMeta>> queue) {
   auto snaplen = snaplen_ ?: kMaxSnapLen;
@@ -165,16 +178,20 @@ void PcapWriter::runMulti(
     Guard lock(cntrLock_);
     if (msg.isControl()) {
       if (msg.isShutdown()) {
-        LOG(INFO) << "Shutdown message was received. Stopping.";
+        VLOG(4) << "Shutdown message was received. Stopping.";
         break;
       } else if (msg.isRestart()) {
+        VLOG(4) << "Restart message was received. Restarting.";
         restartWriters(msg.getLimit());
       } else if (msg.isStop()) {
+        VLOG(4) << "Stop message was received. Stopping.";
         stopWriters();
       }
       continue;
     }
     if (!packetLimitOverride_ && packetAmount_ >= packetLimit_) {
+      VLOG(4)
+          << "No packetLimitOverride and packetAmount is greater than packetLimit. Skipping";
       continue;
     }
     auto eventId = msg.getEventId();
@@ -193,6 +210,7 @@ void PcapWriter::runMulti(
     }
     if (!writerIt->second->available(
             msg.getPcapMsg().getCapturedLen() + sizeof(pcaprec_hdr_s))) {
+      VLOG(4) << "Writer buffer is full. Skipping";
       ++bufferFull_;
       continue;
     }

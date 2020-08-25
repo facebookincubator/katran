@@ -497,7 +497,9 @@ class KatranLb {
    * if katran introspection is enabled: restart katran monitoring. collected
    * packets are going to be written either into separate files or into buffer
    */
-  bool restartKatranMonitor(uint32_t limit);
+  bool restartKatranMonitor(
+      uint32_t limit,
+      folly::Optional<PcapStorageFormat> storage = folly::none);
 
   /**
    * @param monitoring::EventId event monitoring event id. see
