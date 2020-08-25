@@ -56,6 +56,7 @@ class EventPipeCallback : public folly::AsyncReader::ReadCallback {
     auto res = readBuffer_.preallocate(kReadBufSize, kReadBufAllocSize);
     *bufReturn = res.first;
     *lenReturn = res.second;
+    VLOG(4) << "Preallocated " << *lenReturn << " bytes";
   }
 
   /**
@@ -64,6 +65,7 @@ class EventPipeCallback : public folly::AsyncReader::ReadCallback {
    * messages and "leftover"
    */
   void readDataAvailable(size_t len) noexcept override {
+    VLOG(4) << __func__ << " " << len << "bytes";
     readBuffer_.postallocate(len);
     auto buf = readBuffer_.move();
     buf->coalesce();

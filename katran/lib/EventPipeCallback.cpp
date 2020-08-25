@@ -15,6 +15,7 @@ constexpr uint32_t kTempBufSize = 4096;
 
 void EventPipeCallback::readBuffer(
     std::unique_ptr<folly::IOBuf>&& buf) noexcept {
+  VLOG(4) << __func__ << " ready to send data";
   folly::io::Cursor rcursor(buf.get());
   size_t rec_hdr_sz = sizeof(pcaprec_hdr_s);
 
@@ -31,6 +32,9 @@ void EventPipeCallback::readBuffer(
     if (rcursor.canAdvance(rec_hdr_sz)) {
       rec_hdr = rcursor.read<pcaprec_hdr_s>();
     } else {
+      // It's an INFO because when rcursor finishes reading message, this is how
+      // we break the loop
+      LOG(INFO) << "Can't read rec_hdr_sz, giving up";
       break;
     }
 
@@ -48,6 +52,7 @@ void EventPipeCallback::readBuffer(
           "incomplete pcap message, expecting {} bytes of data, got {}",
           rec_hdr.incl_len,
           rcursor.length());
+      rcursor.retreat(rec_hdr_sz);
       break;
     }
 
@@ -55,6 +60,7 @@ void EventPipeCallback::readBuffer(
     if (enabled()) {
       auto subsmap = cb_subsmap_.rlock();
       for (auto& it : *subsmap) {
+        VLOG(4) << folly::sformat("sending event {} to client", toString(event_id_));
         it.second->sendEvent(msg);
       }
     }
@@ -71,6 +77,7 @@ void EventPipeCallback::readBuffer(
 void EventPipeCallback::addClientSubscription(
     std::pair<ClientId, std::shared_ptr<ClientSubscriptionIf>>&& newSub) {
   ClientId cid = newSub.first;
+  VLOG(4) << __func__ << folly::sformat(" Adding client {}", cid);
   auto cb_subsmap = cb_subsmap_.wlock();
   auto result = cb_subsmap->insert(std::move(newSub));
   if (!result.second) {
