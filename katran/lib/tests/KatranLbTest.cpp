@@ -24,30 +24,34 @@ namespace katran {
 class KatranLbTest : public ::testing::Test {
  protected:
   KatranLbTest()
-      : lb(KatranConfig{"eth0",
-                        "ipip0",
-                        "ipip60",
-                        "./lb.o",
-                        "./hc.0",
-                        {0x00, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E},
-                        1,
-                        "",
-                        1,
-                        true,
-                        false,
-                        512,
-                        4096,
-                        65537,
-                        true,
-                        1,
-                        {},
-                        {},
-                        10,
-                        4,
-                        "eth0",
-                        0,
-                        {},
-                        false}){}
+      : lb(KatranConfig{
+            "eth0", // mainInterface
+            "ipip0", // v4TunInterface
+            "ipip60", // v6TunInterface
+            "./lb.o", // balancerProgPath
+            "./lb_with_introspection.o", // balancerProgWithIntrospectionPath
+            "./hc.0", // healthcheckingProgPath
+            {0x00, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E}, // defaultMac
+            1, // priority
+            "", // rootMapPath
+            1, // rootMapPos
+            true, // enableHc
+            false, // disableForwarding
+            512, // maxVips
+            4096, // maxReals
+            65537, // chRingSize
+            true, // testing
+            1, // LruSize
+            {}, // forwardingCores
+            {}, // numaNodes
+            10, // maxLpmSrcSize
+            4, // maxDecapDst
+            "eth0", // hcInterface
+            0, // xdpAttachFlags
+            {}, // monitorConfig
+            false, // memlockUnlimited
+            {}, // localMac
+        }) {}
 
   void SetUp() override {
     v1.address = "fc01::1";

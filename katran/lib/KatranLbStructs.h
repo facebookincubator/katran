@@ -128,6 +128,8 @@ struct KatranMonitorConfig {
  * @param string v4TunInterface name for ipip encap (for healtchecks)
  * @param string v6TunInterface name for ip(6)ip6 encap (for healthchecks)
  * @param string balancerProgPath path to bpf prog for balancer
+ * @param string balancerProgWithIntrospectionPath path to introspection-enabled
+ * bpf prog for balancer
  * @param string healthcheckingProgPath path to bpf prog for healthchecking
  * @param std::vector<uint8_t> defaultMac mac address of default router
  * @param uint32_t tc priority of healtchecking task
@@ -176,6 +178,7 @@ struct KatranConfig {
   std::string v4TunInterface;
   std::string v6TunInterface;
   std::string balancerProgPath;
+  std::string balancerProgWithIntrospectionPath;
   std::string healthcheckingProgPath;
   std::vector<uint8_t> defaultMac;
   uint32_t priority = kDefaultPriority;
