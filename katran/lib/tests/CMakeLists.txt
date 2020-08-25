@@ -48,6 +48,7 @@ katran_add_test(TARGET eventpipe-callback-test
   DEPENDS
   katranlb
   ${GTEST}
+  ${GMOCK}
   ${PTHREAD}
   "Folly::folly"
 )
