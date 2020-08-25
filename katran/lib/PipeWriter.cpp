@@ -9,10 +9,22 @@ namespace katran {
   PipeWriter::PipeWriter() {}
 
   void PipeWriter::writeData(const void *ptr, std::size_t size) {
-    if (enabled_) {
-      if (auto pipe = pipe_.lock()) {
-        pipe->write(&writeCallback_, ptr, size);
-      }
+    VLOG_EVERY_N(4, 10) << __func__ << " write " << size << " bytes";
+
+    if (size == 0) {
+      LOG(ERROR) << "Zero-sized data. Skipping";
+      return;
+    }
+
+    if (!enabled_) {
+      VLOG_EVERY_N(4, 10) << "Disabled pipe writer. Skipping";
+      return;
+    }
+
+    if (auto pipe = pipe_.lock()) {
+      pipe->write(&writeCallback_, ptr, size);
+    } else  {
+      LOG(ERROR) << __func__ << " Can't lock pipe";
     }
   }
 

@@ -75,6 +75,7 @@ class PipeWriter : public DataWriter {
    * restart the writer
    */
   bool restart() override {
+    VLOG(4) << "Retsarting pipe writer";
     enabled_ = true;
     return true;
   }
@@ -83,6 +84,7 @@ class PipeWriter : public DataWriter {
    * stop the writer by closing the pipe
    */
   bool stop() override {
+    VLOG(4) << "Stopping pipe writer";
     enabled_ = false;
     return true;
   }

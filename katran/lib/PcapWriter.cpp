@@ -174,6 +174,7 @@ void PcapWriter::runMulti(
   auto snaplen = snaplen_ ?: kMaxSnapLen;
   PcapMsgMeta msg;
   for (;;) {
+    VLOG(4) << __func__ << " blockingRead msg";
     queue->blockingRead(msg);
     Guard lock(cntrLock_);
     if (msg.isControl()) {
@@ -207,6 +208,7 @@ void PcapWriter::runMulti(
     auto writerIt = dataWriters_.find(eventId);
     if (writerIt == dataWriters_.end()) {
       LOG(ERROR) << "No writer w/ specified Id: " << eventId;
+      continue;
     }
     if (!writerIt->second->available(
             msg.getPcapMsg().getCapturedLen() + sizeof(pcaprec_hdr_s))) {
@@ -214,6 +216,7 @@ void PcapWriter::runMulti(
       ++bufferFull_;
       continue;
     }
+    VLOG(4) << __func__ << " write packet for event: " << eventId;
     writePacket(msg.getPcapMsg(), eventId);
     ++packetAmount_;
   }
