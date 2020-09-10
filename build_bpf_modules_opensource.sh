@@ -26,20 +26,24 @@ set -xeo pipefail
 usage() {
 cat 1>&2 <<EOF
 
-Usage ${0##*/} [-h|?] [-s SRC_DIR] [-b BUILD_DIR]
+Usage ${0##*/} [-h|?] [-s SRC_DIR] [-b BUILD_DIR] [-d DEFINES]
   -s SRC_DIR                     (optional): Path to source dir for katran
   -b BUILD_DIR                   (optional): Path to build dir for katran
+  -d DEFINES                     (optional): Specify custom defines for bpf program
   -h|?                                       Show this help message
 EOF
 }
 
-while getopts ":hb:s:m" arg; do
+while getopts ":hb:s:d:m" arg; do
   case $arg in
     b)
       BUILD_DIR="${OPTARG}"
       ;;
     s)
       SRC_DIR="${OPTARG}"
+      ;;
+    d)
+      DEFINES="${OPTARG}"
       ;;
     h) # Display help.
       usage
@@ -74,6 +78,6 @@ cp -r "${SRC_DIR}/katran/lib/bpf" "${BUILD_DIR}/deps/bpfprog/"
 cp -r "${SRC_DIR}/katran/decap/bpf" "${BUILD_DIR}/deps/bpfprog/"
 cp "${SRC_DIR}"/katran/lib/linux_includes/* "${BUILD_DIR}/deps/bpfprog/include/"
 cd "${BUILD_DIR}/deps/bpfprog" && LD_LIBRARY_PATH="${CLANG_PATH}/lib" make \
-  EXTRA_CFLAGS="$*" \
+  EXTRA_CFLAGS="${DEFINES}" \
   LLC="${CLANG_PATH}/bin/llc" CLANG="${CLANG_PATH}/bin/clang"
 echo "BPF BUILD COMPLITED"

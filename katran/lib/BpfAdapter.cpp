@@ -241,6 +241,12 @@ int BpfAdapter::loadBpfProg(
   return loader_.loadBpfFile(bpf_prog, type, use_names);
 }
 
+int BpfAdapter::reloadBpfProg(
+    const std::string& bpf_prog,
+    const bpf_prog_type type) {
+  return loader_.reloadBpfFromFile(bpf_prog, type);
+}
+
 int BpfAdapter::loadBpfProg(
     char* buf,
     int buf_size,

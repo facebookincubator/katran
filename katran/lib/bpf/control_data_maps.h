@@ -64,13 +64,13 @@ struct bpf_map_def SEC("maps") decap_dst = {
 };
 BPF_ANNOTATE_KV_PAIR(decap_dst, struct address, __u32);
 
-struct bpf_map_def SEC("maps") katran_subprograms = {
+struct bpf_map_def SEC("maps") subprograms = {
     .type = BPF_MAP_TYPE_PROG_ARRAY,
     .key_size = sizeof(__u32),
     .value_size = sizeof(__u32),
     .max_entries = SUBPROGRAMS_ARRAY_SIZE,
 };
-BPF_ANNOTATE_KV_PAIR(katran_subprograms, __u32, __u32);
+BPF_ANNOTATE_KV_PAIR(subprograms, __u32, __u32);
 #endif
 
 #ifdef GUE_ENCAP

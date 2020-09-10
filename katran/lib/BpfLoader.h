@@ -69,6 +69,19 @@ class BpfLoader {
       bool use_names = false);
 
   /**
+   * @param string path to bpf object file
+   * @param bpf_prog_type type of bpf program to load.
+   * @return int 0 on success
+   *
+   * helper function to reload bpf program. for XDP and TC bpf programs we could
+   * deduce the type from program's name (if they starts with xdp or cls)
+   * could throw if object file is malformed
+   */
+  int reloadBpfFromFile(
+      const std::string& path,
+      const bpf_prog_type type = BPF_PROG_TYPE_UNSPEC);
+
+  /**
    * @param string name of the map
    * @return int negative on failure, map's fd on success
    *
@@ -107,6 +120,14 @@ class BpfLoader {
    * helper function to load bpf object
    */
   int loadBpfObject(
+      ::bpf_object* obj,
+      const std::string& name,
+      const bpf_prog_type type = BPF_PROG_TYPE_UNSPEC);
+
+  /**
+   * helper function to reload bpf object
+   */
+  int reloadBpfObject(
       ::bpf_object* obj,
       const std::string& name,
       const bpf_prog_type type = BPF_PROG_TYPE_UNSPEC);

@@ -99,6 +99,14 @@ class KatranLb {
   void loadBpfProgs();
 
   /**
+   * @return true on success
+   * 
+   * helper function to reload balancer program in runtime
+   * could throw std::invalid_argument if reload fails.
+   */
+  bool reloadBalancerProg(const std::string& path, folly::Optional<KatranConfig> config = folly::none);
+
+  /**
    * helper function to attach bpf program (e.g. to rootlet array,
    * driver or into tc qdisc)
    * could throw std::invalid_argument if load fails.
@@ -823,6 +831,16 @@ class KatranLb {
    * userspace library stats
    */
   KatranLbStats lbStats_;
+
+  /**
+   * flag which indicates that introspection routines already started
+   */
+  bool introspectionStarted_{false};
+
+  /**
+   * flag which indicates that bpf program was reloaded
+   */
+  bool progsReloaded_{false};
 };
 
 } // namespace katran

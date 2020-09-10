@@ -18,20 +18,20 @@
 #include <iostream>
 #include <thread>
 
+#include <folly/Conv.h>
 #include <folly/File.h>
 #include <folly/FileUtil.h>
 #include <folly/Range.h>
-#include <folly/Conv.h>
 #include <gflags/gflags.h>
 
+#include "katran/lib/MonitoringStructs.h"
 #include "katran/lib/testing/BpfTester.h"
-#include "katran/lib/testing/KatranTestProvision.h"
 #include "katran/lib/testing/KatranGueOptionalTestFixtures.h"
 #include "katran/lib/testing/KatranGueTestFixtures.h"
 #include "katran/lib/testing/KatranHCTestFixtures.h"
 #include "katran/lib/testing/KatranOptionalTestFixtures.h"
 #include "katran/lib/testing/KatranTestFixtures.h"
-#include "katran/lib/MonitoringStructs.h"
+#include "katran/lib/testing/KatranTestProvision.h"
 
 using namespace katran::testing;
 
@@ -42,12 +42,19 @@ DEFINE_string(
     "/tmp/katran_pcap",
     "output file for katran monitoring");
 DEFINE_string(balancer_prog, "./balancer_kern.o", "path to balancer bpf prog");
+DEFINE_string(
+    reloaded_balancer_prog,
+    "",
+    "path to balancer bpf prog which would reload main one");
 DEFINE_string(healthchecking_prog, "", "path to healthchecking bpf prog");
 DEFINE_bool(print_base64, false, "print packets in base64 from pcap file");
 DEFINE_bool(test_from_fixtures, false, "run tests on predefined dataset");
 DEFINE_bool(perf_testing, false, "run perf tests on predefined dataset");
 DEFINE_bool(optional_tests, false, "run optional (kernel specific) tests");
-DEFINE_bool(optional_counter_tests, false, "run optional (kernel specific) counter tests");
+DEFINE_bool(
+    optional_counter_tests,
+    false,
+    "run optional (kernel specific) counter tests");
 DEFINE_bool(gue, false, "run GUE tests instead of IPIP ones");
 DEFINE_int32(repeat, 1000000, "perf test runs for single packet");
 DEFINE_int32(position, -1, "perf test runs for single packet");
@@ -56,7 +63,6 @@ DEFINE_int32(
     packet_num,
     -1,
     "Pass packet number to run single test, default -1 to run all");
-
 
 void testSimulator(katran::KatranLb& lb) {
   // udp, v4 vip v4 real
@@ -149,8 +155,8 @@ void testKatranMonitor(katran::KatranLb& lb) {
   lb.stopKatranMonitor();
   std::this_thread::sleep_for(std::chrono::seconds(1));
   constexpr std::array<katran::monitoring::EventId, 2> events = {
-    katran::monitoring::EventId::TCP_NONSYN_LRUMISS,
-    katran::monitoring::EventId::PACKET_TOOBIG,
+      katran::monitoring::EventId::TCP_NONSYN_LRUMISS,
+      katran::monitoring::EventId::PACKET_TOOBIG,
   };
 
   for (const auto event : events) {
@@ -159,8 +165,7 @@ void testKatranMonitor(katran::KatranLb& lb) {
     folly::toAppend(FLAGS_monitor_output, "_event_", event, &fname);
     if (buf != nullptr) {
       LOG(INFO) << "buffer length is: " << buf->length();
-      auto pcap_file =
-          folly::File(fname.c_str(), O_RDWR | O_CREAT | O_TRUNC);
+      auto pcap_file = folly::File(fname.c_str(), O_RDWR | O_CREAT | O_TRUNC);
       auto res = folly::writeFull(pcap_file.fd(), buf->data(), buf->length());
       if (res < 0) {
         LOG(ERROR) << "error while trying to write katran monitor output";
@@ -212,7 +217,7 @@ void validateMapSize(
     int expected_max) {
   auto map_stats = lb.getBpfMapStats(map_name);
   VLOG(3) << map_name << ": " << map_stats.currentEntries << "/"
-            << map_stats.maxEntries;
+          << map_stats.maxEntries;
   if (expected_max != map_stats.maxEntries) {
     LOG(INFO) << map_name
               << ": max size is incorrect: " << map_stats.maxEntries;
@@ -233,7 +238,6 @@ void preTestOptionalLbCounters(katran::KatranLb& lb) {
   LOG(INFO) << "Initial testing of counters is complete";
   return;
 }
-
 
 void postTestOptionalLbCounters(katran::KatranLb& lb) {
   validateMapSize(lb, "vip_map", 8, katran::kDefaultMaxVips);
@@ -273,7 +277,8 @@ void testLbCounters(katran::KatranLb& lb) {
   }
   stats = lb.getQuicRoutingStats();
   if (stats.v1 != 5 || stats.v2 != 4) {
-    LOG(INFO) << "Counters for QUIC packets routed with CH: " << stats.v1 << ",  with connection-id: " << stats.v2;
+    LOG(INFO) << "Counters for QUIC packets routed with CH: " << stats.v1
+              << ",  with connection-id: " << stats.v2;
     LOG(INFO) << "Counters for routing of QUIC packets is wrong.";
   }
   for (int i = 0; i < kReals.size(); i++) {
@@ -309,6 +314,48 @@ void testLbCounters(katran::KatranLb& lb) {
   return;
 }
 
+void runTestsFromFixture(katran::KatranLb& lb, katran::BpfTester& tester) {
+  prepareLbData(lb);
+  if (FLAGS_gue) {
+    tester.resetTestFixtures(
+        katran::testing::inputGueTestFixtures,
+        katran::testing::outputGueTestFixtures);
+  } else {
+    tester.resetTestFixtures(
+        katran::testing::inputTestFixtures,
+        katran::testing::outputTestFixtures);
+  }
+  auto prog_fd = lb.getKatranProgFd();
+  tester.setBpfProgFd(prog_fd);
+  tester.testFromFixture();
+  testLbCounters(lb);
+  if (FLAGS_optional_counter_tests) {
+    postTestOptionalLbCounters(lb);
+  }
+  testSimulator(lb);
+  if (FLAGS_iobuf_storage) {
+    LOG(INFO) << "Test katran monitor";
+    testKatranMonitor(lb);
+  }
+  testHcFromFixture(lb, tester);
+  if (FLAGS_optional_tests) {
+    prepareOptionalLbData(lb);
+    LOG(INFO) << "Running optional tests. they could fail if requirements "
+              << "are not satisfied";
+    if (FLAGS_gue) {
+      tester.resetTestFixtures(
+          katran::testing::inputGueOptionalTestFixtures,
+          katran::testing::outputGueOptionalTestFixtures);
+    } else {
+      tester.resetTestFixtures(
+          katran::testing::inputOptionalTestFixtures,
+          katran::testing::outputOptionalTestFixtures);
+    }
+    tester.testFromFixture();
+    testOptionalLbCounters(lb);
+  }
+}
+
 int main(int argc, char** argv) {
   gflags::ParseCommandLineFlags(&argc, &argv, true);
   google::InitGoogleLogging(argv[0]);
@@ -323,6 +370,7 @@ int main(int argc, char** argv) {
     config.inputData = katran::testing::inputTestFixtures;
     config.outputData = katran::testing::outputTestFixtures;
   }
+
   if (FLAGS_packet_num >= 0) {
     config.singleTestRunPacketNumber_ = FLAGS_packet_num;
   }
@@ -363,39 +411,22 @@ int main(int argc, char** argv) {
   if (FLAGS_optional_counter_tests) {
     preTestOptionalLbCounters(lb);
   }
-  prepareLbData(lb);
   tester.setBpfProgFd(balancer_prog_fd);
+  if (FLAGS_test_from_fixtures) {
+    runTestsFromFixture(lb, tester);
+    if (!FLAGS_reloaded_balancer_prog.empty()) {
+      auto res = lb.reloadBalancerProg(FLAGS_reloaded_balancer_prog);
+      if (!res) {
+        LOG(INFO) << "cannot reload balancer program";
+        return 1;
+      }
+      runTestsFromFixture(lb, tester);
+    }
+    return 0;
+  }
+  prepareLbData(lb);
   if (!FLAGS_pcap_input.empty()) {
     tester.testPcktsFromPcap();
-    return 0;
-  } else if (FLAGS_test_from_fixtures) {
-    tester.testFromFixture();
-    testLbCounters(lb);
-    if (FLAGS_optional_counter_tests) {
-      postTestOptionalLbCounters(lb);
-    }
-    testSimulator(lb);
-    if (FLAGS_iobuf_storage) {
-      LOG(INFO) << "Test katran monitor";
-      testKatranMonitor(lb);
-    }
-    testHcFromFixture(lb, tester);
-    if (FLAGS_optional_tests) {
-      prepareOptionalLbData(lb);
-      LOG(INFO) << "Running optional tests. they could fail if requirements "
-                << "are not satisfied";
-      if (FLAGS_gue) {
-        tester.resetTestFixtures(
-            katran::testing::inputGueOptionalTestFixtures,
-            katran::testing::outputGueOptionalTestFixtures);
-      } else {
-        tester.resetTestFixtures(
-            katran::testing::inputOptionalTestFixtures,
-            katran::testing::outputOptionalTestFixtures);
-      }
-      tester.testFromFixture();
-      testOptionalLbCounters(lb);
-    }
     return 0;
   } else if (FLAGS_perf_testing) {
     // for perf tests to work katran must be compiled w -DINLINE_DECAP
