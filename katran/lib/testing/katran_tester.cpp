@@ -59,6 +59,10 @@ DEFINE_bool(gue, false, "run GUE tests instead of IPIP ones");
 DEFINE_int32(repeat, 1000000, "perf test runs for single packet");
 DEFINE_int32(position, -1, "perf test runs for single packet");
 DEFINE_bool(iobuf_storage, false, "test iobuf storage for katran monitor");
+DEFINE_int32(
+    packet_num,
+    -1,
+    "Pass packet number to run single test, default -1 to run all");
 
 void testSimulator(katran::KatranLb& lb) {
   // udp, v4 vip v4 real
@@ -323,6 +327,9 @@ int main(int argc, char** argv) {
   } else {
     config.inputData = katran::testing::inputTestFixtures;
     config.outputData = katran::testing::outputTestFixtures;
+  }
+  if (FLAGS_packet_num >= 0) {
+    config.singleTestRunPacketNumber_ = FLAGS_packet_num;
   }
   katran::BpfTester tester(config);
   if (FLAGS_print_base64) {

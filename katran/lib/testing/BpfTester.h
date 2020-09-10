@@ -60,6 +60,8 @@ struct TesterConfig {
    * descriptor of bpf's program to test.
    */
   int bpfProgFd{-1};
+
+  folly::Optional<int> singleTestRunPacketNumber_{folly::none};
 };
 
 /**

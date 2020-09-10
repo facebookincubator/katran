@@ -165,6 +165,12 @@ void BpfTester::runBpfTesterFromFixtures(
   std::string ret_val_str;
   std::string test_result;
   for (int i = 0; i < config_.inputData.size(); i++) {
+    if (config_.singleTestRunPacketNumber_ &&
+        *config_.singleTestRunPacketNumber_ != (i+1)) {
+      ++pckt_num;
+      VLOG(2) << "Skipped test for packet #" << i;
+      continue;
+    }
     void* ctx_in = ctxs_in.size() != 0 ? ctxs_in[i] : nullptr;
     auto pckt_buf = folly::IOBuf::create(kMaxXdpPcktSize);
     auto input_pckt = parser_.getPacketFromBase64(config_.inputData[i].first);
@@ -205,8 +211,8 @@ void BpfTester::runBpfTesterFromFixtures(
           parser_.convertPacketToBase64(std::move(pckt_buf));
       if (output_test_pckt != config_.outputData[i].first) {
         VLOG(2) << "output packet not equal to expected one; expected pkt="
-                << output_test_pckt
-                << ", actual=" << config_.outputData[i].first;
+                << config_.outputData[i].first
+                << ", actual=" << output_test_pckt;
         test_result = "\033[31mFailed\033[0m";
       }
     }
