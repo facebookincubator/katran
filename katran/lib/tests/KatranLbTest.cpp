@@ -29,7 +29,6 @@ class KatranLbTest : public ::testing::Test {
             "ipip0", // v4TunInterface
             "ipip60", // v6TunInterface
             "./lb.o", // balancerProgPath
-            "./lb_with_introspection.o", // balancerProgWithIntrospectionPath
             "./hc.0", // healthcheckingProgPath
             {0x00, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E}, // defaultMac
             1, // priority
