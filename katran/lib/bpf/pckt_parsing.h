@@ -166,17 +166,9 @@ static inline int parse_quic(void *data, void *data_end,
     }
 
     struct quic_long_header* long_header = (struct quic_long_header*) quic_data;
-    if (long_header->version == QUIC_VERSION_MVFST_OLD) {
-      // first 4 bits in the conn Id specifies the length of 'dest conn id'
-      if ((long_header->conn_id_lens >> 4) < QUIC_MIN_CONNID_LEN) {
-        // conn id is not long enough
-        return FURTHER_PROCESSING;
-      }
-    } else {
-      // Post draft version 22, this byte is the conn id length of dest conn id
-      if (long_header->conn_id_lens < QUIC_MIN_CONNID_LEN) {
-        return FURTHER_PROCESSING;
-      }
+    // Post draft version 22, this byte is the conn id length of dest conn id
+    if (long_header->conn_id_lens < QUIC_MIN_CONNID_LEN) {
+      return FURTHER_PROCESSING;
     }
     connId = long_header->dst_connection_id;
   } else {

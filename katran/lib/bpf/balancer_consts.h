@@ -134,8 +134,6 @@
 #define QUIC_HANDSHAKE 0x20
 #define QUIC_RETRY 0x30
 #define QUIC_PACKET_TYPE_MASK 0x30
-// Fallback version of long header processing
-#define QUIC_VERSION_MVFST_OLD 0xfaceb000
 
 // Implementation specific constants:
 // Require connection id to be of minimum length
