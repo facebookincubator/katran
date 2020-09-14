@@ -81,7 +81,6 @@ void MonitoringServiceCore::tearDown() {
 
 SubscriptionResult MonitoringServiceCore::acceptSubscription(
     const EventIds& requested_events) {
-  DelayedDestructionBase::DestructorGuard dg(this);
   CHECK(initialized_);
   ClientId new_cid;
   EventIds subscribed_events;

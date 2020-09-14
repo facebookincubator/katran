@@ -40,20 +40,21 @@ class SubscriptionCallback {
  */
 class MonitoringServiceCore
     : public SubscriptionCallback,
-      public std::enable_shared_from_this<MonitoringServiceCore>,
-      public folly::DelayedDestruction {
+      public std::enable_shared_from_this<MonitoringServiceCore> {
  public:
   MonitoringServiceCore() {}
+
+  ~MonitoringServiceCore() override {
+    if (initialized_) {
+      tearDown();
+    }
+  }
 
   /**
    * Helper method for creating a shared ptr with proper deleter
    */
   static std::shared_ptr<MonitoringServiceCore> make() {
-    // Implicit cast
-    return std::unique_ptr<
-        MonitoringServiceCore,
-        folly::DelayedDestruction::Destructor>(
-        new MonitoringServiceCore(), folly::DelayedDestruction::Destructor());
+    return std::make_shared<MonitoringServiceCore>();
   }
 
   /**
@@ -148,15 +149,6 @@ class MonitoringServiceCore
   }
 
  protected:
-  /**
-   * Dtor should be protected in order to use DelayedDestruction
-   */
-  ~MonitoringServiceCore() override {
-    if (initialized_) {
-      tearDown();
-    }
-  }
-
   /**
    * Return the client subscription map for just one event
    */

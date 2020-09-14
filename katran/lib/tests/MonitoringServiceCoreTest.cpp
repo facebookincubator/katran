@@ -24,12 +24,7 @@ class MockMonitoringServiceCore : public MonitoringServiceCore {
   MockMonitoringServiceCore() {}
 
   static std::shared_ptr<MockMonitoringServiceCore> make() {
-    // Implicit cast
-    return std::unique_ptr<
-        MockMonitoringServiceCore,
-        folly::DelayedDestruction::Destructor>(
-        new MockMonitoringServiceCore(),
-        folly::DelayedDestruction::Destructor());
+    return std::make_shared<MockMonitoringServiceCore>();
   }
 
   bool initialize(std::shared_ptr<KatranMonitor> /* unused */) override {
@@ -38,9 +33,11 @@ class MockMonitoringServiceCore : public MonitoringServiceCore {
       int rc = pipe2(pipeFds, O_NONBLOCK);
       EXPECT_EQ(rc, 0);
       auto reader = folly::AsyncPipeReader::newReader(
-          reader_thread_.getEventBase(), folly::NetworkSocket::fromFd(pipeFds[0]));
+          reader_thread_.getEventBase(),
+          folly::NetworkSocket::fromFd(pipeFds[0]));
       auto writer = folly::AsyncPipeWriter::newWriter(
-          reader_thread_.getEventBase(), folly::NetworkSocket::fromFd(pipeFds[1]));
+          reader_thread_.getEventBase(),
+          folly::NetworkSocket::fromFd(pipeFds[1]));
       auto cb = std::make_unique<EventPipeCallback>(eventId);
       cb->enable();
       reader->setReadCB(cb.get());
