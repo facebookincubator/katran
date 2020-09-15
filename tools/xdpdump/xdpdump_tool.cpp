@@ -79,6 +79,7 @@ int main(int argc, char **argv) {
         return -1;
       }
       std::memcpy(&filter.dstv6, &dst_addr.v6daddr, 16);
+      filter.ipv6 = true;
     } else {
       if (filter.ipv6) {
         // src is specified and it's ipv6
