@@ -36,6 +36,7 @@ class KatranLbTest : public ::testing::Test {
             "", // rootMapPath
             1, // rootMapPos
             true, // enableHc
+            false, // tunnelBasedEncap
             false, // disableForwarding
             512, // maxVips
             4096, // maxReals
@@ -108,6 +109,19 @@ TEST_F(KatranLbTest, testChangeMac) {
   for (int i = 0; i < 6; i++) {
     default_mac[i] = mac[i];
   }
+};
+
+TEST_F(KatranLbTest, testIfIndex) {
+  auto indices = lb.getIndexOfNetworkInterfaces();
+  ASSERT_EQ(indices.size(), 2);
+  auto it = indices.find(kMainIntfPos);
+  ASSERT_FALSE(it == indices.end());
+  it = indices.find(kHcIntfPos);
+  ASSERT_FALSE(it == indices.end());
+  it = indices.find(kIpv4TunPos);
+  ASSERT_TRUE(it == indices.end());
+  it = indices.find(kIpv6TunPos);
+  ASSERT_TRUE(it == indices.end());
 };
 
 TEST_F(KatranLbTest, testVipHelpers) {

@@ -135,7 +135,10 @@ struct KatranMonitorConfig {
  * @param uint32_t tc priority of healtchecking task
  * @param string rootMapPath path to pinned map from root xdp prog
  * @param rootMapPos position inside rootMap
- * @param bool enableHc flag, is set - we will load healthchecking bpf prog
+ * @param bool enableHc flag, if set - we will load healthchecking bpf prog
+ * @param bool tunnelBasedHCEncap flag, if set - katran will redirect packets to
+ * v4TunInterface and v6TunInterface to encap v4 and v6 packets respectively
+ * using the bpf prog to healthcheck backend reals.
  * @param bool disableForwarding flag - if set, we don't load the forwarding
  * (xdp) bpf program
  * @param uint32_t maxVips maximum allowed vips to configure
@@ -175,8 +178,8 @@ struct KatranMonitorConfig {
  */
 struct KatranConfig {
   std::string mainInterface;
-  std::string v4TunInterface;
-  std::string v6TunInterface;
+  std::string v4TunInterface = kDefaultHcInterface;
+  std::string v6TunInterface = kDefaultHcInterface;
   std::string balancerProgPath;
   std::string balancerProgWithIntrospectionPath;
   std::string healthcheckingProgPath;
@@ -185,6 +188,7 @@ struct KatranConfig {
   std::string rootMapPath = kNoExternalMap;
   uint32_t rootMapPos = kDefaultKatranPos;
   bool enableHc = true;
+  bool tunnelBasedHCEncap = false;
   bool disableForwarding = false;
   uint32_t maxVips = kDefaultMaxVips;
   uint32_t maxReals = kDefaultMaxReals;

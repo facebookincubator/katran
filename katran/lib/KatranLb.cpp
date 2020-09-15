@@ -95,28 +95,29 @@ KatranLb::KatranLb(const KatranConfig& config)
       }
       ctl.ifindex = res;
       ctlValues_[kHcIntfPos] = ctl;
+      if (config_.tunnelBasedHCEncap) {
+        res = bpfAdapter_.getInterfaceIndex(config_.v4TunInterface);
+        if (!res) {
+          throw std::invalid_argument(folly::sformat(
+              "can't resolve ifindex for v4tunel intf, error: {}",
+              folly::errnoStr(errno)));
+        }
+        ctl.ifindex = res;
+        ctlValues_[kIpv4TunPos] = ctl;
 
-      res = bpfAdapter_.getInterfaceIndex(config_.v4TunInterface);
-      if (!res) {
-        throw std::invalid_argument(folly::sformat(
-            "can't resolve ifindex for v4tunel intf, error: {}",
-            folly::errnoStr(errno)));
+        res = bpfAdapter_.getInterfaceIndex(config_.v6TunInterface);
+        if (!res) {
+          throw std::invalid_argument(folly::sformat(
+              "can't resolve ifindex for v6tunel intf, error: {}",
+              folly::errnoStr(errno)));
+        }
+        ctl.ifindex = res;
+        ctlValues_[kIpv6TunPos] = ctl;
       }
-      ctl.ifindex = res;
-      ctlValues_[kIpv4TunPos] = ctl;
-
-      res = bpfAdapter_.getInterfaceIndex(config_.v6TunInterface);
-      if (res == 0) {
-        throw std::invalid_argument(folly::sformat(
-            "can't resolve ifindex for v6tunel intf, error: {}",
-            folly::errnoStr(errno)));
-      }
-      ctl.ifindex = res;
-      ctlValues_[kIpv6TunPos] = ctl;
     }
 
     res = bpfAdapter_.getInterfaceIndex(config_.mainInterface);
-    if (res == 0) {
+    if (!res) {
       throw std::invalid_argument(folly::sformat(
           "can't resolve ifindex for main intf, error: {}",
           folly::errnoStr(errno)));
@@ -518,9 +519,11 @@ void KatranLb::loadBpfProgs() {
   }
 
   if (config_.enableHc) {
-    std::vector<uint32_t> hc_ctl_keys = {
-        kIpv4TunPos, kIpv6TunPos, kMainIntfPos};
-
+    std::vector<uint32_t> hc_ctl_keys = {kMainIntfPos};
+    if (config_.tunnelBasedHCEncap) {
+      hc_ctl_keys.push_back(kIpv4TunPos);
+      hc_ctl_keys.push_back(kIpv6TunPos);
+    }
     for (auto ctl_key : hc_ctl_keys) {
       res = bpfAdapter_.bpfUpdateMap(
           bpfAdapter_.getMapFdByName("hc_ctrl_map"),
@@ -648,6 +651,19 @@ std::vector<uint8_t> KatranLb::getMac() {
   return std::vector<uint8_t>(
       std::begin(ctlValues_[kMacAddrPos].mac),
       std::end(ctlValues_[kMacAddrPos].mac));
+}
+
+std::map<int, uint32_t> KatranLb::getIndexOfNetworkInterfaces() {
+  std::map<int, uint32_t> res;
+  res[kMainIntfPos] = ctlValues_[kMainIntfPos].ifindex;
+  if (config_.enableHc) {
+    res[kHcIntfPos] = ctlValues_[kHcIntfPos].ifindex;
+    if (config_.tunnelBasedHCEncap) {
+      res[kIpv4TunPos] = ctlValues_[kIpv4TunPos].ifindex;
+      res[kIpv6TunPos] = ctlValues_[kIpv6TunPos].ifindex;
+    }
+  }
+  return res;
 }
 
 bool KatranLb::addVip(const VipKey& vip, const uint32_t flags) {

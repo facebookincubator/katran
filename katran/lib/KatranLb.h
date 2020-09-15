@@ -123,6 +123,15 @@ class KatranLb {
   std::vector<uint8_t> getMac();
 
   /**
+   * @return std::map<int, uint32_t> of ifindex of configured interfaces
+   *  where key is:
+   *     { kIpv4TunPos(1), kIpv6TunPos(2), kMainIntfPos(3), kHcIntfPos(4) }
+   *
+   * helper function which returns ifindex of all the configured interfaces
+   */
+  std::map<int, uint32_t> getIndexOfNetworkInterfaces();
+
+  /**
    * @param VipKey& vip to be added
    * @param uint32_t flags for the new vip (such as no_port etc)
    * @return true on success
