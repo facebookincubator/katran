@@ -188,7 +188,7 @@ struct KatranConfig {
   std::string rootMapPath = kNoExternalMap;
   uint32_t rootMapPos = kDefaultKatranPos;
   bool enableHc = true;
-  bool tunnelBasedHCEncap = false;
+  bool tunnelBasedHCEncap = true;
   bool disableForwarding = false;
   uint32_t maxVips = kDefaultMaxVips;
   uint32_t maxReals = kDefaultMaxReals;
