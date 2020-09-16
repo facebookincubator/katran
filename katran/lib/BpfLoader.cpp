@@ -39,7 +39,7 @@ namespace {
   if (type != BPF_PROG_TYPE_UNSPEC) {
     return type;
   }
-  std::string prog_name(::bpf_program__title(prog, false));
+  std::string prog_name(::bpf_program__section_name(prog));
   auto prefix = prog_name.substr(kStart, kPrefixLen);
   if (prefix == "xdp") {
     VLOG(2) << "prog " << prog_name << " type: XDP";
@@ -62,13 +62,6 @@ int libbpf_print(
   }
 
   return vfprintf(stderr, format, args);
-}
-
-bool map_name_too_long(const std::string& name) {
-  if (name.size() > kMaxSharedMapNameSize) {
-    return true;
-  }
-  return false;
 }
 
 } // namespace
@@ -174,9 +167,9 @@ int BpfLoader::reloadBpfObject(
   bpf_object__for_each_program(prog, obj) {
     // reload bpf program only if we have loaded it already. we distinct bpf
     // programs by their name
-    if (progs_.find(::bpf_program__title(prog, false)) == progs_.end()) {
+    if (progs_.find(::bpf_program__section_name(prog)) == progs_.end()) {
       LOG(ERROR) << "trying to reload not yet loaded program: "
-                 << ::bpf_program__title(prog, false);
+                 << ::bpf_program__section_name(prog);
       return closeBpfObject(obj);
     }
     auto prog_type = normalizeBpfProgType(prog, type);
@@ -199,8 +192,8 @@ int BpfLoader::reloadBpfObject(
 
     auto map_iter = maps_.find(map_name);
     if (map_iter != maps_.end()) {
-      // we would reuse already loaded map. if they was not explicitly added as
-      // shared maps we would make em such implicitly
+      // we would reuse already loaded map. if they were not explicitly added as
+      // shared maps we would make them such implicitly
       VLOG(2) << "map w/ a name: " << map_iter->first
               << " found. fd: " << map_iter->second << " Making it shared";
       if (updateSharedMap(map_name, map_iter->second)) {
@@ -237,13 +230,13 @@ int BpfLoader::reloadBpfObject(
   bpf_object__for_each_program(prog, obj) {
     // close old bpf program and (as we successfully reloaded it) and override
     // fd with a new one
-    auto name = ::bpf_program__title(prog, false);
-    VLOG(4) << "closing old bpf program w/ name: " << name;
-    auto old_fd = progs_[name];
+    auto prog_name = ::bpf_program__section_name(prog);
+    VLOG(4) << "closing old bpf program w/ name: " << prog_name;
+    auto old_fd = progs_[prog_name];
     ::close(old_fd);
-    VLOG(4) << "adding bpf program: " << name
+    VLOG(4) << "adding bpf program: " << prog_name
             << " with fd: " << ::bpf_program__fd(prog);
-    progs_[name] = ::bpf_program__fd(prog);
+    progs_[prog_name] = ::bpf_program__fd(prog);
   }
 
   bpf_map__for_each(map, obj) {
@@ -272,9 +265,9 @@ int BpfLoader::loadBpfObject(
   ::bpf_map* map;
 
   bpf_object__for_each_program(prog, obj) {
-    if (progs_.find(::bpf_program__title(prog, false)) != progs_.end()) {
+    if (progs_.find(::bpf_program__section_name(prog)) != progs_.end()) {
       LOG(ERROR) << "bpf's program name collision: "
-                 << ::bpf_program__title(prog, false);
+                 << ::bpf_program__section_name(prog);
       return closeBpfObject(obj);
     }
     auto prog_type = normalizeBpfProgType(prog, type);
@@ -316,9 +309,9 @@ int BpfLoader::loadBpfObject(
   }
 
   bpf_object__for_each_program(prog, obj) {
-    VLOG(4) << "adding bpf program: " << ::bpf_program__title(prog, false)
+    VLOG(4) << "adding bpf program: " << ::bpf_program__section_name(prog)
             << " with fd: " << ::bpf_program__fd(prog);
-    progs_[::bpf_program__title(prog, false)] = ::bpf_program__fd(prog);
+    progs_[::bpf_program__section_name(prog)] = ::bpf_program__fd(prog);
   }
 
   bpf_map__for_each(map, obj) {
