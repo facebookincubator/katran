@@ -14,7 +14,7 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#include <katran/lib/MaglevHash.h>
+#include "katran/lib/MaglevHash.h"
 
 namespace katran {
 
