@@ -580,22 +580,6 @@ bool KatranLb::reloadBalancerProg(
     enableRecirculation();
   }
 
-  // add values to main prog ctl_array
-  std::vector<uint32_t> balancer_ctl_keys = {kMacAddrPos};
-
-  for (auto ctl_key : balancer_ctl_keys) {
-    res = bpfAdapter_.bpfUpdateMap(
-        bpfAdapter_.getMapFdByName("ctl_array"),
-        &ctl_key,
-        &ctlValues_[ctl_key]);
-
-    if (res != 0) {
-      throw std::invalid_argument(folly::sformat(
-          "can't update ctl array for main program, error: {}",
-          folly::errnoStr(errno)));
-    }
-  }
-
   if (features_.introspection && !introspectionStarted_) {
     startIntrospectionRoutines();
     introspectionStarted_ = true;
