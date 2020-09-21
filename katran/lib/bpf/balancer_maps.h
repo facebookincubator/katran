@@ -40,7 +40,7 @@ BPF_ANNOTATE_KV_PAIR(vip_map, struct vip_definition, struct vip_meta);
 
 
 // map which contains cpu core to lru mapping
-struct bpf_map_def SEC("maps") lru_maps_mapping = {
+struct bpf_map_def SEC("maps") lru_mapping = {
   .type = BPF_MAP_TYPE_ARRAY_OF_MAPS,
   .key_size = sizeof(__u32),
   .value_size = sizeof(__u32),
@@ -49,14 +49,14 @@ struct bpf_map_def SEC("maps") lru_maps_mapping = {
 };
 
 // fallback lru. we should never hit this one outside of unittests
-struct bpf_map_def SEC("maps") fallback_lru_cache = {
+struct bpf_map_def SEC("maps") fallback_cache = {
   .type = BPF_MAP_TYPE_LRU_HASH,
   .key_size = sizeof(struct flow_key),
   .value_size = sizeof(struct real_pos_lru),
   .max_entries = DEFAULT_LRU_SIZE,
   .map_flags = NO_FLAGS,
 };
-BPF_ANNOTATE_KV_PAIR(fallback_lru_cache, struct flow_key, struct real_pos_lru);
+BPF_ANNOTATE_KV_PAIR(fallback_cache, struct flow_key, struct real_pos_lru);
 
 // map which contains all vip to real mappings
 struct bpf_map_def SEC("maps") ch_rings = {

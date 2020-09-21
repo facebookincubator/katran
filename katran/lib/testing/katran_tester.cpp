@@ -43,9 +43,9 @@ DEFINE_string(
     "output file for katran monitoring");
 DEFINE_string(balancer_prog, "./balancer_kern.o", "path to balancer bpf prog");
 DEFINE_string(
-    balancer_prog_with_introspection,
-    "./balancer_kern_with_introspection.o",
-    "path to balancer bpf prog with introspection enabled");
+    reloaded_balancer_prog,
+    "",
+    "path to balancer bpf prog which would reload main one");
 DEFINE_string(healthchecking_prog, "", "path to healthchecking bpf prog");
 DEFINE_bool(print_base64, false, "print packets in base64 from pcap file");
 DEFINE_bool(test_from_fixtures, false, "run tests on predefined dataset");
@@ -314,6 +314,48 @@ void testLbCounters(katran::KatranLb& lb) {
   return;
 }
 
+void runTestsFromFixture(katran::KatranLb& lb, katran::BpfTester& tester) {
+  prepareLbData(lb);
+  if (FLAGS_gue) {
+    tester.resetTestFixtures(
+        katran::testing::inputGueTestFixtures,
+        katran::testing::outputGueTestFixtures);
+  } else {
+    tester.resetTestFixtures(
+        katran::testing::inputTestFixtures,
+        katran::testing::outputTestFixtures);
+  }
+  auto prog_fd = lb.getKatranProgFd();
+  tester.setBpfProgFd(prog_fd);
+  tester.testFromFixture();
+  testLbCounters(lb);
+  if (FLAGS_optional_counter_tests) {
+    postTestOptionalLbCounters(lb);
+  }
+  testSimulator(lb);
+  if (FLAGS_iobuf_storage) {
+    LOG(INFO) << "Test katran monitor";
+    testKatranMonitor(lb);
+  }
+  testHcFromFixture(lb, tester);
+  if (FLAGS_optional_tests) {
+    prepareOptionalLbData(lb);
+    LOG(INFO) << "Running optional tests. they could fail if requirements "
+              << "are not satisfied";
+    if (FLAGS_gue) {
+      tester.resetTestFixtures(
+          katran::testing::inputGueOptionalTestFixtures,
+          katran::testing::outputGueOptionalTestFixtures);
+    } else {
+      tester.resetTestFixtures(
+          katran::testing::inputOptionalTestFixtures,
+          katran::testing::outputOptionalTestFixtures);
+    }
+    tester.testFromFixture();
+    testOptionalLbCounters(lb);
+  }
+}
+
 int main(int argc, char** argv) {
   gflags::ParseCommandLineFlags(&argc, &argv, true);
   google::InitGoogleLogging(argv[0]);
@@ -328,6 +370,7 @@ int main(int argc, char** argv) {
     config.inputData = katran::testing::inputTestFixtures;
     config.outputData = katran::testing::outputTestFixtures;
   }
+
   if (FLAGS_packet_num >= 0) {
     config.singleTestRunPacketNumber_ = FLAGS_packet_num;
   }
@@ -350,7 +393,6 @@ int main(int argc, char** argv) {
                                kV4TunInterface,
                                kV6TunInterface,
                                FLAGS_balancer_prog,
-                               FLAGS_balancer_prog_with_introspection,
                                FLAGS_healthchecking_prog,
                                kDefaultMac,
                                kDefaultPriority,
@@ -369,39 +411,22 @@ int main(int argc, char** argv) {
   if (FLAGS_optional_counter_tests) {
     preTestOptionalLbCounters(lb);
   }
-  prepareLbData(lb);
   tester.setBpfProgFd(balancer_prog_fd);
+  if (FLAGS_test_from_fixtures) {
+    runTestsFromFixture(lb, tester);
+    if (!FLAGS_reloaded_balancer_prog.empty()) {
+      auto res = lb.reloadBalancerProg(FLAGS_reloaded_balancer_prog);
+      if (!res) {
+        LOG(INFO) << "cannot reload balancer program";
+        return 1;
+      }
+      runTestsFromFixture(lb, tester);
+    }
+    return 0;
+  }
+  prepareLbData(lb);
   if (!FLAGS_pcap_input.empty()) {
     tester.testPcktsFromPcap();
-    return 0;
-  } else if (FLAGS_test_from_fixtures) {
-    tester.testFromFixture();
-    testLbCounters(lb);
-    if (FLAGS_optional_counter_tests) {
-      postTestOptionalLbCounters(lb);
-    }
-    testSimulator(lb);
-    if (FLAGS_iobuf_storage) {
-      LOG(INFO) << "Test katran monitor";
-      testKatranMonitor(lb);
-    }
-    testHcFromFixture(lb, tester);
-    if (FLAGS_optional_tests) {
-      prepareOptionalLbData(lb);
-      LOG(INFO) << "Running optional tests. they could fail if requirements "
-                << "are not satisfied";
-      if (FLAGS_gue) {
-        tester.resetTestFixtures(
-            katran::testing::inputGueOptionalTestFixtures,
-            katran::testing::outputGueOptionalTestFixtures);
-      } else {
-        tester.resetTestFixtures(
-            katran::testing::inputOptionalTestFixtures,
-            katran::testing::outputOptionalTestFixtures);
-      }
-      tester.testFromFixture();
-      testOptionalLbCounters(lb);
-    }
     return 0;
   } else if (FLAGS_perf_testing) {
     // for perf tests to work katran must be compiled w -DINLINE_DECAP

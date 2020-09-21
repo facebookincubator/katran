@@ -510,9 +510,9 @@ static inline int process_packet(void *data, __u64 off, void *data_end,
       pckt.flow.port16[0] = 0;
     }
     __u32 cpu_num = bpf_get_smp_processor_id();
-    void *lru_map = bpf_map_lookup_elem(&lru_maps_mapping, &cpu_num);
+    void *lru_map = bpf_map_lookup_elem(&lru_mapping, &cpu_num);
     if (!lru_map) {
-      lru_map = &fallback_lru_cache;
+      lru_map = &fallback_cache;
       __u32 lru_stats_key = MAX_VIPS + FALLBACK_LRU_CNTR;
       struct lb_stats *lru_stats = bpf_map_lookup_elem(&stats, &lru_stats_key);
       if (!lru_stats) {

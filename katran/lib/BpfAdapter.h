@@ -79,6 +79,20 @@ class BpfAdapter {
       bool use_names = false);
 
   /**
+   * @param string bpf_prog path to bpf program
+   * @param bpf_prog_type type of bpf prog to load
+   * @return int result 0 in case of success, other val otherwise
+   *
+   * helper function to reload bpf program into the kernel
+   * loader could either deduct type from prog's name
+   * (supported xdp- and cls- prefixes) or by using option
+   * bpf_prog_type hint
+   */
+  int reloadBpfProg(
+      const std::string& bpf_prog,
+      const bpf_prog_type type = BPF_PROG_TYPE_UNSPEC);
+
+  /**
    * @param char* ptr to buffer with bpf's elf object
    * @param int size of the buffer
    * @param bpf_prog_type type of bpf prog to load

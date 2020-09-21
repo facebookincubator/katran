@@ -72,7 +72,7 @@ static inline void submit_event(struct xdp_md *ctx, void *map,
 __attribute__((__always_inline__))
 static inline int recirculate(struct xdp_md *ctx) {
   int i = RECIRCULATION_INDEX;
-  bpf_tail_call(ctx, &katran_subprograms, i);
+  bpf_tail_call(ctx, &subprograms, i);
   // we should never hit this
   return XDP_PASS;
 }

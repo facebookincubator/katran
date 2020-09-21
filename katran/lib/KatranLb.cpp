@@ -186,7 +186,7 @@ void KatranLb::initialSanityChecking() {
     maps.push_back("ch_rings");
     maps.push_back("reals");
     maps.push_back("stats");
-    maps.push_back("lru_maps_mapping");
+    maps.push_back("lru_mapping");
     maps.push_back("quic_mapping");
 
     res = getKatranProgFd();
@@ -290,7 +290,7 @@ void KatranLb::initLrus() {
       throw std::runtime_error("can't create prototype map for test lru");
     }
   }
-  res = bpfAdapter_.setInnerMapPrototype("lru_maps_mapping", lru_proto_fd);
+  res = bpfAdapter_.setInnerMapPrototype("lru_mapping", lru_proto_fd);
   if (res < 0) {
     throw std::runtime_error(folly::sformat(
         "can't update inner_maps_fds w/ prototype for main lru, error: {}",
@@ -307,7 +307,7 @@ void KatranLb::attachLrus() {
     key = core;
     map_fd = lruMapsFd_[core];
     res = bpfAdapter_.bpfUpdateMap(
-        bpfAdapter_.getMapFdByName("lru_maps_mapping"), &key, &map_fd);
+        bpfAdapter_.getMapFdByName("lru_mapping"), &key, &map_fd);
     if (res < 0) {
       throw std::runtime_error(folly::sformat(
           "can't attach lru to forwarding core, error: {}",
@@ -426,10 +426,9 @@ void KatranLb::enableRecirculation() {
   uint32_t key = kRecirculationIndex;
   int balancer_fd = getKatranProgFd();
   auto res = bpfAdapter_.bpfUpdateMap(
-      bpfAdapter_.getMapFdByName("katran_subprograms"), &key, &balancer_fd);
+      bpfAdapter_.getMapFdByName("subprograms"), &key, &balancer_fd);
   if (res < 0) {
-    throw std::runtime_error(
-        "can not update katran_subprograms for recirculation");
+    throw std::runtime_error("can not update subprograms for recirculation");
   }
 }
 
@@ -543,11 +542,50 @@ void KatranLb::loadBpfProgs() {
   progsLoaded_ = true;
   if (!config_.disableForwarding && features_.introspection) {
     startIntrospectionRoutines();
+    introspectionStarted_ = true;
   }
 
   if (!config_.disableForwarding) {
     attachLrus();
   }
+}
+
+bool KatranLb::reloadBalancerProg(
+    const std::string& path,
+    folly::Optional<KatranConfig> config) {
+  int res;
+  if (config_.disableForwarding) {
+    return false;
+  }
+
+  res = bpfAdapter_.reloadBpfProg(path);
+  if (res) {
+    return false;
+  }
+
+  if (config.has_value()) {
+    config_ = *config;
+  }
+
+  config_.balancerProgPath = path;
+
+  initialSanityChecking();
+  featureDiscovering();
+
+  if (features_.gueEncap) {
+    setupGueEnvironment();
+  }
+
+  if (features_.inlineDecap) {
+    enableRecirculation();
+  }
+
+  if (features_.introspection && !introspectionStarted_) {
+    startIntrospectionRoutines();
+    introspectionStarted_ = true;
+  }
+  progsReloaded_ = true;
+  return true;
 }
 
 void KatranLb::attachBpfProgs() {
@@ -581,7 +619,7 @@ void KatranLb::attachBpfProgs() {
     }
   }
 
-  if (config_.enableHc) {
+  if (config_.enableHc && !progsReloaded_) {
     // attaching healthchecking bpf prog.
     auto hc_fd = getHealthcheckerProgFd();
     res = bpfAdapter_.addTcBpfFilter(
