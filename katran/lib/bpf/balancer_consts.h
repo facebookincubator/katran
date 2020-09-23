@@ -66,8 +66,8 @@
 #define MAX_DECAP_DST 6
 #endif
 
-// use 16 bits in quic's connection id to store real's index
-#define MAX_QUIC_REALS 65535 // 2^16-1
+// use 24 bits in quic's connection id to store real's index
+#define MAX_QUIC_REALS 0x00fffffe // 2^24-1
 
 #define CTL_MAP_SIZE 16
 
@@ -141,8 +141,11 @@
 #define QUIC_MIN_CONNID_LEN 8
 #endif
 // explicitly version the connection id
-#ifndef QUIC_CONNID_VERSION
-#define QUIC_CONNID_VERSION 0x1
+#ifndef QUIC_CONNID_VERSION_V1
+#define QUIC_CONNID_VERSION_V1 0x1
+#endif
+#ifndef QUIC_CONNID_VERSION_V2
+#define QUIC_CONNID_VERSION_V2 0x2
 #endif
 
 

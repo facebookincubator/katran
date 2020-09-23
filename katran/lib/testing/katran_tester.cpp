@@ -258,25 +258,25 @@ void testLbCounters(katran::KatranLb& lb) {
   auto stats = lb.getStatsForVip(vip);
   if ((stats.v1 != 4) || (stats.v2 != 248)) {
     VLOG(2) << "pckts: " << stats.v1 << " bytes: " << stats.v2;
-    LOG(INFO) << "per Vip counter is incorrect for vip:" << vip.address;
+    LOG(ERROR) << "per Vip counter is incorrect for vip:" << vip.address;
   }
   stats = lb.getLruStats();
-  if ((stats.v1 != 21) || (stats.v2 != 11)) {
+  if ((stats.v1 != 23) || (stats.v2 != 11)) {
     VLOG(2) << "Total pckts: " << stats.v1 << " LRU misses: " << stats.v2;
-    LOG(INFO) << "LRU counter is incorrect";
+    LOG(ERROR) << "LRU counter is incorrect";
   }
   stats = lb.getLruMissStats();
   if ((stats.v1 != 2) || (stats.v2 != 6)) {
     VLOG(2) << "TCP syns: " << stats.v1 << " TCP non-syns: " << stats.v2;
-    LOG(INFO) << "per pckt type LRU miss counter is incorrect";
+    LOG(ERROR) << "per pckt type LRU miss counter is incorrect";
   }
   stats = lb.getLruFallbackStats();
   if (stats.v1 != 17) {
     VLOG(2) << "FallbackLRU hits: " << stats.v1;
-    LOG(INFO) << "LRU fallback counter is incorrect";
+    LOG(ERROR) << "LRU fallback counter is incorrect";
   }
   stats = lb.getQuicRoutingStats();
-  if (stats.v1 != 5 || stats.v2 != 4) {
+  if (stats.v1 != 5 || stats.v2 != 6) {
     LOG(INFO) << "Counters for QUIC packets routed with CH: " << stats.v1
               << ",  with connection-id: " << stats.v2;
     LOG(INFO) << "Counters for routing of QUIC packets is wrong.";

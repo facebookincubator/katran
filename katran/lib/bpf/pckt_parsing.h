@@ -136,10 +136,8 @@ static inline bool parse_tcp(void *data, void *data_end,
 __attribute__((__always_inline__))
 static inline int parse_quic(void *data, void *data_end,
                              bool is_ipv6, struct packet_description *pckt) {
-
   bool is_icmp = (pckt->flags & F_ICMP);
   __u64 off = calc_offset(is_ipv6, is_icmp);
-  int flags;
   // offset points to the beginning of transport header (udp) of quic's packet
   /*                                      |QUIC PKT TYPE|           */
   if ((data + off + sizeof(struct udphdr) + sizeof(__u8)) > data_end) {
@@ -181,11 +179,15 @@ static inline int parse_quic(void *data, void *data_end,
   if (!connId) {
     return FURTHER_PROCESSING;
   }
-  // connId schema v2: if first two bits contain the right version info
-  if ((connId[0] >> 6) == QUIC_CONNID_VERSION) {
+  // connId schema: if first two bits contain the right version info
+  __u8 connIdVersion = (connId[0] >> 6);
+  if (connIdVersion == QUIC_CONNID_VERSION_V1) {
     // extract last 16 bits from the first 18 bits:
     //            last 6 bits         +    8 bits        +   first 2 bits
     return ((connId[0] & 0x3F) << 10) | (connId[1] << 2) | (connId[2] >> 6);
+  } else if (connIdVersion == QUIC_CONNID_VERSION_V2) {
+    __u32 cid = (connId[1] << 16) | (connId[2] << 8) | (connId[3]);
+    return cid;
   }
   return FURTHER_PROCESSING;
 }

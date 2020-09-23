@@ -33,11 +33,11 @@ const std::vector<std::string> kReals = {
     "fc00::3",
 };
 const std::vector<::katran::lb_stats> kRealStats = {
-    {3, 152},
+    {4, 190},
     {7, 346},
     {5, 291},
     {2, 92},
-    {1, 38},
+    {2, 76},
     {3, 156},
 };
 
@@ -58,10 +58,16 @@ void addQuicMappings(katran::KatranLb& lb) {
   katran::QuicReal qreal;
   std::vector<katran::QuicReal> qreals;
   auto action = katran::ModifyAction::ADD;
-  std::vector<uint32_t> ids = {1022, 1023, 1025, 1024, 1026, 1027};
+  std::vector<uint16_t> ids = {1022, 1023, 1025, 1024, 1026, 1027};
   for (int i = 0; i < kReals.size(); i++) {
+    // CIDv1
     qreal.address = kReals[i];
     qreal.id = ids[i];
+    qreals.push_back(qreal);
+    // // CIDv2
+    qreal.address = kReals[i];
+    constexpr uint32_t twJobMask = 0x030000; // tw job set to 3
+    qreal.id = twJobMask | ids[i];
     qreals.push_back(qreal);
   }
   lb.modifyQuicRealsMapping(action, qreals);
