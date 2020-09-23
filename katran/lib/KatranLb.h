@@ -766,7 +766,11 @@ class KatranLb {
   std::unordered_map<uint32_t, folly::IPAddress> hcReals_;
 
   std::unordered_map<folly::IPAddress, RealMeta> reals_;
-  std::unordered_map<folly::IPAddress, uint32_t> quicMapping_;
+
+  /**
+   * key: QUIC host id (from CID); value: real IP
+   */
+  std::unordered_map<uint32_t, folly::IPAddress> quicMapping_;
   /**
    * for reverse real's lookup. get real by num.
    * used when we are going to delete vip and coresponding reals.

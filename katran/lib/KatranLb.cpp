@@ -1439,13 +1439,23 @@ void KatranLb::modifyQuicRealsMapping(
       LOG(ERROR) << "trying to add mapping for id out of assigned space";
       continue;
     }
-    VLOG(4) << folly::sformat("modifying quic's real {}", real.address);
+    VLOG(4) << folly::sformat(
+        "modifying quic's real {} id {:x}", real.address, real.id);
     auto raddr = folly::IPAddress(real.address);
-    auto real_iter = quicMapping_.find(raddr);
+    auto real_iter = quicMapping_.find(real.id);
     if (action == ModifyAction::DEL) {
       if (real_iter == quicMapping_.end()) {
         LOG(ERROR) << folly::sformat(
-            "trying to delete nonexisting mapping for address {}",
+            "trying to delete nonexisting mapping for id {:x} address {}",
+            real.id,
+            real.address);
+        continue;
+      }
+      if (real_iter->second != raddr) {
+        LOG(ERROR) << folly::sformat(
+            "deleted id {} pointed to diffrent address {} than given {}",
+            real.id,
+            real_iter->second.str(),
             real.address);
         continue;
       }
@@ -1453,10 +1463,15 @@ void KatranLb::modifyQuicRealsMapping(
       quicMapping_.erase(real_iter);
     } else {
       if (real_iter != quicMapping_.end()) {
-        LOG(INFO) << folly::sformat(
-            "trying to add already existing mapping for {}", real.address);
-        // or we could silently delete old mapping instead.
-        continue;
+        if (real_iter->second == raddr) {
+          continue;
+        }
+        LOG(WARNING) << folly::sformat(
+            "overriding address {} for existing mapping id {} address {}",
+            real_iter->second.str(),
+            real.id,
+            real.address);
+        decreaseRefCountForReal(real_iter->second);
       }
       auto rnum = increaseRefCountForReal(raddr);
       if (rnum == config_.maxReals) {
@@ -1464,7 +1479,7 @@ void KatranLb::modifyQuicRealsMapping(
         continue;
       }
       to_update[real.id] = rnum;
-      quicMapping_[raddr] = real.id;
+      quicMapping_[real.id] = raddr;
     }
   }
   if (!config_.testing) {
@@ -1492,8 +1507,8 @@ std::vector<QuicReal> KatranLb::getQuicRealsMapping() {
   }
   QuicReal real;
   for (auto& mapping : quicMapping_) {
-    real.address = mapping.first.str();
-    real.id = mapping.second;
+    real.id = mapping.first;
+    real.address = mapping.second.str();
     reals.push_back(real);
   }
   return reals;
@@ -1757,8 +1772,6 @@ bool KatranLb::updateRealsMap(const folly::IPAddress& real, uint32_t num) {
 void KatranLb::decreaseRefCountForReal(const folly::IPAddress& real) {
   auto real_iter = reals_.find(real);
   if (real_iter == reals_.end()) {
-    // it's expected that caller must call this function only after explicit
-    // test that real exists. but we will double check it here
     return;
   }
   real_iter->second.refCount--;

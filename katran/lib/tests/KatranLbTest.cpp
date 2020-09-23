@@ -256,24 +256,50 @@ TEST_F(KatranLbTest, testUpdateQuicReal) {
   real.address = "10.0.0.1";
   real.id = 1;
   reals.push_back(real);
+
   // adding one mapping
   lb.modifyQuicRealsMapping(action, reals);
   ASSERT_EQ(lb.getQuicRealsMapping().size(), 1);
-  // adding mapping with id > max allowed.
-  reals[0].id = 4096;
+
+  // adding same mapping again
   lb.modifyQuicRealsMapping(action, reals);
   ASSERT_EQ(lb.getQuicRealsMapping().size(), 1);
-  // adding mapping with existing id
-  reals[0].id = 1;
+
+  // adding mapping for same ID but diffrent IP
+  reals[0].address = "2.0.0.1";
   lb.modifyQuicRealsMapping(action, reals);
-  ASSERT_EQ(lb.getQuicRealsMapping().size(), 1);
+  auto resMap = lb.getQuicRealsMapping();
+  ASSERT_EQ(resMap.size(), 1);
+  ASSERT_EQ(resMap[0].address, "2.0.0.1");
+
+  // adding mapping for same IP with another ID
+  reals[0].id = 2;
+  lb.modifyQuicRealsMapping(action, reals);
+  resMap = lb.getQuicRealsMapping();
+  ASSERT_EQ(resMap.size(), 2);
+  ASSERT_EQ(resMap[0].address, "2.0.0.1");
+  ASSERT_EQ(resMap[1].address, "2.0.0.1");
+
   action = ModifyAction::DEL;
+
   // deleting non existing mapping
-  reals[0].address = "10.0.0.2";
+  reals[0].id = 100;
   lb.modifyQuicRealsMapping(action, reals);
-  ASSERT_EQ(lb.getQuicRealsMapping().size(), 1);
-  // deleting existing mapping
-  reals[0].address = "10.0.0.1";
+  ASSERT_EQ(lb.getQuicRealsMapping().size(), 2);
+
+  // deleting existing mapping id but mismatch IP
+  reals[0].id = 1;
+  reals[0].address = "9.9.9.9";
+  lb.modifyQuicRealsMapping(action, reals);
+  ASSERT_EQ(lb.getQuicRealsMapping().size(), 2);
+
+  // deleting existing
+  reals[0].id = 1;
+  reals[0].address = "2.0.0.1";
+  QuicReal real2;
+  real2.id = 2;
+  real2.address="2.0.0.1";
+  reals.emplace_back(real2);
   lb.modifyQuicRealsMapping(action, reals);
   ASSERT_EQ(lb.getQuicRealsMapping().size(), 0);
 }
