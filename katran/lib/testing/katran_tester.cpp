@@ -277,9 +277,21 @@ void testLbCounters(katran::KatranLb& lb) {
   }
   stats = lb.getQuicRoutingStats();
   if (stats.v1 != 5 || stats.v2 != 6) {
-    LOG(INFO) << "Counters for QUIC packets routed with CH: " << stats.v1
-              << ",  with connection-id: " << stats.v2;
-    LOG(INFO) << "Counters for routing of QUIC packets is wrong.";
+    LOG(ERROR) << "Counters for QUIC packets routed with CH: " << stats.v1
+               << ",  with connection-id: " << stats.v2;
+    LOG(ERROR) << "Counters for routing of QUIC packets is wrong.";
+  }
+  stats = lb.getQuicCidVersionStats();
+  if (stats.v1 != 4 || stats.v2 != 2) {
+    LOG(ERROR) << "QUIC CID version counters v1 " << stats.v1 << " v2 "
+               << stats.v2;
+    LOG(ERROR) << "Counters for QUIC versions are wrong";
+  }
+  stats = lb.getQuicCidDropStats();
+  if (stats.v1 != 0 || stats.v2 != 4) {
+    LOG(ERROR) << "QUIC CID drop counters v1 " << stats.v1 << " v2 "
+               << stats.v2;
+    LOG(ERROR) << "Counters for QUIC drops are wrong";
   }
   for (int i = 0; i < kReals.size(); i++) {
     auto real = kReals[i];

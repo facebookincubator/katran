@@ -58,6 +58,8 @@ constexpr uint32_t kIcmpTooBigOffset = 4;
 constexpr uint32_t kLpmSrcOffset = 5;
 constexpr uint32_t kInlineDecapOffset = 6;
 constexpr uint32_t kQuicRoutingOffset = 7;
+constexpr uint32_t kQuicCidVersionOffset = 8;
+constexpr uint32_t kQuicCidDropOffset = 9;
 
 /**
  * LRU map related constants
@@ -429,6 +431,25 @@ class KatranLb {
    * using the default 5-tuple hash vs using the connection-id
    */
   lb_stats getQuicRoutingStats();
+
+   /**
+   * @return struct lb_stats w/ statistic of QUIC CID versions stats
+   *
+   * helper function which returns how many QUIC packets were routed
+   * using CIDv1 vs CIDv2
+   */
+  lb_stats getQuicCidVersionStats();
+
+  /**
+   * @return struct lb_stats w/ statistic of QUIC packet drop stats
+   *
+   * helper function which returns how many QUIC packets were dropped:
+   * v1 - packets routed to real #0, because bpf array map defaults to 0,
+   * unknown server ID result in routing to real #0, we don't currently
+   * have way to distinguish between expected and unexpected cases.
+   * v2 - packets dropped because server ID map pointed to unknown real ID.
+   */
+  lb_stats getQuicCidDropStats();
 
   /**
    * @return struct lb_stats w/ src routing related statistics

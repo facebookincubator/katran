@@ -1544,6 +1544,14 @@ lb_stats KatranLb::getQuicRoutingStats() {
   return getLbStats(config_.maxVips + kQuicRoutingOffset);
 }
 
+lb_stats KatranLb::getQuicCidVersionStats() {
+  return getLbStats(config_.maxVips + kQuicCidVersionOffset);
+}
+
+lb_stats KatranLb::getQuicCidDropStats() {
+  return getLbStats(config_.maxVips + kQuicCidDropOffset);
+}
+
 lb_stats KatranLb::getSrcRoutingStats() {
   return getLbStats(config_.maxVips + kLpmSrcOffset);
 }

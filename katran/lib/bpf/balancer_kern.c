@@ -363,7 +363,42 @@ static inline int process_encaped_gue_pckt(void **data, void **data_end,
 }
 #endif // of INLINE_DECAP_GUE
 
+__attribute__((__always_inline__)) static inline void
+increment_quic_cid_version_stats(int host_id) {
+  __u32 quic_version_stats_key = MAX_VIPS + QUIC_CID_VERSION_STATS;
+  struct lb_stats* quic_version =
+      bpf_map_lookup_elem(&stats, &quic_version_stats_key);
+  if (!quic_version) {
+    return;
+  }
+  if (host_id > QUIC_CONNID_VERSION_V1_MAX_VAL) {
+    quic_version->v2 += 1;
+  } else {
+    quic_version->v1 += 1;
+  }
+}
 
+__attribute__((__always_inline__)) static inline void
+increment_quic_cid_drop_no_real() {
+  __u32 quic_drop_stats_key = MAX_VIPS + QUIC_CID_DROP_STATS;
+  struct lb_stats* quic_drop =
+      bpf_map_lookup_elem(&stats, &quic_drop_stats_key);
+  if (!quic_drop) {
+    return;
+  }
+  quic_drop->v1 += 1;
+}
+
+__attribute__((__always_inline__)) static inline void
+increment_quic_cid_drop_real_0() {
+  __u32 quic_drop_stats_key = MAX_VIPS + QUIC_CID_DROP_STATS;
+  struct lb_stats* quic_drop =
+      bpf_map_lookup_elem(&stats, &quic_drop_stats_key);
+  if (!quic_drop) {
+    return;
+  }
+  quic_drop->v2 += 1;
+}
 
 __attribute__((__always_inline__))
 static inline int process_packet(void *data, __u64 off, void *data_end,
@@ -484,15 +519,20 @@ static inline int process_packet(void *data, __u64 off, void *data_end,
     int real_index;
     real_index = parse_quic(data, data_end, is_ipv6, &pckt);
     if (real_index > 0) {
+      increment_quic_cid_version_stats(real_index);
       __u32 key = real_index;
       __u32 *real_pos = bpf_map_lookup_elem(&quic_mapping, &key);
-      // TODO: quic_mapping is array, which never fails to lookup element,
-      // resulting in default value 0 for real id
       if (real_pos) {
         key = *real_pos;
+        // TODO: quic_mapping is array, which never fails to lookup element,
+        // resulting in default value 0 for real id
+        if (key == 0) {
+          increment_quic_cid_drop_real_0();
+        }
         pckt.real_index = key;
         dst = bpf_map_lookup_elem(&reals, &key);
         if (!dst) {
+          increment_quic_cid_drop_no_real();
           return XDP_DROP;
         }
         quic_stats->v2 += 1;

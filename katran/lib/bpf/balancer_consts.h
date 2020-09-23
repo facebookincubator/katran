@@ -147,6 +147,7 @@
 #ifndef QUIC_CONNID_VERSION_V2
 #define QUIC_CONNID_VERSION_V2 0x2
 #endif
+#define QUIC_CONNID_VERSION_V1_MAX_VAL 0xFFFF
 
 
 // max ethernet packet's size which destination is a vip
@@ -179,10 +180,15 @@
 #define LPM_SRC_CNTRS 5
 // offset of remote encaped packets counters
 #define REMOTE_ENCAP_CNTRS 6
-// max ammount of new connections per seconda per core for lru update
-// if we go beyond this value - we will bypass lru update.
 // offset of QUIC routing related stats
 #define QUIC_ROUTE_STATS 7
+// QUIC CID versions
+#define QUIC_CID_VERSION_STATS 8
+// QUIC CID drops stats
+#define QUIC_CID_DROP_STATS 9
+
+// max ammount of new connections per seconda per core for lru update
+// if we go beyond this value - we will bypass lru update.
 #ifndef MAX_CONN_RATE
 #define MAX_CONN_RATE 125000
 #endif
