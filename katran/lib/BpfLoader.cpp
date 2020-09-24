@@ -39,7 +39,7 @@ namespace {
   if (type != BPF_PROG_TYPE_UNSPEC) {
     return type;
   }
-  std::string prog_name(::bpf_program__section_name(prog));
+  std::string prog_name(::bpf_program__title(prog, false));
   auto prefix = prog_name.substr(kStart, kPrefixLen);
   if (prefix == "xdp") {
     VLOG(2) << "prog " << prog_name << " type: XDP";
@@ -167,9 +167,9 @@ int BpfLoader::reloadBpfObject(
   bpf_object__for_each_program(prog, obj) {
     // reload bpf program only if we have loaded it already. we distinct bpf
     // programs by their name
-    if (progs_.find(::bpf_program__section_name(prog)) == progs_.end()) {
+    if (progs_.find(::bpf_program__title(prog, false)) == progs_.end()) {
       LOG(ERROR) << "trying to reload not yet loaded program: "
-                 << ::bpf_program__section_name(prog);
+                 << ::bpf_program__title(prog, false);
       return closeBpfObject(obj);
     }
     auto prog_type = normalizeBpfProgType(prog, type);
@@ -230,7 +230,7 @@ int BpfLoader::reloadBpfObject(
   bpf_object__for_each_program(prog, obj) {
     // close old bpf program and (as we successfully reloaded it) and override
     // fd with a new one
-    auto prog_name = ::bpf_program__section_name(prog);
+    auto prog_name = ::bpf_program__title(prog, false);
     VLOG(4) << "closing old bpf program w/ name: " << prog_name;
     auto old_fd = progs_[prog_name];
     ::close(old_fd);
@@ -265,9 +265,9 @@ int BpfLoader::loadBpfObject(
   ::bpf_map* map;
 
   bpf_object__for_each_program(prog, obj) {
-    if (progs_.find(::bpf_program__section_name(prog)) != progs_.end()) {
+    if (progs_.find(::bpf_program__title(prog, false)) != progs_.end()) {
       LOG(ERROR) << "bpf's program name collision: "
-                 << ::bpf_program__section_name(prog);
+                 << ::bpf_program__title(prog, false);
       return closeBpfObject(obj);
     }
     auto prog_type = normalizeBpfProgType(prog, type);
@@ -309,9 +309,9 @@ int BpfLoader::loadBpfObject(
   }
 
   bpf_object__for_each_program(prog, obj) {
-    VLOG(4) << "adding bpf program: " << ::bpf_program__section_name(prog)
+    VLOG(4) << "adding bpf program: " << ::bpf_program__title(prog, false)
             << " with fd: " << ::bpf_program__fd(prog);
-    progs_[::bpf_program__section_name(prog)] = ::bpf_program__fd(prog);
+    progs_[::bpf_program__title(prog, false)] = ::bpf_program__fd(prog);
   }
 
   bpf_map__for_each(map, obj) {
