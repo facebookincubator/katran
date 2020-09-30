@@ -54,7 +54,6 @@ namespace {
 constexpr short MAX_MSG_SIZE = 4096;
 constexpr unsigned TCA_BPF_PRIO_1 = 1;
 constexpr int kMaxProgsToQuery = 1024;
-std::array<const char, 5> kTcActKind = {"gact"};
 constexpr int kMaxPathLen = 255;
 constexpr folly::StringPiece kPossibleCpusFile(
     "/sys/devices/system/cpu/possible");
