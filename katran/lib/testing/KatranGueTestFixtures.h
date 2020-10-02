@@ -231,6 +231,18 @@ const std::vector<std::pair<std::string, std::string>> inputGueTestFixtures = {
     "AgAAAAAAAQAAAAAAht1owAAAACMGQPwAAAIAAAAAAAAAAAAAAAH8AAABAAAAAAAAAAAAAAABemkAUAAAAAAAAAAAUBAgAP1PAABrYXRyYW4gdGVzdCBwa3Q=",
     "packet to TCP based v6 VIP (and v6 real) with ToS / tc set"
   },
+  //33
+  {
+    // Ether(src="0x1", dst="0x2")/IP(src="192.168.1.42", dst="10.200.1.5")/UDP(sport=31337, dport=443)/b'\x00\x80\x03\x04\x02\x05\x06\x07\x00@'
+    "AgAAAAAAAQAAAAAACABFAAAmAAEAAEARrSfAqAEqCsgBBXppAbsAEqo2AIADBAIFBgcAQA==",
+    "QUIC: short header w/ connection id. CIDv2"
+  },
+  //34
+  {
+    // Ether(src="0x1", dst="0x2")/IP(src="192.168.1.42", dst="10.200.1.5")/UDP(sport=31337, dport=443)/b'\x00\x80\x03\x04\x44\x00\x00\x00\x00@'
+    "AgAAAAAAAQAAAAAACABFAAAmAAEAAEARrSfAqAEqCsgBBXppAbsAEm5CAIADBEQAAAAAQA==",
+    "QUIC: short header w/ connection id but non-existing mapping. CIDv2"
+  },
 };
 
 const std::vector<std::pair<std::string, std::string>> outputGueTestFixtures = {
@@ -393,6 +405,16 @@ const std::vector<std::pair<std::string, std::string>> outputGueTestFixtures = {
   //32
   {
     "AADerb6vAgAAAAAAht1owAAAAFMRQPwAIwcAAAAAAAAAAAAAEzf8AAAAAAAAAAAAAAAAAAADemkXwABTAABowAAAACMGQPwAAAIAAAAAAAAAAAAAAAH8AAABAAAAAAAAAAAAAAABemkAUAAAAAAAAAAAUBAgAP1PAABrYXRyYW4gdGVzdCBwa3Q=",
+    "XDP_TX"
+  },
+  //33
+  {
+    "AADerb6vAgAAAAAAht1gAAAAAC4RQPwAIwcAAAAAAAAAAAAAEzf8AAAAAAAAAAAAAAAAAAACe0MXwAAuAABFAAAmAAEAAEARrSfAqAEqCsgBBXppAbsAEqo2AIADBAIFBgcAQA==",
+    "XDP_TX"
+  },
+  //34
+  {
+    "AADerb6vAgAAAAAACABFAABCAAAAAEARWYYKAA0lCgAAAWhQF8AALgAARQAAJgABAABAEa0nwKgBKgrIAQV6aQG7ABJuQgCAAwREAAAAAEA=",
     "XDP_TX"
   },
 
