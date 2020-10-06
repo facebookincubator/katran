@@ -168,6 +168,7 @@ void KatranMonitor::unsetAsyncPipeWriter(EventId event) {
   }
   writer_->disableEvent(event);
   pipeWriter->unsetWriterDestination();
+  pipeWriterDests_.erase(event);
   VLOG(4) << __func__ << "Successfully unset AsyncPipeWriter";
 }
 

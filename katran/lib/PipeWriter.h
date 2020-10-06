@@ -92,7 +92,7 @@ class PipeWriter : public DataWriter {
   /**
    * Change the destination of writer
    */
-  void setWriterDestination(std::weak_ptr<folly::AsyncPipeWriter> pipeWriter);
+  void setWriterDestination(std::shared_ptr<folly::AsyncPipeWriter> pipeWriter);
 
   /**
    * Remove the writer's detination
@@ -116,13 +116,9 @@ class PipeWriter : public DataWriter {
 
  private:
   /**
-    * The write side of the pipe. We use a weak_ptr because we don't want the
-    * dtor of PipeWriter to destroy pipe_, since its corresponding event base
-    * could have been destroyed prior to this.
-    * TODO: remove weak ptr once monitoring service is integrated with katran
-    * service
+    * The write side of the pipe
     */
-  std::weak_ptr<folly::AsyncPipeWriter> pipe_;
+  std::shared_ptr<folly::AsyncPipeWriter> pipe_;
 
   /**
    * Flag to enable writing to pipe

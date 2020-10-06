@@ -21,11 +21,7 @@ namespace katran {
       return;
     }
 
-    if (auto pipe = pipe_.lock()) {
-      pipe->write(&writeCallback_, ptr, size);
-    } else  {
-      LOG(ERROR) << __func__ << " Can't lock pipe";
-    }
+    pipe_->write(&writeCallback_, ptr, size);
   }
 
   void PipeWriter::writeHeader(const void *ptr, std::size_t size) {
@@ -33,14 +29,12 @@ namespace katran {
     headerBuf_ = folly::IOBuf::copyBuffer(ptr, size);
   }
 
-  void PipeWriter::setWriterDestination(std::weak_ptr<folly::AsyncPipeWriter> pipeWriter) {
+  void PipeWriter::setWriterDestination(std::shared_ptr<folly::AsyncPipeWriter> pipeWriter) {
+    CHECK(pipeWriter) << "Null pipe writer";
     pipe_ = pipeWriter;
   }
 
   void PipeWriter::unsetWriterDestination() {
-    if (auto pipe = pipe_.lock()) {
-      pipe->closeOnEmpty();
-    }
     pipe_.reset();
   }
 } // namespace katran
