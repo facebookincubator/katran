@@ -766,7 +766,7 @@ class KatranLb {
   /**
    * implements all introspection related routines
    */
-  std::shared_ptr<KatranMonitor> monitor_;
+  std::shared_ptr<KatranMonitor> monitor_{nullptr};
 
   /**
    * vector of unused possitions for vips and reals. for each element
