@@ -17,6 +17,8 @@
 #include "katran/lib/KatranMonitor.h"
 
 #include <folly/Conv.h>
+#include <folly/Format.h>
+#include <folly/Utility.h>
 #include <folly/io/async/ScopedEventBaseThread.h>
 
 #include "katran/lib/FileWriter.h"
@@ -37,17 +39,11 @@ KatranMonitor::KatranMonitor(const KatranMonitorConfig& config)
   scopedEvb_ = std::make_unique<folly::ScopedEventBaseThread>("katran_monitor");
   queue_ = std::make_shared<folly::MPMCQueue<PcapMsgMeta>>(config_.queueSize);
   auto evb = scopedEvb_->getEventBase();
-  for (int cpu = 0; cpu < config_.nCpus; cpu++) {
-    auto reader =
-        std::make_unique<KatranEventReader>(config_.pages, cpu, queue_);
-    if (!reader->open(config_.mapFd, evb, kNoSample)) {
-      LOG(ERROR) << "Perf event queue init failed for cpu: " << cpu;
-    } else {
-      readers_.push_back(std::move(reader));
-    }
-  }
-  if (readers_.size() == 0) {
-    throw std::runtime_error("none of eventReaders were initialized");
+
+  reader_ = std::make_unique<KatranEventReader>(queue_);
+  if (!reader_->open(
+          config_.mapFd, evb, config_.pages)) {
+    LOG(ERROR) << "Perf event reader init failed";
   }
 
   auto data_writers = createWriters();

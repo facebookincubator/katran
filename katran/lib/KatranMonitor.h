@@ -104,7 +104,7 @@ class KatranMonitor {
   /**
    * event readers for introspection
    */
-  std::vector<std::unique_ptr<KatranEventReader>> readers_;
+  std::unique_ptr<KatranEventReader> reader_;
 
   /**
    * a copy of pipe writers' destinations, which allows pipe readers at the

@@ -161,6 +161,8 @@ add_library(katranlb STATIC
     EventPipeCallback.cpp
     MonitoringServiceCore.h
     MonitoringServiceCore.cpp
+    PerfBufferEventReader.h
+    PerfBufferEventReader.cpp
 )
 
 target_link_libraries(katranlb

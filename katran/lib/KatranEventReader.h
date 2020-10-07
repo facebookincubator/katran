@@ -16,75 +16,31 @@
 
 #pragma once
 
-#include <folly/io/async/EventHandler.h>
 #include <folly/MPMCQueue.h>
-
 #include "katran/lib/PcapMsgMeta.h"
-
-extern "C" {
-#include <linux/perf_event.h>
-}
+#include "katran/lib/PerfBufferEventReader.h"
 
 namespace folly {
 class EventBase;
 }
 
 namespace katran {
-class KatranEventReader : public folly::EventHandler {
+class KatranEventReader : public PerfBufferEventReader {
  public:
-  KatranEventReader(
-    int pages, int cpu, std::shared_ptr<folly::MPMCQueue<PcapMsgMeta>> queue);
-  ~KatranEventReader() override;
+  explicit KatranEventReader(std::shared_ptr<folly::MPMCQueue<PcapMsgMeta>> queue)
+      : queue_(queue) {}
 
   /**
-   * @param int eventMapFd descriptor of perf event map
-   * @param EventBase* evb event base to run this reader in
-   * @param int wakeUpNumEvents sampling rate: 1 out of wakeUpNumEvents
-   * @return true on success
-   *
-   * helper function to start/open katran event reader
-   */
-  bool open(int eventMapFd, folly::EventBase* evb, int wakeUpNumEvents);
-
-  /**
-   * @param uint16_t events bitmask of events which have been fired
-   *
-   * function, which is going to be run when event happened
-   */
-  void handlerReady(uint16_t events) noexcept override;
-
- private:
-  /**
+   * @param int cpu
    * @param const char* data received from the XDP prog.
    * @param size_t size of the data chunk
    */
-  void handlePerfEvent(const char* data, size_t size) noexcept;
+  void handlePerfBufferEvent(
+      int cpu,
+      const char* data,
+      size_t size) noexcept override;
 
-  /**
-   * ptr to mapped memory region
-   */
-  struct perf_event_mmap_page* header_ = nullptr;
-
-  /**
-   * buffer where packets are going to be stored
-   */
-  std::string buffer_;
-
-  /**
-   * size of mmaped memory region. in pages
-   */
-  int pages_;
-
-  /**
-   * cpu, to which this event reader is attached
-   */
-  int cpu_;
-
-  /**
-   * size of the page on current architecture
-   */
-  int pageSize_;
-
+ private:
   /**
    * queue toward PcapWriter
    */
