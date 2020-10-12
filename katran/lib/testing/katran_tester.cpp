@@ -34,6 +34,7 @@
 #include "katran/lib/testing/KatranTestProvision.h"
 
 using namespace katran::testing;
+using KatranFeatureEnum = katran::KatranFeatureEnum;
 
 DEFINE_string(pcap_input, "", "path to input pcap file");
 DEFINE_string(pcap_output, "", "path to output pcap file");
@@ -368,6 +369,38 @@ void runTestsFromFixture(katran::KatranLb& lb, katran::BpfTester& tester) {
   }
 }
 
+std::string toString(katran::KatranFeatureEnum feature) {
+  switch (feature) {
+    case KatranFeatureEnum::SrcRouting:
+      return "SrcRouting";
+    case KatranFeatureEnum::InlineDecap:
+      return "InlineDecap";
+    case KatranFeatureEnum::Introspection:
+      return "Introspection";
+    case KatranFeatureEnum::GueEncap:
+      return "GueEncap";
+    case KatranFeatureEnum::DirectHealthchecking:
+      return "DirectHealthchecking";
+  }
+  folly::assume_unreachable();
+}
+
+void listFeatures(katran::KatranLb& lb) {
+  std::vector<KatranFeatureEnum> allFeatures = {
+      KatranFeatureEnum::SrcRouting,
+      KatranFeatureEnum::InlineDecap,
+      KatranFeatureEnum::Introspection,
+      KatranFeatureEnum::GueEncap,
+      KatranFeatureEnum::DirectHealthchecking,
+  };
+
+  for (auto feature : allFeatures) {
+    if (lb.hasFeature(feature)) {
+      LOG(INFO) << "feature: " << toString(feature);
+    }
+  }
+}
+
 int main(int argc, char** argv) {
   gflags::ParseCommandLineFlags(&argc, &argv, true);
   google::InitGoogleLogging(argv[0]);
@@ -419,6 +452,7 @@ int main(int argc, char** argv) {
 
   katran::KatranLb lb(kconfig);
   lb.loadBpfProgs();
+  listFeatures(lb);
   auto balancer_prog_fd = lb.getKatranProgFd();
   if (FLAGS_optional_counter_tests) {
     preTestOptionalLbCounters(lb);
@@ -432,6 +466,7 @@ int main(int argc, char** argv) {
         LOG(INFO) << "cannot reload balancer program";
         return 1;
       }
+      listFeatures(lb);
       runTestsFromFixture(lb, tester);
     }
     return 0;

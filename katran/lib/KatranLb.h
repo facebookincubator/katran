@@ -106,7 +106,9 @@ class KatranLb {
    * helper function to reload balancer program in runtime
    * could throw std::invalid_argument if reload fails.
    */
-  bool reloadBalancerProg(const std::string& path, folly::Optional<KatranConfig> config = folly::none);
+  bool reloadBalancerProg(
+      const std::string& path,
+      folly::Optional<KatranConfig> config = folly::none);
 
   /**
    * helper function to attach bpf program (e.g. to rootlet array,
@@ -432,7 +434,7 @@ class KatranLb {
    */
   lb_stats getQuicRoutingStats();
 
-   /**
+  /**
    * @return struct lb_stats w/ statistic of QUIC CID versions stats
    *
    * helper function which returns how many QUIC packets were routed
@@ -611,6 +613,11 @@ class KatranLb {
   std::shared_ptr<KatranMonitor> getKatranMonitor() {
     return monitor_;
   }
+
+  /**
+   * Return if katran has certain feature
+   */
+  bool hasFeature(KatranFeatureEnum feature);
 
  private:
   /**

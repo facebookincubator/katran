@@ -16,6 +16,7 @@
 
 #pragma once
 
+#include <set>
 #include <string>
 #include <unordered_map>
 
@@ -90,6 +91,14 @@ class BpfLoader {
   int getMapFdByName(const std::string& name);
 
   /**
+   * @param string name of the name
+   * @return bool true if the map is present in current prog, otherwise false
+   *
+   * helper function to check if a map is in current prog
+   */
+  bool isMapInProg(const std::string& name);
+
+  /**
    * @param string name of map-in-map which is going to use fd as prototype
    * @param int mapFd descriptor of prototype for map-in-map
    * @return int 0 on success
@@ -160,6 +169,11 @@ class BpfLoader {
    * map of prototypes for inner map.
    */
   std::unordered_map<std::string, int> innerMapsProto_;
+
+  /**
+   * Set of maps present in the *current* prog, which is a subset of maps_
+   */
+  std::set<std::string> currentMaps_;
 };
 
 } // namespace katran

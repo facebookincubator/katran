@@ -433,31 +433,35 @@ void KatranLb::enableRecirculation() {
 }
 
 void KatranLb::featureDiscovering() {
-  int res;
-  res = bpfAdapter_.getMapFdByName("lpm_src_v4");
-  if (res >= 0) {
+  if (bpfAdapter_.isMapInProg("lpm_src_v4")) {
     VLOG(2) << "source based routing is supported";
     features_.srcRouting = true;
+  } else {
+    features_.srcRouting = false;
   }
-  res = bpfAdapter_.getMapFdByName("decap_dst");
-  if (res >= 0) {
+  if (bpfAdapter_.isMapInProg("decap_dst")) {
     VLOG(2) << "inline decapsulation is supported";
     features_.inlineDecap = true;
+  } else {
+    features_.inlineDecap = false;
   }
-  res = bpfAdapter_.getMapFdByName("event_pipe");
-  if (res >= 0) {
+  if (bpfAdapter_.isMapInProg("event_pipe")) {
     VLOG(2) << "katran introspection is enabled";
     features_.introspection = true;
+  } else {
+    features_.introspection = false;
   }
-  res = bpfAdapter_.getMapFdByName("pckt_srcs");
-  if (res >= 0) {
+  if (bpfAdapter_.isMapInProg("pckt_srcs")) {
     VLOG(2) << "GUE encapsulation is enabled";
     features_.gueEncap = true;
+  } else {
+    features_.gueEncap = false;
   }
-  res = bpfAdapter_.getMapFdByName("hc_pckt_srcs_map");
-  if (res >= 0) {
+  if (bpfAdapter_.isMapInProg("hc_pckt_srcs_map")) {
     VLOG(2) << "Direct healthchecking is enabled";
     features_.directHealthchecking = true;
+  } else {
+    features_.directHealthchecking = false;
   }
 }
 
@@ -1813,6 +1817,22 @@ uint32_t KatranLb::increaseRefCountForReal(const folly::IPAddress& real) {
     }
     return rnum;
   }
+}
+
+bool KatranLb::hasFeature(KatranFeatureEnum feature) {
+  switch (feature) {
+    case KatranFeatureEnum::DirectHealthchecking:
+      return features_.directHealthchecking;
+    case KatranFeatureEnum::GueEncap:
+      return features_.gueEncap;
+    case KatranFeatureEnum::InlineDecap:
+      return features_.inlineDecap;
+    case KatranFeatureEnum::Introspection:
+      return features_.introspection;
+    case KatranFeatureEnum::SrcRouting:
+      return features_.srcRouting;
+  }
+  folly::assume_unreachable();
 }
 
 } // namespace katran

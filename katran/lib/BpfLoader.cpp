@@ -101,6 +101,10 @@ int BpfLoader::getProgFdByName(const std::string& name) {
   }
 }
 
+bool BpfLoader::isMapInProg(const std::string& name) {
+  return currentMaps_.find(name) != currentMaps_.end();
+}
+
 int BpfLoader::updateSharedMap(const std::string& name, int fd) {
   if (sharedMaps_.find(name) != sharedMaps_.end()) {
     LOG(ERROR) << "Shared maps name collision. Name: " << name;
@@ -239,6 +243,8 @@ int BpfLoader::reloadBpfObject(
     progs_[prog_name] = ::bpf_program__fd(prog);
   }
 
+  currentMaps_.clear();
+
   bpf_map__for_each(map, obj) {
     auto map_name = bpf_map__name(map);
     auto map_iter = maps_.find(map_name);
@@ -247,6 +253,7 @@ int BpfLoader::reloadBpfObject(
               << " with fd: " << ::bpf_map__fd(map);
       maps_[map_name] = bpf_map__fd(map);
     }
+    currentMaps_.insert(map_name);
   }
   bpfObjects_[name] = obj;
   return kSuccess;
@@ -315,9 +322,11 @@ int BpfLoader::loadBpfObject(
   }
 
   bpf_map__for_each(map, obj) {
-    VLOG(4) << "adding bpf map: " << ::bpf_map__name(map)
+    auto map_name = ::bpf_map__name(map);
+    VLOG(4) << "adding bpf map: " << map_name
             << " with fd: " << ::bpf_map__fd(map);
-    maps_[::bpf_map__name(map)] = bpf_map__fd(map);
+    maps_[map_name] = bpf_map__fd(map);
+    currentMaps_.insert(map_name);
   }
 
   bpfObjects_[name] = obj;

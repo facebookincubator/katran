@@ -117,8 +117,18 @@ class BpfAdapter {
    * helper function which return's map descriptor for map
    * w/ specified name
    * on error return's -1
+   * note: positive return value doesn't mean map is in the current prog, just
+   * that it's opened
    */
   int getMapFdByName(const std::string& name);
+
+  /**
+   * @param string name of the map (as in bpf's .c file)
+   * @return bool whether the map is present in the current prog
+   *
+   * helper function to check if a map is in current prog
+   */
+  bool isMapInProg(const std::string& name);
 
   /**
    * @param unsigned int type of map to create

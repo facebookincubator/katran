@@ -281,6 +281,17 @@ struct KatranFeatures {
 };
 
 /**
+ * Enum of katran feature
+ */
+enum class KatranFeatureEnum : uint8_t {
+  SrcRouting,
+  InlineDecap,
+  Introspection,
+  GueEncap,
+  DirectHealthchecking,
+};
+
+/**
  * class which identifies vip
  */
 
