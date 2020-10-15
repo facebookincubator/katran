@@ -1835,4 +1835,55 @@ bool KatranLb::hasFeature(KatranFeatureEnum feature) {
   folly::assume_unreachable();
 }
 
+bool KatranLb::installFeature(
+    KatranFeatureEnum feature,
+    const std::string& prog_path) {
+  if (hasFeature(feature)) {
+    LOG(INFO) << "already have requested feature";
+    return true;
+  }
+  if (prog_path.empty()) {
+    LOG(ERROR) << "failed to install feature: prog_path is empty";
+    return false;
+  }
+  auto original_balancer_prog = config_.balancerProgPath;
+  if (!reloadBalancerProg(prog_path)) {
+    LOG(ERROR) << "failed to install feature: reloading prog failed";
+
+    if (!reloadBalancerProg(original_balancer_prog)) {
+      LOG(ERROR) << "failed to reload original balancer prog";
+    }
+    return false;
+  }
+  if (!config_.testing) {
+    attachBpfProgs();
+  }
+  return hasFeature(feature);
+}
+
+bool KatranLb::removeFeature(
+    KatranFeatureEnum feature,
+    const std::string& prog_path) {
+  if (!hasFeature(feature)) {
+    return true;
+  }
+  if (prog_path.empty()) {
+    return false;
+  }
+  auto original_balancer_prog = config_.balancerProgPath;
+  if (!reloadBalancerProg(prog_path)) {
+    LOG(ERROR) << "provided prog does not have wanted feature, "
+               << "reverting by reloading original balancer prog";
+
+    if (!reloadBalancerProg(original_balancer_prog)) {
+      LOG(ERROR) << "failed to reload original balancer prog";
+    }
+    return false;
+  }
+  if (!config_.testing) {
+    attachBpfProgs();
+  }
+  return !hasFeature(feature);
+}
+
 } // namespace katran

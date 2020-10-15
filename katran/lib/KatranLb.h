@@ -619,6 +619,33 @@ class KatranLb {
    */
   bool hasFeature(KatranFeatureEnum feature);
 
+  /**
+   * @param feature The feature requested to have
+   * @param prog_path The prog to reload if the lb doesn't have the feature
+   * @return true if the lb already has the feature, or obtained after
+   * reloading, otherwise false
+   *
+   * Ask katran lb to install a certain feature. Lb might have to reload the
+   * provided prog path if it's not available currently.
+   */
+  bool installFeature(
+      KatranFeatureEnum feature,
+      const std::string& prog_path = "");
+
+  /**
+   * @param feature The feature requested to not have
+   * @param prog_path The prog to reload if the lb has the feature
+   * @return true if the lb already doesn't have the feature, or lost after
+   * reloading, otherwise false
+   *
+   * The opposite of instalFeature. Ask katran lb to remove a certain feature.
+   * Lb might have to reload the provided prog path if it's present in the
+   * current prog.
+   */
+  bool removeFeature(
+      KatranFeatureEnum feature,
+      const std::string& prog_path = "");
+
  private:
   /**
    * update vipmap(add or remove vip) in forwarding plane

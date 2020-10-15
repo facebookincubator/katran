@@ -282,13 +282,14 @@ struct KatranFeatures {
 
 /**
  * Enum of katran feature
+ * The values are defined to be compatible with bitmap
  */
 enum class KatranFeatureEnum : uint8_t {
-  SrcRouting,
-  InlineDecap,
-  Introspection,
-  GueEncap,
-  DirectHealthchecking,
+  SrcRouting = 1 << 0,
+  InlineDecap = 1 << 1,
+  Introspection = 1 << 2,
+  GueEncap = 1 << 3,
+  DirectHealthchecking = 1 << 4,
 };
 
 /**

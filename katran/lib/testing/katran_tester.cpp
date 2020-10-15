@@ -64,6 +64,18 @@ DEFINE_int32(
     packet_num,
     -1,
     "Pass packet number to run single test, default -1 to run all");
+DEFINE_int32(
+    install_features_mask,
+    0,
+    "Bitmask of katran features to install. 1 = SrcRouting, 2 = InlineDecap, "
+    "4 = Introspection, 8 = GueEncap, 16 = DirectHealthchecking. "
+    "e.g. 13 means SrcRouting + Introspection + GueEncap");
+DEFINE_int32(
+    remove_features_mask,
+    0,
+    "Bitmask of katran features to install. 1 = SrcRouting, 2 = InlineDecap, "
+    "4 = Introspection, 8 = GueEncap, 16 = DirectHealthchecking. "
+    "e.g. 13 means SrcRouting + Introspection + GueEncap");
 
 void testSimulator(katran::KatranLb& lb) {
   // udp, v4 vip v4 real
@@ -385,18 +397,44 @@ std::string toString(katran::KatranFeatureEnum feature) {
   folly::assume_unreachable();
 }
 
-void listFeatures(katran::KatranLb& lb) {
-  std::vector<KatranFeatureEnum> allFeatures = {
-      KatranFeatureEnum::SrcRouting,
-      KatranFeatureEnum::InlineDecap,
-      KatranFeatureEnum::Introspection,
-      KatranFeatureEnum::GueEncap,
-      KatranFeatureEnum::DirectHealthchecking,
-  };
+static const std::vector<KatranFeatureEnum> kAllFeatures = {
+    KatranFeatureEnum::SrcRouting,
+    KatranFeatureEnum::InlineDecap,
+    KatranFeatureEnum::Introspection,
+    KatranFeatureEnum::GueEncap,
+    KatranFeatureEnum::DirectHealthchecking,
+};
 
-  for (auto feature : allFeatures) {
+void listFeatures(katran::KatranLb& lb) {
+  for (auto feature : kAllFeatures) {
     if (lb.hasFeature(feature)) {
       LOG(INFO) << "feature: " << toString(feature);
+    }
+  }
+}
+
+void testInstallAndRemoveFeatures(katran::KatranLb& lb) {
+  if (FLAGS_install_features_mask > 0) {
+    for (auto feature : kAllFeatures) {
+      if (FLAGS_install_features_mask & static_cast<int>(feature)) {
+        if (lb.installFeature(feature, FLAGS_reloaded_balancer_prog)) {
+          LOG(INFO) << "feature installed: " << toString(feature);
+        } else {
+          LOG(ERROR) << "feature install failed: " << toString(feature);
+        }
+      }
+    }
+  }
+
+  if (FLAGS_remove_features_mask > 0) {
+    for (auto feature : kAllFeatures) {
+      if (FLAGS_remove_features_mask & static_cast<int>(feature)) {
+        if (lb.removeFeature(feature, FLAGS_reloaded_balancer_prog)) {
+          LOG(INFO) << "feature removeed: " << toString(feature);
+        } else {
+          LOG(ERROR) << "feature remove failed: " << toString(feature);
+        }
+      }
     }
   }
 }
@@ -460,7 +498,12 @@ int main(int argc, char** argv) {
   tester.setBpfProgFd(balancer_prog_fd);
   if (FLAGS_test_from_fixtures) {
     runTestsFromFixture(lb, tester);
-    if (!FLAGS_reloaded_balancer_prog.empty()) {
+    if (FLAGS_install_features_mask > 0 || FLAGS_remove_features_mask > 0) {
+      // install/remove features will reload prog if provided, therefore
+      // reloading again is redundant
+      testInstallAndRemoveFeatures(lb);
+      runTestsFromFixture(lb, tester);
+    } else if (!FLAGS_reloaded_balancer_prog.empty()) {
       auto res = lb.reloadBalancerProg(FLAGS_reloaded_balancer_prog);
       if (!res) {
         LOG(INFO) << "cannot reload balancer program";
