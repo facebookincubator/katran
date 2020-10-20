@@ -1222,7 +1222,7 @@ bool KatranLb::stopKatranMonitor() {
     return false;
   }
 
-  if (!features_.introspection) {
+  if (!monitor_) {
     return false;
   }
   if (!changeKatranMonitorForwardingState(KatranMonitorState::DISABLED)) {
@@ -1234,7 +1234,7 @@ bool KatranLb::stopKatranMonitor() {
 
 std::unique_ptr<folly::IOBuf> KatranLb::getKatranMonitorEventBuffer(
     EventId event) {
-  if (!features_.introspection || config_.disableForwarding) {
+  if (config_.disableForwarding) {
     return nullptr;
   }
   return monitor_->getEventBuffer(event);
@@ -1243,7 +1243,7 @@ std::unique_ptr<folly::IOBuf> KatranLb::getKatranMonitorEventBuffer(
 bool KatranLb::restartKatranMonitor(
     uint32_t limit,
     folly::Optional<PcapStorageFormat> storage) {
-  if (!features_.introspection || config_.disableForwarding) {
+  if (config_.disableForwarding || !monitor_) {
     return false;
   }
   if (!changeKatranMonitorForwardingState(KatranMonitorState::ENABLED)) {
@@ -1255,7 +1255,7 @@ bool KatranLb::restartKatranMonitor(
 
 KatranMonitorStats KatranLb::getKatranMonitorStats() {
   struct KatranMonitorStats stats;
-  if (!features_.introspection || config_.disableForwarding) {
+  if (config_.disableForwarding || !monitor_) {
     return stats;
   }
   auto writer_stats = monitor_->getWriterStats();
