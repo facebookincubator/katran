@@ -533,6 +533,7 @@ static inline int process_packet(void *data, __u64 off, void *data_end,
         dst = bpf_map_lookup_elem(&reals, &key);
         if (!dst) {
           increment_quic_cid_drop_no_real();
+          REPORT_QUIC_PACKET_DROP_NO_REAL(xdp, data, data_end - data, false);
           return XDP_DROP;
         }
         quic_stats->v2 += 1;

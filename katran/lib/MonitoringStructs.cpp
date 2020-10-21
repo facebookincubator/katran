@@ -8,6 +8,7 @@ namespace monitoring {
 std::set<EventId> kAllEventIds = {
     EventId::TCP_NONSYN_LRUMISS,
     EventId::PACKET_TOOBIG,
+    EventId::QUIC_PACKET_DROP_NO_REAL,
 };
 
 std::string toString(const EventId& eventId) {
@@ -16,6 +17,8 @@ std::string toString(const EventId& eventId) {
       return "TCP_NONSYN_LRUMISS";
     case (EventId::PACKET_TOOBIG):
       return "PACKET_TOOBIG";
+    case (EventId::QUIC_PACKET_DROP_NO_REAL):
+      return "QUIC_PACKET_DROP_NO_REAL";
     default:
       return "UNKOWN";
   }

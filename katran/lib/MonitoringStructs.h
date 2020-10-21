@@ -18,6 +18,7 @@ constexpr auto kDefaultClientLimit = 10;
 enum class EventId : uint8_t {
   TCP_NONSYN_LRUMISS = 0,
   PACKET_TOOBIG = 1,
+  QUIC_PACKET_DROP_NO_REAL = 2,
   UNKNOWN = 255,
 };
 
