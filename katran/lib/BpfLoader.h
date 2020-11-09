@@ -91,12 +91,13 @@ class BpfLoader {
   int getMapFdByName(const std::string& name);
 
   /**
-   * @param string name of the name
+   * @param string name of the prog
+   * @param string name of the map
    * @return bool true if the map is present in current prog, otherwise false
    *
    * helper function to check if a map is in current prog
    */
-  bool isMapInProg(const std::string& name);
+  bool isMapInProg(const std::string& progName, const std::string& name);
 
   /**
    * @param string name of map-in-map which is going to use fd as prototype
@@ -173,7 +174,7 @@ class BpfLoader {
   /**
    * Set of maps present in the *current* prog, which is a subset of maps_
    */
-  std::set<std::string> currentMaps_;
+  std::unordered_map<std::string, std::set<std::string>> currentMaps_;
 };
 
 } // namespace katran

@@ -101,8 +101,12 @@ int BpfLoader::getProgFdByName(const std::string& name) {
   }
 }
 
-bool BpfLoader::isMapInProg(const std::string& name) {
-  return currentMaps_.find(name) != currentMaps_.end();
+bool BpfLoader::isMapInProg(const std::string& progName, const std::string& name) {
+  auto progMaps = currentMaps_.find(progName);
+  if (progMaps == currentMaps_.end()) {
+    return false;
+  }
+  return progMaps->second.find(name) != progMaps->second.end();
 }
 
 int BpfLoader::updateSharedMap(const std::string& name, int fd) {
@@ -167,6 +171,8 @@ int BpfLoader::reloadBpfObject(
     const bpf_prog_type type) {
   ::bpf_program* prog;
   ::bpf_map* map;
+  std::set<std::string> loadedProgNames;
+  std::set<std::string> loadedMapNames;
 
   bpf_object__for_each_program(prog, obj) {
     // reload bpf program only if we have loaded it already. we distinct bpf
@@ -241,9 +247,9 @@ int BpfLoader::reloadBpfObject(
     VLOG(4) << "adding bpf program: " << prog_name
             << " with fd: " << ::bpf_program__fd(prog);
     progs_[prog_name] = ::bpf_program__fd(prog);
+    loadedProgNames.insert(prog_name);
   }
 
-  currentMaps_.clear();
 
   bpf_map__for_each(map, obj) {
     auto map_name = bpf_map__name(map);
@@ -253,8 +259,13 @@ int BpfLoader::reloadBpfObject(
               << " with fd: " << ::bpf_map__fd(map);
       maps_[map_name] = bpf_map__fd(map);
     }
-    currentMaps_.insert(map_name);
+    loadedMapNames.insert(map_name);
   }
+
+  for (auto& progName : loadedProgNames) {
+    currentMaps_[progName] = loadedMapNames;
+  }
+
   bpfObjects_[name] = obj;
   return kSuccess;
 }
@@ -270,6 +281,8 @@ int BpfLoader::loadBpfObject(
 
   ::bpf_program* prog;
   ::bpf_map* map;
+  std::set<std::string> loadedProgNames;
+  std::set<std::string> loadedMapNames;
 
   bpf_object__for_each_program(prog, obj) {
     if (progs_.find(::bpf_program__title(prog, false)) != progs_.end()) {
@@ -316,9 +329,11 @@ int BpfLoader::loadBpfObject(
   }
 
   bpf_object__for_each_program(prog, obj) {
-    VLOG(4) << "adding bpf program: " << ::bpf_program__title(prog, false)
+    auto prog_name = ::bpf_program__title(prog, false);
+    VLOG(4) << "adding bpf program: " << prog_name
             << " with fd: " << ::bpf_program__fd(prog);
-    progs_[::bpf_program__title(prog, false)] = ::bpf_program__fd(prog);
+    progs_[prog_name] = ::bpf_program__fd(prog);
+    loadedProgNames.insert(prog_name);
   }
 
   bpf_map__for_each(map, obj) {
@@ -326,7 +341,11 @@ int BpfLoader::loadBpfObject(
     VLOG(4) << "adding bpf map: " << map_name
             << " with fd: " << ::bpf_map__fd(map);
     maps_[map_name] = bpf_map__fd(map);
-    currentMaps_.insert(map_name);
+    loadedMapNames.insert(map_name);
+  }
+
+  for (auto& progName : loadedProgNames) {
+    currentMaps_[progName] = loadedMapNames;
   }
 
   bpfObjects_[name] = obj;

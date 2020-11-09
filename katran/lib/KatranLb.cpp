@@ -192,7 +192,8 @@ void KatranLb::initialSanityChecking() {
     res = getKatranProgFd();
     if (res < 0) {
       throw std::invalid_argument(folly::sformat(
-          "can't get fd for prog: xdp-balancer, error: {}",
+          "can't get fd for prog: {}, error: {}",
+          kBalancerProgName,
           folly::errnoStr(errno)));
     }
   }
@@ -201,7 +202,7 @@ void KatranLb::initialSanityChecking() {
     res = getHealthcheckerProgFd();
     if (res < 0) {
       throw std::invalid_argument(folly::sformat(
-          "can't get fd for prog: cls-hc, error: {}", folly::errnoStr(errno)));
+          "can't get fd for prog: {}, error: {}", kHealthcheckerProgName, folly::errnoStr(errno)));
     }
     maps.push_back("hc_ctrl_map");
     maps.push_back("hc_reals_map");
@@ -433,31 +434,31 @@ void KatranLb::enableRecirculation() {
 }
 
 void KatranLb::featureDiscovering() {
-  if (bpfAdapter_.isMapInProg("lpm_src_v4")) {
+  if (bpfAdapter_.isMapInProg(kBalancerProgName.toString(), "lpm_src_v4")) {
     VLOG(2) << "source based routing is supported";
     features_.srcRouting = true;
   } else {
     features_.srcRouting = false;
   }
-  if (bpfAdapter_.isMapInProg("decap_dst")) {
+  if (bpfAdapter_.isMapInProg(kBalancerProgName.toString(), "decap_dst")) {
     VLOG(2) << "inline decapsulation is supported";
     features_.inlineDecap = true;
   } else {
     features_.inlineDecap = false;
   }
-  if (bpfAdapter_.isMapInProg("event_pipe")) {
+  if (bpfAdapter_.isMapInProg(kBalancerProgName.toString(), "event_pipe")) {
     VLOG(2) << "katran introspection is enabled";
     features_.introspection = true;
   } else {
     features_.introspection = false;
   }
-  if (bpfAdapter_.isMapInProg("pckt_srcs")) {
+  if (bpfAdapter_.isMapInProg(kBalancerProgName.toString(), "pckt_srcs")) {
     VLOG(2) << "GUE encapsulation is enabled";
     features_.gueEncap = true;
   } else {
     features_.gueEncap = false;
   }
-  if (bpfAdapter_.isMapInProg("hc_pckt_srcs_map")) {
+  if (bpfAdapter_.isMapInProg(kHealthcheckerProgName.toString(), "hc_pckt_srcs_map")) {
     VLOG(2) << "Direct healthchecking is enabled";
     features_.directHealthchecking = true;
   } else {
@@ -597,7 +598,7 @@ void KatranLb::attachBpfProgs() {
     throw std::invalid_argument("failed to attach bpf prog: prog not loaded");
   }
   int res;
-  auto main_fd = bpfAdapter_.getProgFdByName("xdp-balancer");
+  auto main_fd = bpfAdapter_.getProgFdByName(kBalancerProgName.toString());
   auto interface_index = ctlValues_[kMainIntfPos].ifindex;
   if (standalone_) {
     // attaching main bpf prog in standalone mode
@@ -1234,7 +1235,7 @@ bool KatranLb::stopKatranMonitor() {
 
 std::unique_ptr<folly::IOBuf> KatranLb::getKatranMonitorEventBuffer(
     EventId event) {
-  if (config_.disableForwarding) {
+  if (config_.disableForwarding || !monitor_) {
     return nullptr;
   }
   return monitor_->getEventBuffer(event);

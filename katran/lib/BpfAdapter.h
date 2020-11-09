@@ -123,12 +123,13 @@ class BpfAdapter {
   int getMapFdByName(const std::string& name);
 
   /**
+   * @param string name of the prog
    * @param string name of the map (as in bpf's .c file)
    * @return bool whether the map is present in the current prog
    *
    * helper function to check if a map is in current prog
    */
-  bool isMapInProg(const std::string& name);
+  bool isMapInProg(const std::string& progName, const std::string& name);
 
   /**
    * @param unsigned int type of map to create
