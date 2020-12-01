@@ -78,7 +78,7 @@ void XdpDecap::loadXdpDecap() {
     return;
   }
 
-  if (bpfAdapter_.getMapFdByName("stats") < 0) {
+  if (bpfAdapter_.getMapFdByName("decap_counters") < 0) {
     LOG(FATAL) << "Was not able to find bpf map w/ name stats in "
                << config_.progPath;
     return;
@@ -132,7 +132,7 @@ decap_stats XdpDecap::getXdpDecapStats() {
   struct decap_stats percpu_stats[nr_cpus];
 
   if (!bpfAdapter_.bpfMapLookupElement(
-          bpfAdapter_.getMapFdByName("stats"), &key, &percpu_stats)) {
+          bpfAdapter_.getMapFdByName("decap_counters"), &key, &percpu_stats)) {
     for (auto& stat : percpu_stats) {
       stats.decap_v4 += stat.decap_v4;
       stats.decap_v6 += stat.decap_v6;

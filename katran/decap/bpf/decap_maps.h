@@ -35,7 +35,7 @@ struct decap_stats {
 };
 
 // map w/ per vip statistics
-struct bpf_map_def SEC("maps") stats = {
+struct bpf_map_def SEC("maps") decap_counters = {
   .type = BPF_MAP_TYPE_PERCPU_ARRAY,
   .key_size = sizeof(__u32),
   .value_size = sizeof(struct decap_stats),

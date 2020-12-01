@@ -131,7 +131,7 @@ static inline int process_packet(void *data, __u64 off, void *data_end,
   }
   protocol = pckt.flow.proto;
 
-  data_stats = bpf_map_lookup_elem(&stats, &key);
+  data_stats = bpf_map_lookup_elem(&decap_counters, &key);
   if (!data_stats) {
     return XDP_PASS;
   }
