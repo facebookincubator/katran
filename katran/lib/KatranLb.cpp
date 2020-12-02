@@ -866,6 +866,85 @@ bool KatranLb::delRealForVip(const NewReal& real, const VipKey& vip) {
   return modifyRealsForVip(ModifyAction::DEL, reals, vip);
 }
 
+bool KatranLb::modifyLocalMarkForReal(const ModifyAction action, const NewReal& real, const VipKey& vip) {
+  if (config_.disableForwarding) {
+    LOG(ERROR) << "modifyLocalMarkForReal called on non-forwarding instance";
+    return false;
+  }
+  folly::IPAddress raddr(real.address);
+  std::string modifyAction = "mark";
+  if (action == ModifyAction::DEL){
+    modifyAction = "unmark";
+  }
+  VLOG(4) << folly::format(
+    "{} real: {} for vip {}:{}:{} as local",
+    modifyAction,
+    real.address,
+    vip.address,
+    vip.port,
+    vip.proto);
+
+  auto vip_iter = vips_.find(vip);
+  if (vip_iter == vips_.end()) {
+    LOG(INFO) << "trying to change non existing vip";
+    return false;
+  }
+  auto vip_addr = IpHelpers::parseAddrToBe(vip.address);
+  vip_definition vip_def = {};
+  if ((vip_addr.flags & V6DADDR) > 0) {
+    std::memcpy(vip_def.vipv6, vip_addr.v6daddr, 16);
+  } else {
+    vip_def.vip = vip_addr.daddr;
+  }
+  vip_def.port = folly::Endian::big(vip.port);
+  vip_def.proto = vip.proto;
+  vip_meta meta;
+  meta.vip_num = vip_iter->second.getVipNum();
+  meta.flags = vip_iter->second.getVipFlags();
+  if (action == ModifyAction::ADD) {
+    meta.flags |= kLocalVip;
+  } else {
+    meta.flags &= 0xffffffff ^ kLocalVip;
+  }
+  auto res = bpfAdapter_.bpfUpdateMap(
+    bpfAdapter_.getMapFdByName("vip_map"), &vip_def, &meta);
+  if (res != 0) {
+    LOG(INFO) << "can't modify vip_map, error: "
+              << folly::errnoStr(errno);
+    lbStats_.bpfFailedCalls++;
+    return false;
+  }
+  auto real_iter = reals_.find(raddr);
+  if (real_iter == reals_.end()) {
+    LOG(INFO) << "trying to modify local mark non-existing real";
+    return false;
+  }
+  auto cur_reals = vip_iter->second.getReals();
+  auto num = real_iter->second.num;
+  if (std::find(
+    cur_reals.begin(), cur_reals.end(), num) ==
+      cur_reals.end()) {
+    // this real doesn't belong to this vip
+    LOG(INFO) << folly::sformat(
+      "trying to modify non-existing real for the VIP: {}", vip.address);
+    return false;
+  }
+  auto real_addr = IpHelpers::parseAddrToBe(raddr);
+  if (action == ModifyAction::ADD){
+    real_addr.flags |= kLocalReal;
+  } else {
+    real_addr.flags &= 0xff ^ kLocalReal;
+  }
+  res = bpfAdapter_.bpfUpdateMap(
+    bpfAdapter_.getMapFdByName("reals"), &num, &real_addr);
+  if (res != 0) {
+    LOG(INFO) << "can't modify real, error: " << folly::errnoStr(errno);
+    lbStats_.bpfFailedCalls++;
+    return false;
+  }
+  return true;
+}
+
 bool KatranLb::modifyRealsForVip(
     const ModifyAction action,
     const std::vector<NewReal>& reals,

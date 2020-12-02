@@ -104,6 +104,8 @@
 // real_definition flags:
 // address is ipv6
 #define F_IPV6 (1 << 0)
+// real is specified as local
+#define F_LOCAL_REAL (1 << 1)
 // vip_meta flags
 // dont use client's port for hash calculation
 #define F_HASH_NO_SRC_PORT (1 << 0)
@@ -120,7 +122,8 @@
 #define F_ICMP (1 << 0)
 // tcp packet had syn flag set
 #define F_SYN_SET (1 << 1)
-
+// vip is select to optimize local delivery
+#define F_LOCAL_VIP (1 << 5)
 // ttl for outer ipip packet
 #ifndef DEFAULT_TTL
 #define DEFAULT_TTL 64
@@ -243,6 +246,10 @@
 // w/ ipv6 address
 #ifndef INIT_JHASH_SEED_V6
 #define INIT_JHASH_SEED_V6 MAX_VIPS
+#endif
+
+#ifndef LOCAL_DELIVERY_OPTIMIZATION
+#define LOCAL_DELIVERY_OPTIMIZATION
 #endif
 
 /*

@@ -68,6 +68,10 @@ public:
                            const modifiedRealsForVip *request,
                            Bool *response) override;
 
+  Status modifyLocalMarkForReal(ServerContext *context,
+                          const modifyActionForLocalMark *request,
+                          Bool *response) override;
+
   Status getRealsForVip(ServerContext *context, const Vip *request,
                         Reals *response) override;
 

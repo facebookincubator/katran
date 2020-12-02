@@ -628,7 +628,11 @@ static inline int process_packet(void *data, __u64 off, void *data_end,
   }
   data_stats->v1 += 1;
   data_stats->v2 += pkt_bytes;
-
+#ifdef LOCAL_DELIVERY_OPTIMIZATION
+  if ((vip_info->flags & F_LOCAL_VIP) && (dst->flags & F_LOCAL_REAL)) {
+    return XDP_PASS;
+  }
+#endif
   return XDP_TX;
 }
 

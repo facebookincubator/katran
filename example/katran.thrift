@@ -83,6 +83,8 @@ service KatranService {
 
   bool modifyVip (1: VipMeta vipMeta);
 
+  bool modifyLocalMarkForReal (1: Action action, 2: Real real, 3: Vip vip);
+
   i64 getVipFlags(1: Vip vip);
 
   bool addRealForVip(1: Real real, 2: Vip vip);

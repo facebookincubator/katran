@@ -58,7 +58,7 @@ class KatranLbTest : public ::testing::Test {
     v1.port = 443;
     v1.proto = 6;
     v2.address = "fc01::2";
-    v1.port = 443;
+    v2.port = 443;
     v2.proto = 6;
     r1.address = "192.168.1.1";
     r1.weight = 10;

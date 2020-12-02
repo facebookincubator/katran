@@ -224,6 +224,40 @@ Status KatranGrpcService::modifyRealsForVip(ServerContext *context,
   return returnStatus(res);
 }
 
+Status KatranGrpcService::modifyLocalMarkForReal(ServerContext *context,
+                                            const modifyActionForLocalMark *request,
+                                            Bool *response) {
+
+  ::katran::ModifyAction a;
+  bool res;
+
+  switch (request->action()) {
+    case Action::ADD:
+      a = ::katran::ModifyAction::ADD;
+      break;
+    case Action::DEL:
+      a = ::katran::ModifyAction::DEL;
+      break;
+    default:
+      break;
+  }
+
+  auto vk = translateVipObject(request->vip());
+  auto nr = translateRealObject(request->real());
+  nreals.push_back(nr);
+
+  try {
+    Guard lock(giant_);
+    res = lb_.modifyLocalMarkForReal(a, nr, vk);
+  } catch (const std::exception &e) {
+    LOG(INFO) << "Exception while modifying real: " << e.what();
+    res = false;
+  }
+
+  response->set_success(res);
+  return returnStatus(res);
+}
+
 Status KatranGrpcService::getRealsForVip(ServerContext *context,
                                          const Vip *request, Reals *response) {
   //
