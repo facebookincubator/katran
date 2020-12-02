@@ -299,6 +299,7 @@ enum class KatranFeatureEnum : uint8_t {
 class VipKey {
  public:
   std::string address;
+  std::string itself;
   uint16_t port;
   uint8_t proto;
 

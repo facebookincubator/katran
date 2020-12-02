@@ -32,6 +32,7 @@ message Vip {
   string address = 1;
   int32 port = 2;
   int32 protocol = 3;
+  string itself = 4;
 }
 
 message VipMeta {

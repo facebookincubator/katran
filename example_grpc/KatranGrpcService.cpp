@@ -36,6 +36,7 @@ using Guard = std::lock_guard<std::mutex>;
   vk.address = vip.address();
   vk.port = vip.port();
   vk.proto = vip.protocol();
+  vk.itself = vip.itself();
   return vk;
 }
 
@@ -125,6 +126,7 @@ Status KatranGrpcService::getAllVips(ServerContext *context,
     vip.set_address(v.address);
     vip.set_port(v.port);
     vip.set_protocol(v.proto);
+    vip.set_itself(v.itself);
     auto rvip = response->add_vips();
     *rvip = vip;
   }

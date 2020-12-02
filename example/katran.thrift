@@ -28,6 +28,7 @@ struct Vip {
   1: string address,
   2: i32 port,
   3: i32 protocol,
+  4: string itself,
 }
 
 struct VipMeta {

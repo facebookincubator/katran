@@ -72,6 +72,10 @@ struct vip_definition {
 struct vip_meta {
   __u32 flags;
   __u32 vip_num;
+  union {
+    __u32 itself;
+    __u32 itselfv6[4];
+  };
 };
 
 // where to send client's packet from LRU_MAP

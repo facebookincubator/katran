@@ -719,6 +719,11 @@ bool KatranLb::addVip(const VipKey& vip, const uint32_t flags) {
     LOG(ERROR) << "Invalid Vip address: " << vip.address;
     return false;
   }
+  if (!vip.itself.empty() && validateAddress(vip.itself) == AddressType::INVALID) {
+    LOG(ERROR) << "Invalid itself address: " << vip.itself;
+    return false;
+  }
+
   LOG(INFO) << folly::format(
       "adding new vip: {}:{}:{}", vip.address, vip.port, vip.proto);
 
@@ -738,6 +743,14 @@ bool KatranLb::addVip(const VipKey& vip, const uint32_t flags) {
     vip_meta meta;
     meta.vip_num = vip_num;
     meta.flags = flags;
+    if (!vip.itself.empty()) {
+      auto itself = IpHelpers::parseAddrToBe(vip.itself) ;
+      if ((itself.flags & V6DADDR) > 0) {
+        std::memcpy(meta.itselfv6, itself.v6daddr, 16);
+      } else {
+        meta.itself = itself.daddr;
+      }
+    }
     updateVipMap(ModifyAction::ADD, vip, &meta);
   }
   return true;
