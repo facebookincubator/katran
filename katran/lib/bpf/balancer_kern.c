@@ -412,7 +412,6 @@ static inline int process_packet(void *data, __u64 off, void *data_end,
   struct lb_stats *data_stats;
   __u64 iph_len;
   __u8 protocol;
-  bool is_local = false;
 
   int action;
   __u32 vip_num;
@@ -609,20 +608,9 @@ static inline int process_packet(void *data, __u64 off, void *data_end,
     if(!PCKT_ENCAP_V6(xdp, cval, is_ipv6, &pckt, dst, pkt_bytes)) {
       return XDP_DROP;
     }
-    if (is_ipv6 &&
-        vip_info->itselfv6[0] == dst->dstv6[0] &&
-        vip_info->itselfv6[1] == dst->dstv6[1] &&
-        vip_info->itselfv6[2] == dst->dstv6[2] &&
-        vip_info->itselfv6[3] == dst->dstv6[3]) {
-      is_local = true;
-    }
   } else {
     if(!PCKT_ENCAP_V4(xdp, cval, &pckt, dst, pkt_bytes)) {
       return XDP_DROP;
-    }
-    if (!is_ipv6 &&
-        vip_info->itself == dst->dst) {
-      is_local = true;
     }
   }
   vip_num = vip_info->vip_num;
@@ -640,9 +628,11 @@ static inline int process_packet(void *data, __u64 off, void *data_end,
   }
   data_stats->v1 += 1;
   data_stats->v2 += pkt_bytes;
-  if (is_local) {
+#ifdef LOCAL_DELIVERY_OPTIMIZATION
+  if ((vip_info->flags & F_LOCAL_VIP) && (dst->flags & F_LOCAL_REAL)) {
     return XDP_PASS;
   }
+#endif
   return XDP_TX;
 }
 

@@ -39,6 +39,8 @@ constexpr uint32_t kDefaultMonitorPcktLimit = 0;
 constexpr uint32_t kDefaultMonitorSnapLen = 128;
 constexpr unsigned int kDefaultLruSize = 8000000;
 constexpr uint32_t kNoFlags = 0;
+constexpr uint8_t kLocalReal = 2;
+constexpr uint32_t kLocalVip = 32;
 std::string kNoExternalMap = "";
 std::string kDefaultHcInterface = "";
 std::string kAddressNotSpecified = "";
@@ -299,7 +301,6 @@ enum class KatranFeatureEnum : uint8_t {
 class VipKey {
  public:
   std::string address;
-  std::string itself;
   uint16_t port;
   uint8_t proto;
 

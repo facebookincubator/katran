@@ -218,6 +218,19 @@ func (kc *KatranClient) ModifyRealsForVip(
 	}
 }
 
+func (kc *KatranClient) ModifyLocalMarkForReal(
+	vip *lb_katran.Vip, real *lb_katran.Real, action lb_katran.Action) {
+	var mAction lb_katran.ModifyActionForLocalMark
+	mAction.Vip = vip
+	mAction.Real = real
+	mAction.Action = action
+	ok, err := kc.client.ModifyLocalMarkForReal(context.Background(), &mAction)
+	checkError(err)
+	if ok.Success {
+		log.Printf("Reals modified\n")
+	}
+}
+
 func (kc *KatranClient) ModifyQuicMappings(mapping string, delete bool) {
 	var action lb_katran.Action
 	if delete {

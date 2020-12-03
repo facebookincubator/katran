@@ -56,10 +56,6 @@ struct event_metadata {
 struct vip_meta {
   uint32_t flags;
   uint32_t vip_num;
-  union {
-    uint32_t itself;
-    uint32_t itselfv6[4];
-  };
 };
 
 // generic struct for statistics counters

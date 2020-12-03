@@ -28,7 +28,6 @@ struct Vip {
   1: string address,
   2: i32 port,
   3: i32 protocol,
-  4: string itself,
 }
 
 struct VipMeta {
@@ -83,6 +82,8 @@ service KatranService {
   list<Vip> getAllVips();
 
   bool modifyVip (1: VipMeta vipMeta);
+
+  bool modifyLocalMarkForReal (1: Action action, 2: Real real, 3: Vip vip);
 
   i64 getVipFlags(1: Vip vip);
 

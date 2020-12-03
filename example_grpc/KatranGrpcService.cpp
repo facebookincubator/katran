@@ -36,7 +36,6 @@ using Guard = std::lock_guard<std::mutex>;
   vk.address = vip.address();
   vk.port = vip.port();
   vk.proto = vip.protocol();
-  vk.itself = vip.itself();
   return vk;
 }
 
@@ -126,7 +125,6 @@ Status KatranGrpcService::getAllVips(ServerContext *context,
     vip.set_address(v.address);
     vip.set_port(v.port);
     vip.set_protocol(v.proto);
-    vip.set_itself(v.itself);
     auto rvip = response->add_vips();
     *rvip = vip;
   }
@@ -219,6 +217,40 @@ Status KatranGrpcService::modifyRealsForVip(ServerContext *context,
     res = lb_.modifyRealsForVip(a, nreals, vk);
   } catch (const std::exception &e) {
     LOG(INFO) << "Exception while modifying vip: " << e.what();
+    res = false;
+  }
+
+  response->set_success(res);
+  return returnStatus(res);
+}
+
+Status KatranGrpcService::modifyLocalMarkForReal(ServerContext *context,
+                                            const modifyActionForLocalMark *request,
+                                            Bool *response) {
+
+  ::katran::ModifyAction a;
+  bool res;
+
+  switch (request->action()) {
+    case Action::ADD:
+      a = ::katran::ModifyAction::ADD;
+      break;
+    case Action::DEL:
+      a = ::katran::ModifyAction::DEL;
+      break;
+    default:
+      break;
+  }
+
+  auto vk = translateVipObject(request->vip());
+  auto nr = translateRealObject(request->real());
+  nreals.push_back(nr);
+
+  try {
+    Guard lock(giant_);
+    res = lb_.modifyLocalMarkForReal(a, nr, vk);
+  } catch (const std::exception &e) {
+    LOG(INFO) << "Exception while modifying real: " << e.what();
     res = false;
   }
 

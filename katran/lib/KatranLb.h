@@ -226,6 +226,18 @@ class KatranLb {
 
   /**
    * @param ModifyAction action. either ADD or DEL
+   * @param NewReal real to be marked/unmarked as local
+   * @param VipKey vip from which we want to modify specified real
+   * @return true on success
+   *
+   * helper function to mark specified real from vip as local
+   * returns true if real does exist for specified vip and modified successfully
+   * could throw if real's address cant be parsed to v4 or v6
+   */
+  bool modifyLocalMarkForReal(const ModifyAction action, const NewReal& real, const VipKey& vip);
+
+  /**
+   * @param ModifyAction action. either ADD or DEL
    * @param std::vector<NewReal> reals to be modified
    * @param VipKey vip for which we are going to modify specified reals
    * @return true on success

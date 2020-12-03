@@ -32,7 +32,6 @@ message Vip {
   string address = 1;
   int32 port = 2;
   int32 protocol = 3;
-  string itself = 4;
 }
 
 message VipMeta {
@@ -100,6 +99,12 @@ message realForVip {
     Vip vip = 2;
 }
 
+message modifyActionForLocalMark {
+  Action action = 1;
+  Real real = 2;
+  Vip vip = 3;
+}
+
 message Flags {
     uint64 flags = 1;
 }
@@ -129,6 +134,8 @@ service KatranService {
   rpc delRealForVip (realForVip) returns (Bool);
 
   rpc modifyRealsForVip (modifiedRealsForVip) returns (Bool);
+
+  rpc modifyLocalMarkForReal (modifyActionForLocalMark) returns (Bool);
 
   rpc getRealsForVip (Vip) returns (Reals);
 

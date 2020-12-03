@@ -719,11 +719,6 @@ bool KatranLb::addVip(const VipKey& vip, const uint32_t flags) {
     LOG(ERROR) << "Invalid Vip address: " << vip.address;
     return false;
   }
-  if (!vip.itself.empty() && validateAddress(vip.itself) == AddressType::INVALID) {
-    LOG(ERROR) << "Invalid itself address: " << vip.itself;
-    return false;
-  }
-
   LOG(INFO) << folly::format(
       "adding new vip: {}:{}:{}", vip.address, vip.port, vip.proto);
 
@@ -743,14 +738,6 @@ bool KatranLb::addVip(const VipKey& vip, const uint32_t flags) {
     vip_meta meta;
     meta.vip_num = vip_num;
     meta.flags = flags;
-    if (!vip.itself.empty()) {
-      auto itself = IpHelpers::parseAddrToBe(vip.itself) ;
-      if ((itself.flags & V6DADDR) > 0) {
-        std::memcpy(meta.itselfv6, itself.v6daddr, 16);
-      } else {
-        meta.itself = itself.daddr;
-      }
-    }
     updateVipMap(ModifyAction::ADD, vip, &meta);
   }
   return true;
@@ -877,6 +864,86 @@ bool KatranLb::delRealForVip(const NewReal& real, const VipKey& vip) {
   std::vector<NewReal> reals;
   reals.push_back(real);
   return modifyRealsForVip(ModifyAction::DEL, reals, vip);
+}
+
+bool KatranLb::modifyLocalMarkForReal(const ModifyAction action, const NewReal& real, const VipKey& vip) {
+  if (config_.disableForwarding) {
+    LOG(ERROR) << "modifyLocalMarkForReal called on non-forwarding instance";
+    return false;
+  }
+  folly::IPAddress raddr(real.address);
+  std::string modifyAction = "mark";
+  if (action == ModifyAction::DEL){
+    modifyAction = "unmark";
+  }
+  VLOG(4) << folly::format(
+    "{} real: {} for vip {}:{}:{} as local",
+    modifyAction,
+    real.address,
+    vip.address,
+    vip.port,
+    vip.proto);
+
+  auto real_iter = reals_.find(raddr);
+  if (real_iter == reals_.end()) {
+    LOG(INFO) << "trying to modify local mark non-existing real";
+    continue;
+  }
+  auto num = real_iter->second.num;
+  if (std::find(
+    cur_reals.begin(), cur_reals.end(), num) ==
+      cur_reals.end()) {
+    // this real doesn't belong to this vip
+    LOG(INFO) << folly::sformat(
+      "trying to modify non-existing real for the VIP: {}", vip.address);
+    continue;
+  }
+  auto real_addr = IpHelpers::parseAddrToBe(raddr);
+  if (action == ModifyAction::ADD){
+    real_addr.flags |= kLocalReal;
+  } else {
+    real_addr.flags &= 0xff ^ kLocalReal;
+  }
+  auto res = bpfAdapter_.bpfUpdateMap(
+    bpfAdapter_.getMapFdByName("reals"), &num, &real_addr);
+  if (res != 0) {
+    LOG(INFO) << "can't modify real, error: " << folly::errnoStr(errno);
+    lbStats_.bpfFailedCalls++;
+    return false;
+  }
+
+  auto vip_iter = vips_.find(vip);
+  if (vip_iter == vips_.end()) {
+    LOG(INFO) << "trying to change non existing vip";
+    return false;
+  }
+  vip_meta meta;
+  meta.vip_num = vip_iter->second.getVipNum();
+  meta.flags = vip_iter->second.getVipFlags();
+
+  auto vip_addr = IpHelpers::parseAddrToBe(vip.address);
+  vip_definition vip_def = {};
+  if ((vip_addr.flags & V6DADDR) > 0) {
+    std::memcpy(vip_def.vipv6, vip_addr.v6daddr, 16);
+  } else {
+    vip_def.vip = vip_addr.daddr;
+  }
+  vip_def.port = folly::Endian::big(vip.port);
+  vip_def.proto = vip.proto;
+  if (action == ModifyAction::ADD) {
+    meta.flags |= kLocalVip;
+  } else {
+    meta.flags &= 0xffffffff ^ kLocalVip;
+  }
+  res = bpfAdapter_.bpfUpdateMap(
+    bpfAdapter_.getMapFdByName("vip_map"), &vip_def, meta);
+  if (res != 0) {
+    LOG(INFO) << "can't modify vip_map, error: "
+              << folly::errnoStr(errno);
+    lbStats_.bpfFailedCalls++;
+    return false;
+  }
+  return true;
 }
 
 bool KatranLb::modifyRealsForVip(
