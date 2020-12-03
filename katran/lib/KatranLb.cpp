@@ -936,7 +936,7 @@ bool KatranLb::modifyLocalMarkForReal(const ModifyAction action, const NewReal& 
     meta.flags &= 0xffffffff ^ kLocalVip;
   }
   res = bpfAdapter_.bpfUpdateMap(
-    bpfAdapter_.getMapFdByName("vip_map"), &vip_def, meta);
+    bpfAdapter_.getMapFdByName("vip_map"), &vip_def, &meta);
   if (res != 0) {
     LOG(INFO) << "can't modify vip_map, error: "
               << folly::errnoStr(errno);
