@@ -906,7 +906,7 @@ bool KatranLb::modifyLocalMarkForReal(const ModifyAction action, const NewReal& 
   } else {
     meta.flags &= 0xffffffff ^ kLocalVip;
   }
-  res = bpfAdapter_.bpfUpdateMap(
+  auto res = bpfAdapter_.bpfUpdateMap(
     bpfAdapter_.getMapFdByName("vip_map"), &vip_def, &meta);
   if (res != 0) {
     LOG(INFO) << "can't modify vip_map, error: "
@@ -935,7 +935,7 @@ bool KatranLb::modifyLocalMarkForReal(const ModifyAction action, const NewReal& 
   } else {
     real_addr.flags &= 0xff ^ kLocalReal;
   }
-  auto res = bpfAdapter_.bpfUpdateMap(
+  res = bpfAdapter_.bpfUpdateMap(
     bpfAdapter_.getMapFdByName("reals"), &num, &real_addr);
   if (res != 0) {
     LOG(INFO) << "can't modify real, error: " << folly::errnoStr(errno);
