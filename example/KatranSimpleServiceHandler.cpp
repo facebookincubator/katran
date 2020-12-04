@@ -113,6 +113,12 @@ bool KatranSimpleServiceHandler::modifyVip(
   return lb_.modifyVip(vk, vipMeta->flags, vipMeta->setFlag);
 }
 
+bool KatranSimpleServiceHandler::modifyReal(
+  std::unique_ptr<::lb::katran::RealMeta> realMeta) {
+  Guard lock(giant_);
+  return lb_.modifyReal(realMeta->address, realMeta->flags, realMeta->setFlag);
+}
+
 int64_t KatranSimpleServiceHandler::getVipFlags(
     std::unique_ptr<::lb::katran::Vip> vip) {
   int64_t flags = -1;

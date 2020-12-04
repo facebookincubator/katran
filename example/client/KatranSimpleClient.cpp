@@ -43,10 +43,15 @@ constexpr uint64_t NO_SPORT = 1;
 constexpr uint64_t NO_LRU = 2;
 constexpr uint64_t QUIC_VIP = 4;
 constexpr uint64_t DPORT_HASH = 8;
+constexpr uint64_t LOCAL_VIP = 32;
+constexpr uint32_t LOCAL_REAL = 2;
 
-const std::map<std::string, uint64_t> flagTranslationTable = {
+const std::map<std::string, uint64_t> vipFlagTranslationTable = {
     {"", DEFAULT_FLAG},     {"NO_SPORT", NO_SPORT},     {"NO_LRU", NO_LRU},
-    {"QUIC_VIP", QUIC_VIP}, {"DPORT_HASH", DPORT_HASH},
+    {"QUIC_VIP", QUIC_VIP}, {"DPORT_HASH", DPORT_HASH}, {"LOCAL_VIP", LOCAL_VIP},
+};
+const std::map<std::string, uint32_t> realFlagTranslationTable = {
+  {"LOCAL_REAL", LOCAL_REAL},
 };
 }; // namespace
 
@@ -80,8 +85,8 @@ void KatranSimpleClient::addOrModifyService(const std::string &address,
                                             bool modify, bool setFlags) {
   LOG(INFO) << folly::sformat("Adding service: {} {}", address, proto);
   auto vip = parseToVip(address, proto);
-  const auto &it = flagTranslationTable.find(flags);
-  if (it == flagTranslationTable.cend()) {
+  const auto &it = vipFlagTranslationTable.find(flags);
+  if (it == vipFlagTranslationTable.cend()) {
     LOG(ERROR) << folly::sformat("ERROR: unrecognized flag: {}", flags);
     return;
   }
@@ -114,12 +119,32 @@ void KatranSimpleClient::delService(const std::string &address, int proto) {
   }
 }
 
+void KatranSimpleClient::updateReal(const std::string &address, uint32_t flags, bool setFlags) {
+  LOG(INFO) << folly::sformat("Updating real: {} {}", address, proto);
+  RealMeta realMeta;
+  realMeta.address = address;
+  realMeta.flags = flags;
+  realMeta.setFlags = setFlags;
+
+  if (client_->sync_modifyReal(std::move(realMeta))) {
+    LOG(INFO) << "Real updated";
+  } else {
+    LOG(ERROR) << "ERROR: Real not updated";
+  }
+}
+
 void KatranSimpleClient::updateServerForVip(const std::string &vipAddr,
                                             int proto,
                                             const std::string &realAddr,
-                                            uint64_t weight, bool del) {
+                                            uint64_t weight,
+                                            const std::string &flags,
+                                            bool del) {
   auto vip = parseToVip(vipAddr, proto);
-  auto real = parseToReal(realAddr, weight);
+  if (it == realFlagTranslationTable.cend()) {
+    LOG(ERROR) << folly::sformat("ERROR: unrecognized flag: {}", flags);
+    return;
+  }
+  auto real = parseToReal(realAddr, weight, it->second);
   Action action;
   if (del) {
     action = Action::DEL;
@@ -172,8 +197,12 @@ Reals KatranSimpleClient::getRealsForVip(const Vip &vip) {
   return reals;
 }
 
-uint64_t KatranSimpleClient::getFlags(const Vip &vip) {
+uint64_t KatranSimpleClient::getVipFlags(const Vip &vip) {
   return client_->sync_getVipFlags(vip);
+}
+
+uint64_t KatranSimpleClient::getRealFlags(const Real &real) {
+  return client_->sync_getRealFlags(real);
 }
 
 std::string KatranSimpleClient::parseFlags(uint64_t flags) {
@@ -438,10 +467,11 @@ Vip KatranSimpleClient::parseToVip(const std::string &address,
 }
 
 Real KatranSimpleClient::parseToReal(const std::string &address,
-                                     uint32_t weight) {
+                                     uint32_t weight, uint32_t flags) {
   Real real;
   real.address = address;
   real.weight = weight;
+  real.flags = flags;
   return real;
 }
 

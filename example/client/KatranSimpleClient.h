@@ -53,8 +53,11 @@ public:
 
   void updateService(Vip &vip, uint64_t flags, Action action, bool setFlags);
 
+ void updateReal(const std::string &address, uint32_t flags, bool setFlags);
+
   void updateServerForVip(const std::string &vipAddr, int proto,
                           const std::string &realAddr, uint64_t weight,
+                          const std::string &flags,
                           bool del);
 
   void modifyQuicMappings(const std::string &mapping, bool del);
@@ -65,7 +68,9 @@ public:
 
   Reals getRealsForVip(const Vip &vip);
 
-  uint64_t getFlags(const Vip &Vip);
+  uint64_t getVipFlags(const Vip &vip);
+
+  uint64_t getRealFlags(const Real &real);
 
   void listVipAndReals(const Vip &vip);
 
@@ -92,7 +97,7 @@ public:
 private:
   Vip parseToVip(const std::string &address, uint32_t protocol);
 
-  Real parseToReal(const std::string &address, uint32_t weight);
+  Real parseToReal(const std::string &address, uint32_t weight, uint32_t flags);
 
   QuicReal parseToQuicReal(const std::string &mapping);
 

@@ -117,13 +117,14 @@
 #define F_HASH_DPORT_ONLY (1 << 3)
 // check if src based routing should be used
 #define F_SRC_ROUTING (1 << 4)
+// vip is select to optimize local delivery
+#define F_LOCAL_VIP (1 << 5)
 // packet_description flags:
 // the description has been created from icmp msg
 #define F_ICMP (1 << 0)
 // tcp packet had syn flag set
 #define F_SYN_SET (1 << 1)
-// vip is select to optimize local delivery
-#define F_LOCAL_VIP (1 << 5)
+
 // ttl for outer ipip packet
 #ifndef DEFAULT_TTL
 #define DEFAULT_TTL 64
@@ -248,10 +249,6 @@
 #define INIT_JHASH_SEED_V6 MAX_VIPS
 #endif
 
-#ifndef LOCAL_DELIVERY_OPTIMIZATION
-#define LOCAL_DELIVERY_OPTIMIZATION
-#endif
-
 /*
  * optional features (requires kernel support. turned off by default)
  * to be able to enable them, you need to define them in compile time
@@ -276,6 +273,9 @@
  *
  * KATRAN_INTROSPECTION - katran will start to perfpipe packet's header which
  * have triggered specific events
+ *
+ * LOCAL_DELIVERY_OPTIMIZATION - allow to do optimization on local traffic,
+ * where vip and real address are specified the same machine
  */
 #ifdef LPM_SRC_LOOKUP
 #ifndef INLINE_DECAP

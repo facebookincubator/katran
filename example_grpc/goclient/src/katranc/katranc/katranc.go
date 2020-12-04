@@ -36,6 +36,9 @@ const (
 	NO_LRU      = 2
 	QUIC_VIP    = 4
 	DPORT_HASH  = 8
+	LOCAL_VIP   = 32
+
+	LOCAL_REAL  = 2
 )
 
 const (
@@ -45,11 +48,15 @@ const (
 )
 
 var (
-	flagTranslationTable = map[string]int64{
+	vipFlagTranslationTable = map[string]int64{
 		"NO_SPORT":   NO_SPORT,
 		"NO_LRU":     NO_LRU,
 		"QUIC_VIP":   QUIC_VIP,
 		"DPORT_HASH": DPORT_HASH,
+		"LOCAL_VIP":  LOCAL_VIP,
+	}
+	realFlagTranslationTable = map[string]int32{
+		"LOCAL_REAL":  LOCAL_REAL,
 	}
 )
 
@@ -118,10 +125,11 @@ func parseToVip(addr string, proto int) lb_katran.Vip {
 	return vip
 }
 
-func parseToReal(addr string, weight int64) lb_katran.Real {
+func parseToReal(addr string, weight int64, flags int32) lb_katran.Real {
 	var real lb_katran.Real
 	real.Address = addr
 	real.Weight = int32(weight)
+	real.Flags = flags
 	return real
 }
 
@@ -145,7 +153,7 @@ func (kc *KatranClient) AddOrModifyService(
 	var flags int64
 	var exists bool
 	if flagsString != "" {
-		if flags, exists = flagTranslationTable[flagsString]; !exists {
+		if flags, exists = vipFlagTranslationTable[flagsString]; !exists {
 			log.Printf("unrecognized flag: %v\n", flagsString)
 			return
 		}
@@ -161,6 +169,18 @@ func (kc *KatranClient) DelService(addr string, proto int) {
 	log.Printf("Deleting service: %v %v\n", addr, proto)
 	vip := parseToVip(addr, proto)
 	kc.UpdateService(vip, 0, DEL_VIP, false)
+}
+
+func (kc *KatranClient) UpdateReal(addr string, flags int32, setFlags bool) {
+	var rMeta lb_katran.RealMeta
+	rMeta.Address = addr
+	rMeta.Flags = flags
+	rMeta.SetFlag = setFlags
+	ok, err = kc.client.ModifyReal(context.Background(), &rMeta)
+	checkError(err)
+	if ok.Success {
+		log.Printf("Real modified\n")
+	}
 }
 
 func (kc *KatranClient) UpdateService(
@@ -191,9 +211,17 @@ func (kc *KatranClient) UpdateService(
 }
 
 func (kc *KatranClient) UpdateServerForVip(
-	vipAddr string, proto int, realAddr string, weight int64, delete bool) {
+	vipAddr string, proto int, realAddr string, weight int64, realFlags string, delete bool) {
 	vip := parseToVip(vipAddr, proto)
-	real := parseToReal(realAddr, weight)
+	var flags int32
+	var exists bool
+	if realFlags != "" {
+		if flags, exists = realFlagTranslationTable[realFlags]; !exists {
+			log.Printf("unrecognized flag: %v\n", realFlags)
+			return
+		}
+	}
+	real := parseToReal(realAddr, weight, flags)
 	var action lb_katran.Action
 	if delete {
 		action = lb_katran.Action_DEL
@@ -212,19 +240,6 @@ func (kc *KatranClient) ModifyRealsForVip(
 	mReals.Real = reals
 	mReals.Action = action
 	ok, err := kc.client.ModifyRealsForVip(context.Background(), &mReals)
-	checkError(err)
-	if ok.Success {
-		log.Printf("Reals modified\n")
-	}
-}
-
-func (kc *KatranClient) ModifyLocalMarkForReal(
-	vip *lb_katran.Vip, real *lb_katran.Real, action lb_katran.Action) {
-	var mAction lb_katran.ModifyActionForLocalMark
-	mAction.Vip = vip
-	mAction.Real = real
-	mAction.Action = action
-	ok, err := kc.client.ModifyLocalMarkForReal(context.Background(), &mAction)
 	checkError(err)
 	if ok.Success {
 		log.Printf("Reals modified\n")
@@ -271,13 +286,21 @@ func (kc *KatranClient) GetRealsForVip(vip *lb_katran.Vip) lb_katran.Reals {
 	return *reals
 }
 
-func (kc *KatranClient) GetFlags(vip *lb_katran.Vip) uint64 {
+func (kc *KatranClient) GetVipFlags(vip *lb_katran.Vip) uint64 {
 	flags, err := kc.client.GetVipFlags(context.Background(), vip)
 	checkError(err)
 	return flags.Flags
 }
 
-func parseFlags(flags uint64) string {
+func (kc *KatranClient) GetRealFlags(addr string) uint64 {
+	real *lb_katran.Real
+	real.address = addr
+	flags, err := kc.client.GetRealFlags(context.Background(), real)
+	checkError(err)
+	return flags.Flags
+}
+
+func parseVipFlags(flags uint64) string {
 	flags_str := ""
 	if flags&uint64(NO_SPORT) > 0 {
 		flags_str += " NO_SPORT "
@@ -290,6 +313,17 @@ func parseFlags(flags uint64) string {
 	}
 	if flags&uint64(DPORT_HASH) > 0 {
 		flags_str += " DPORT_HASH "
+	}
+	if flags&uint64(LOCAL_VIP) > 0 {
+		flags_str += " LOCAL_VIP "
+	}
+	return flags_str
+}
+
+func parseRealFlags(flags uint32) string {
+	flags_str := ""
+	if flags&uint32(LOCAL_REAL) > 0 {
+		flags_str += " LOCAL_REAL "
 	}
 	return flags_str
 }
@@ -306,12 +340,12 @@ func (kc *KatranClient) ListVipAndReals(vip *lb_katran.Vip) {
 		vip.Address,
 		vip.Port,
 		proto)
-	flags := kc.GetFlags(vip)
-	fmt.Printf("Vip's flags: %v\n", parseFlags(flags))
+	flags := kc.GetVipFlags(vip)
+	fmt.Printf("Vip's flags: %v\n", parseVipFlags(flags))
 	for _, real := range reals.Reals {
-		fmt.Printf("%-20v weight: %v\n",
+		fmt.Printf("%-20v weight: %v flags: %v\n",
 			" ->"+real.Address,
-			real.Weight)
+			real.Weight, kc.GetRealFlags(real.Address))
 	}
 }
 

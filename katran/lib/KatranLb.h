@@ -177,7 +177,7 @@ class KatranLb {
   /**
    * @param VipKey vip to modify
    * @param uint32_t flag to set/unset
-   * @param bool set flag; if true - set specified flag; unset othewise
+   * @param bool set flag; if true - set specified flag; unset otherwise
    * @return true on success
    *
    * helper function to change Vip's related flags (we are using this flags
@@ -204,6 +204,15 @@ class KatranLb {
   uint32_t getVipFlags(const VipKey& vip);
 
   /**
+   * @param std::string& real to get flags from
+   * @return uint8_t flags of this real
+   *
+   * helper function to return flags of specified real
+   * could throw if specified real doesn't exist
+   */
+  uint8_t getRealFlags(const std::string& real);
+
+  /**
    * @param NewReal& real to be added
    * @param VipKey& vip to which we want to add new real
    * @return true on sucess
@@ -225,16 +234,14 @@ class KatranLb {
   bool delRealForVip(const NewReal& real, const VipKey& vip);
 
   /**
-   * @param ModifyAction action. either ADD or DEL
-   * @param NewReal real to be marked/unmarked as local
-   * @param VipKey vip from which we want to modify specified real
+   * @param std::string& real to modify
+   * @param uint8_t flag to set/unset
+   * @param bool set flag; if true - set specified flag; unset otherwise
    * @return true on success
    *
-   * helper function to mark specified real from vip as local
-   * returns true if real does exist for specified vip and modified successfully
-   * could throw if real's address cant be parsed to v4 or v6
+   * helper function to change Real's related flags
    */
-  bool modifyLocalMarkForReal(const ModifyAction action, const NewReal& real, const VipKey& vip);
+  bool modifyReal(const std::string& real, uint8_t flags, bool set = true);
 
   /**
    * @param ModifyAction action. either ADD or DEL
@@ -675,7 +682,7 @@ class KatranLb {
   /**
    * update(add or remove) reals map in forwarding plane
    */
-  bool updateRealsMap(const folly::IPAddress& real, uint32_t num);
+  bool updateRealsMap(const folly::IPAddress& real, uint32_t num, uint8_t flags = 0);
 
   /**
    * helper function to get stats from counter on specified possition
@@ -691,7 +698,7 @@ class KatranLb {
   /**
    * helper function to add new real or increase ref count for existing one
    */
-  uint32_t increaseRefCountForReal(const folly::IPAddress& real);
+  uint32_t increaseRefCountForReal(const folly::IPAddress& real, uint8_t flags = 0);
 
   /**
    * helper function to do initial sanity checking right after bpf programs

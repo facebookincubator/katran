@@ -39,8 +39,6 @@ constexpr uint32_t kDefaultMonitorPcktLimit = 0;
 constexpr uint32_t kDefaultMonitorSnapLen = 128;
 constexpr unsigned int kDefaultLruSize = 8000000;
 constexpr uint32_t kNoFlags = 0;
-constexpr uint8_t kLocalReal = 2;
-constexpr uint32_t kLocalVip = 32;
 std::string kNoExternalMap = "";
 std::string kDefaultHcInterface = "";
 std::string kAddressNotSpecified = "";
@@ -61,6 +59,11 @@ struct RealMeta {
    * only when refcount would be equal to zero
    */
   uint32_t refCount;
+
+  /**
+   * real flags
+   */
+  uint8_t flags;
 };
 
 /**
@@ -70,6 +73,12 @@ struct RealMeta {
 struct NewReal {
   std::string address;
   uint32_t weight;
+
+  /**
+   * flags will not set in time of creation
+   * this field will be used to show flags that added after creation
+   */
+  uint8_t flags;
 };
 
 /**

@@ -43,9 +43,19 @@ message VipMeta {
   bool setFlag = 3;
 }
 
+message RealMeta {
+  string address = 1;
+  int32 flags = 2;
+  /*
+   * setFlag controls if we setting this flags or removing it from the Real
+   */
+  bool setFlag = 3;
+}
+
 message Real {
   string address = 1;
   int32 weight = 2;
+  int32 flags = 3;
 }
 
 message QuicReal {
@@ -99,12 +109,6 @@ message realForVip {
     Vip vip = 2;
 }
 
-message modifyActionForLocalMark {
-  Action action = 1;
-  Real real = 2;
-  Vip vip = 3;
-}
-
 message Flags {
     uint64 flags = 1;
 }
@@ -127,15 +131,17 @@ service KatranService {
 
   rpc modifyVip (VipMeta) returns (Bool);
 
+  rpc modifyReal (RealMeta) returns (Bool);
+
   rpc getVipFlags (Vip) returns (Flags);
+
+  rpc getRealFlags (Real) returns (Flags);
 
   rpc addRealForVip (realForVip) returns (Bool);
 
   rpc delRealForVip (realForVip) returns (Bool);
 
   rpc modifyRealsForVip (modifiedRealsForVip) returns (Bool);
-
-  rpc modifyLocalMarkForReal (modifyActionForLocalMark) returns (Bool);
 
   rpc getRealsForVip (Vip) returns (Reals);
 

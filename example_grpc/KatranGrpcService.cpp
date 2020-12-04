@@ -43,6 +43,7 @@ using Guard = std::lock_guard<std::mutex>;
   ::katran::NewReal nr;
   nr.address = real.address();
   nr.weight = real.weight();
+  nr.flags = real.flags();
   return nr;
 }
 
@@ -142,6 +143,15 @@ Status KatranGrpcService::modifyVip(ServerContext *context,
   return returnStatus(res);
 }
 
+Status KatranGrpcService::modifyReal(ServerContext *context,
+                                    const RealMeta *request, Bool *response) {
+
+  Guard lock(giant_);
+  auto res = lb_.modifyReal(request->address(), request->flags(), request->setflag());
+  response->set_success(res);
+  return returnStatus(res);
+}
+
 Status KatranGrpcService::getVipFlags(ServerContext *context,
                                       const Vip *request, Flags *response) {
 
@@ -153,6 +163,21 @@ Status KatranGrpcService::getVipFlags(ServerContext *context,
     flags = lb_.getVipFlags(vk);
   } catch (const std::exception &e) {
     LOG(INFO) << "Exception while getting flags for vip" << e.what();
+  }
+  response->set_flags(flags);
+  return Status::OK;
+}
+
+Status KatranGrpcService::getRealFlags(ServerContext *context,
+                                      const Real *request, Flags *response) {
+
+  int64_t flags = -1;
+
+  try {
+    Guard lock(giant_);
+    flags = lb_.getRealFlags(request->address());
+  } catch (const std::exception &e) {
+    LOG(INFO) << "Exception while getting flags for real" << e.what();
   }
   response->set_flags(flags);
   return Status::OK;
@@ -224,40 +249,6 @@ Status KatranGrpcService::modifyRealsForVip(ServerContext *context,
   return returnStatus(res);
 }
 
-Status KatranGrpcService::modifyLocalMarkForReal(ServerContext *context,
-                                            const modifyActionForLocalMark *request,
-                                            Bool *response) {
-
-  ::katran::ModifyAction a;
-  bool res;
-
-  switch (request->action()) {
-    case Action::ADD:
-      a = ::katran::ModifyAction::ADD;
-      break;
-    case Action::DEL:
-      a = ::katran::ModifyAction::DEL;
-      break;
-    default:
-      break;
-  }
-
-  auto vk = translateVipObject(request->vip());
-  auto nr = translateRealObject(request->real());
-  nreals.push_back(nr);
-
-  try {
-    Guard lock(giant_);
-    res = lb_.modifyLocalMarkForReal(a, nr, vk);
-  } catch (const std::exception &e) {
-    LOG(INFO) << "Exception while modifying real: " << e.what();
-    res = false;
-  }
-
-  response->set_success(res);
-  return returnStatus(res);
-}
-
 Status KatranGrpcService::getRealsForVip(ServerContext *context,
                                          const Vip *request, Reals *response) {
   //
@@ -274,6 +265,7 @@ Status KatranGrpcService::getRealsForVip(ServerContext *context,
   for (auto &real : reals) {
     r.set_address(real.address);
     r.set_weight(real.weight);
+    r.set_flags(real.flags);
     auto rr = response->add_reals();
     *rr = r;
   }

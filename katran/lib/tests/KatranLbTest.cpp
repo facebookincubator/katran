@@ -162,6 +162,21 @@ TEST_F(KatranLbTest, testRealHelpers) {
   ASSERT_TRUE(lb.addRealForVip(r1, v1));
 };
 
+TEST_F(KatranLbTest, testRealFlags) {
+  lb.addVip(v1);
+  lb.addRealForVip(r1, v1);
+  // modify existing real (set flags)
+  ASSERT_TRUE(lb.modifyReal(r1.address, 0xf0, true));
+  // modify non-existing real
+  ASSERT_FALSE(lb.modifyReal("1.2.3.4", 0xff, true));
+  // set and get flags (ipv4/ipv6 specific flag should not be changed)
+  lb.modifyReal(r1.address, 0xff, true);
+  ASSERT_EQ(lb.getRealFlags(r1.address), 0xfe);
+  //check unset flags
+  lb.modifyReal(r1.address, 0x10, false);
+  ASSERT_EQ(lb.getRealFlags(r1.address), 0xee);
+};
+
 TEST_F(KatranLbTest, testVipStatsHelper) {
   lb.addVip(v1);
   auto stats = lb.getStatsForVip(v1);

@@ -822,9 +822,25 @@ uint32_t KatranLb::getVipFlags(const VipKey& vip) {
   return vip_iter->second.getVipFlags();
 }
 
+uint8_t KatranLb::getRealFlags(const std::string& real) {
+  if (config_.disableForwarding) {
+    LOG(ERROR) << "getRealFlags called on non-forwarding instance";
+    throw std::invalid_argument(
+      "getRealFlags called on non-forwarding instance");
+  }
+
+  folly::IPAddress raddr(real);
+  auto real_iter = reals_.find(raddr);
+  if (real_iter == reals_.end()) {
+    LOG(INFO) << folly::sformat("trying to get flags from non-existing real: {}", real);
+    return false;
+  }
+  return real_iter->second.flags;
+}
+
 bool KatranLb::modifyVip(const VipKey& vip, uint32_t flag, bool set) {
   LOG(INFO) << folly::format(
-      "modyfing vip: {}:{}:{}", vip.address, vip.port, vip.proto);
+      "modifying vip: {}:{}:{}", vip.address, vip.port, vip.proto);
 
   auto vip_iter = vips_.find(vip);
   if (vip_iter == vips_.end()) {
@@ -866,81 +882,32 @@ bool KatranLb::delRealForVip(const NewReal& real, const VipKey& vip) {
   return modifyRealsForVip(ModifyAction::DEL, reals, vip);
 }
 
-bool KatranLb::modifyLocalMarkForReal(const ModifyAction action, const NewReal& real, const VipKey& vip) {
+bool KatranLb::modifyReal(const std::string& real, uint8_t flags, bool set) {
   if (config_.disableForwarding) {
-    LOG(ERROR) << "modifyLocalMarkForReal called on non-forwarding instance";
+    LOG(ERROR) << "modifyReal called on non-forwarding instance";
     return false;
   }
-  folly::IPAddress raddr(real.address);
-  std::string modifyAction = "mark";
-  if (action == ModifyAction::DEL){
-    modifyAction = "unmark";
+  if (validateAddress(real) == AddressType::INVALID) {
+    LOG(ERROR) << "invalid real's address: " << real;
+    return false;
   }
-  VLOG(4) << folly::format(
-    "{} real: {} for vip {}:{}:{} as local",
-    modifyAction,
-    real.address,
-    vip.address,
-    vip.port,
-    vip.proto);
 
-  auto vip_iter = vips_.find(vip);
-  if (vip_iter == vips_.end()) {
-    LOG(INFO) << "trying to change non existing vip";
-    return false;
-  }
-  auto vip_addr = IpHelpers::parseAddrToBe(vip.address);
-  vip_definition vip_def = {};
-  if ((vip_addr.flags & V6DADDR) > 0) {
-    std::memcpy(vip_def.vipv6, vip_addr.v6daddr, 16);
-  } else {
-    vip_def.vip = vip_addr.daddr;
-  }
-  vip_def.port = folly::Endian::big(vip.port);
-  vip_def.proto = vip.proto;
-  vip_meta meta;
-  meta.vip_num = vip_iter->second.getVipNum();
-  meta.flags = vip_iter->second.getVipFlags();
-  if (action == ModifyAction::ADD) {
-    meta.flags |= kLocalVip;
-  } else {
-    meta.flags &= 0xffffffff ^ kLocalVip;
-  }
-  auto res = bpfAdapter_.bpfUpdateMap(
-    bpfAdapter_.getMapFdByName("vip_map"), &vip_def, &meta);
-  if (res != 0) {
-    LOG(INFO) << "can't modify vip_map, error: "
-              << folly::errnoStr(errno);
-    lbStats_.bpfFailedCalls++;
-    return false;
-  }
+  VLOG(4) << folly::format("modifying real: {} ", real);
+  folly::IPAddress raddr(real);
   auto real_iter = reals_.find(raddr);
   if (real_iter == reals_.end()) {
-    LOG(INFO) << "trying to modify local mark non-existing real";
+    LOG(INFO) << folly::sformat("trying to modify non-existing real: {}", real);
     return false;
   }
-  auto cur_reals = vip_iter->second.getReals();
-  auto num = real_iter->second.num;
-  if (std::find(
-    cur_reals.begin(), cur_reals.end(), num) ==
-      cur_reals.end()) {
-    // this real doesn't belong to this vip
-    LOG(INFO) << folly::sformat(
-      "trying to modify non-existing real for the VIP: {}", vip.address);
-    return false;
-  }
-  auto real_addr = IpHelpers::parseAddrToBe(raddr);
-  if (action == ModifyAction::ADD){
-    real_addr.flags |= kLocalReal;
+  flags &= ~V6DADDR; // to keep IPv4/IPv6 specific header
+  if (set) {
+    real_iter->second.flags |= flags;
   } else {
-    real_addr.flags &= 0xff ^ kLocalReal;
+    real_iter->second.flags &= ~flags;
   }
-  res = bpfAdapter_.bpfUpdateMap(
-    bpfAdapter_.getMapFdByName("reals"), &num, &real_addr);
-  if (res != 0) {
-    LOG(INFO) << "can't modify real, error: " << folly::errnoStr(errno);
-    lbStats_.bpfFailedCalls++;
-    return false;
+  reals_[raddr].flags = real_iter->second.flags;
+  if (!config_.testing) {
+    updateRealsMap(raddr, real_iter->second.num, real_iter->second.flags);
   }
   return true;
 }
@@ -1002,12 +969,12 @@ bool KatranLb::modifyRealsForVip(
                 cur_reals.begin(), cur_reals.end(), real_iter->second.num) ==
             cur_reals.end()) {
           // increment ref count if it's a new real for this vip
-          increaseRefCountForReal(raddr);
+          increaseRefCountForReal(raddr, real.flags);
           cur_reals.push_back(real_iter->second.num);
         }
         ureal.updatedReal.num = real_iter->second.num;
       } else {
-        auto rnum = increaseRefCountForReal(raddr);
+        auto rnum = increaseRefCountForReal(raddr, real.flags);
         if (rnum == config_.maxReals) {
           LOG(INFO) << "exhausted real's space";
           continue;
@@ -1062,6 +1029,7 @@ std::vector<NewReal> KatranLb::getRealsForVip(const VipKey& vip) {
   for (auto real_id : vip_reals_ids) {
     reals[i].weight = real_id.weight;
     reals[i].address = numToReals_[real_id.num].str();
+    reals[i].flags = reals_[numToReals_[real_id.num]].flags;
     ++i;
   }
   return reals;
@@ -1848,8 +1816,10 @@ bool KatranLb::updateVipMap(
   return true;
 }
 
-bool KatranLb::updateRealsMap(const folly::IPAddress& real, uint32_t num) {
+bool KatranLb::updateRealsMap(const folly::IPAddress& real, uint32_t num, uint8_t flags) {
   auto real_addr = IpHelpers::parseAddrToBe(real);
+  flags &= ~V6DADDR; // to keep IPv4/IPv6 specific header
+  real_addr.flags |= flags;
   auto res = bpfAdapter_.bpfUpdateMap(
       bpfAdapter_.getMapFdByName("reals"), &num, &real_addr);
   if (res != 0) {
@@ -1876,10 +1846,15 @@ void KatranLb::decreaseRefCountForReal(const folly::IPAddress& real) {
   }
 }
 
-uint32_t KatranLb::increaseRefCountForReal(const folly::IPAddress& real) {
+uint32_t KatranLb::increaseRefCountForReal(const folly::IPAddress& real, uint8_t flags) {
   auto real_iter = reals_.find(real);
+  flags &= ~V6DADDR; // to keep IPv4/IPv6 specific header
   if (real_iter != reals_.end()) {
     real_iter->second.refCount++;
+    reals_[real].flags = flags;
+    if (!config_.testing) {
+      updateRealsMap(real, real_iter->second.num, flags);
+    }
     return real_iter->second.num;
   } else {
     if (realNums_.size() == 0) {
@@ -1891,9 +1866,10 @@ uint32_t KatranLb::increaseRefCountForReal(const folly::IPAddress& real) {
     numToReals_[rnum] = real;
     rmeta.refCount = 1;
     rmeta.num = rnum;
+    rmeta.flags = flags;
     reals_[real] = rmeta;
     if (!config_.testing) {
-      updateRealsMap(real, rnum);
+      updateRealsMap(real, rnum, flags);
     }
     return rnum;
   }

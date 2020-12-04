@@ -55,7 +55,13 @@ public:
   Status modifyVip(ServerContext *context, const VipMeta *request,
                    Bool *response) override;
 
+  Status modifyReal(ServerContext *context, const RealMeta *request,
+                   Bool *response) override;
+
   Status getVipFlags(ServerContext *context, const Vip *request,
+                     Flags *response) override;
+
+  Status getRealFlags(ServerContext *context, const Real *request,
                      Flags *response) override;
 
   Status addRealForVip(ServerContext *context, const realForVip *request,
@@ -67,10 +73,6 @@ public:
   Status modifyRealsForVip(ServerContext *context,
                            const modifiedRealsForVip *request,
                            Bool *response) override;
-
-  Status modifyLocalMarkForReal(ServerContext *context,
-                          const modifyActionForLocalMark *request,
-                          Bool *response) override;
 
   Status getRealsForVip(ServerContext *context, const Vip *request,
                         Reals *response) override;
