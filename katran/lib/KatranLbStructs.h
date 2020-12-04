@@ -73,11 +73,6 @@ struct RealMeta {
 struct NewReal {
   std::string address;
   uint32_t weight;
-
-  /**
-   * flags will not set in time of creation
-   * this field will be used to show flags that added after creation
-   */
   uint8_t flags;
 };
 
