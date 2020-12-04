@@ -822,22 +822,6 @@ uint32_t KatranLb::getVipFlags(const VipKey& vip) {
   return vip_iter->second.getVipFlags();
 }
 
-uint8_t KatranLb::getRealFlags(const std::string& real) {
-  if (config_.disableForwarding) {
-    LOG(ERROR) << "getRealFlags called on non-forwarding instance";
-    throw std::invalid_argument(
-      "getRealFlags called on non-forwarding instance");
-  }
-
-  folly::IPAddress raddr(real);
-  auto real_iter = reals_.find(raddr);
-  if (real_iter == reals_.end()) {
-    LOG(INFO) << folly::sformat("trying to get flags from non-existing real: {}", real);
-    return false;
-  }
-  return real_iter->second.flags;
-}
-
 bool KatranLb::modifyVip(const VipKey& vip, uint32_t flag, bool set) {
   LOG(INFO) << folly::format(
       "modifying vip: {}:{}:{}", vip.address, vip.port, vip.proto);
@@ -899,7 +883,7 @@ bool KatranLb::modifyReal(const std::string& real, uint8_t flags, bool set) {
     LOG(INFO) << folly::sformat("trying to modify non-existing real: {}", real);
     return false;
   }
-  flags &= ~V6DADDR; // to keep IPv4/IPv6 specific header
+  flags &= ~V6DADDR; // to keep IPv4/IPv6 specific flag
   if (set) {
     real_iter->second.flags |= flags;
   } else {
@@ -1818,7 +1802,7 @@ bool KatranLb::updateVipMap(
 
 bool KatranLb::updateRealsMap(const folly::IPAddress& real, uint32_t num, uint8_t flags) {
   auto real_addr = IpHelpers::parseAddrToBe(real);
-  flags &= ~V6DADDR; // to keep IPv4/IPv6 specific header
+  flags &= ~V6DADDR; // to keep IPv4/IPv6 specific flag
   real_addr.flags |= flags;
   auto res = bpfAdapter_.bpfUpdateMap(
       bpfAdapter_.getMapFdByName("reals"), &num, &real_addr);
@@ -1848,13 +1832,9 @@ void KatranLb::decreaseRefCountForReal(const folly::IPAddress& real) {
 
 uint32_t KatranLb::increaseRefCountForReal(const folly::IPAddress& real, uint8_t flags) {
   auto real_iter = reals_.find(real);
-  flags &= ~V6DADDR; // to keep IPv4/IPv6 specific header
+  flags &= ~V6DADDR; // to keep IPv4/IPv6 specific flag
   if (real_iter != reals_.end()) {
     real_iter->second.refCount++;
-    reals_[real].flags = flags;
-    if (!config_.testing) {
-      updateRealsMap(real, real_iter->second.num, flags);
-    }
     return real_iter->second.num;
   } else {
     if (realNums_.size() == 0) {

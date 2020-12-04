@@ -286,16 +286,8 @@ func (kc *KatranClient) GetRealsForVip(vip *lb_katran.Vip) lb_katran.Reals {
 	return *reals
 }
 
-func (kc *KatranClient) GetVipFlags(vip *lb_katran.Vip) uint64 {
+func (kc *KatranClient) GetFlags(vip *lb_katran.Vip) uint64 {
 	flags, err := kc.client.GetVipFlags(context.Background(), vip)
-	checkError(err)
-	return flags.Flags
-}
-
-func (kc *KatranClient) GetRealFlags(addr string) uint64 {
-	real *lb_katran.Real
-	real.address = addr
-	flags, err := kc.client.GetRealFlags(context.Background(), real)
 	checkError(err)
 	return flags.Flags
 }
@@ -345,7 +337,7 @@ func (kc *KatranClient) ListVipAndReals(vip *lb_katran.Vip) {
 	for _, real := range reals.Reals {
 		fmt.Printf("%-20v weight: %v flags: %v\n",
 			" ->"+real.Address,
-			real.Weight, kc.GetRealFlags(real.Address))
+			real.Weight, parseRealFlags(real.Flags))
 	}
 }
 

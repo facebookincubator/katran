@@ -68,9 +68,7 @@ public:
 
   Reals getRealsForVip(const Vip &vip);
 
-  uint64_t getVipFlags(const Vip &vip);
-
-  uint64_t getRealFlags(const Real &real);
+  uint64_t getFlags(const Vip &vip);
 
   void listVipAndReals(const Vip &vip);
 

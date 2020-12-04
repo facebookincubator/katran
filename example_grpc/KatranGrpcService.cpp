@@ -168,21 +168,6 @@ Status KatranGrpcService::getVipFlags(ServerContext *context,
   return Status::OK;
 }
 
-Status KatranGrpcService::getRealFlags(ServerContext *context,
-                                      const Real *request, Flags *response) {
-
-  int64_t flags = -1;
-
-  try {
-    Guard lock(giant_);
-    flags = lb_.getRealFlags(request->address());
-  } catch (const std::exception &e) {
-    LOG(INFO) << "Exception while getting flags for real" << e.what();
-  }
-  response->set_flags(flags);
-  return Status::OK;
-}
-
 Status KatranGrpcService::addRealForVip(ServerContext *context,
                                         const realForVip *request,
                                         Bool *response) {

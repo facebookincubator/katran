@@ -61,9 +61,6 @@ public:
   Status getVipFlags(ServerContext *context, const Vip *request,
                      Flags *response) override;
 
-  Status getRealFlags(ServerContext *context, const Real *request,
-                     Flags *response) override;
-
   Status addRealForVip(ServerContext *context, const realForVip *request,
                        Bool *response) override;
 

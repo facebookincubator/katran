@@ -197,15 +197,11 @@ Reals KatranSimpleClient::getRealsForVip(const Vip &vip) {
   return reals;
 }
 
-uint64_t KatranSimpleClient::getVipFlags(const Vip &vip) {
+uint64_t KatranSimpleClient::getFlags(const Vip &vip) {
   return client_->sync_getVipFlags(vip);
 }
 
-uint64_t KatranSimpleClient::getRealFlags(const Real &real) {
-  return client_->sync_getRealFlags(real);
-}
-
-std::string KatranSimpleClient::parseFlags(uint64_t flags) {
+std::string KatranSimpleClient::parseVipFlags(uint64_t flags) {
   std::string flagsStr = "";
   if ((flags & NO_SPORT) > 0) {
     flagsStr += " NO_SPORT ";
@@ -218,6 +214,17 @@ std::string KatranSimpleClient::parseFlags(uint64_t flags) {
   }
   if ((flags & DPORT_HASH) > 0) {
     flagsStr += " DPORT_HASH ";
+  }
+  if ((flags & LOCAL_VIP) > 0) {
+    flagsStr += " LOCAL_VIP ";
+  }
+  return flagsStr;
+}
+
+std::string KatranSimpleClient::parseRealFlags(uint32_t flags) {
+  std::string flagsStr = "";
+  if ((flags & LOCAL_REAL) > 0) {
+    flagsStr += " LOCAL_REAL ";
   }
   return flagsStr;
 }
@@ -241,10 +248,10 @@ void KatranSimpleClient::listVipAndReals(const Vip &vip) {
   LOG(INFO) << folly::sformat("VIP: {:<20} Port: {:06d}, Protocol: {}",
                               vip.address, vip.port, proto);
   uint64_t flags = getFlags(vip);
-  LOG(INFO) << folly::sformat("Vip's flags: {}", parseFlags(flags));
+  LOG(INFO) << folly::sformat("Vip's flags: {}", parseVipFlags(flags));
   for (auto real : reals) {
-    LOG(INFO) << folly::sformat("-> {:<20} weight {}", real.address,
-                                real.weight);
+    LOG(INFO) << folly::sformat("-> {:<20} weight {} flags {}", real.address,
+                                real.weight, parseRealFlags(real.flags));
   }
 }
 

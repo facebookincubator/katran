@@ -171,10 +171,12 @@ TEST_F(KatranLbTest, testRealFlags) {
   ASSERT_FALSE(lb.modifyReal("1.2.3.4", 0xff, true));
   // set and get flags (ipv4/ipv6 specific flag should not be changed)
   lb.modifyReal(r1.address, 0xff, true);
-  ASSERT_EQ(lb.getRealFlags(r1.address), 0xfe);
+  auto reals = lb.getRealsForVip(v1);
+  ASSERT_EQ(reals[0].flags, 0xfe);
   //check unset flags
   lb.modifyReal(r1.address, 0x10, false);
-  ASSERT_EQ(lb.getRealFlags(r1.address), 0xee);
+  reals = lb.getRealsForVip(v1);
+  ASSERT_EQ(reals[0].flags, 0xee);
 };
 
 TEST_F(KatranLbTest, testVipStatsHelper) {

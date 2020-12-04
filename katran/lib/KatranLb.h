@@ -204,15 +204,6 @@ class KatranLb {
   uint32_t getVipFlags(const VipKey& vip);
 
   /**
-   * @param std::string& real to get flags from
-   * @return uint8_t flags of this real
-   *
-   * helper function to return flags of specified real
-   * could throw if specified real doesn't exist
-   */
-  uint8_t getRealFlags(const std::string& real);
-
-  /**
    * @param NewReal& real to be added
    * @param VipKey& vip to which we want to add new real
    * @return true on sucess

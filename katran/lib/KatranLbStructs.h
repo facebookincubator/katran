@@ -59,10 +59,6 @@ struct RealMeta {
    * only when refcount would be equal to zero
    */
   uint32_t refCount;
-
-  /**
-   * real flags
-   */
   uint8_t flags;
 };
 
