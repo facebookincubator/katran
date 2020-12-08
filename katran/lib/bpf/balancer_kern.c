@@ -604,15 +604,6 @@ static inline int process_packet(void *data, __u64 off, void *data_end,
     return XDP_DROP;
   }
 
-  if (dst->flags & F_IPV6) {
-    if(!PCKT_ENCAP_V6(xdp, cval, is_ipv6, &pckt, dst, pkt_bytes)) {
-      return XDP_DROP;
-    }
-  } else {
-    if(!PCKT_ENCAP_V4(xdp, cval, &pckt, dst, pkt_bytes)) {
-      return XDP_DROP;
-    }
-  }
   vip_num = vip_info->vip_num;
   data_stats = bpf_map_lookup_elem(&stats, &vip_num);
   if (!data_stats) {
@@ -633,6 +624,15 @@ static inline int process_packet(void *data, __u64 off, void *data_end,
     return XDP_PASS;
   }
 #endif
+  if (dst->flags & F_IPV6) {
+    if(!PCKT_ENCAP_V6(xdp, cval, is_ipv6, &pckt, dst, pkt_bytes)) {
+      return XDP_DROP;
+    }
+  } else {
+    if(!PCKT_ENCAP_V4(xdp, cval, &pckt, dst, pkt_bytes)) {
+      return XDP_DROP;
+    }
+  }
 
   return XDP_TX;
 }
