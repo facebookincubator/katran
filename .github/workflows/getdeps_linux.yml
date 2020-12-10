@@ -59,8 +59,8 @@ jobs:
       run: python3 build/fbcode_builder/getdeps.py --allow-system-packages fetch --no-tests fizz
     - name: Fetch libelf
       run: python3 build/fbcode_builder/getdeps.py --allow-system-packages fetch --no-tests libelf
-    - name: Fetch libbpf
-      run: python3 build/fbcode_builder/getdeps.py --allow-system-packages fetch --no-tests libbpf
+    - name: Fetch libbpf_0_2_0_beta
+      run: python3 build/fbcode_builder/getdeps.py --allow-system-packages fetch --no-tests libbpf_0_2_0_beta
     - name: Build zlib
       run: python3 build/fbcode_builder/getdeps.py --allow-system-packages build --no-tests zlib
     - name: Build boost
@@ -103,8 +103,8 @@ jobs:
       run: python3 build/fbcode_builder/getdeps.py --allow-system-packages build --no-tests fizz
     - name: Build libelf
       run: python3 build/fbcode_builder/getdeps.py --allow-system-packages build --no-tests libelf
-    - name: Build libbpf
-      run: python3 build/fbcode_builder/getdeps.py --allow-system-packages build --no-tests libbpf
+    - name: Build libbpf_0_2_0_beta
+      run: python3 build/fbcode_builder/getdeps.py --allow-system-packages build --no-tests libbpf_0_2_0_beta
     - name: Build katran
       run: python3 build/fbcode_builder/getdeps.py --allow-system-packages build --src-dir=. katran  --project-install-prefix katran:/usr/local
     - name: Copy artifacts
