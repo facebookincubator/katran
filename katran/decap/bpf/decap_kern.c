@@ -26,6 +26,9 @@
 #include "bpf_helpers.h"
 #include "pckt_encap.h"
 
+#ifndef DECAP_PROG_SEC
+#define DECAP_PROG_SEC "xdp-decap"
+#endif
 
 __attribute__((__always_inline__))
 static inline int process_l3_headers(struct packet_description *pckt,
@@ -153,7 +156,7 @@ static inline int process_packet(void *data, __u64 off, void *data_end,
   return XDP_PASS;
 }
 
-SEC("xdp-decap")
+SEC(DECAP_PROG_SEC)
 int xdpdecap(struct xdp_md *ctx) {
   void *data = (void *)(long)ctx->data;
   void *data_end = (void *)(long)ctx->data_end;
