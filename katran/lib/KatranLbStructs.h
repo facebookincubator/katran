@@ -271,8 +271,10 @@ struct HealthCheckProgStats {
  * @param introspection flag which indicates that katran introspection is
  * enabled
  * @param gueEncap flag which indicates that GUE instead of IPIP should be used
- * @param directHealthchecking flag which inidcates that hc encapsulation would
+ * @param directHealthchecking flag which indicates that hc encapsulation would
  * be directly created instead of using tunnel interfaces
+ * @param localDeliveryOptimization flag which indicates that local delivery
+ * would be optimized by passing (xdp_pass) local traffic
  */
 struct KatranFeatures {
   bool srcRouting{false};
@@ -280,6 +282,7 @@ struct KatranFeatures {
   bool introspection{false};
   bool gueEncap{false};
   bool directHealthchecking{false};
+  bool localDeliveryOptimization{false};
 };
 
 /**
@@ -292,6 +295,7 @@ enum class KatranFeatureEnum : uint8_t {
   Introspection = 1 << 2,
   GueEncap = 1 << 3,
   DirectHealthchecking = 1 << 4,
+  LocalDeliveryOptimization = 1 << 5,
 };
 
 /**

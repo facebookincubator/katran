@@ -464,6 +464,7 @@ void KatranLb::featureDiscovering() {
   } else {
     features_.directHealthchecking = false;
   }
+  //TODO: implement discovery for localDeliveryOptimization feature
 }
 
 void KatranLb::startIntrospectionRoutines() {
@@ -1800,7 +1801,10 @@ bool KatranLb::updateVipMap(
   return true;
 }
 
-bool KatranLb::updateRealsMap(const folly::IPAddress& real, uint32_t num, uint8_t flags) {
+bool KatranLb::updateRealsMap(
+    const folly::IPAddress& real,
+    uint32_t num,
+    uint8_t flags) {
   auto real_addr = IpHelpers::parseAddrToBe(real);
   flags &= ~V6DADDR; // to keep IPv4/IPv6 specific flag
   real_addr.flags |= flags;
@@ -1857,6 +1861,8 @@ uint32_t KatranLb::increaseRefCountForReal(const folly::IPAddress& real, uint8_t
 
 bool KatranLb::hasFeature(KatranFeatureEnum feature) {
   switch (feature) {
+    case KatranFeatureEnum::LocalDeliveryOptimization:
+      return features_.localDeliveryOptimization;
     case KatranFeatureEnum::DirectHealthchecking:
       return features_.directHealthchecking;
     case KatranFeatureEnum::GueEncap:
