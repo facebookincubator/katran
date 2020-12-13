@@ -149,6 +149,18 @@ void prepareOptionalLbData(katran::KatranLb& lb) {
   lb.addSrcRoutingRule({"fc00:2307::/64"}, "fc00::2307:4");
   lb.addSrcRoutingRule({"fc00:2::/64"}, "fc00::2307:10");
   lb.addInlineDecapDst("fc00:1404::1");
+
+  // add vip to test local flag
+  vip.address = "10.200.1.6";
+  vip.port = kVipPort;
+  vip.proto = kUdp;
+  lb.addVip(vip);
+  // add local flag to vip
+  lb.modifyVip(vip, kLocalVip);
+  // add few reals to test
+  addReals(lb, vip, {"10.0.0.6"});
+  // add local flag to reals
+  lb.modifyReal("10.0.0.6", kLocalReal);
 }
 
 void preparePerfTestingLbData(katran::KatranLb& lb) {

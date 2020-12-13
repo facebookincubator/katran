@@ -124,7 +124,12 @@ const TestFixture inputOptionalTestFixtures = {
     "AgAAAAAAAQAAAAAAht1gAAAAAEspQAEAAAAAAAAAAAAAAAAAAGT8ABQEAAAAAAAAAAAAAAACYAAAAAAjBkD8ACMHAAEAAAAAAAAAAAAC/AAAAQAAAAAAAAAAAAAAAXppAFAAAAAAAAAAAFAQIADaSAAAa2F0cmFuIHRlc3QgcGt0",
     "ip6ip6 dst is not decap VIP. INLINE_DECAP is required"
   },
-
+  // 17
+  {
+    // Ether(src="0x1", dst="0x2")/IP(src="192.168.1.6",dst="10.200.1.6")/UDP(sport=31337, dport=80)/"katran test pkt"
+    "AgAAAAAAAQAAAAAACABFAAArAAEAAEARrUXAqAEGCsgBBnppAFAAF5fUa2F0cmFuIHRlc3QgcGt0",
+    "pass local traffic. LOCAL_DELIVERY_OPTIMIZATION is required"
+  },
 };
 
 const TestFixture outputOptionalTestFixtures = {
@@ -206,6 +211,11 @@ const TestFixture outputOptionalTestFixtures = {
   //16
   {
     "AgAAAAAAAQAAAAAAht1gAAAAACMGP/wAIwcAAQAAAAAAAAAAAAL8AAABAAAAAAAAAAAAAAABemkAUAAAAAAAAAAAUBAgANpIAABrYXRyYW4gdGVzdCBwa3Q=",
+    "XDP_PASS"
+  },
+  //17
+  {
+    "AgAAAAAAAQAAAAAACABFAAArAAEAAEARrUXAqAEGCsgBBnppAFAAF5fUa2F0cmFuIHRlc3QgcGt0",
     "XDP_PASS"
   },
 };

@@ -45,6 +45,8 @@ constexpr uint32_t kDefaultWeight = 1;
 constexpr uint32_t kDportHash = 8;
 constexpr uint32_t kQuicVip = 4;
 constexpr uint32_t kSrcRouting = 16;
+constexpr uint32_t kLocalVip = 32;
+constexpr uint8_t kLocalReal = 2;
 
 void addReals(
     katran::KatranLb& lb,

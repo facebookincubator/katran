@@ -68,13 +68,15 @@ DEFINE_int32(
     install_features_mask,
     0,
     "Bitmask of katran features to install. 1 = SrcRouting, 2 = InlineDecap, "
-    "4 = Introspection, 8 = GueEncap, 16 = DirectHealthchecking. "
+    "4 = Introspection, 8 = GueEncap, 16 = DirectHealthchecking, "
+    "32 = LocalDeliveryOptimization. "
     "e.g. 13 means SrcRouting + Introspection + GueEncap");
 DEFINE_int32(
     remove_features_mask,
     0,
     "Bitmask of katran features to install. 1 = SrcRouting, 2 = InlineDecap, "
-    "4 = Introspection, 8 = GueEncap, 16 = DirectHealthchecking. "
+    "4 = Introspection, 8 = GueEncap, 16 = DirectHealthchecking, "
+    "32 = LocalDeliveryOptimization. "
     "e.g. 13 means SrcRouting + Introspection + GueEncap");
 
 void testSimulator(katran::KatranLb& lb) {
@@ -393,6 +395,8 @@ std::string toString(katran::KatranFeatureEnum feature) {
       return "GueEncap";
     case KatranFeatureEnum::DirectHealthchecking:
       return "DirectHealthchecking";
+    case KatranFeatureEnum::LocalDeliveryOptimization:
+      return "LocalDeliveryOptimization";
   }
   folly::assume_unreachable();
 }
@@ -403,6 +407,7 @@ static const std::vector<KatranFeatureEnum> kAllFeatures = {
     KatranFeatureEnum::Introspection,
     KatranFeatureEnum::GueEncap,
     KatranFeatureEnum::DirectHealthchecking,
+    KatranFeatureEnum::LocalDeliveryOptimization,
 };
 
 void listFeatures(katran::KatranLb& lb) {
@@ -430,7 +435,7 @@ void testInstallAndRemoveFeatures(katran::KatranLb& lb) {
     for (auto feature : kAllFeatures) {
       if (FLAGS_remove_features_mask & static_cast<int>(feature)) {
         if (lb.removeFeature(feature, FLAGS_reloaded_balancer_prog)) {
-          LOG(INFO) << "feature removeed: " << toString(feature);
+          LOG(INFO) << "feature removed: " << toString(feature);
         } else {
           LOG(ERROR) << "feature remove failed: " << toString(feature);
         }
