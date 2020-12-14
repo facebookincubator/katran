@@ -464,7 +464,6 @@ void KatranLb::featureDiscovering() {
   } else {
     features_.directHealthchecking = false;
   }
-  //TODO: implement discovery for localDeliveryOptimization feature
 }
 
 void KatranLb::startIntrospectionRoutines() {
