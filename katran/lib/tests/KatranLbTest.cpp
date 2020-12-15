@@ -173,7 +173,7 @@ TEST_F(KatranLbTest, testRealFlags) {
   lb.modifyReal(r1.address, 0xff, true);
   auto reals = lb.getRealsForVip(v1);
   ASSERT_EQ(reals[0].flags, 0xfe);
-  //check unset flags
+  // check unset flags
   lb.modifyReal(r1.address, 0x10, false);
   reals = lb.getRealsForVip(v1);
   ASSERT_EQ(reals[0].flags, 0xee);
@@ -315,7 +315,7 @@ TEST_F(KatranLbTest, testUpdateQuicReal) {
   reals[0].address = "2.0.0.1";
   QuicReal real2;
   real2.id = 2;
-  real2.address="2.0.0.1";
+  real2.address = "2.0.0.1";
   reals.emplace_back(real2);
   lb.modifyQuicRealsMapping(action, reals);
   ASSERT_EQ(lb.getQuicRealsMapping().size(), 0);

@@ -673,7 +673,8 @@ class KatranLb {
   /**
    * update(add or remove) reals map in forwarding plane
    */
-  bool updateRealsMap(const folly::IPAddress& real, uint32_t num, uint8_t flags = 0);
+  bool
+  updateRealsMap(const folly::IPAddress& real, uint32_t num, uint8_t flags = 0);
 
   /**
    * helper function to get stats from counter on specified possition
@@ -689,7 +690,9 @@ class KatranLb {
   /**
    * helper function to add new real or increase ref count for existing one
    */
-  uint32_t increaseRefCountForReal(const folly::IPAddress& real, uint8_t flags = 0);
+  uint32_t increaseRefCountForReal(
+      const folly::IPAddress& real,
+      uint8_t flags = 0);
 
   /**
    * helper function to do initial sanity checking right after bpf programs
