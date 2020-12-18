@@ -39,6 +39,7 @@ using Guard = std::lock_guard<std::mutex>;
   ::katran::NewReal nr;
   nr.address = real.address;
   nr.weight = real.weight;
+  nr.flags = real.flags;
   return nr;
 }
 
@@ -207,6 +208,7 @@ void KatranSimpleServiceHandler::getRealsForVip(
   for (auto& real : reals) {
     r.address = real.address;
     r.weight = real.weight;
+    r.flags = real.flags;
     _return.push_back(r);
   }
   return;

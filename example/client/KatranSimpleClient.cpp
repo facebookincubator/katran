@@ -140,6 +140,7 @@ void KatranSimpleClient::updateServerForVip(const std::string &vipAddr,
                                             const std::string &flags,
                                             bool del) {
   auto vip = parseToVip(vipAddr, proto);
+  const auto& it = realFlagTranslationTable.find(flags);
   if (it == realFlagTranslationTable.cend()) {
     LOG(ERROR) << folly::sformat("ERROR: unrecognized flag: {}", flags);
     return;

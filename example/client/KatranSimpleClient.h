@@ -99,7 +99,7 @@ private:
 
   QuicReal parseToQuicReal(const std::string &mapping);
 
-  std::string parseFlags(uint64_t flags);
+  std::string parseVipFlags(uint64_t flags);
 
   // factory method to create KatranServiceClient instance
   std::unique_ptr<KatranServiceAsyncClient>
