@@ -101,6 +101,8 @@ private:
 
   std::string parseVipFlags(uint64_t flags);
 
+  std::string parseRealFlags(uint32_t flags);
+
   // factory method to create KatranServiceClient instance
   std::unique_ptr<KatranServiceAsyncClient>
   createKatranClient(const folly::SocketAddress &addr);
