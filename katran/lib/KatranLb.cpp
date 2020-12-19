@@ -202,7 +202,9 @@ void KatranLb::initialSanityChecking() {
     res = getHealthcheckerProgFd();
     if (res < 0) {
       throw std::invalid_argument(folly::sformat(
-          "can't get fd for prog: {}, error: {}", kHealthcheckerProgName, folly::errnoStr(errno)));
+          "can't get fd for prog: {}, error: {}",
+          kHealthcheckerProgName,
+          folly::errnoStr(errno)));
     }
     maps.push_back("hc_ctrl_map");
     maps.push_back("hc_reals_map");
@@ -458,7 +460,8 @@ void KatranLb::featureDiscovering() {
   } else {
     features_.gueEncap = false;
   }
-  if (bpfAdapter_.isMapInProg(kHealthcheckerProgName.toString(), "hc_pckt_srcs_map")) {
+  if (bpfAdapter_.isMapInProg(
+          kHealthcheckerProgName.toString(), "hc_pckt_srcs_map")) {
     VLOG(2) << "Direct healthchecking is enabled";
     features_.directHealthchecking = true;
   } else {
@@ -824,7 +827,7 @@ uint32_t KatranLb::getVipFlags(const VipKey& vip) {
 
 bool KatranLb::modifyVip(const VipKey& vip, uint32_t flag, bool set) {
   LOG(INFO) << folly::format(
-      "modyfing vip: {}:{}:{}", vip.address, vip.port, vip.proto);
+      "modifying vip: {}:{}:{}", vip.address, vip.port, vip.proto);
 
   auto vip_iter = vips_.find(vip);
   if (vip_iter == vips_.end()) {
@@ -864,6 +867,36 @@ bool KatranLb::delRealForVip(const NewReal& real, const VipKey& vip) {
   std::vector<NewReal> reals;
   reals.push_back(real);
   return modifyRealsForVip(ModifyAction::DEL, reals, vip);
+}
+
+bool KatranLb::modifyReal(const std::string& real, uint8_t flags, bool set) {
+  if (config_.disableForwarding) {
+    LOG(ERROR) << "modifyReal called on non-forwarding instance";
+    return false;
+  }
+  if (validateAddress(real) == AddressType::INVALID) {
+    LOG(ERROR) << "invalid real's address: " << real;
+    return false;
+  }
+
+  VLOG(4) << folly::format("modifying real: {} ", real);
+  folly::IPAddress raddr(real);
+  auto real_iter = reals_.find(raddr);
+  if (real_iter == reals_.end()) {
+    LOG(INFO) << folly::sformat("trying to modify non-existing real: {}", real);
+    return false;
+  }
+  flags &= ~V6DADDR; // to keep IPv4/IPv6 specific flag
+  if (set) {
+    real_iter->second.flags |= flags;
+  } else {
+    real_iter->second.flags &= ~flags;
+  }
+  reals_[raddr].flags = real_iter->second.flags;
+  if (!config_.testing) {
+    updateRealsMap(raddr, real_iter->second.num, real_iter->second.flags);
+  }
+  return true;
 }
 
 bool KatranLb::modifyRealsForVip(
@@ -923,12 +956,12 @@ bool KatranLb::modifyRealsForVip(
                 cur_reals.begin(), cur_reals.end(), real_iter->second.num) ==
             cur_reals.end()) {
           // increment ref count if it's a new real for this vip
-          increaseRefCountForReal(raddr);
+          increaseRefCountForReal(raddr, real.flags);
           cur_reals.push_back(real_iter->second.num);
         }
         ureal.updatedReal.num = real_iter->second.num;
       } else {
-        auto rnum = increaseRefCountForReal(raddr);
+        auto rnum = increaseRefCountForReal(raddr, real.flags);
         if (rnum == config_.maxReals) {
           LOG(INFO) << "exhausted real's space";
           continue;
@@ -983,6 +1016,7 @@ std::vector<NewReal> KatranLb::getRealsForVip(const VipKey& vip) {
   for (auto real_id : vip_reals_ids) {
     reals[i].weight = real_id.weight;
     reals[i].address = numToReals_[real_id.num].str();
+    reals[i].flags = reals_[numToReals_[real_id.num]].flags;
     ++i;
   }
   return reals;
@@ -1280,8 +1314,8 @@ bool KatranLb::modifyLpmMap(
     void* value) {
   auto lpm_addr = IpHelpers::parseAddrToBe(prefix.first.str());
   if (prefix.first.isV4()) {
-    struct v4_lpm_key key_v4 = {.prefixlen = prefix.second,
-                                .addr = lpm_addr.daddr};
+    struct v4_lpm_key key_v4 = {
+        .prefixlen = prefix.second, .addr = lpm_addr.daddr};
     std::string mapName = lpmMapNamePrefix + "_v4";
     if (action == ModifyAction::ADD) {
       auto res = bpfAdapter_.bpfUpdateMap(
@@ -1769,8 +1803,13 @@ bool KatranLb::updateVipMap(
   return true;
 }
 
-bool KatranLb::updateRealsMap(const folly::IPAddress& real, uint32_t num) {
+bool KatranLb::updateRealsMap(
+    const folly::IPAddress& real,
+    uint32_t num,
+    uint8_t flags) {
   auto real_addr = IpHelpers::parseAddrToBe(real);
+  flags &= ~V6DADDR; // to keep IPv4/IPv6 specific flag
+  real_addr.flags |= flags;
   auto res = bpfAdapter_.bpfUpdateMap(
       bpfAdapter_.getMapFdByName("reals"), &num, &real_addr);
   if (res != 0) {
@@ -1797,8 +1836,11 @@ void KatranLb::decreaseRefCountForReal(const folly::IPAddress& real) {
   }
 }
 
-uint32_t KatranLb::increaseRefCountForReal(const folly::IPAddress& real) {
+uint32_t KatranLb::increaseRefCountForReal(
+    const folly::IPAddress& real,
+    uint8_t flags) {
   auto real_iter = reals_.find(real);
+  flags &= ~V6DADDR; // to keep IPv4/IPv6 specific flag
   if (real_iter != reals_.end()) {
     real_iter->second.refCount++;
     return real_iter->second.num;
@@ -1812,9 +1854,10 @@ uint32_t KatranLb::increaseRefCountForReal(const folly::IPAddress& real) {
     numToReals_[rnum] = real;
     rmeta.refCount = 1;
     rmeta.num = rnum;
+    rmeta.flags = flags;
     reals_[real] = rmeta;
     if (!config_.testing) {
-      updateRealsMap(real, rnum);
+      updateRealsMap(real, rnum, flags);
     }
     return rnum;
   }
@@ -1822,6 +1865,8 @@ uint32_t KatranLb::increaseRefCountForReal(const folly::IPAddress& real) {
 
 bool KatranLb::hasFeature(KatranFeatureEnum feature) {
   switch (feature) {
+    case KatranFeatureEnum::LocalDeliveryOptimization:
+      return features_.localDeliveryOptimization;
     case KatranFeatureEnum::DirectHealthchecking:
       return features_.directHealthchecking;
     case KatranFeatureEnum::GueEncap:

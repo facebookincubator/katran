@@ -104,6 +104,8 @@
 // real_definition flags:
 // address is ipv6
 #define F_IPV6 (1 << 0)
+// real is specified as local
+#define F_LOCAL_REAL (1 << 1)
 // vip_meta flags
 // dont use client's port for hash calculation
 #define F_HASH_NO_SRC_PORT (1 << 0)
@@ -115,6 +117,8 @@
 #define F_HASH_DPORT_ONLY (1 << 3)
 // check if src based routing should be used
 #define F_SRC_ROUTING (1 << 4)
+// vip is select to optimize local delivery
+#define F_LOCAL_VIP (1 << 5)
 // packet_description flags:
 // the description has been created from icmp msg
 #define F_ICMP (1 << 0)
@@ -269,6 +273,9 @@
  *
  * KATRAN_INTROSPECTION - katran will start to perfpipe packet's header which
  * have triggered specific events
+ *
+ * LOCAL_DELIVERY_OPTIMIZATION - allow to do optimization on local traffic,
+ * where vip and real address are specified the same machine
  */
 #ifdef LPM_SRC_LOOKUP
 #ifndef INLINE_DECAP

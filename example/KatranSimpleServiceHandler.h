@@ -48,6 +48,8 @@ class KatranSimpleServiceHandler : virtual public KatranServiceSvIf {
 
   bool modifyVip(std::unique_ptr<::lb::katran::VipMeta> vipMeta) override;
 
+  bool modifyReal(std::unique_ptr<::lb::katran::RealMeta> realMeta) override;
+
   int64_t getVipFlags(std::unique_ptr<::lb::katran::Vip> vip) override;
 
   bool addRealForVip(

@@ -39,6 +39,7 @@ using Guard = std::lock_guard<std::mutex>;
   ::katran::NewReal nr;
   nr.address = real.address;
   nr.weight = real.weight;
+  nr.flags = real.flags;
   return nr;
 }
 
@@ -111,6 +112,12 @@ bool KatranSimpleServiceHandler::modifyVip(
   auto vk = translateVipObject(vipMeta->vip);
   Guard lock(giant_);
   return lb_.modifyVip(vk, vipMeta->flags, vipMeta->setFlag);
+}
+
+bool KatranSimpleServiceHandler::modifyReal(
+  std::unique_ptr<::lb::katran::RealMeta> realMeta) {
+  Guard lock(giant_);
+  return lb_.modifyReal(realMeta->address, realMeta->flags, realMeta->setFlag);
 }
 
 int64_t KatranSimpleServiceHandler::getVipFlags(
@@ -201,6 +208,7 @@ void KatranSimpleServiceHandler::getRealsForVip(
   for (auto& real : reals) {
     r.address = real.address;
     r.weight = real.weight;
+    r.flags = real.flags;
     _return.push_back(r);
   }
   return;

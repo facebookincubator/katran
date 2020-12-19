@@ -38,15 +38,17 @@ var (
 		"Tcp service address. must be in format: <addr>:<port>")
 	udpService = flag.String("u", "",
 		"Udp service addr. must be in format: <addr>:<port>")
-	realServer    = flag.String("r", "", "Address of the real server")
-	realWeight    = flag.Int64("w", 1, "Weight (capacity) of real server")
-	showStats     = flag.Bool("s", false, "Show stats/counters")
-	showSumStats  = flag.Bool("sum", false, "Show summary stats")
-	showLruStats  = flag.Bool("lru", false, "Show LRU related stats")
-	showIcmpStats = flag.Bool("icmp", false, "Show ICMP 'packet too big' related stats")
-	listServices  = flag.Bool("l", false, "List configured services")
-	changeFlags   = flag.String("f", "",
-		"change flags. Possible values: NO_SPORT, NO_LRU, QUIC_VIP, DPORT_HASH")
+	realServer     = flag.String("r", "", "Address of the real server")
+	realWeight     = flag.Int64("w", 1, "Weight (capacity) of real server")
+	showStats      = flag.Bool("s", false, "Show stats/counters")
+	showSumStats   = flag.Bool("sum", false, "Show summary stats")
+	showLruStats   = flag.Bool("lru", false, "Show LRU related stats")
+	showIcmpStats  = flag.Bool("icmp", false, "Show ICMP 'packet too big' related stats")
+	listServices   = flag.Bool("l", false, "List configured services")
+	vipChangeFlags = flag.String("vf", "",
+		"change vip flags. Possible values: NO_SPORT, NO_LRU, QUIC_VIP, DPORT_HASH, LOCAL_VIP")
+	realChangeFlags = flag.String("rf", "",
+		"change real flags. Possible values: LOCAL_REAL")
 	unsetFlags = flag.Bool("unset", false, "Unset specified flags")
 	newHc      = flag.String("new_hc", "", "Address of new backend to healtcheck")
 	somark     = flag.Uint64("somark", 0, "Socket mark to specified backend")
@@ -84,18 +86,18 @@ func main() {
 	} else if *listMac {
 		kc.GetMac()
 	} else if *addService {
-		kc.AddOrModifyService(service, *changeFlags, proto, false, true)
+		kc.AddOrModifyService(service, *vipChangeFlags, proto, false, true)
 	} else if *listServices {
 		// TODO(tehnerd): print only specified tcp/udp service
 		kc.List("", 0)
 	} else if *delService {
 		kc.DelService(service, proto)
 	} else if *editService {
-		kc.AddOrModifyService(service, *changeFlags, proto, true, !*unsetFlags)
+		kc.AddOrModifyService(service, *vipChangeFlags, proto, true, !*unsetFlags)
 	} else if *addServer || *editServer {
-		kc.UpdateServerForVip(service, proto, *realServer, *realWeight, false)
+		kc.UpdateServerForVip(service, proto, *realServer, *realWeight, *realChangeFlags, false)
 	} else if *delServer {
-		kc.UpdateServerForVip(service, proto, *realServer, *realWeight, true)
+		kc.UpdateServerForVip(service, proto, *realServer, *realWeight, *realChangeFlags, true)
 	} else if *delQuicMapping {
 		kc.ModifyQuicMappings(*quicMapping, true)
 	} else if *quicMapping != "" {

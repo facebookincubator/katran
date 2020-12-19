@@ -58,7 +58,7 @@ class KatranLbTest : public ::testing::Test {
     v1.port = 443;
     v1.proto = 6;
     v2.address = "fc01::2";
-    v1.port = 443;
+    v2.port = 443;
     v2.proto = 6;
     r1.address = "192.168.1.1";
     r1.weight = 10;
@@ -160,6 +160,23 @@ TEST_F(KatranLbTest, testRealHelpers) {
   ASSERT_FALSE(lb.addRealForVip(r1, v2));
   // adding real to existing vip
   ASSERT_TRUE(lb.addRealForVip(r1, v1));
+};
+
+TEST_F(KatranLbTest, testRealFlags) {
+  lb.addVip(v1);
+  lb.addRealForVip(r1, v1);
+  // modify existing real (set flags)
+  ASSERT_TRUE(lb.modifyReal(r1.address, 0xf0, true));
+  // modify non-existing real
+  ASSERT_FALSE(lb.modifyReal("1.2.3.4", 0xff, true));
+  // set and get flags (ipv4/ipv6 specific flag should not be changed)
+  lb.modifyReal(r1.address, 0xff, true);
+  auto reals = lb.getRealsForVip(v1);
+  ASSERT_EQ(reals[0].flags, 0xfe);
+  // check unset flags
+  lb.modifyReal(r1.address, 0x10, false);
+  reals = lb.getRealsForVip(v1);
+  ASSERT_EQ(reals[0].flags, 0xee);
 };
 
 TEST_F(KatranLbTest, testVipStatsHelper) {
@@ -298,7 +315,7 @@ TEST_F(KatranLbTest, testUpdateQuicReal) {
   reals[0].address = "2.0.0.1";
   QuicReal real2;
   real2.id = 2;
-  real2.address="2.0.0.1";
+  real2.address = "2.0.0.1";
   reals.emplace_back(real2);
   lb.modifyQuicRealsMapping(action, reals);
   ASSERT_EQ(lb.getQuicRealsMapping().size(), 0);

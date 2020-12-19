@@ -39,9 +39,19 @@ struct VipMeta {
   3: optional bool setFlag = 1,
 }
 
+struct RealMeta {
+  1: string address,
+  2: i32 flags,
+  /*
+   * setFlag controls if we setting this flags or removing it from the Real
+   */
+  3: optional bool setFlag = 1,
+}
+
 struct Real {
   1: string address,
   2: i32 weight,
+  3: i32 flags,
 }
 
 struct QuicReal {
@@ -82,6 +92,8 @@ service KatranService {
   list<Vip> getAllVips();
 
   bool modifyVip (1: VipMeta vipMeta);
+
+  bool modifyReal (1: RealMeta realMeta);
 
   i64 getVipFlags(1: Vip vip);
 

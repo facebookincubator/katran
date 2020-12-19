@@ -177,7 +177,7 @@ class KatranLb {
   /**
    * @param VipKey vip to modify
    * @param uint32_t flag to set/unset
-   * @param bool set flag; if true - set specified flag; unset othewise
+   * @param bool set flag; if true - set specified flag; unset otherwise
    * @return true on success
    *
    * helper function to change Vip's related flags (we are using this flags
@@ -223,6 +223,16 @@ class KatranLb {
    * returns true if real doesnt exist for specified vip (nop is not an error)
    */
   bool delRealForVip(const NewReal& real, const VipKey& vip);
+
+  /**
+   * @param std::string& real to modify
+   * @param uint8_t flag to set/unset
+   * @param bool set flag; if true - set specified flag; unset otherwise
+   * @return true on success
+   *
+   * helper function to change Real's related flags
+   */
+  bool modifyReal(const std::string& real, uint8_t flags, bool set = true);
 
   /**
    * @param ModifyAction action. either ADD or DEL
@@ -663,7 +673,8 @@ class KatranLb {
   /**
    * update(add or remove) reals map in forwarding plane
    */
-  bool updateRealsMap(const folly::IPAddress& real, uint32_t num);
+  bool
+  updateRealsMap(const folly::IPAddress& real, uint32_t num, uint8_t flags = 0);
 
   /**
    * helper function to get stats from counter on specified possition
@@ -679,7 +690,9 @@ class KatranLb {
   /**
    * helper function to add new real or increase ref count for existing one
    */
-  uint32_t increaseRefCountForReal(const folly::IPAddress& real);
+  uint32_t increaseRefCountForReal(
+      const folly::IPAddress& real,
+      uint8_t flags = 0);
 
   /**
    * helper function to do initial sanity checking right after bpf programs

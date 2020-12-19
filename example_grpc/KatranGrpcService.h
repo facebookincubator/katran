@@ -55,6 +55,9 @@ public:
   Status modifyVip(ServerContext *context, const VipMeta *request,
                    Bool *response) override;
 
+  Status modifyReal(ServerContext *context, const RealMeta *request,
+                   Bool *response) override;
+
   Status getVipFlags(ServerContext *context, const Vip *request,
                      Flags *response) override;
 
