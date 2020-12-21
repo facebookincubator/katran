@@ -38,7 +38,7 @@ const (
 	DPORT_HASH  = 8
 	LOCAL_VIP   = 32
 
-	LOCAL_REAL  = 2
+	LOCAL_REAL = 2
 )
 
 const (
@@ -56,7 +56,7 @@ var (
 		"LOCAL_VIP":  LOCAL_VIP,
 	}
 	realFlagTranslationTable = map[string]int32{
-		"LOCAL_REAL":  LOCAL_REAL,
+		"LOCAL_REAL": LOCAL_REAL,
 	}
 )
 
