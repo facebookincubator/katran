@@ -176,7 +176,7 @@ func (kc *KatranClient) UpdateReal(addr string, flags int32, setFlags bool) {
 	rMeta.Address = addr
 	rMeta.Flags = flags
 	rMeta.SetFlag = setFlags
-	ok, err = kc.client.ModifyReal(context.Background(), &rMeta)
+	ok, err := kc.client.ModifyReal(context.Background(), &rMeta)
 	checkError(err)
 	if ok.Success {
 		log.Printf("Real modified\n")
@@ -286,7 +286,7 @@ func (kc *KatranClient) GetRealsForVip(vip *lb_katran.Vip) lb_katran.Reals {
 	return *reals
 }
 
-func (kc *KatranClient) GetFlags(vip *lb_katran.Vip) uint64 {
+func (kc *KatranClient) GetVipFlags(vip *lb_katran.Vip) uint64 {
 	flags, err := kc.client.GetVipFlags(context.Background(), vip)
 	checkError(err)
 	return flags.Flags
@@ -312,9 +312,12 @@ func parseVipFlags(flags uint64) string {
 	return flags_str
 }
 
-func parseRealFlags(flags uint32) string {
+func parseRealFlags(flags int32) string {
+	if flags < 0 {
+		log.Fatalf("invalid real flags passed: %v\n", flags)
+	}
 	flags_str := ""
-	if flags&uint32(LOCAL_REAL) > 0 {
+	if flags&LOCAL_REAL > 0 {
 		flags_str += " LOCAL_REAL "
 	}
 	return flags_str
