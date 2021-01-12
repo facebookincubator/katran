@@ -50,6 +50,10 @@ if(DEFINED ENV{CMAKE_BUILD_EXAMPLE_GRPC})
     add_subdirectory(example_grpc)
 endif()
 
+if(DEFINED ENV{CMAKE_BUILD_TOOLS})
+    add_subdirectory(tools)
+endif()
+
 install(
   EXPORT katran-exports
   FILE katran-targets.cmake

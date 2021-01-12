@@ -45,7 +45,6 @@ target_link_libraries(xdpdump
   "${PTHREAD}"
   "${LIBDC}"
   "${DL}"
-  "libevent:libevent"
   "${EVENT_CORE}"
   "${LIBIBERTY}"
   iphelpers

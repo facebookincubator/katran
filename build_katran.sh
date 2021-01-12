@@ -85,6 +85,11 @@ if [ -z "$BUILD_EXAMPLE_GRPC" ]; then
     export CMAKE_BUILD_EXAMPLE_GRPC="$BUILD_EXAMPLE_GRPC"
 fi
 
+if [ -n "$BUILD_TOOLS" ]; then
+    BUILD_TOOLS=1
+    export CMAKE_BUILD_TOOLS="$BUILD_TOOLS"
+fi
+
 get_dev_tools() {
     if [ -f /etc/redhat-release ]; then
         sudo yum install -y epel-release
