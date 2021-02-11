@@ -136,7 +136,7 @@ __attribute__((__always_inline__)) static inline bool hc_encap_gue(
     struct ipv6hdr *ip6h = (void*)(long)skb->data + sizeof(struct ethhdr);
     struct udphdr *udph = (void*)ip6h + sizeof(struct ipv6hdr);
     pkt_len += sizeof(struct udphdr);
-    create_udp_hdr(udph, sport, GUE_DPORT, pkt_len, 0);
+    create_udp_hdr(udph, sport, GUE_DPORT, pkt_len, GUE_CSUM);
     create_v6_hdr(ip6h, DEFAULT_TOS, src->v6daddr, real->v6daddr, pkt_len, IPPROTO_UDP);
   } else {
     sport = gue_sport(real->daddr);
@@ -158,7 +158,7 @@ __attribute__((__always_inline__)) static inline bool hc_encap_gue(
     struct iphdr *iph = (void*)(long)skb->data + sizeof(struct ethhdr);
     struct udphdr *udph = (void*)iph + sizeof(struct iphdr);
     pkt_len += sizeof(struct udphdr);
-    create_udp_hdr(udph, sport, GUE_DPORT, pkt_len, 0);
+    create_udp_hdr(udph, sport, GUE_DPORT, pkt_len, GUE_CSUM);
     create_v4_hdr(iph, DEFAULT_TOS, src->daddr, real->daddr, pkt_len, IPPROTO_UDP);
   }
   return true;

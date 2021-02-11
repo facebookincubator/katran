@@ -236,7 +236,9 @@
 #define GUE_DPORT 6080
 #endif
 
+#ifndef GUE_CSUM
 #define GUE_CSUM 0
+#endif
 
 // initial value for jhash hashing function, used to pick up a real server
 #ifndef INIT_JHASH_SEED
