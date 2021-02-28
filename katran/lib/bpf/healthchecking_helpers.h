@@ -73,6 +73,7 @@ __attribute__((__always_inline__)) static inline bool hc_encap_ipip(
     }
     create_v6_hdr(ip6h, DEFAULT_TOS, src->v6daddr, real->v6daddr, pkt_len, proto);
   } else {
+    __u8 proto = IPPROTO_IPIP;
     key = V4_SRC_INDEX;
     src = bpf_map_lookup_elem(&hc_pckt_srcs_map, &key);
     if (!src) {
@@ -87,8 +88,14 @@ __attribute__((__always_inline__)) static inline bool hc_encap_ipip(
     if ((skb->data + sizeof(struct ethhdr) + sizeof(struct iphdr)) > skb->data_end) {
       return false;
     }
+    ethh = (void*)(long)skb->data;
+    ethh->h_proto = BE_ETH_P_IP;
+
     struct iphdr *iph = (void*)(long)skb->data + sizeof(struct ethhdr);
-    create_v4_hdr(iph, DEFAULT_TOS, src->daddr, real->daddr, pkt_len, IPPROTO_IPIP);
+    if (is_ipv6) {
+      proto = IPPROTO_IPV6;
+    }
+    create_v4_hdr(iph, DEFAULT_TOS, src->daddr, real->daddr, pkt_len, proto);
   }
   return true;
 }
@@ -155,6 +162,9 @@ __attribute__((__always_inline__)) static inline bool hc_encap_gue(
         sizeof(struct udphdr)) > skb->data_end) {
       return false;
     }
+    ethh = (void*)(long)skb->data;
+    ethh->h_proto = BE_ETH_P_IP;
+
     struct iphdr *iph = (void*)(long)skb->data + sizeof(struct ethhdr);
     struct udphdr *udph = (void*)iph + sizeof(struct iphdr);
     pkt_len += sizeof(struct udphdr);

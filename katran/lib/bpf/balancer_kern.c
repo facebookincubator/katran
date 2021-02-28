@@ -629,7 +629,7 @@ static inline int process_packet(void *data, __u64 off, void *data_end,
       return XDP_DROP;
     }
   } else {
-    if(!PCKT_ENCAP_V4(xdp, cval, &pckt, dst, pkt_bytes)) {
+    if(!PCKT_ENCAP_V4(xdp, cval, is_ipv6, &pckt, dst, pkt_bytes)) {
       return XDP_DROP;
     }
   }
