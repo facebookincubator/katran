@@ -68,6 +68,12 @@ const std::vector<std::pair<std::string, std::string>> inputGueTestFixtures = {
     "AgAAAAAAAQAAAAAAht1gAAAAACMGQPwAAAIAAAAAAAAAAAAAAAH8AAABAAAAAAAAAAAAAAABemkAUAAAAAAAAAAAUBAgAP1PAABrYXRyYW4gdGVzdCBwa3Q=",
     "packet to TCP based v6 VIP (and v6 real)"
   },
+  //5.1
+  {
+    //Ether(src="0x1", dst="0x2")/IPv6(src="fc00:2::1", dst="fc00:1::3")/TCP(sport=31337, dport=80,flags="A")/"katran test pkt"
+    "AgAAAAAAAQAAAAAAht1gAAAAACMGQPwAAAIAAAAAAAAAAAAAAAH8AAABAAAAAAAAAAAAAAADemkAUAAAAAAAAAAAUBAgAP1NAABrYXRyYW4gdGVzdCBwa3Q=",
+    "packet to TCP based v6 VIP (and v4 real)"
+  },
   //6
   {
     //Ether(src="0x1", dst="0x2")/IP(src="192.168.1.1", dst="10.200.1.3")/ICMP(type="echo-request")
@@ -269,6 +275,11 @@ const std::vector<std::pair<std::string, std::string>> outputGueTestFixtures = {
   //5
   {
     "AADerb6vAgAAAAAAht1gAAAAAFMRQPwAIwcAAAAAAAAAAAAAEzf8AAAAAAAAAAAAAAAAAAADemkXwABTAABgAAAAACMGQPwAAAIAAAAAAAAAAAAAAAH8AAABAAAAAAAAAAAAAAABemkAUAAAAAAAAAAAUBAgAP1PAABrYXRyYW4gdGVzdCBwa3Q=",
+    "XDP_TX"
+  },
+  //5.1
+  {
+    "AADerb6vAgAAAAAACABFAABnAAAAAEARWWEKAA0lCgAAAWl7F8AAUwAAYAAAAAAjBkD8AAACAAAAAAAAAAAAAAAB/AAAAQAAAAAAAAAAAAAAA3ppAFAAAAAAAAAAAFAQIAD9TQAAa2F0cmFuIHRlc3QgcGt0",
     "XDP_TX"
   },
   //6

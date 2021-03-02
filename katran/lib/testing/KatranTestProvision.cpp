@@ -108,6 +108,12 @@ void prepareLbData(katran::KatranLb& lb) {
   lb.addVip(vip);
   // adding few reals to test
   addReals(lb, vip, reals6);
+  // v6inv4 vip. tcp
+  vip.address = "fc00:1::3";
+  vip.port = kVipPort;
+  lb.addVip(vip);
+  // adding few reals to test
+  addReals(lb, vip, reals);
   // v6inv6 vip. tcp
   vip.address = "fc00:1::1";
   lb.addVip(vip);

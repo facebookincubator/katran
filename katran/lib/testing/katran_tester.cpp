@@ -128,6 +128,18 @@ void testSimulator(katran::KatranLb& lb) {
     VLOG(2) << "real: " << real;
     LOG(INFO) << "simulation is incorrect for v6 real and v6 tcp vip";
   }
+  // tcp, v6 vip v4 real
+  real = lb.getRealForFlow(katran::KatranFlow{
+      .src = "fc00:2::1",
+      .dst = "fc00:1::3",
+      .srcPort = 31337,
+      .dstPort = 80,
+      .proto = kTcp,
+  });
+  if (real != "10.0.0.1") {
+    VLOG(2) << "real: " << real;
+    LOG(INFO) << "simulation is incorrect for v4 real and v6 tcp vip";
+  }
   // non existing vip
   real = lb.getRealForFlow(katran::KatranFlow{
       .src = "fc00:2::1",
