@@ -19,7 +19,9 @@
 
 #ifdef RECORD_FLOW_INFO
 
+#ifndef FLOW_DEBUG_MAP_SIZE
 #define FLOW_DEBUG_MAP_SIZE 1000000
+#endif // of FLOW_DEBUG_MAP_SIZE
 
 #define NO_FLAGS 0
 

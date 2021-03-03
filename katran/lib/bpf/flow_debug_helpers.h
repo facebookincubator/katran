@@ -18,6 +18,7 @@
 #define __FLOW_DEBUG_HELPERS_H
 
 #include "flow_debug_maps.h"
+#include "pckt_parsing.h"
 
 __attribute__((__always_inline__)) static inline __u32
 get_next_ports(void* transport_hdr, __u8 proto, void* data_end) {
