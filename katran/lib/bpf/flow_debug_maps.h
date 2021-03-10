@@ -27,6 +27,7 @@ struct bpf_map_def SEC("maps") flow_debug_map = {
     .key_size = sizeof(struct flow_key),
     .value_size = sizeof(struct flow_debug_info),
     .max_entries = FLOW_DEBUG_MAP_SIZE,
+    .map_flags = BPF_F_NO_COMMON_LRU,
 };
 
 BPF_ANNOTATE_KV_PAIR(
