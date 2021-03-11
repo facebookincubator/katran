@@ -226,8 +226,14 @@ __attribute__((__always_inline__)) static inline bool gue_csum(
     return gue_csum_v6(outer_ip6h, udph, inner_ip6h, csum);
   } else {
     if (outer_v6) {
-      // TODO
-      return false;
+      struct ipv6hdr* outer_ip6h = data + outer_ip_off;
+      udph = data + udp_hdr_off;
+      struct iphdr* inner_iph = data + inner_ip_off;
+      if (outer_ip6h + 1 > data_end || udph + 1 > data_end ||
+          inner_iph + 1 > data_end) {
+        return false;
+      }
+      return gue_csum_v4_in_v6(outer_ip6h, udph, inner_iph, csum);
     } else {
       struct iphdr* outer_iph = data + outer_ip_off;
       udph = data + udp_hdr_off;

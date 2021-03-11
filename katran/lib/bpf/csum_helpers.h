@@ -303,6 +303,39 @@ __attribute__((__always_inline__)) static inline bool gue_csum_v4(
   return true;
 }
 
+__attribute__((__always_inline__)) static inline bool gue_csum_v4_in_v6(
+    struct ipv6hdr* outer_ip6h,
+    struct udphdr* udph,
+    struct iphdr* inner_iph,
+    __u64* csum_in_hdr) {
+  __s64 ret;
+  __u32 tmp = 0;
+  __u32 seed = (~(*csum_in_hdr)) & 0xffff;
+  __u32 orig_csum = (__u32)*csum_in_hdr;
+  ret = bpf_csum_diff(0, 0, &orig_csum, sizeof(__u32), seed);
+  if (ret < 0) {
+    return false;
+  }
+  *csum_in_hdr = ret;
+  if (rem_pseudo_ipv4_header(inner_iph, csum_in_hdr) < 0) {
+    return false;
+  }
+  ret = bpf_csum_diff(0, 0, inner_iph, sizeof(struct iphdr), *csum_in_hdr);
+  if (ret < 0) {
+    return false;
+  }
+  *csum_in_hdr = ret;
+  ret = bpf_csum_diff(0, 0, udph, sizeof(struct udphdr), *csum_in_hdr);
+  if (ret < 0) {
+    return false;
+  }
+  *csum_in_hdr = ret;
+  if (add_pseudo_ipv6_header(outer_ip6h, csum_in_hdr) < 0) {
+    return false;
+  }
+  *csum_in_hdr = csum_fold_helper(*csum_in_hdr);
+  return true;
+}
 #endif // of GUE_ENCAP
 
 #endif // of __CSUM_HELPERS_H
