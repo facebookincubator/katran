@@ -123,4 +123,18 @@ struct event_metadata {
 } __attribute__((__packed__));
 
 #endif
+
+#ifdef RECORD_FLOW_INFO
+// Route information saved from GUE packets
+struct flow_debug_info {
+  union {
+    __be32 l4_hop;
+    __be32 l4_hopv6[4];
+  };
+  union {
+    __be32 this_hop;
+    __be32 this_hopv6[4];
+  };
+};
+#endif // of RECORD_FLOW_INFO
 #endif // of _BALANCER_STRUCTS

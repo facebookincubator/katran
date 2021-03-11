@@ -35,8 +35,8 @@
 #include "bpf_endian.h"
 #include "bpf_helpers.h"
 #include "encap_helpers.h"
+#include "flow_debug.h"
 #include "pckt_parsing.h"
-
 
 __attribute__((__always_inline__)) static inline bool encap_v6(
     struct xdp_md* xdp,
@@ -324,6 +324,7 @@ gue_decap_v4(struct xdp_md* xdp, void** data, void** data_end) {
   struct eth_hdr* old_eth;
   old_eth = *data;
   new_eth = *data + sizeof(struct iphdr) + sizeof(struct udphdr);
+  RECORD_GUE_ROUTE(old_eth, new_eth, *data_end, true, true);
   memcpy(new_eth->eth_source, old_eth->eth_source, 6);
   memcpy(new_eth->eth_dest, old_eth->eth_dest, 6);
   new_eth->eth_proto = BE_ETH_P_IP;
@@ -342,6 +343,7 @@ gue_decap_v6(struct xdp_md* xdp, void** data, void** data_end, bool inner_v4) {
   struct eth_hdr* old_eth;
   old_eth = *data;
   new_eth = *data + sizeof(struct ipv6hdr) + sizeof(struct udphdr);
+  RECORD_GUE_ROUTE(old_eth, new_eth, *data_end, false, inner_v4);
   memcpy(new_eth->eth_source, old_eth->eth_source, 6);
   memcpy(new_eth->eth_dest, old_eth->eth_dest, 6);
   if (inner_v4) {
