@@ -225,8 +225,19 @@ __attribute__((__always_inline__)) static inline bool gue_csum(
     }
     return gue_csum_v6(outer_ip6h, udph, inner_ip6h, csum);
   } else {
-    // TODO
-    return false;
+    if (outer_v6) {
+      // TODO
+      return false;
+    } else {
+      struct iphdr* outer_iph = data + outer_ip_off;
+      udph = data + udp_hdr_off;
+      struct iphdr* inner_iph = data + inner_ip_off;
+      if (outer_iph + 1 > data_end || udph + 1 > data_end ||
+          inner_iph + 1 > data_end) {
+        return false;
+      }
+      return gue_csum_v4(outer_iph, udph, inner_iph, csum);
+    }
   }
   return true;
 }
@@ -280,7 +291,10 @@ static inline bool gue_encap_v4(struct xdp_md *xdp, struct ctl_value *cval,
       dst->dst,
       pkt_bytes + sizeof(struct udphdr),
       IPPROTO_UDP);
-
+  __u64 csum = 0;
+  if (gue_csum(data, data_end, false, false, pckt, &csum)) {
+    udph->check = csum & 0xFFFF;
+  }
   return true;
 }
 

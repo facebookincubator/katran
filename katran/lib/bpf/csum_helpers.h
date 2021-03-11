@@ -159,6 +159,68 @@ __attribute__((__always_inline__)) static inline __s64 rem_pseudo_ipv6_header(
   return 0;
 }
 
+__attribute__((__always_inline__)) static inline __s64 add_pseudo_ipv4_header(
+    struct iphdr* iph,
+    __u64* csum) {
+  __s64 ret;
+  __u32 tmp = 0;
+  ret = bpf_csum_diff(0, 0, &iph->saddr, sizeof(__be32), *csum);
+  if (ret < 0) {
+    return ret;
+  }
+  *csum = ret;
+  ret = bpf_csum_diff(0, 0, &iph->daddr, sizeof(__be32), *csum);
+  if (ret < 0) {
+    return ret;
+  }
+  *csum = ret;
+  tmp = (__u32)bpf_ntohs(iph->tot_len);
+  tmp = bpf_htonl(tmp);
+  ret = bpf_csum_diff(0, 0, &tmp, sizeof(__u32), *csum);
+  if (ret < 0) {
+    return ret;
+  }
+  *csum = ret;
+  tmp = __builtin_bswap32((__u32)(iph->protocol));
+  ret = bpf_csum_diff(0, 0, &tmp, sizeof(__u32), *csum);
+  if (ret < 0) {
+    return ret;
+  }
+  *csum = ret;
+  return 0;
+}
+
+__attribute__((__always_inline__)) static inline __s64 rem_pseudo_ipv4_header(
+    struct iphdr* iph,
+    __u64* csum) {
+  __s64 ret;
+  __u32 tmp = 0;
+  ret = bpf_csum_diff(&iph->saddr, sizeof(__be32), 0, 0, *csum);
+  if (ret < 0) {
+    return ret;
+  }
+  *csum = ret;
+  ret = bpf_csum_diff(&iph->daddr, sizeof(__be32), 0, 0, *csum);
+  if (ret < 0) {
+    return ret;
+  }
+  *csum = ret;
+  tmp = (__u32)bpf_ntohs(iph->tot_len);
+  tmp = bpf_htonl(tmp);
+  ret = bpf_csum_diff(&tmp, sizeof(__u32), 0, 0, *csum);
+  if (ret < 0) {
+    return ret;
+  }
+  *csum = ret;
+  tmp = __builtin_bswap32((__u32)(iph->protocol));
+  ret = bpf_csum_diff(&tmp, sizeof(__u32), 0, 0, *csum);
+  if (ret < 0) {
+    return ret;
+  }
+  *csum = ret;
+  return 0;
+}
+
 /*
  * The following methods concern computation of checksum for GUE encapsulated
  * header for various combination of ip-headers.
@@ -201,6 +263,40 @@ __attribute__((__always_inline__)) static inline bool gue_csum_v6(
   }
   *csum_in_hdr = ret;
   if (add_pseudo_ipv6_header(outer_ip6h, csum_in_hdr) < 0) {
+    return false;
+  }
+  *csum_in_hdr = csum_fold_helper(*csum_in_hdr);
+  return true;
+}
+
+__attribute__((__always_inline__)) static inline bool gue_csum_v4(
+    struct iphdr* outer_iph,
+    struct udphdr* udph,
+    struct iphdr* inner_iph,
+    __u64* csum_in_hdr) {
+  __s64 ret;
+  __u32 tmp = 0;
+  __u32 seed = (~(*csum_in_hdr)) & 0xffff;
+  __u32 orig_csum = (__u32)*csum_in_hdr;
+  ret = bpf_csum_diff(0, 0, &orig_csum, sizeof(__u32), seed);
+  if (ret < 0) {
+    return false;
+  }
+  *csum_in_hdr = ret;
+  if (rem_pseudo_ipv4_header(inner_iph, csum_in_hdr) < 0) {
+    return false;
+  }
+  ret = bpf_csum_diff(0, 0, inner_iph, sizeof(struct iphdr), *csum_in_hdr);
+  if (ret < 0) {
+    return false;
+  }
+  *csum_in_hdr = ret;
+  ret = bpf_csum_diff(0, 0, udph, sizeof(struct udphdr), *csum_in_hdr);
+  if (ret < 0) {
+    return false;
+  }
+  *csum_in_hdr = ret;
+  if (add_pseudo_ipv4_header(outer_iph, csum_in_hdr) < 0) {
     return false;
   }
   *csum_in_hdr = csum_fold_helper(*csum_in_hdr);
