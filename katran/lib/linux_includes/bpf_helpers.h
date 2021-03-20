@@ -271,7 +271,7 @@ static int (*bpf_l3_csum_replace)(void *ctx, int off, int from, int to, int flag
   (void *) BPF_FUNC_l3_csum_replace;
 static int (*bpf_l4_csum_replace)(void *ctx, int off, int from, int to, int flags) =
   (void *) BPF_FUNC_l4_csum_replace;
-static int (*bpf_csum_diff)(void *from, int from_size, void *to, int to_size, int seed) =
+static __s64 (*bpf_csum_diff)(void *from, int from_size, void *to, int to_size, int seed) =
   (void *) BPF_FUNC_csum_diff;
 static int (*bpf_skb_under_cgroup)(void *ctx, void *map, int index) =
   (void *) BPF_FUNC_skb_under_cgroup;
