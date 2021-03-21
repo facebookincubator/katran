@@ -167,14 +167,18 @@ decap_v6(struct xdp_md* xdp, void** data, void** data_end, bool inner_v4) {
 }
 
 __attribute__((__always_inline__)) static inline bool
-decap_v4(struct xdp_md* xdp, void** data, void** data_end) {
+decap_v4(struct xdp_md* xdp, void** data, void** data_end, bool inner_v4) {
   struct eth_hdr* new_eth;
   struct eth_hdr* old_eth;
   old_eth = *data;
   new_eth = *data + sizeof(struct iphdr);
   memcpy(new_eth->eth_source, old_eth->eth_source, 6);
   memcpy(new_eth->eth_dest, old_eth->eth_dest, 6);
-  new_eth->eth_proto = BE_ETH_P_IP;
+  if (inner_v4) {
+    new_eth->eth_proto = BE_ETH_P_IP;
+  } else {
+    new_eth->eth_proto = BE_ETH_P_IPV6;
+  }
   if (bpf_xdp_adjust_head(xdp, (int)sizeof(struct iphdr))) {
     return false;
   }
@@ -226,15 +230,25 @@ __attribute__((__always_inline__)) static inline bool gue_csum(
   }
 
   if (inner_v6) {
-    // encapsulation for ipv6 in ipv4 is not supported
-    struct ipv6hdr* outer_ip6h = data + outer_ip_off;
-    udph = (void*)data + udp_hdr_off;
-    struct ipv6hdr* inner_ip6h = data + inner_ip_off;
-    if (outer_ip6h + 1 > data_end || udph + 1 > data_end ||
-        inner_ip6h + 1 > data_end) {
-      return false;
+    if (outer_v6) {
+      struct ipv6hdr* outer_ip6h = data + outer_ip_off;
+      udph = (void*)data + udp_hdr_off;
+      struct ipv6hdr* inner_ip6h = data + inner_ip_off;
+      if (outer_ip6h + 1 > data_end || udph + 1 > data_end ||
+          inner_ip6h + 1 > data_end) {
+        return false;
+      }
+      return gue_csum_v6(outer_ip6h, udph, inner_ip6h, csum);
+    } else {
+      struct iphdr* outer_iph = data + outer_ip_off;
+      udph = (void*)data + udp_hdr_off;
+      struct ipv6hdr* inner_ip6h = data + inner_ip_off;
+      if (outer_iph + 1 > data_end || udph + 1 > data_end ||
+          inner_ip6h + 1 > data_end) {
+        return false;
+      }
+      return gue_csum_v6_in_v4(outer_iph, udph, inner_ip6h, csum);
     }
-    return gue_csum_v6(outer_ip6h, udph, inner_ip6h, csum);
   } else {
     if (outer_v6) {
       struct ipv6hdr* outer_ip6h = data + outer_ip_off;
@@ -281,8 +295,6 @@ static inline bool gue_encap_v4(struct xdp_md *xdp, struct ctl_value *cval,
   }
   ipv4_src = src->dst;
 
-  sport ^= ((pckt->flow.src >> 16) & 0xFFFF);
-
   if (bpf_xdp_adjust_head(
       xdp, 0 - ((int)sizeof(struct iphdr) + (int)sizeof(struct udphdr)))) {
     return false;
@@ -300,17 +312,24 @@ static inline bool gue_encap_v4(struct xdp_md *xdp, struct ctl_value *cval,
   memcpy(new_eth->eth_dest, cval->mac, sizeof(new_eth->eth_dest));
   memcpy(new_eth->eth_source, old_eth->eth_dest, sizeof(new_eth->eth_source));
   new_eth->eth_proto = BE_ETH_P_IP;
+  if (is_ipv6) {
+    sport ^= ((pckt->flow.srcv6[3] >> 16) & 0xFFFF);
+    pkt_bytes += sizeof(struct ipv6hdr) + sizeof(struct udphdr);
+  } else {
+    sport ^= ((pckt->flow.src >> 16) & 0xFFFF);
+    pkt_bytes += sizeof(struct udphdr);
+  }
 
-  create_udp_hdr(udph, sport, GUE_DPORT, pkt_bytes + sizeof(struct udphdr), 0);
+  create_udp_hdr(udph, sport, GUE_DPORT, pkt_bytes, 0);
   create_v4_hdr(
       iph,
       pckt->tos,
       ipv4_src,
       dst->dst,
-      pkt_bytes + sizeof(struct udphdr),
+      pkt_bytes,
       IPPROTO_UDP);
   __u64 csum = 0;
-  if (gue_csum(data, data_end, false, false, pckt, &csum)) {
+  if (gue_csum(data, data_end, false, is_ipv6, pckt, &csum)) {
     udph->check = csum & 0xFFFF;
   }
   return true;
@@ -378,7 +397,7 @@ static inline bool gue_encap_v6(struct xdp_md *xdp, struct ctl_value *cval,
 #ifdef INLINE_DECAP_GUE
 
 __attribute__((__always_inline__)) static inline bool
-gue_decap_v4(struct xdp_md* xdp, void** data, void** data_end) {
+gue_decap_v4(struct xdp_md* xdp, void** data, void** data_end, bool inner_v4) {
   struct eth_hdr* new_eth;
   struct eth_hdr* old_eth;
   old_eth = *data;
@@ -386,7 +405,11 @@ gue_decap_v4(struct xdp_md* xdp, void** data, void** data_end) {
   RECORD_GUE_ROUTE(old_eth, new_eth, *data_end, true, true);
   memcpy(new_eth->eth_source, old_eth->eth_source, 6);
   memcpy(new_eth->eth_dest, old_eth->eth_dest, 6);
-  new_eth->eth_proto = BE_ETH_P_IP;
+  if (inner_v4) {
+    new_eth->eth_proto = BE_ETH_P_IP;
+  } else {
+    new_eth->eth_proto = BE_ETH_P_IPV6;
+  }
   if (bpf_xdp_adjust_head(
           xdp, (int)(sizeof(struct iphdr) + sizeof(struct udphdr)))) {
     return false;

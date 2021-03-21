@@ -174,7 +174,7 @@ __attribute__((__always_inline__)) static inline __s64 add_pseudo_ipv4_header(
     return ret;
   }
   *csum = ret;
-  tmp = (__u32)bpf_ntohs(iph->tot_len);
+  tmp = (__u32)bpf_ntohs(iph->tot_len) - sizeof(struct iphdr);
   tmp = bpf_htonl(tmp);
   ret = bpf_csum_diff(0, 0, &tmp, sizeof(__u32), *csum);
   if (ret < 0) {
@@ -205,7 +205,7 @@ __attribute__((__always_inline__)) static inline __s64 rem_pseudo_ipv4_header(
     return ret;
   }
   *csum = ret;
-  tmp = (__u32)bpf_ntohs(iph->tot_len);
+  tmp = (__u32)bpf_ntohs(iph->tot_len) - sizeof(struct iphdr);
   tmp = bpf_htonl(tmp);
   ret = bpf_csum_diff(&tmp, sizeof(__u32), 0, 0, *csum);
   if (ret < 0) {
@@ -331,6 +331,40 @@ __attribute__((__always_inline__)) static inline bool gue_csum_v4_in_v6(
   }
   *csum_in_hdr = ret;
   if (add_pseudo_ipv6_header(outer_ip6h, csum_in_hdr) < 0) {
+    return false;
+  }
+  *csum_in_hdr = csum_fold_helper(*csum_in_hdr);
+  return true;
+}
+
+__attribute__((__always_inline__)) static inline bool gue_csum_v6_in_v4(
+    struct iphdr* outer_iph,
+    struct udphdr* udph,
+    struct ipv6hdr* inner_ip6h,
+    __u64* csum_in_hdr) {
+  __s64 ret;
+  __u32 tmp = 0;
+  __u32 seed = (~(*csum_in_hdr)) & 0xffff;
+  __u32 orig_csum = (__u32)*csum_in_hdr;
+  ret = bpf_csum_diff(0, 0, &orig_csum, sizeof(__u32), seed);
+  if (ret < 0) {
+    return false;
+  }
+  *csum_in_hdr = ret;
+  if (rem_pseudo_ipv6_header(inner_ip6h, csum_in_hdr) < 0) {
+    return false;
+  }
+  ret = bpf_csum_diff(0, 0, inner_ip6h, sizeof(struct ipv6hdr), *csum_in_hdr);
+  if (ret < 0) {
+    return false;
+  }
+  *csum_in_hdr = ret;
+  ret = bpf_csum_diff(0, 0, udph, sizeof(struct udphdr), *csum_in_hdr);
+  if (ret < 0) {
+    return false;
+  }
+  *csum_in_hdr = ret;
+  if (add_pseudo_ipv4_header(outer_iph, csum_in_hdr) < 0) {
     return false;
   }
   *csum_in_hdr = csum_fold_helper(*csum_in_hdr);
