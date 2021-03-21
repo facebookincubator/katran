@@ -287,18 +287,30 @@ static inline int process_encaped_ipip_pckt(void **data, void **data_end,
         return XDP_DROP;
       }
       action = decrement_ttl(*data, *data_end, offset, false);
-      if (!decap_v4(xdp, data, data_end)) {
+      if (!decap_v4(xdp, data, data_end, true)) {
         return XDP_DROP;
       }
     }
   } else if (*protocol == IPPROTO_IPV6) {
-    int offset = sizeof(struct ipv6hdr) + sizeof(struct eth_hdr);
-    if ((*data + offset) > *data_end) {
-      return XDP_DROP;
-    }
-    action = decrement_ttl(*data, *data_end, offset, true);
-    if (!decap_v6(xdp, data, data_end, false)) {
-      return XDP_DROP;
+    if (*is_ipv6) {
+      int offset = sizeof(struct ipv6hdr) + sizeof(struct eth_hdr);
+      if ((*data + offset) > *data_end) {
+        return XDP_DROP;
+      }
+      action = decrement_ttl(*data, *data_end, offset, true);
+      if (!decap_v6(xdp, data, data_end, false)) {
+        return XDP_DROP;
+      }
+    } else {
+      int offset = sizeof(struct iphdr) + sizeof(struct eth_hdr);
+      if ((*data + offset) > *data_end) {
+        return XDP_DROP;
+      }
+      action = decrement_ttl(*data, *data_end, offset, true);
+      if (!decap_v4(xdp, data, data_end, false)) {
+        return XDP_DROP;
+      }
+      *is_ipv6 = true;
     }
   }
   if (action >= 0) {
@@ -343,14 +355,24 @@ static inline int process_encaped_gue_pckt(void **data, void **data_end,
       }
     }
   } else {
+    __u8 v6 = 0;
     offset = sizeof(struct iphdr) + sizeof(struct eth_hdr) +
       sizeof(struct udphdr);
-    if ((*data + offset) > *data_end) {
+    if ((*data + offset + 1) > *data_end) {
       return XDP_DROP;
     }
-    action = decrement_ttl(*data, *data_end, offset, false);
-    if (!gue_decap_v4(xdp, data, data_end)) {
-        return XDP_DROP;
+    v6 = ((__u8*)(*data))[offset];
+    v6 &= GUEV1_IPV6MASK;
+    if (v6) {
+      action = decrement_ttl(*data, *data_end, offset, true);
+      if (!gue_decap_v4(xdp, data, data_end, false)) {
+          return XDP_DROP;
+      }
+    } else {
+      action = decrement_ttl(*data, *data_end, offset, false);
+      if (!gue_decap_v4(xdp, data, data_end, true)) {
+          return XDP_DROP;
+      }
     }
   }
   if (action >= 0) {

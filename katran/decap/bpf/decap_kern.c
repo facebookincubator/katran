@@ -100,17 +100,27 @@ static inline int process_encaped_pckt(void **data, void **data_end,
            sizeof(struct eth_hdr)) > *data_end) {
         return XDP_DROP;
       }
-      if (!decap_v4(xdp, data, data_end)) {
+      if (!decap_v4(xdp, data, data_end, true)) {
         return XDP_DROP;
       }
     }
   } else if (*protocol == IPPROTO_IPV6) {
-    if ((*data + sizeof(struct ipv6hdr) +
-         sizeof(struct eth_hdr)) > *data_end) {
-      return XDP_DROP;
-    }
-    if (!decap_v6(xdp, data, data_end, false)) {
-      return XDP_DROP;
+    if (*is_ipv6) {
+      if ((*data + sizeof(struct ipv6hdr) +
+          sizeof(struct eth_hdr)) > *data_end) {
+        return XDP_DROP;
+      }
+      if (!decap_v6(xdp, data, data_end, false)) {
+        return XDP_DROP;
+      }
+    } else {
+      if ((*data + sizeof(struct iphdr) +
+          sizeof(struct eth_hdr)) > *data_end) {
+        return XDP_DROP;
+      }
+      if (!decap_v4(xdp, data, data_end, false)) {
+        return XDP_DROP;
+      }
     }
   }
   return FURTHER_PROCESSING;
