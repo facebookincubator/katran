@@ -174,7 +174,7 @@ __attribute__((__always_inline__)) static inline __s64 add_pseudo_ipv4_header(
     return ret;
   }
   *csum = ret;
-  tmp = (__u32)bpf_ntohs(iph->tot_len);
+  tmp = (__u32)bpf_ntohs(iph->tot_len) - sizeof(struct iphdr);
   tmp = bpf_htonl(tmp);
   ret = bpf_csum_diff(0, 0, &tmp, sizeof(__u32), *csum);
   if (ret < 0) {
@@ -205,7 +205,7 @@ __attribute__((__always_inline__)) static inline __s64 rem_pseudo_ipv4_header(
     return ret;
   }
   *csum = ret;
-  tmp = (__u32)bpf_ntohs(iph->tot_len);
+  tmp = (__u32)bpf_ntohs(iph->tot_len) - sizeof(struct iphdr);
   tmp = bpf_htonl(tmp);
   ret = bpf_csum_diff(&tmp, sizeof(__u32), 0, 0, *csum);
   if (ret < 0) {
