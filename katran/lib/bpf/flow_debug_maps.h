@@ -22,19 +22,13 @@
 #include "bpf_helpers.h"
 #include "flow_debug.h"
 
-struct bpf_map_def SEC("maps") flow_debug_map = {
-    .type = BPF_MAP_TYPE_LRU_PERCPU_HASH,
-    .key_size = sizeof(struct flow_key),
-    .value_size = sizeof(struct flow_debug_info),
-    .max_entries = FLOW_DEBUG_MAP_SIZE,
-    .map_flags = BPF_F_NO_COMMON_LRU,
+struct bpf_map_def SEC("maps") flow_debug_maps = {
+  .type = BPF_MAP_TYPE_ARRAY_OF_MAPS,
+  .key_size = sizeof(__u32),
+  .value_size = sizeof(__u32),
+  .max_entries = MAX_SUPPORTED_CPUS,
+  .map_flags = NO_FLAGS,
 };
-
-BPF_ANNOTATE_KV_PAIR(
-  flow_debug_map,
-  struct flow_key,
-  struct flow_debug_info
-);
 
 
 

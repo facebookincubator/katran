@@ -54,6 +54,12 @@ gue_record_route(struct eth_hdr* outer_eth, struct eth_hdr* inner_eth, void* dat
   struct iphdr *ip4h = 0;
   void *transport_header = 0;
 
+  __u32 cpu_num = bpf_get_smp_processor_id();
+  void *flow_debug_map = bpf_map_lookup_elem(&flow_debug_maps, &cpu_num);
+  if (!flow_debug_map) {
+    return;
+  }
+
   if (outer_v4) {
     if ((void*)outer_eth + sizeof(struct eth_hdr) + sizeof(struct iphdr) > data_end) {
       return;
@@ -91,7 +97,7 @@ gue_record_route(struct eth_hdr* outer_eth, struct eth_hdr* inner_eth, void* dat
     flow.proto = ip6h->nexthdr;
     flow.ports = get_next_ports(transport_header, ip6h->nexthdr, data_end);
   }
-  bpf_map_update_elem(&flow_debug_map, &flow, &debug_info, BPF_ANY);
+  bpf_map_update_elem(flow_debug_map, &flow, &debug_info, BPF_ANY);
   return;
 }
 
