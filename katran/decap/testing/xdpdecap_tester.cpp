@@ -22,6 +22,7 @@
 #include <gflags/gflags.h>
 
 #include "katran/decap/testing/XdpDecapTestFixtures.h"
+#include "katran/decap/testing/XdpDecapGueTestFixtures.h"
 #include "katran/decap/XdpDecap.h"
 #include "katran/decap/XdpDecapStructs.h"
 #include "katran/lib/testing/BpfTester.h"
@@ -31,6 +32,7 @@ DEFINE_string(pcap_output, "", "path to output pcap file");
 DEFINE_string(decap_prog, "./decap_kern.o", "path to balancer bpf prog");
 DEFINE_bool(print_base64, false, "print packets in base64 from pcap file");
 DEFINE_bool(test_from_fixtures, false, "run tests on predefined dataset");
+DEFINE_bool(gue, false, "run GUE tests instead of IPIP ones");
 DEFINE_bool(perf_testing, false, "run perf tests on predefined dataset");
 DEFINE_int32(repeat, 1000000, "perf test runs for single packet");
 DEFINE_int32(position, -1, "perf test runs for single packet");
@@ -38,12 +40,22 @@ DEFINE_int32(position, -1, "perf test runs for single packet");
 void testXdpDecapCounters(katran::XdpDecap& decap) {
   LOG(INFO) << "Testing counter's sanity";
   auto stats = decap.getXdpDecapStats();
-  if (stats.decap_v4 != 1 || stats.decap_v6 != 2 || stats.total != 7) {
-    VLOG(2) << "decap_v4: " << stats.decap_v4 << " decap_v6: " << stats.decap_v6
-            << " total: " << stats.total;
-    LOG(INFO) << "Incorect decap counters";
+  int expectedV4DecapPkts = 1;
+  int expectedV6DecapPkts = FLAGS_gue ? 3 : 2;
+  int expectedTotalPkts = FLAGS_gue ? 9 : 7;
+  if (stats.decap_v4 != expectedV4DecapPkts ||
+      stats.decap_v6 != expectedV6DecapPkts ||
+      stats.total != expectedTotalPkts) {
+    LOG(ERROR) << "decap_v4 pkts: " << stats.decap_v4
+               << ", expected decap_v4 pkts: " << expectedV4DecapPkts
+               << ", decap_v6: " << stats.decap_v6
+               << ", expected decap_v6 pkts: " << expectedV6DecapPkts
+               << " total: " << stats.total
+               << ", expected total_pkts: " << expectedTotalPkts;
+    LOG(ERROR) << "[FAIL] Incorrect decap counters";
+    return;
   }
-  LOG(INFO) << "Testing of counters is complite";
+  LOG(INFO) << "[SUCCESS] Testing of counters is complete";
 }
 
 int main(int argc, char** argv) {
@@ -53,8 +65,10 @@ int main(int argc, char** argv) {
   katran::TesterConfig config;
   config.inputFileName = FLAGS_pcap_input;
   config.outputFileName = FLAGS_pcap_output;
-  config.inputData = katran::testing::inputTestFixtures;
-  config.outputData = katran::testing::outputTestFixtures;
+  config.inputData = FLAGS_gue ? katran::testing::inputGueTestFixtures
+                               : katran::testing::inputTestFixtures;
+  config.outputData = FLAGS_gue ? katran::testing::outputGueTestFixtures
+                                : katran::testing::outputTestFixtures;
   katran::BpfTester tester(config);
   if (FLAGS_print_base64) {
     if (FLAGS_pcap_input.empty()) {

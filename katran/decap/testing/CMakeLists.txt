@@ -1,5 +1,6 @@
 add_executable(xdpdecap_tester
     xdpdecap_tester.cpp
+    XdpDecapGueTestFixtures.h
     XdpDecapTestFixtures.h
 )
 

@@ -25,6 +25,7 @@
 #include "bpf.h"
 #include "bpf_helpers.h"
 #include "pckt_encap.h"
+#include "pckt_parsing.h"
 
 #ifndef DECAP_PROG_SEC
 #define DECAP_PROG_SEC "xdp-decap"
@@ -36,7 +37,6 @@ static inline int process_l3_headers(struct packet_description *pckt,
                                      __u16 *pkt_bytes, void *data,
                                      void *data_end, bool is_ipv6) {
   __u64 iph_len;
-  int action;
   struct iphdr *iph;
   struct ipv6hdr *ip6h;
   if (is_ipv6) {
@@ -80,12 +80,11 @@ static inline int process_l3_headers(struct packet_description *pckt,
 }
 
 __attribute__((__always_inline__))
-static inline int process_encaped_pckt(void **data, void **data_end,
+static inline int process_encaped_ipip_pckt(void **data, void **data_end,
                                        struct xdp_md *xdp, bool *is_ipv6,
                                        struct packet_description *pckt,
                                        __u8 *protocol, __u64 off,
                                        __u16 *pkt_bytes) {
-  int action;
   if (*protocol == IPPROTO_IPIP) {
     if (*is_ipv6) {
       if ((*data + sizeof(struct ipv6hdr) +
@@ -115,6 +114,46 @@ static inline int process_encaped_pckt(void **data, void **data_end,
   }
   return FURTHER_PROCESSING;
 }
+
+#ifdef INLINE_DECAP_GUE
+__attribute__((__always_inline__))
+static inline int process_encaped_gue_pckt(void **data, void **data_end,
+                                           struct xdp_md *xdp, bool is_ipv6) {
+  int offset = 0;
+  if (is_ipv6) {
+    __u8 v6 = 0;
+    offset = sizeof(struct ipv6hdr) + sizeof(struct eth_hdr) +
+      sizeof(struct udphdr);
+    // 1 byte for gue v1 marker to figure out what is internal protocol
+    if ((*data + offset + 1) > *data_end) {
+      return XDP_DROP;
+    }
+    v6 = ((__u8*)(*data))[offset];
+    v6 &= GUEV1_IPV6MASK;
+    if (v6) {
+      // inner packet is ipv6 as well
+      if (!gue_decap_v6(xdp, data, data_end, false)) {
+        return XDP_DROP;
+      }
+    } else {
+      // inner packet is ipv4
+      if (!gue_decap_v6(xdp, data, data_end, true)) {
+        return XDP_DROP;
+      }
+    }
+  } else {
+    offset = sizeof(struct iphdr) + sizeof(struct eth_hdr) +
+      sizeof(struct udphdr);
+    if ((*data + offset) > *data_end) {
+      return XDP_DROP;
+    }
+    if (!gue_decap_v4(xdp, data, data_end)) {
+        return XDP_DROP;
+    }
+  }
+  return FURTHER_PROCESSING;
+}
+#endif // INLINE_DECAP_GUE
 
 __attribute__((__always_inline__))
 static inline int process_packet(void *data, __u64 off, void *data_end,
@@ -146,13 +185,30 @@ static inline int process_packet(void *data, __u64 off, void *data_end,
     } else {
       data_stats->decap_v4 += 1;
     }
-
-    action = process_encaped_pckt(&data, &data_end, xdp, &is_ipv6, &pckt,
-                                  &protocol, off, &pkt_bytes);
+    action = process_encaped_ipip_pckt(
+        &data, &data_end, xdp, &is_ipv6, &pckt, &protocol, off, &pkt_bytes);
     if (action >= 0) {
       return action;
     }
   }
+#ifdef INLINE_DECAP_GUE
+  else if (protocol == IPPROTO_UDP) {
+    if (!parse_udp(data, data_end, is_ipv6, &pckt)) {
+      return XDP_PASS;
+    }
+    if (pckt.flow.port16[1] == bpf_htons(GUE_DPORT)) {
+      if (is_ipv6) {
+        data_stats->decap_v6 += 1;
+      } else {
+        data_stats->decap_v4 += 1;
+      }
+      action = process_encaped_gue_pckt(&data, &data_end, xdp, is_ipv6);
+      if (action >= 0) {
+        return action;
+      }
+    }
+  }
+#endif // INLINE_DECAP_GUE
   return XDP_PASS;
 }
 
