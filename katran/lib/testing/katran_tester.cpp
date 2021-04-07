@@ -397,6 +397,8 @@ std::string toString(katran::KatranFeatureEnum feature) {
       return "DirectHealthchecking";
     case KatranFeatureEnum::LocalDeliveryOptimization:
       return "LocalDeliveryOptimization";
+    case KatranFeatureEnum::FlowDebug:
+      return "FlowDebug";
   }
   folly::assume_unreachable();
 }
@@ -408,6 +410,7 @@ static const std::vector<KatranFeatureEnum> kAllFeatures = {
     KatranFeatureEnum::GueEncap,
     KatranFeatureEnum::DirectHealthchecking,
     KatranFeatureEnum::LocalDeliveryOptimization,
+    KatranFeatureEnum::FlowDebug,
 };
 
 void listFeatures(katran::KatranLb& lb) {

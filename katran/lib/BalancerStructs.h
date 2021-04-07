@@ -98,4 +98,16 @@ struct v6_lpm_key {
     uint32_t prefixlen;
     uint32_t addr[4];
 };
+
+// Route information saved during inline decapsulation of GUE packets
+struct flow_debug_info {
+  union {
+    uint32_t l4_hop;
+    uint32_t l4_hopv6[4];
+  };
+  union {
+    uint32_t this_hop;
+    uint32_t this_hopv6[4];
+  };
+};
 } // namespace katran

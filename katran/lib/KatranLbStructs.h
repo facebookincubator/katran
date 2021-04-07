@@ -157,6 +157,7 @@ struct KatranMonitorConfig {
  * @param katranSrcV6 string ipv6 source address for GUE packets
  * @param std::vector<uint8_t> localMac mac address of local server
  * @param HashFunction hashFunction to create hash ring
+ * @param flowDebug if set, creates and populates extra debugging maps
  *
  * note about rootMapPath and rootMapPos:
  * katran has two modes of operation.
@@ -206,6 +207,7 @@ struct KatranConfig {
   std::string katranSrcV6 = kAddressNotSpecified;
   std::vector<uint8_t> localMac;
   HashFunction hashFunction = HashFunction::Maglev;
+  bool flowDebug = false;
 };
 
 /**
@@ -283,6 +285,7 @@ struct KatranFeatures {
   bool gueEncap{false};
   bool directHealthchecking{false};
   bool localDeliveryOptimization{false};
+  bool flowDebug{false};
 };
 
 /**
@@ -296,6 +299,7 @@ enum class KatranFeatureEnum : uint8_t {
   GueEncap = 1 << 3,
   DirectHealthchecking = 1 << 4,
   LocalDeliveryOptimization = 1 << 5,
+  FlowDebug = 1 << 6,
 };
 
 /**

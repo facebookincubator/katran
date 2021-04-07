@@ -732,6 +732,33 @@ class KatranLb {
       int numaNode = kNoNuma);
 
   /**
+   * helper function to creat LRU map w/ specified size.
+   * returns fd on success, -1 on failure.
+   */
+  int createFlowDebugLru(
+      int size = kFallbackLruSize,
+      int flags = kMapNoFlags,
+      int numaNode = kNoNuma);
+
+  /**
+   * create and save the fd of a map used for flow debugging
+   * throws on failure
+   */
+  void initFlowDebugMapForCore(int core, int size, int flags, int numaNode);
+
+  /**
+   * create a prototype map for flow debugging
+   * throws on failure
+   */
+  void initFlowDebugPrototypeMap(const std::string& path);
+
+  /**
+   * sets the cpu-specific entry in the parent map
+   * throws on failure
+   */
+  void attachFlowDebugLru(int core);
+
+  /**
    * helper function which do forwarding plane feature discovering
    */
   void featureDiscovering();
@@ -903,6 +930,11 @@ class KatranLb {
    * vector of LRU maps descriptors;
    */
   std::vector<int> lruMapsFd_;
+
+  /**
+   * vector of flow debug maps descriptors;
+   */
+  std::vector<int> flowDebugMapsFd_;
 
   /**
    * userspace library stats
