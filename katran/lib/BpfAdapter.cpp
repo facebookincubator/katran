@@ -856,4 +856,25 @@ void BpfAdapter::handlePerfEvent(
   header->data_tail = dataHead;
 }
 
+bool BpfAdapter::isMapInBpfObject(
+  const std::string& path,
+  const std::string& mapName
+) {
+  ::bpf_map* map;
+  auto obj = ::bpf_object__open(path.c_str());
+  if (obj == nullptr) {
+    return false;
+  }
+  SCOPE_EXIT {
+    ::bpf_object__close(obj);
+  };
+
+  bpf_map__for_each(map, obj) {
+    if(mapName == ::bpf_map__name(map)) {
+      return true;
+    }
+  }
+  return false;
+}
+
 } // namespace katran

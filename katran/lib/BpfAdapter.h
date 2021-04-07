@@ -645,6 +645,17 @@ class BpfAdapter {
       int pages,
       int cpu);
 
+  /**
+   * @param path path to the .o object file
+   * @param mapName name of map to check
+   *
+   * stateless helper function to check for the presence of a map in an
+   * unloaded bpf file
+   */
+  static bool isMapInBpfObject(
+    const std::string& path,
+    const std::string& mapName);
+
  private:
   /**
    * helper function to modify (add/delete/replace) tc's bpf prog.
