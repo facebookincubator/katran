@@ -500,7 +500,6 @@ KatranSimpleClient::createKatranClient(const folly::SocketAddress &addr) {
   AsyncSocket::UniquePtr sock(new AsyncSocket(&evb_, addr));
   sock->setZeroCopy(true);
   auto channel = HeaderClientChannel::newChannel(std::move(sock));
-  channel->setProtocolId(apache::thrift::protocol::T_COMPACT_PROTOCOL);
   return std::make_unique<KatranServiceAsyncClient>(std::move(channel));
 }
 
