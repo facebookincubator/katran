@@ -2,9 +2,6 @@
   <img src="logo.png" alt="logo" width="50%"/>
 </p>
 <p align="center">
-  <a href="https://travis-ci.org/facebookincubator/katran">
-    <img src="https://travis-ci.org/facebookincubator/katran.svg?branch=master" alt="Travis Build Status"/>
-  </a>
   <a href="https://github.com/facebookincubator/katran/actions?workflow=CI">
     <img src="https://github.com/facebookincubator/katran/workflows/CI/badge.svg?branch=master" alt="CI Status" />
   </a>
