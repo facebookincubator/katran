@@ -60,8 +60,13 @@ int libbpf_print(
   if (level == LIBBPF_DEBUG && !VLOG_IS_ON(6)) {
     return 0;
   }
-
   return vfprintf(stderr, format, args);
+}
+
+std::string libBpfErrMsg(int err) {
+  std::array<char, 128> buf{};
+  libbpf_strerror(err, buf.data(), buf.size());
+  return std::string(buf.begin(), buf.end());
 }
 
 } // namespace
@@ -137,7 +142,10 @@ int BpfLoader::loadBpfFile(
     const bpf_prog_type type,
     bool use_names) {
   auto obj = ::bpf_object__open(path.c_str());
-  if (obj == nullptr) {
+  const auto err = ::libbpf_get_error(obj);
+  if (err) {
+    LOG(ERROR) << "Error while opening bpf object: " << path
+               << ", error: " << libBpfErrMsg(err);
     return kError;
   }
   return loadBpfObject(obj, path, type);
@@ -147,7 +155,10 @@ int BpfLoader::reloadBpfFromFile(
     const std::string& path,
     const bpf_prog_type type) {
   auto obj = ::bpf_object__open(path.c_str());
-  if (obj == nullptr) {
+  const auto err = ::libbpf_get_error(obj);
+  if (err) {
+    LOG(ERROR) << "Error while opening bpf object: " << path
+               << ", error: " << libBpfErrMsg(err);
     return kError;
   }
   return reloadBpfObject(obj, path, type);
@@ -159,7 +170,10 @@ int BpfLoader::loadBpfFromBuffer(
     const bpf_prog_type type,
     bool use_names) {
   auto obj = ::bpf_object__open_buffer(buf, buf_size, "buffer");
-  if (obj == nullptr) {
+  const auto err = ::libbpf_get_error(obj);
+  if (err) {
+    LOG(ERROR) << "Error while opening bpf object from buffer, error: "
+               << libBpfErrMsg(err);
     return kError;
   }
   return loadBpfObject(obj, "buffer", type);
