@@ -151,7 +151,7 @@ KatranLb::~KatranLb() {
           hcIfindex,
           "katran-healthchecker",
           config_.priority,
-          BPF_TC_EGRESS);
+          TC_EGRESS);
       if (res != 0) {
         LOG(INFO) << folly::sformat(
             "wasn't able to delete hc bpf prog, error: {}",
@@ -730,7 +730,7 @@ void KatranLb::attachBpfProgs() {
         ctlValues_[kHcIntfPos].ifindex,
         "katran-healthchecker",
         config_.priority,
-        BPF_TC_EGRESS);
+        TC_EGRESS);
     if (res != 0) {
       if (standalone_) {
         // will try to remove main bpf prog.
