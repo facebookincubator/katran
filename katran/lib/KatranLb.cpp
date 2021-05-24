@@ -1686,6 +1686,10 @@ lb_stats KatranLb::getQuicCidDropStats() {
   return getLbStats(config_.maxVips + kQuicCidDropOffset);
 }
 
+lb_stats KatranLb::getTcpServerIdRoutingStats() {
+  return getLbStats(config_.maxVips + kTcpServerIdRoutingOffset);
+}
+
 lb_stats KatranLb::getSrcRoutingStats() {
   return getLbStats(config_.maxVips + kLpmSrcOffset);
 }

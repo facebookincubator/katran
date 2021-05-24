@@ -60,6 +60,7 @@ constexpr uint32_t kInlineDecapOffset = 6;
 constexpr uint32_t kQuicRoutingOffset = 7;
 constexpr uint32_t kQuicCidVersionOffset = 8;
 constexpr uint32_t kQuicCidDropOffset = 9;
+constexpr uint32_t kTcpServerIdRoutingOffset = 10;
 
 /**
  * LRU map related constants
@@ -467,6 +468,15 @@ class KatranLb {
    * v2 - packets dropped because server ID map pointed to unknown real ID.
    */
   lb_stats getQuicCidDropStats();
+
+  /**
+   * @return struct lb_stats w/ statistic of server_id based routing of
+   * TCP packets (if enabled)
+   *
+   * helper function which returns how many TCP packets were routed
+   * using the default 5-tuple hash vs using the connection-id
+   */
+  lb_stats getTcpServerIdRoutingStats();
 
   /**
    * @return struct lb_stats w/ src routing related statistics

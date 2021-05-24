@@ -192,6 +192,8 @@
 #define QUIC_CID_VERSION_STATS 8
 // QUIC CID drops stats
 #define QUIC_CID_DROP_STATS 9
+// offset of stats for server_id based routing of TCP packets (TPR)
+#define TCP_SERVER_ID_ROUTE_STATS 10
 
 // max ammount of new connections per seconda per core for lru update
 // if we go beyond this value - we will bypass lru update.
