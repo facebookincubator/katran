@@ -30,6 +30,7 @@
 #include "katran/lib/testing/KatranGueTestFixtures.h"
 #include "katran/lib/testing/KatranHCTestFixtures.h"
 #include "katran/lib/testing/KatranOptionalTestFixtures.h"
+#include "katran/lib/testing/KatranTPRTestFixtures.h"
 #include "katran/lib/testing/KatranTestFixtures.h"
 #include "katran/lib/testing/KatranTestProvision.h"
 
@@ -61,6 +62,10 @@ DEFINE_bool(
     false,
     "run optional (kernel specific) counter tests");
 DEFINE_bool(gue, false, "run GUE tests instead of IPIP ones");
+DEFINE_bool(
+    tpr,
+    false,
+    "run tests for TCP Server-Id based routing (TPR) instead of IPIP or GUE ones");
 DEFINE_int32(repeat, 1000000, "perf test runs for single packet");
 DEFINE_int32(position, -1, "perf test runs for single packet");
 DEFINE_bool(iobuf_storage, false, "test iobuf storage for katran monitor");
@@ -322,6 +327,13 @@ void testLbCounters(katran::KatranLb& lb, KatranTestParam& testParam) {
                << stats.v2;
     LOG(ERROR) << "Counters for QUIC drops are wrong";
   }
+  stats = lb.getTcpServerIdRoutingStats();
+  if (stats.v2 != testParam.expectedTcpServerIdRoutingCounts() ||
+      stats.v1 != testParam.expectedTcpServerIdRoutingFallbackCounts()) {
+    LOG(ERROR) << "Counters for TCP server-id routing with CH (v1): " << stats.v1
+               << ", with server-id (v2): " << stats.v2;
+    LOG(ERROR) << "Counters for TCP server-id based routing are wrong";
+  }
   auto realStats = testParam.expectedRealStats();
   for (int i = 0; i < kReals.size(); i++) {
     auto real = kReals[i];
@@ -500,11 +512,39 @@ KatranTestParam createDefaultTestParam(TestMode testMode) {
   return testParam;
 }
 
+KatranTestParam createTPRTestParam() {
+  katran::VipKey vip;
+  vip.address = "10.200.1.1";
+  vip.port = kVipPort;
+  vip.proto = kTcp;
+  KatranTestParam testParam = {
+      .mode = TestMode::TPR,
+      .inputData = katran::testing::inputTPRTestFixtures,
+      .outputData = katran::testing::outputTPRTestFixtures,
+      .expectedCounters =
+          {
+              {KatranTestCounters::TOTAL_PKTS, 16},
+              {KatranTestCounters::LRU_MISSES, 4},
+              {KatranTestCounters::TCP_SYNS, 1},
+              {KatranTestCounters::NON_SYN_LRU_MISSES, 3},
+              {KatranTestCounters::LRU_FALLBACK_HITS, 16},
+              {KatranTestCounters::TCP_SERVER_ID_ROUNTING, 7},
+              {KatranTestCounters::TCP_SERVER_ID_ROUTING_FALLBACK_CH, 8},
+              {KatranTestCounters::TOTAL_FAILED_BPF_CALLS, 0},
+              {KatranTestCounters::TOTAL_ADDRESS_VALIDATION_FAILED, 0},
+          },
+      .perVipCounters = {{vip, std::pair<uint64_t, uint64_t>(4, 244)}}};
+  return testParam;
+}
+
 KatranTestParam getTestParam() {
   if (FLAGS_gue) {
     return createDefaultTestParam(TestMode::GUE);
+  } else if (FLAGS_tpr) {
+    return createTPRTestParam();
+  } else {
+    return createDefaultTestParam(TestMode::DEFAULT);
   }
-  return createDefaultTestParam(TestMode::DEFAULT);
 }
 
 int main(int argc, char** argv) {
