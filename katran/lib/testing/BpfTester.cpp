@@ -156,7 +156,7 @@ void BpfTester::runBpfTesterFromFixtures(
   // for inputData format is <pckt_base64, test description>
   // for outputData format is <expected_pckt_base64, xdp_return_code_string>
   if (config_.inputData.size() != config_.outputData.size()) {
-    LOG(INFO) << "input and output datasets must have equal number of elements";
+    LOG(ERROR) << "input and output datasets must have equal number of elements";
     return;
   }
   uint32_t output_pckt_size{0};
@@ -226,7 +226,6 @@ void BpfTester::runBpfTesterFromFixtures(
 void BpfTester::resetTestFixtures(
     const std::vector<std::pair<std::string, std::string>>& inputData,
     const std::vector<std::pair<std::string, std::string>>& outputData) {
-  //
   config_.inputData = inputData;
   config_.outputData = outputData;
 }

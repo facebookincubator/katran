@@ -205,20 +205,22 @@ void testHcFromFixture(katran::KatranLb& lb, katran::BpfTester& tester) {
   tester.testClsFromFixture(lb.getHealthcheckerProgFd(), ctxs);
 }
 
-void testOptionalLbCounters(katran::KatranLb& lb) {
+void testOptionalLbCounters(katran::KatranLb& lb, KatranTestParam& testParam) {
   LOG(INFO) << "Testing optional counter's sanity";
   auto stats = lb.getIcmpTooBigStats();
-  if (stats.v1 != 1 || stats.v2 != 1) {
+  if (stats.v1 != testParam.expectedIcmpV4Counts() ||
+      stats.v2 != testParam.expectedIcmpV6Counts()) {
     VLOG(2) << "icmpV4 hits: " << stats.v1 << " icmpv6 hits:" << stats.v2;
     LOG(INFO) << "icmp packet too big counter is incorrect";
   }
   stats = lb.getSrcRoutingStats();
-  if (stats.v1 != 2 || stats.v2 != 6) {
+  if (stats.v1 != testParam.expectedSrcRoutingPktsLocal() ||
+      stats.v2 != testParam.expectedSrcRoutingPktsRemote()) {
     VLOG(2) << "lpm src. local pckts: " << stats.v1 << " remote:" << stats.v2;
     LOG(INFO) << "source based routing counter is incorrect";
   }
   stats = lb.getInlineDecapStats();
-  if (stats.v1 != 4) {
+  if (stats.v1 != testParam.expectedInlineDecapPkts()) {
     VLOG(2) << "inline decapsulated pckts: " << stats.v1;
     LOG(INFO) << "inline decapsulated packet's counter is incorrect";
   }
@@ -226,7 +228,7 @@ void testOptionalLbCounters(katran::KatranLb& lb) {
   auto monitor_stats = lb.getKatranMonitorStats();
   LOG(INFO) << "limit: " << monitor_stats.limit
             << " amount: " << monitor_stats.amount;
-  LOG(INFO) << "Testing of optional counters is complite";
+  LOG(INFO) << "Testing of optional counters is complete";
 }
 
 void validateMapSize(
@@ -268,50 +270,59 @@ void postTestOptionalLbCounters(katran::KatranLb& lb) {
   LOG(INFO) << "Followup testing of counters is complete";
 }
 
-void testLbCounters(katran::KatranLb& lb) {
+void testLbCounters(katran::KatranLb& lb, KatranTestParam& testParam) {
   katran::VipKey vip;
   vip.address = "10.200.1.1";
   vip.port = kVipPort;
   vip.proto = kTcp;
   LOG(INFO) << "Testing counter's sanity. Printing on errors only";
-  auto stats = lb.getStatsForVip(vip);
-  if ((stats.v1 != 4) || (stats.v2 != 248)) {
-    VLOG(2) << "pckts: " << stats.v1 << " bytes: " << stats.v2;
-    LOG(ERROR) << "per Vip counter is incorrect for vip:" << vip.address;
+  for (auto& vipCounter : testParam.perVipCounters) {
+    auto vipStats = lb.getStatsForVip(vip);
+    if ((vipStats.v1 != testParam.expectedTotalPktsForVip(vipCounter.first)) ||
+        (vipStats.v2 != testParam.expectedTotalBytesForVip(vipCounter.first))) {
+      VLOG(2) << "pckts: " << vipStats.v1 << ", bytes: " << vipStats.v2;
+      LOG(ERROR) << "per Vip counter is incorrect for vip:" << vip.address;
+    }
   }
-  stats = lb.getLruStats();
-  if ((stats.v1 != 23) || (stats.v2 != 11)) {
-    VLOG(2) << "Total pckts: " << stats.v1 << " LRU misses: " << stats.v2;
+  auto stats = lb.getLruStats();
+  if ((stats.v1 != testParam.expectedTotalPkts()) ||
+      (stats.v2 != testParam.expectedTotalLruMisses())) {
+    VLOG(2) << "Total pckts: " << stats.v1 << ", LRU misses: " << stats.v2;
     LOG(ERROR) << "LRU counter is incorrect";
   }
   stats = lb.getLruMissStats();
-  if ((stats.v1 != 2) || (stats.v2 != 6)) {
+  if ((stats.v1 != testParam.expectedTotalTcpSyns()) ||
+      (stats.v2 != testParam.expectedTotalTcpNonSynLruMisses())) {
     VLOG(2) << "TCP syns: " << stats.v1 << " TCP non-syns: " << stats.v2;
     LOG(ERROR) << "per pckt type LRU miss counter is incorrect";
   }
   stats = lb.getLruFallbackStats();
-  if (stats.v1 != 17) {
+  if (stats.v1 != testParam.expectedTotalLruFallbackHits()) {
     VLOG(2) << "FallbackLRU hits: " << stats.v1;
     LOG(ERROR) << "LRU fallback counter is incorrect";
   }
   stats = lb.getQuicRoutingStats();
-  if (stats.v1 != 5 || stats.v2 != 6) {
+  if (stats.v1 != testParam.expectedQuicRoutingWithCh() ||
+      stats.v2 != testParam.expectedQuicRoutingWithCid()) {
     LOG(ERROR) << "Counters for QUIC packets routed with CH: " << stats.v1
                << ",  with connection-id: " << stats.v2;
     LOG(ERROR) << "Counters for routing of QUIC packets is wrong.";
   }
   stats = lb.getQuicCidVersionStats();
-  if (stats.v1 != 4 || stats.v2 != 2) {
+  if (stats.v1 != testParam.expectedQuicCidV1Counts() ||
+      stats.v2 != testParam.expectedQuicCidV2Counts()) {
     LOG(ERROR) << "QUIC CID version counters v1 " << stats.v1 << " v2 "
                << stats.v2;
     LOG(ERROR) << "Counters for QUIC versions are wrong";
   }
   stats = lb.getQuicCidDropStats();
-  if (stats.v1 != 0 || stats.v2 != 4) {
+  if (stats.v1 != testParam.expectedQuicCidDropsReal0Counts() ||
+      stats.v2 != testParam.expectedQuicCidDropsNoRealCounts()) {
     LOG(ERROR) << "QUIC CID drop counters v1 " << stats.v1 << " v2 "
                << stats.v2;
     LOG(ERROR) << "Counters for QUIC drops are wrong";
   }
+  auto realStats = testParam.expectedRealStats();
   for (int i = 0; i < kReals.size(); i++) {
     auto real = kReals[i];
     auto id = lb.getIndexForReal(real);
@@ -320,7 +331,7 @@ void testLbCounters(katran::KatranLb& lb) {
       continue;
     }
     stats = lb.getRealStats(id);
-    auto expected_stats = kRealStats[i];
+    auto expected_stats = realStats[i];
     if (stats.v1 != expected_stats.v1 || stats.v2 != expected_stats.v2) {
       VLOG(2) << "stats for real: " << real << " v1: " << stats.v1
               << " v2: " << stats.v2;
@@ -329,12 +340,13 @@ void testLbCounters(katran::KatranLb& lb) {
     }
   }
   auto lb_stats = lb.getKatranLbStats();
-  if (lb_stats.bpfFailedCalls != 0) {
+  if (lb_stats.bpfFailedCalls != testParam.expectedTotalFailedBpfCalls()) {
     VLOG(2) << "failed bpf calls: " << lb_stats.bpfFailedCalls;
     LOG(INFO) << "incorrect stats about katran library internals: "
               << "number of failed bpf syscalls is non zero";
   }
-  if (lb_stats.addrValidationFailed != 0) {
+  if (lb_stats.addrValidationFailed !=
+      testParam.expectedTotalAddressValidations()) {
     VLOG(2) << "failed ip address validations: "
             << lb_stats.addrValidationFailed;
     LOG(INFO) << "incorrect stats about katran library internals: "
@@ -345,21 +357,16 @@ void testLbCounters(katran::KatranLb& lb) {
   return;
 }
 
-void runTestsFromFixture(katran::KatranLb& lb, katran::BpfTester& tester) {
+void runTestsFromFixture(
+    katran::KatranLb& lb,
+    katran::BpfTester& tester,
+    KatranTestParam& testParam) {
   prepareLbData(lb);
-  if (FLAGS_gue) {
-    tester.resetTestFixtures(
-        katran::testing::inputGueTestFixtures,
-        katran::testing::outputGueTestFixtures);
-  } else {
-    tester.resetTestFixtures(
-        katran::testing::inputTestFixtures,
-        katran::testing::outputTestFixtures);
-  }
+  tester.resetTestFixtures(testParam.inputData, testParam.outputData);
   auto prog_fd = lb.getKatranProgFd();
   tester.setBpfProgFd(prog_fd);
   tester.testFromFixture();
-  testLbCounters(lb);
+  testLbCounters(lb, testParam);
   if (FLAGS_optional_counter_tests) {
     postTestOptionalLbCounters(lb);
   }
@@ -383,7 +390,7 @@ void runTestsFromFixture(katran::KatranLb& lb, katran::BpfTester& tester) {
           katran::testing::outputOptionalTestFixtures);
     }
     tester.testFromFixture();
-    testOptionalLbCounters(lb);
+    testOptionalLbCounters(lb, testParam);
   }
 }
 
@@ -451,20 +458,65 @@ void testInstallAndRemoveFeatures(katran::KatranLb& lb) {
   }
 }
 
+KatranTestParam createDefaultTestParam(TestMode testMode) {
+  katran::VipKey vip;
+  vip.address = "10.200.1.1";
+  vip.port = kVipPort;
+  vip.proto = kTcp;
+  KatranTestParam testParam = {
+      .mode = testMode,
+      .inputData = testMode == TestMode::GUE
+          ? katran::testing::inputGueTestFixtures
+          : katran::testing::inputTestFixtures,
+      .outputData = testMode == TestMode::GUE
+          ? katran::testing::outputGueTestFixtures
+          : katran::testing::outputTestFixtures,
+      .expectedCounters =
+          {
+              {KatranTestCounters::TOTAL_PKTS, 23},
+              {KatranTestCounters::LRU_MISSES, 11},
+              {KatranTestCounters::TCP_SYNS, 2},
+              {KatranTestCounters::NON_SYN_LRU_MISSES, 6},
+              {KatranTestCounters::LRU_FALLBACK_HITS, 17},
+              {KatranTestCounters::QUIC_ROUTING_WITH_CH, 5},
+              {KatranTestCounters::QUIC_ROUTING_WITH_CID, 6},
+              {KatranTestCounters::QUIC_CID_V1, 4},
+              {KatranTestCounters::QUIC_CID_V2, 2},
+              {KatranTestCounters::QUIC_CID_DROPS_REAL_0, 0},
+              {KatranTestCounters::QUIC_CID_DROPS_NO_REAL, 4},
+              {KatranTestCounters::TOTAL_FAILED_BPF_CALLS, 0},
+              {KatranTestCounters::TOTAL_ADDRESS_VALIDATION_FAILED, 0},
+              // optional counters
+              {KatranTestCounters::ICMP_V4_COUNTS, 1},
+              {KatranTestCounters::ICMP_V6_COUNTS, 1},
+              {KatranTestCounters::SRC_ROUTING_PKTS_LOCAL, 2},
+              {KatranTestCounters::SRC_ROUTING_PKTS_REMOTE, 6},
+              {KatranTestCounters::INLINE_DECAP_PKTS, 4},
+              // unused
+              {KatranTestCounters::TCP_SERVER_ID_ROUNTING, 0},
+              {KatranTestCounters::TCP_SERVER_ID_ROUTING_FALLBACK_CH, 0},
+          },
+      .perVipCounters = {{vip, std::pair<uint64_t, uint64_t>(4, 248)}}};
+  return testParam;
+}
+
+KatranTestParam getTestParam() {
+  if (FLAGS_gue) {
+    return createDefaultTestParam(TestMode::GUE);
+  }
+  return createDefaultTestParam(TestMode::DEFAULT);
+}
+
 int main(int argc, char** argv) {
   gflags::ParseCommandLineFlags(&argc, &argv, true);
   google::InitGoogleLogging(argv[0]);
   FLAGS_logtostderr = 1;
   katran::TesterConfig config;
+  auto testParam = getTestParam();
   config.inputFileName = FLAGS_pcap_input;
   config.outputFileName = FLAGS_pcap_output;
-  if (FLAGS_gue) {
-    config.inputData = katran::testing::inputGueTestFixtures;
-    config.outputData = katran::testing::outputGueTestFixtures;
-  } else {
-    config.inputData = katran::testing::inputTestFixtures;
-    config.outputData = katran::testing::outputTestFixtures;
-  }
+  config.inputData = testParam.inputData;
+  config.outputData = testParam.outputData;
 
   if (FLAGS_packet_num >= 0) {
     config.singleTestRunPacketNumber_ = FLAGS_packet_num;
@@ -510,12 +562,12 @@ int main(int argc, char** argv) {
   }
   tester.setBpfProgFd(balancer_prog_fd);
   if (FLAGS_test_from_fixtures) {
-    runTestsFromFixture(lb, tester);
+    runTestsFromFixture(lb, tester, testParam);
     if (FLAGS_install_features_mask > 0 || FLAGS_remove_features_mask > 0) {
       // install/remove features will reload prog if provided, therefore
       // reloading again is redundant
       testInstallAndRemoveFeatures(lb);
-      runTestsFromFixture(lb, tester);
+      runTestsFromFixture(lb, tester, testParam);
     } else if (!FLAGS_reloaded_balancer_prog.empty()) {
       auto res = lb.reloadBalancerProg(FLAGS_reloaded_balancer_prog);
       if (!res) {
@@ -523,7 +575,7 @@ int main(int argc, char** argv) {
         return 1;
       }
       listFeatures(lb);
-      runTestsFromFixture(lb, tester);
+      runTestsFromFixture(lb, tester, testParam);
     }
     return 0;
   }
