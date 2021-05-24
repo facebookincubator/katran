@@ -36,6 +36,10 @@
 using namespace katran::testing;
 using KatranFeatureEnum = katran::KatranFeatureEnum;
 
+#ifndef MAX_VIPS
+#define MAX_VIPS 512
+#endif
+
 DEFINE_string(pcap_input, "", "path to input pcap file");
 DEFINE_string(pcap_output, "", "path to output pcap file");
 DEFINE_string(
@@ -495,6 +499,7 @@ int main(int argc, char** argv) {
   kconfig.katranSrcV4 = "10.0.13.37";
   kconfig.katranSrcV6 = "fc00:2307::1337";
   kconfig.localMac = kLocalMac;
+  kconfig.maxVips = MAX_VIPS;
 
   katran::KatranLb lb(kconfig);
   lb.loadBpfProgs();
