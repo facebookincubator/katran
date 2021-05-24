@@ -521,10 +521,10 @@ static inline int process_packet(void *data, __u64 off, void *data_end,
     if (real_index > 0) {
       increment_quic_cid_version_stats(real_index);
       __u32 key = real_index;
-      __u32 *real_pos = bpf_map_lookup_elem(&quic_mapping, &key);
+      __u32 *real_pos = bpf_map_lookup_elem(&server_id_map, &key);
       if (real_pos) {
         key = *real_pos;
-        // TODO: quic_mapping is array, which never fails to lookup element,
+        // TODO: server_id_map is array, which never fails to lookup element,
         // resulting in default value 0 for real id
         if (key == 0) {
           increment_quic_cid_drop_real_0();

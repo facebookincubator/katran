@@ -190,7 +190,7 @@ void KatranLb::initialSanityChecking() {
     maps.push_back("reals");
     maps.push_back("stats");
     maps.push_back("lru_mapping");
-    maps.push_back("quic_mapping");
+    maps.push_back("server_id_map");
 
     if (config_.flowDebug) {
       maps.push_back(kFlowDebugParentMapName.data());
@@ -1617,13 +1617,13 @@ void KatranLb::modifyQuicRealsMapping(
     }
   }
   if (!config_.testing) {
-    auto quic_mapping_fd = bpfAdapter_.getMapFdByName("quic_mapping");
+    auto server_id_map_fd = bpfAdapter_.getMapFdByName("server_id_map");
     uint32_t id, rnum;
     int res;
     for (auto& mapping : to_update) {
       id = mapping.first;
       rnum = mapping.second;
-      res = bpfAdapter_.bpfUpdateMap(quic_mapping_fd, &id, &rnum);
+      res = bpfAdapter_.bpfUpdateMap(server_id_map_fd, &id, &rnum);
       if (res != 0) {
         LOG(ERROR) << "can't update quic mapping, error: "
                    << folly::errnoStr(errno);
