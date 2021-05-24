@@ -510,6 +510,7 @@ static inline int process_packet(void *data, __u64 off, void *data_end,
   // total packets
   data_stats->v1 += 1;
 
+  // Lookup dst based on id in packet
   if ((vip_info->flags & F_QUIC_VIP)) {
     __u32 quic_stats_key = MAX_VIPS + QUIC_ROUTE_STATS;
     struct lb_stats* quic_stats = bpf_map_lookup_elem(&stats, &quic_stats_key);
@@ -561,16 +562,42 @@ static inline int process_packet(void *data, __u64 off, void *data_end,
       if (!lru_stats) {
         return XDP_DROP;
       }
-      // we weren't able to retrieve per cpu/core lru and falling back to
-      // default one. this counter should never be anything except 0 in prod.
-      // we are going to use it for monitoring.
+      // We were not able to retrieve per cpu/core lru and falling back to
+      // default one. This counter should never be anything except 0 in prod.
+      // We are going to use it for monitoring.
       lru_stats->v1 += 1;
     }
+#ifdef TCP_SERVER_ID_ROUTING
+    // First try to lookup dst in the tcp_hdr_opt (if enabled)
+    if (pckt.flow.proto == IPPROTO_TCP && !(pckt.flags & F_SYN_SET)) {
+      __u32 routing_stats_key = MAX_VIPS + TCP_SERVER_ID_ROUTE_STATS;
+      struct lb_stats* routing_stats =
+          bpf_map_lookup_elem(&stats, &routing_stats_key);
+      if (!routing_stats) {
+        return XDP_DROP;
+      }
+      if (tcp_hdr_opt_lookup(
+              data,
+              data_end,
+              is_ipv6,
+              &dst,
+              &pckt,
+              vip_info->flags & F_LRU_BYPASS,
+              lru_map) == FURTHER_PROCESSING) {
+        routing_stats->v1 += 1;
+      } else {
+        routing_stats->v2 += 1;
+      }
+    }
+#endif // TCP_SERVER_ID_ROUTING
 
-    if (!(pckt.flags & F_SYN_SET) &&
+    // Next, try to lookup dst in the lru_cache
+    if (!dst && !(pckt.flags & F_SYN_SET) &&
         !(vip_info->flags & F_LRU_BYPASS)) {
       connection_table_lookup(&dst, &pckt, lru_map);
     }
+
+    // if dst is not found, route via consistent-hashing of the flow.
     if (!dst) {
       if (pckt.flow.proto == IPPROTO_TCP) {
         __u32 lru_stats_key = MAX_VIPS + LRU_MISS_CNTR;

@@ -155,6 +155,22 @@
 #endif
 #define QUIC_CONNID_VERSION_V1_MAX_VAL 0xFFFF
 
+// Constants related to the feature for routing of TCP packets
+// using server_id (also referred as TPR: TCP Packet Routing).
+#ifdef TCP_SERVER_ID_ROUTING
+// the structure of the header-option used to embed server_id is:
+//  __u8 kind | __u8 len | __u32 server_id
+// Arbitrarily picked unused value from IANA TCP Option Kind Numbers
+#define TCP_HDR_OPT_KIND_TPR 0xB7
+// Length of the tcp header option
+#define TCP_HDR_OPT_LEN_TPR 6
+// maximum number of header options to check to lookup server_id
+#define TCP_HDR_OPT_MAX_OPT_CHECKS 15
+// End of Option List (reserved in IANA)
+#define TCP_OPT_EOL 0
+// No-Operation (reserved in IANA)
+#define TCP_OPT_NOP 1
+#endif
 
 // max ethernet packet's size which destination is a vip
 // we need to inforce it because if origin_packet + encap_hdr > MTU
