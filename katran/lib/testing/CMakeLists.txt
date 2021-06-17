@@ -77,6 +77,16 @@ target_link_libraries(katran_test_provision
   katranlb
 )
 
+add_library(katran_test_util STATIC
+    KatranTestUtil.h
+    KatranTestUtil.cpp
+)
+
+target_link_libraries(katran_test_util
+  katran_test_provision
+  katranlb
+)
+
 # katran_tester is a 'standalone' integration test
 add_executable(katran_tester katran_tester.cpp)
 
@@ -84,6 +94,7 @@ target_link_libraries(katran_tester
   katranlb
   bpftester
   katran_test_provision
+  katran_test_util
   ${GFLAGS}
   ${GTEST}
 )

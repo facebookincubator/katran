@@ -98,8 +98,9 @@ class BpfTester {
   /**
    * helper function to run tests on data from test fixtures
    * (inpu/outputData vectors from tester's config.)
+   * Returns true if all tests are successful.
    */
-  void testFromFixture();
+  bool testFromFixture();
 
   /**
    * @param int progFd descriptor of bpf program
@@ -136,7 +137,8 @@ class BpfTester {
  private:
   // helper to run bpf tester from fixtures. if len of ctxs is not null - it
   // must be the same as the size of input fixtures
-  void runBpfTesterFromFixtures(
+  // Returns true if all tests are successful.
+  bool runBpfTesterFromFixtures(
       int progFd,
       std::unordered_map<int, std::string> retvalTranslation,
       std::vector<void*> ctxs_in,
