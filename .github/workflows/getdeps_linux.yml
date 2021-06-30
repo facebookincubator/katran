@@ -15,8 +15,6 @@ jobs:
     runs-on: ubuntu-18.04
     steps:
     - uses: actions/checkout@v1
-    - name: Install system deps
-      run: sudo python3 build/fbcode_builder/getdeps.py install-system-deps --recursive katran
     - name: Fetch zlib
       run: python3 build/fbcode_builder/getdeps.py fetch --no-tests zlib
     - name: Fetch boost
