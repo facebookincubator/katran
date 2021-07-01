@@ -54,15 +54,9 @@ struct quic_short_header {
   __u8 connection_id[QUIC_MIN_CONNID_LEN];
 } __attribute__((__packed__));
 
-struct eth_hdr {
-  unsigned char eth_dest[ETH_ALEN];
-  unsigned char eth_source[ETH_ALEN];
-  unsigned short  eth_proto;
-};
-
 __attribute__((__always_inline__))
 static inline __u64 calc_offset(bool is_ipv6, bool is_icmp) {
-  __u64 off = sizeof(struct eth_hdr);
+  __u64 off = sizeof(struct ethhdr);
   if (is_ipv6) {
     off += sizeof(struct ipv6hdr);
     if (is_icmp) {

@@ -37,22 +37,22 @@
 
 __attribute__((__always_inline__))
 static inline int swap_mac_and_send(void *data, void *data_end) {
-  struct eth_hdr *eth;
+  struct ethhdr *eth;
   unsigned char tmp_mac[ETH_ALEN];
   eth = data;
-  memcpy(tmp_mac, eth->eth_source, ETH_ALEN);
-  memcpy(eth->eth_source, eth->eth_dest , ETH_ALEN);
-  memcpy(eth->eth_dest, tmp_mac, ETH_ALEN);
+  memcpy(tmp_mac, eth->h_source, ETH_ALEN);
+  memcpy(eth->h_source, eth->h_dest , ETH_ALEN);
+  memcpy(eth->h_dest, tmp_mac, ETH_ALEN);
   return XDP_TX;
 }
 
 __attribute__((__always_inline__))
-static inline void swap_mac(void *data, struct eth_hdr *orig_eth) {
-  struct eth_hdr *eth;
+static inline void swap_mac(void *data, struct ethhdr *orig_eth) {
+  struct ethhdr *eth;
   eth = data;
-  memcpy(eth->eth_source, orig_eth->eth_dest , ETH_ALEN);
-  memcpy(eth->eth_dest, orig_eth->eth_source, ETH_ALEN);
-  eth->eth_proto = orig_eth->eth_proto;
+  memcpy(eth->h_source, orig_eth->h_dest , ETH_ALEN);
+  memcpy(eth->h_dest, orig_eth->h_source, ETH_ALEN);
+  eth->h_proto = orig_eth->h_proto;
 }
 
 __attribute__((__always_inline__))
@@ -63,11 +63,11 @@ static inline int send_icmp_reply(void *data, void *data_end) {
   __u64 csum = 0;
   __u64 off = 0;
 
-  if ((data + sizeof(struct eth_hdr)
+  if ((data + sizeof(struct ethhdr)
       + sizeof(struct iphdr) + sizeof(struct icmphdr)) > data_end) {
     return XDP_DROP;
   }
-  off += sizeof(struct eth_hdr);
+  off += sizeof(struct ethhdr);
   iph = data + off;
   off += sizeof(struct iphdr);
   icmp_hdr = data + off;
@@ -92,11 +92,11 @@ static inline int send_icmp6_reply(void *data, void *data_end) {
   struct icmp6hdr *icmp_hdr;
   __be32 tmp_addr[4];
   __u64 off = 0;
-  if ((data + sizeof(struct eth_hdr)
+  if ((data + sizeof(struct ethhdr)
       + sizeof(struct ipv6hdr) + sizeof(struct icmp6hdr)) > data_end) {
     return XDP_DROP;
   }
-  off += sizeof(struct eth_hdr);
+  off += sizeof(struct ethhdr);
   ip6h = data + off;
   off += sizeof(struct ipv6hdr);
   icmp_hdr = data + off;
@@ -124,13 +124,13 @@ static inline int send_icmp4_too_big(struct xdp_md *xdp) {
     return XDP_DROP;
   }
   struct iphdr *iph, *orig_iph;
-  struct eth_hdr *orig_eth;
+  struct ethhdr *orig_eth;
   struct icmphdr *icmp_hdr;
   __u64 csum = 0;
   __u64 off = 0;
   orig_eth = data + headroom;
   swap_mac(data, orig_eth);
-  off += sizeof(struct eth_hdr);
+  off += sizeof(struct ethhdr);
   iph = data + off;
   off += sizeof(struct iphdr);
   icmp_hdr = data + off;
@@ -138,7 +138,7 @@ static inline int send_icmp4_too_big(struct xdp_md *xdp) {
   orig_iph = data + off;
   icmp_hdr->type = ICMP_DEST_UNREACH;
   icmp_hdr->code = ICMP_FRAG_NEEDED;
-  icmp_hdr->un.frag.mtu = bpf_htons(MAX_PCKT_SIZE-sizeof(struct eth_hdr));
+  icmp_hdr->un.frag.mtu = bpf_htons(MAX_PCKT_SIZE-sizeof(struct ethhdr));
   icmp_hdr->checksum = 0;
   ipv4_csum(icmp_hdr, ICMP_TOOBIG_PAYLOAD_SIZE, &csum);
   icmp_hdr->checksum = csum;
@@ -149,7 +149,7 @@ static inline int send_icmp4_too_big(struct xdp_md *xdp) {
   iph->ihl = 5;
   iph->protocol = IPPROTO_ICMP;
   iph->tos = 0;
-  iph->tot_len = bpf_htons(ICMP_TOOBIG_SIZE + headroom - sizeof(struct eth_hdr));
+  iph->tot_len = bpf_htons(ICMP_TOOBIG_SIZE + headroom - sizeof(struct ethhdr));
   iph->check = 0;
   csum = 0;
   ipv4_csum(iph, sizeof(struct iphdr), &csum);
@@ -169,13 +169,13 @@ static inline int send_icmp6_too_big(struct xdp_md *xdp) {
     return XDP_DROP;
   }
   struct ipv6hdr *ip6h, *orig_ip6h;
-  struct eth_hdr *orig_eth;
+  struct ethhdr *orig_eth;
   struct icmp6hdr *icmp6_hdr;
   __u64 csum = 0;
   __u64 off = 0;
   orig_eth = data + headroom;
   swap_mac(data, orig_eth);
-  off += sizeof(struct eth_hdr);
+  off += sizeof(struct ethhdr);
   ip6h = data + off;
   off += sizeof(struct ipv6hdr);
   icmp6_hdr = data + off;
@@ -191,7 +191,7 @@ static inline int send_icmp6_too_big(struct xdp_md *xdp) {
   memcpy(ip6h->saddr.s6_addr32, orig_ip6h->daddr.s6_addr32, 16);
   icmp6_hdr->icmp6_type = ICMPV6_PKT_TOOBIG;
   icmp6_hdr->icmp6_code = 0;
-  icmp6_hdr->icmp6_mtu = bpf_htonl(MAX_PCKT_SIZE-sizeof(struct eth_hdr));
+  icmp6_hdr->icmp6_mtu = bpf_htonl(MAX_PCKT_SIZE-sizeof(struct ethhdr));
   icmp6_hdr->icmp6_cksum = 0;
   ipv6_csum(icmp6_hdr, ICMP6_TOOBIG_PAYLOAD_SIZE, &csum, ip6h);
   icmp6_hdr->icmp6_cksum = csum;
