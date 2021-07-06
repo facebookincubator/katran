@@ -88,7 +88,7 @@ static inline int process_encaped_ipip_pckt(void **data, void **data_end,
   if (*protocol == IPPROTO_IPIP) {
     if (*is_ipv6) {
       if ((*data + sizeof(struct ipv6hdr) +
-           sizeof(struct eth_hdr)) > *data_end) {
+           sizeof(struct ethhdr)) > *data_end) {
         return XDP_DROP;
       }
       if (!decap_v6(xdp, data, data_end, true)) {
@@ -96,7 +96,7 @@ static inline int process_encaped_ipip_pckt(void **data, void **data_end,
       }
     } else {
       if ((*data + sizeof(struct iphdr) +
-           sizeof(struct eth_hdr)) > *data_end) {
+           sizeof(struct ethhdr)) > *data_end) {
         return XDP_DROP;
       }
       if (!decap_v4(xdp, data, data_end)) {
@@ -105,7 +105,7 @@ static inline int process_encaped_ipip_pckt(void **data, void **data_end,
     }
   } else if (*protocol == IPPROTO_IPV6) {
     if ((*data + sizeof(struct ipv6hdr) +
-         sizeof(struct eth_hdr)) > *data_end) {
+         sizeof(struct ethhdr)) > *data_end) {
       return XDP_DROP;
     }
     if (!decap_v6(xdp, data, data_end, false)) {
@@ -122,7 +122,7 @@ static inline int process_encaped_gue_pckt(void **data, void **data_end,
   int offset = 0;
   if (is_ipv6) {
     __u8 v6 = 0;
-    offset = sizeof(struct ipv6hdr) + sizeof(struct eth_hdr) +
+    offset = sizeof(struct ipv6hdr) + sizeof(struct ethhdr) +
       sizeof(struct udphdr);
     // 1 byte for gue v1 marker to figure out what is internal protocol
     if ((*data + offset + 1) > *data_end) {
@@ -142,7 +142,7 @@ static inline int process_encaped_gue_pckt(void **data, void **data_end,
       }
     }
   } else {
-    offset = sizeof(struct iphdr) + sizeof(struct eth_hdr) +
+    offset = sizeof(struct iphdr) + sizeof(struct ethhdr) +
       sizeof(struct udphdr);
     if ((*data + offset) > *data_end) {
       return XDP_DROP;
@@ -216,17 +216,17 @@ SEC(DECAP_PROG_SEC)
 int xdpdecap(struct xdp_md *ctx) {
   void *data = (void *)(long)ctx->data;
   void *data_end = (void *)(long)ctx->data_end;
-  struct eth_hdr *eth = data;
+  struct ethhdr *eth = data;
   __u32 eth_proto;
   __u32 nh_off;
-  nh_off = sizeof(struct eth_hdr);
+  nh_off = sizeof(struct ethhdr);
 
   if (data + nh_off > data_end) {
     // bogus packet, len less than minimum ethernet frame size
     return XDP_DROP;
   }
 
-  eth_proto = eth->eth_proto;
+  eth_proto = eth->h_proto;
 
   if (eth_proto == BE_ETH_P_IP) {
     return process_packet(data, nh_off, data_end, false, ctx);
