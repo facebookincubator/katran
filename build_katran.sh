@@ -560,6 +560,7 @@ get_libbpf() {
     # override to use local bpf.h instead of system wide
     sed -i 's/#include <linux\/bpf.h>/#include <bpf\/uapi\/linux\/bpf.h>/g' ./bpf.h
     sed -i 's/#include <linux\/bpf.h>/#include <bpf\/uapi\/linux\/bpf.h>/g' ./libbpf.h
+    sed -i 's/#include <linux\/bpf.h>/#include <bpf\/uapi\/linux\/bpf.h>/g' ./libbpf_legacy.h
     # Move to CMAKE_PREFIX_PATH so that cmake can easily discover them
     cd "$INSTALL_DIR"
     mv "$INSTALL_DIR"/usr/include/bpf "$INSTALL_DIR"/include/
