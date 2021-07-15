@@ -306,7 +306,9 @@
 #endif // of LPM_SRC_LOOKUP
 
 #ifdef INLINE_DECAP
+#ifndef INLINE_DECAP_IPIP
 #define INLINE_DECAP_IPIP
+#endif // of INLINE_DECAP_IPIP
 #endif
 
 #ifdef INLINE_DECAP_IPIP
