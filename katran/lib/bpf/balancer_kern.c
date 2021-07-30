@@ -412,6 +412,7 @@ static inline int process_packet(void *data, __u64 off, void *data_end,
   struct lb_stats *data_stats;
   __u64 iph_len;
   __u8 protocol;
+  __u16 original_sport;
 
   int action;
   __u32 vip_num;
@@ -547,6 +548,9 @@ static inline int process_packet(void *data, __u64 off, void *data_end,
     }
   }
 
+  // save the original sport before making real selection, possibly changing its value.
+  original_sport = pckt.flow.port16[0];
+
   if (!dst) {
     if ((vip_info->flags & F_HASH_NO_SRC_PORT)) {
       // service, where diff src port, but same ip must go to the same real,
@@ -651,6 +655,8 @@ static inline int process_packet(void *data, __u64 off, void *data_end,
     return XDP_PASS;
   }
 #endif
+  // restore the original sport value to use it as a seed for the GUE sport
+  pckt.flow.port16[0] = original_sport;
   if (dst->flags & F_IPV6) {
     if(!PCKT_ENCAP_V6(xdp, cval, is_ipv6, &pckt, dst, pkt_bytes)) {
       return XDP_DROP;

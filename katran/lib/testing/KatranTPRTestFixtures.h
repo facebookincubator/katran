@@ -222,12 +222,12 @@ const std::vector<std::pair<std::string, std::string>> outputTPRTestFixtures = {
   //14
   {
     // "Ether(src='x02', dst='0xdeadbeaf')/IP(src='172.16.104.123', dst='10.0.0.2')/IP(src='192.168.1.1', dst='10.200.1.4')/TCP(flags=16L, dport=42, sport=31337, options=[])/Raw(load='katran test pkt')"
-    "AADerb6vAgAAAAAACABFAABLAAAAAEAEmp2sECoACgAAAkUAADcAAQAAQAatS8CoAQEKyAEEemkAKgAAAAAAAAAAUBAgACgHAABrYXRyYW4gdGVzdCBwa3Q=",
+    "AADerb6vAgAAAAAACABFAABLAAAAAEAEWyOsEGl6CgAAAkUAADcAAQAAQAatS8CoAQEKyAEEemkAKgAAAAAAAAAAUBAgACgHAABrYXRyYW4gdGVzdCBwa3Q=",
     "XDP_TX"
   },
   //15
   {
-    // "Ether(src='x02', dst='0xdeadbeaf')/IP(src='172.16.104.123', dst='10.0.0.2')/IP(src='192.168.1.1', dst='10.200.1.4')/TCP(flags=16L, dport=42, sport=31337, options=[(183, '\\xff\\x03\\x00\\x00'), ('EOL', None)])/Raw(load='katran test pkt')"
+    // "Ether(src='x02', dst='0xdeadbeaf')/IP(src='172.16.105.122', dst='10.0.0.2')/IP(src='192.168.1.1', dst='10.200.1.4')/TCP(flags=16L, dport=42, sport=31337, options=[(183, '\\xff\\x03\\x00\\x00'), ('EOL', None)])/Raw(load='katran test pkt')"
     "AADerb6vAgAAAAAACABFAABTAAAAAEAEjDSsEDhhCgAAAkUAAD8AAQAAQAas4MCoAWQKyAEEBTkAKgAAAAAAAAAAcBAgAMbBAAC3Bv8DAAAAAGthdHJhbiB0ZXN0IHBrdA==",
     "XDP_TX"
   },
