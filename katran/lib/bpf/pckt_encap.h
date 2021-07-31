@@ -48,8 +48,8 @@ __attribute__((__always_inline__)) static inline bool encap_v6(
   void* data;
   void* data_end;
   struct ipv6hdr* ip6h;
-  struct eth_hdr* new_eth;
-  struct eth_hdr* old_eth;
+  struct ethhdr* new_eth;
+  struct ethhdr* old_eth;
   __u16 payload_len;
   __u32 ip_suffix;
   __u32 saddr[4];
@@ -61,14 +61,14 @@ __attribute__((__always_inline__)) static inline bool encap_v6(
   data = (void*)(long)xdp->data;
   data_end = (void*)(long)xdp->data_end;
   new_eth = data;
-  ip6h = data + sizeof(struct eth_hdr);
+  ip6h = data + sizeof(struct ethhdr);
   old_eth = data + sizeof(struct ipv6hdr);
   if (new_eth + 1 > data_end || old_eth + 1 > data_end || ip6h + 1 > data_end) {
     return false;
   }
-  memcpy(new_eth->eth_dest, cval->mac, 6);
-  memcpy(new_eth->eth_source, old_eth->eth_dest, 6);
-  new_eth->eth_proto = BE_ETH_P_IPV6;
+  memcpy(new_eth->h_dest, cval->mac, 6);
+  memcpy(new_eth->h_source, old_eth->h_dest, 6);
+  new_eth->h_proto = BE_ETH_P_IPV6;
 
   if (is_ipv6) {
     proto = IPPROTO_IPV6;
@@ -100,8 +100,8 @@ __attribute__((__always_inline__)) static inline bool encap_v4(
   void* data;
   void* data_end;
   struct iphdr* iph;
-  struct eth_hdr* new_eth;
-  struct eth_hdr* old_eth;
+  struct ethhdr* new_eth;
+  struct ethhdr* old_eth;
   __u16 payload_len;
   __u32 ip_suffix;
   __u64 csum = 0;
@@ -113,14 +113,14 @@ __attribute__((__always_inline__)) static inline bool encap_v4(
   data = (void*)(long)xdp->data;
   data_end = (void*)(long)xdp->data_end;
   new_eth = data;
-  iph = data + sizeof(struct eth_hdr);
+  iph = data + sizeof(struct ethhdr);
   old_eth = data + sizeof(struct iphdr);
   if (new_eth + 1 > data_end || old_eth + 1 > data_end || iph + 1 > data_end) {
     return false;
   }
-  memcpy(new_eth->eth_dest, cval->mac, 6);
-  memcpy(new_eth->eth_source, old_eth->eth_dest, 6);
-  new_eth->eth_proto = BE_ETH_P_IP;
+  memcpy(new_eth->h_dest, cval->mac, 6);
+  memcpy(new_eth->h_source, old_eth->h_dest, 6);
+  new_eth->h_proto = BE_ETH_P_IP;
 
   if (is_ipv6) {
     proto = IPPROTO_IPV6;
@@ -147,16 +147,16 @@ __attribute__((__always_inline__)) static inline bool encap_v4(
 // done. otherwise verifier wont like it
 __attribute__((__always_inline__)) static inline bool
 decap_v6(struct xdp_md* xdp, void** data, void** data_end, bool inner_v4) {
-  struct eth_hdr* new_eth;
-  struct eth_hdr* old_eth;
+  struct ethhdr* new_eth;
+  struct ethhdr* old_eth;
   old_eth = *data;
   new_eth = *data + sizeof(struct ipv6hdr);
-  memcpy(new_eth->eth_source, old_eth->eth_source, 6);
-  memcpy(new_eth->eth_dest, old_eth->eth_dest, 6);
+  memcpy(new_eth->h_source, old_eth->h_source, 6);
+  memcpy(new_eth->h_dest, old_eth->h_dest, 6);
   if (inner_v4) {
-    new_eth->eth_proto = BE_ETH_P_IP;
+    new_eth->h_proto = BE_ETH_P_IP;
   } else {
-    new_eth->eth_proto = BE_ETH_P_IPV6;
+    new_eth->h_proto = BE_ETH_P_IPV6;
   }
   if (bpf_xdp_adjust_head(xdp, (int)sizeof(struct ipv6hdr))) {
     return false;
@@ -168,16 +168,16 @@ decap_v6(struct xdp_md* xdp, void** data, void** data_end, bool inner_v4) {
 
 __attribute__((__always_inline__)) static inline bool
 decap_v4(struct xdp_md* xdp, void** data, void** data_end, bool inner_v4) {
-  struct eth_hdr* new_eth;
-  struct eth_hdr* old_eth;
+  struct ethhdr* new_eth;
+  struct ethhdr* old_eth;
   old_eth = *data;
   new_eth = *data + sizeof(struct iphdr);
-  memcpy(new_eth->eth_source, old_eth->eth_source, 6);
-  memcpy(new_eth->eth_dest, old_eth->eth_dest, 6);
+  memcpy(new_eth->h_source, old_eth->h_source, 6);
+  memcpy(new_eth->h_dest, old_eth->h_dest, 6);
   if (inner_v4) {
-    new_eth->eth_proto = BE_ETH_P_IP;
+    new_eth->h_proto = BE_ETH_P_IP;
   } else {
-    new_eth->eth_proto = BE_ETH_P_IPV6;
+    new_eth->h_proto = BE_ETH_P_IPV6;
   }
   if (bpf_xdp_adjust_head(xdp, (int)sizeof(struct iphdr))) {
     return false;
@@ -203,7 +203,7 @@ __attribute__((__always_inline__)) static inline bool gue_csum(
   __u16 inner_transport_off;
   struct udphdr* udph;
 
-  outer_ip_off = sizeof(struct eth_hdr);
+  outer_ip_off = sizeof(struct ethhdr);
   udp_hdr_off = outer_v6 ? outer_ip_off + sizeof(struct ipv6hdr)
                          : outer_ip_off + sizeof(struct iphdr);
   inner_ip_off = udp_hdr_off + sizeof(struct udphdr);
@@ -282,8 +282,8 @@ static inline bool gue_encap_v4(struct xdp_md *xdp, struct ctl_value *cval,
   void *data_end;
   struct iphdr *iph;
   struct udphdr *udph;
-  struct eth_hdr *new_eth;
-  struct eth_hdr *old_eth;
+  struct ethhdr *new_eth;
+  struct ethhdr *old_eth;
   struct real_definition *src;
 
   __u16 sport = bpf_htons(pckt->flow.port16[0]);
@@ -302,16 +302,16 @@ static inline bool gue_encap_v4(struct xdp_md *xdp, struct ctl_value *cval,
   data = (void *)(long)xdp->data;
   data_end = (void *)(long)xdp->data_end;
   new_eth = data;
-  iph = data + sizeof(struct eth_hdr);
+  iph = data + sizeof(struct ethhdr);
   udph = (void *)iph + sizeof(struct iphdr);
   old_eth = data + sizeof(struct iphdr) + sizeof(struct udphdr);
   if (new_eth + 1 > data_end || old_eth + 1 > data_end || iph + 1 > data_end ||
       udph + 1 > data_end) {
     return false;
   }
-  memcpy(new_eth->eth_dest, cval->mac, sizeof(new_eth->eth_dest));
-  memcpy(new_eth->eth_source, old_eth->eth_dest, sizeof(new_eth->eth_source));
-  new_eth->eth_proto = BE_ETH_P_IP;
+  memcpy(new_eth->h_dest, cval->mac, sizeof(new_eth->h_dest));
+  memcpy(new_eth->h_source, old_eth->h_dest, sizeof(new_eth->h_source));
+  new_eth->h_proto = BE_ETH_P_IP;
   if (is_ipv6) {
     sport ^= ((pckt->flow.srcv6[3] >> 16) & 0xFFFF);
     pkt_bytes += sizeof(struct ipv6hdr) + sizeof(struct udphdr);
@@ -342,8 +342,8 @@ static inline bool gue_encap_v6(struct xdp_md *xdp, struct ctl_value *cval,
   void *data;
   void *data_end;
   struct ipv6hdr *ip6h;
-  struct eth_hdr *new_eth;
-  struct eth_hdr *old_eth;
+  struct ethhdr *new_eth;
+  struct ethhdr *old_eth;
   struct udphdr *udph;
   __u32 key = V6_SRC_INDEX;
   __u16 payload_len;
@@ -362,7 +362,7 @@ static inline bool gue_encap_v6(struct xdp_md *xdp, struct ctl_value *cval,
   data = (void *)(long)xdp->data;
   data_end = (void *)(long)xdp->data_end;
   new_eth = data;
-  ip6h = data + sizeof(struct eth_hdr);
+  ip6h = data + sizeof(struct ethhdr);
   udph = (void *)ip6h + sizeof(struct ipv6hdr);
   old_eth = data + sizeof(struct ipv6hdr) + sizeof(struct udphdr);
   if (new_eth + 1 > data_end ||
@@ -371,9 +371,9 @@ static inline bool gue_encap_v6(struct xdp_md *xdp, struct ctl_value *cval,
       udph + 1 > data_end) {
     return false;
   }
-  memcpy(new_eth->eth_dest, cval->mac, 6);
-  memcpy(new_eth->eth_source, old_eth->eth_dest, 6);
-  new_eth->eth_proto = BE_ETH_P_IPV6;
+  memcpy(new_eth->h_dest, cval->mac, 6);
+  memcpy(new_eth->h_source, old_eth->h_dest, 6);
+  new_eth->h_proto = BE_ETH_P_IPV6;
 
   if (is_ipv6) {
     sport = (pckt->flow.srcv6[3] & 0xFFFF) ^ pckt->flow.port16[0];
@@ -398,17 +398,17 @@ static inline bool gue_encap_v6(struct xdp_md *xdp, struct ctl_value *cval,
 
 __attribute__((__always_inline__)) static inline bool
 gue_decap_v4(struct xdp_md* xdp, void** data, void** data_end, bool inner_v4) {
-  struct eth_hdr* new_eth;
-  struct eth_hdr* old_eth;
+  struct ethhdr* new_eth;
+  struct ethhdr* old_eth;
   old_eth = *data;
   new_eth = *data + sizeof(struct iphdr) + sizeof(struct udphdr);
   RECORD_GUE_ROUTE(old_eth, new_eth, *data_end, true, true);
-  memcpy(new_eth->eth_source, old_eth->eth_source, 6);
-  memcpy(new_eth->eth_dest, old_eth->eth_dest, 6);
+  memcpy(new_eth->h_source, old_eth->h_source, 6);
+  memcpy(new_eth->h_dest, old_eth->h_dest, 6);
   if (inner_v4) {
-    new_eth->eth_proto = BE_ETH_P_IP;
+    new_eth->h_proto = BE_ETH_P_IP;
   } else {
-    new_eth->eth_proto = BE_ETH_P_IPV6;
+    new_eth->h_proto = BE_ETH_P_IPV6;
   }
   if (bpf_xdp_adjust_head(
           xdp, (int)(sizeof(struct iphdr) + sizeof(struct udphdr)))) {
@@ -421,17 +421,17 @@ gue_decap_v4(struct xdp_md* xdp, void** data, void** data_end, bool inner_v4) {
 
 __attribute__((__always_inline__)) static inline bool
 gue_decap_v6(struct xdp_md* xdp, void** data, void** data_end, bool inner_v4) {
-  struct eth_hdr* new_eth;
-  struct eth_hdr* old_eth;
+  struct ethhdr* new_eth;
+  struct ethhdr* old_eth;
   old_eth = *data;
   new_eth = *data + sizeof(struct ipv6hdr) + sizeof(struct udphdr);
   RECORD_GUE_ROUTE(old_eth, new_eth, *data_end, false, inner_v4);
-  memcpy(new_eth->eth_source, old_eth->eth_source, 6);
-  memcpy(new_eth->eth_dest, old_eth->eth_dest, 6);
+  memcpy(new_eth->h_source, old_eth->h_source, 6);
+  memcpy(new_eth->h_dest, old_eth->h_dest, 6);
   if (inner_v4) {
-    new_eth->eth_proto = BE_ETH_P_IP;
+    new_eth->h_proto = BE_ETH_P_IP;
   } else {
-    new_eth->eth_proto = BE_ETH_P_IPV6;
+    new_eth->h_proto = BE_ETH_P_IPV6;
   }
   if (bpf_xdp_adjust_head(
           xdp, (int)(sizeof(struct ipv6hdr) + sizeof(struct udphdr)))) {

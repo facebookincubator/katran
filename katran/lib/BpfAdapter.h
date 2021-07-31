@@ -29,8 +29,8 @@ extern "C" {
 
 namespace katran {
 
-constexpr int BPF_TC_INGRESS = 0xfffffff2;
-constexpr int BPF_TC_EGRESS = 0xfffffff3;
+constexpr int TC_INGRESS = 0xfffffff2;
+constexpr int TC_EGRESS = 0xfffffff3;
 
 // from bpf.h (list could be outdated)
 constexpr unsigned int kBpfMapTypeUnspec = 0;
@@ -262,7 +262,7 @@ class BpfAdapter {
   static int attachBpfProgToTc(
       const int prog_fd,
       const std::string& interface_name,
-      const int direction = BPF_TC_INGRESS,
+      const int direction = TC_INGRESS,
       const std::string& bpf_name = "tc-bpf",
       const uint32_t priority = 2307);
 
@@ -398,7 +398,7 @@ class BpfAdapter {
       const unsigned int ifindex,
       const std::string& bpf_name,
       uint32_t priority,
-      const int direction = BPF_TC_INGRESS);
+      const int direction = TC_INGRESS);
 
   /**
    *  @param int prog_fd descriptor of the program
@@ -430,7 +430,7 @@ class BpfAdapter {
       const unsigned int ifindex,
       const std::string& bpf_name,
       const uint32_t priority,
-      const int direction = BPF_TC_INGRESS);
+      const int direction = TC_INGRESS);
 
   /**
    * @param int prog_fd descriptor of bpf program
@@ -447,7 +447,7 @@ class BpfAdapter {
       const unsigned int ifindex,
       const std::string& bpf_name,
       const uint32_t priority,
-      const int direction = BPF_TC_INGRESS);
+      const int direction = TC_INGRESS);
 
   /**
    * @param int prog_fd descriptor of bpf program
@@ -645,6 +645,17 @@ class BpfAdapter {
       int pages,
       int cpu);
 
+  /**
+   * @param path path to the .o object file
+   * @param mapName name of map to check
+   *
+   * stateless helper function to check for the presence of a map in an
+   * unloaded bpf file
+   */
+  static bool isMapInBpfObject(
+    const std::string& path,
+    const std::string& mapName);
+
  private:
   /**
    * helper function to modify (add/delete/replace) tc's bpf prog.
@@ -657,7 +668,7 @@ class BpfAdapter {
       const int prog_fd,
       const unsigned int ifindex,
       const std::string& bpf_name,
-      const int direction = BPF_TC_INGRESS);
+      const int direction = TC_INGRESS);
 
   /**
    * helper function to add clsact qdisk to interface for healthchecking
@@ -672,7 +683,7 @@ class BpfAdapter {
       const unsigned int ifindex,
       const std::string& bpf_name,
       uint32_t priority,
-      const int direction = BPF_TC_INGRESS);
+      const int direction = TC_INGRESS);
 
   /**
    * helper function which open specified dir and returns it's fd.

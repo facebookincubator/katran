@@ -54,15 +54,9 @@ struct quic_short_header {
   __u8 connection_id[QUIC_MIN_CONNID_LEN];
 } __attribute__((__packed__));
 
-struct eth_hdr {
-  unsigned char eth_dest[ETH_ALEN];
-  unsigned char eth_source[ETH_ALEN];
-  unsigned short  eth_proto;
-};
-
 __attribute__((__always_inline__))
 static inline __u64 calc_offset(bool is_ipv6, bool is_icmp) {
-  __u64 off = sizeof(struct eth_hdr);
+  __u64 off = sizeof(struct ethhdr);
   if (is_ipv6) {
     off += sizeof(struct ipv6hdr);
     if (is_icmp) {
@@ -132,6 +126,111 @@ static inline bool parse_tcp(void *data, void *data_end,
   }
   return true;
 }
+
+#ifdef TCP_SERVER_ID_ROUTING
+__attribute__((__always_inline__)) static inline int tcp_hdr_opt_lookup(
+    void* data,
+    void* data_end,
+    bool is_ipv6,
+    struct real_definition** real,
+    struct packet_description* pckt,
+    bool bypass_lru,
+    void* lru_map) {
+  struct real_pos_lru* dst_lru;
+  struct tcphdr* tcp_hdr;
+  void* tcp_opt;
+  __u8 tcp_hdr_opt_len = 0;
+  __u8 hdr_bytes_parsed = 0;
+  __u64 tcp_offset = 0;
+  __u32 server_id = 0;
+
+  tcp_offset = calc_offset(is_ipv6, false /* is_icmp */);
+  tcp_hdr = (struct tcphdr*)(data + tcp_offset);
+  if (tcp_hdr + 1 > data_end) {
+    return FURTHER_PROCESSING;
+  }
+  tcp_hdr_opt_len = (tcp_hdr->doff * 4) - sizeof(struct tcphdr);
+  if (tcp_hdr_opt_len < TCP_HDR_OPT_LEN_TPR) {
+    return FURTHER_PROCESSING;
+  }
+  tcp_opt = data + tcp_offset + sizeof(struct tcphdr);
+
+#pragma clang loop unroll(full)
+  for (int i = 0; i < TCP_HDR_OPT_MAX_OPT_CHECKS; i++) {
+    if (tcp_opt + 1 > data_end) {
+      return FURTHER_PROCESSING;
+    }
+    if (hdr_bytes_parsed + 1 > tcp_hdr_opt_len) {
+      return FURTHER_PROCESSING;
+    }
+    __u8* kind = (__u8*)tcp_opt;
+    // 1 byte options
+    if (*kind == TCP_OPT_EOL) {
+      // EOL signifies end of options
+      return FURTHER_PROCESSING;
+    }
+    if (*kind == TCP_OPT_NOP) {
+      tcp_opt = (void*)(kind + sizeof(__u8));
+      hdr_bytes_parsed += sizeof(__u8);
+      continue;
+    }
+    if (kind + sizeof(__u8) + sizeof(__u8) > data_end) {
+      return FURTHER_PROCESSING;
+    }
+    __u8 hdr_len = *(kind + sizeof(__u8));
+    if (kind + hdr_len > data_end) {
+      return FURTHER_PROCESSING;
+    }
+    if (*kind == TCP_HDR_OPT_KIND_TPR) {
+      if (hdr_len != TCP_HDR_OPT_LEN_TPR) {
+        return FURTHER_PROCESSING;
+      }
+      __u8* hdr_data_off = kind + sizeof(__u8) + sizeof(__u8);
+      if (hdr_data_off + sizeof(__u32) > data_end) {
+        return FURTHER_PROCESSING;
+      }
+      server_id = *((__u32*)(hdr_data_off));
+      break;
+    }
+    hdr_bytes_parsed += hdr_len;
+    tcp_opt = (void*)(kind + hdr_len);
+  }
+
+  if (!server_id) {
+    return FURTHER_PROCESSING;
+  }
+
+  __u32 key = server_id;
+  __u32* real_pos = bpf_map_lookup_elem(&server_id_map, &key);
+  if (!real_pos) {
+    return FURTHER_PROCESSING;
+  }
+  key = *real_pos;
+  if (key == 0) {
+    // Since server_id_map is a bpf_map_array all its members are 0-initialized
+    // This can lead to a false match for non-existing key to real at index 0.
+    // So, just skip key of value 0 to avoid misrouting of packets.
+    return FURTHER_PROCESSING;
+  }
+  pckt->real_index = key;
+  *real = bpf_map_lookup_elem(&reals, &key);
+  if (!(*real)) {
+    return FURTHER_PROCESSING;
+  }
+  // update this routing decision in the lru_map as well
+  if (!bypass_lru) {
+    struct real_pos_lru *dst_lru = bpf_map_lookup_elem(lru_map, &pckt->flow);
+    if (dst_lru) {
+      dst_lru->pos = key;
+      return 0;
+    }
+    struct real_pos_lru new_dst_lru = {};
+    new_dst_lru.pos = key;
+    bpf_map_update_elem(lru_map, &pckt->flow, &new_dst_lru, BPF_ANY);
+  }
+  return 0;
+}
+#endif // TCP_SERVER_ID_ROUTING
 
 __attribute__((__always_inline__))
 static inline int parse_quic(void *data, void *data_end,

@@ -60,6 +60,7 @@ constexpr uint32_t kInlineDecapOffset = 6;
 constexpr uint32_t kQuicRoutingOffset = 7;
 constexpr uint32_t kQuicCidVersionOffset = 8;
 constexpr uint32_t kQuicCidDropOffset = 9;
+constexpr uint32_t kTcpServerIdRoutingOffset = 10;
 
 /**
  * LRU map related constants
@@ -469,6 +470,15 @@ class KatranLb {
   lb_stats getQuicCidDropStats();
 
   /**
+   * @return struct lb_stats w/ statistic of server_id based routing of
+   * TCP packets (if enabled)
+   *
+   * helper function which returns how many TCP packets were routed
+   * using the default 5-tuple hash vs using the connection-id
+   */
+  lb_stats getTcpServerIdRoutingStats();
+
+  /**
    * @return struct lb_stats w/ src routing related statistics
    *
    * helper function which returns how many packets were sent to local
@@ -699,22 +709,25 @@ class KatranLb {
    * has been loaded (e.g. to make sure that all maps which we are expecting
    * to see/use are exists etc)
    * throws on failure
+   * @param flowDebug Check the validity of flow_debug_maps
    */
-  void initialSanityChecking();
+  void initialSanityChecking(bool flowDebug=false);
 
   /**
    * helper function to create/initialize LRUs.
    * we must init LRUs before we are going to load bpf program.
    * throws on failure
+   * @param flowDebug Initialize flow_debug_maps/flow_debug_lru
    */
-  void initLrus();
+  void initLrus(bool flowDebug=false);
 
   /**
    * helper function to attach created LRUs. must be done after
    * bpf program is loaded.
    * throws on failure
+   * @param flowDebug Attach the cpu-specific flow_debug_lru maps
    */
-  void attachLrus();
+  void attachLrus(bool flowDebug=false);
 
   /**
    * helper function to enable everything related to introspection/events
@@ -730,6 +743,33 @@ class KatranLb {
       int size = kFallbackLruSize,
       int flags = kMapNoFlags,
       int numaNode = kNoNuma);
+
+  /**
+   * helper function to creat LRU map w/ specified size.
+   * returns fd on success, -1 on failure.
+   */
+  int createFlowDebugLru(
+      int size = kFallbackLruSize,
+      int flags = kMapNoFlags,
+      int numaNode = kNoNuma);
+
+  /**
+   * create and save the fd of a map used for flow debugging
+   * throws on failure
+   */
+  void initFlowDebugMapForCore(int core, int size, int flags, int numaNode);
+
+  /**
+   * create a prototype map for flow debugging
+   * throws on failure
+   */
+  void initFlowDebugPrototypeMap();
+
+  /**
+   * sets the cpu-specific entry in the parent map
+   * throws on failure
+   */
+  void attachFlowDebugLru(int core);
 
   /**
    * helper function which do forwarding plane feature discovering
@@ -903,6 +943,11 @@ class KatranLb {
    * vector of LRU maps descriptors;
    */
   std::vector<int> lruMapsFd_;
+
+  /**
+   * vector of flow debug maps descriptors;
+   */
+  std::vector<int> flowDebugMapsFd_;
 
   /**
    * userspace library stats

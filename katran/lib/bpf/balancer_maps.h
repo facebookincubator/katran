@@ -98,15 +98,16 @@ struct bpf_map_def SEC("maps") stats = {
 };
 BPF_ANNOTATE_KV_PAIR(stats, __u32, struct lb_stats);
 
-// map for quic connection-id to real's id mapping
-struct bpf_map_def SEC("maps") quic_mapping = {
+// map for server-id to real's id mapping. The ids can be embedded in header of
+// QUIC or TCP (if enabled) packets for routing of packets for existing flows
+struct bpf_map_def SEC("maps") server_id_map = {
   .type = BPF_MAP_TYPE_ARRAY,
   .key_size = sizeof(__u32),
   .value_size = sizeof(__u32),
   .max_entries = MAX_QUIC_REALS,
   .map_flags = NO_FLAGS,
 };
-BPF_ANNOTATE_KV_PAIR(quic_mapping, __u32, __u32);
+BPF_ANNOTATE_KV_PAIR(server_id_map, __u32, __u32);
 
 #ifdef LPM_SRC_LOOKUP
 struct bpf_map_def SEC("maps") lpm_src_v4 = {

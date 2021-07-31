@@ -24,6 +24,7 @@ const std::string kV6TunInterface = "lo";
 const std::string kNoExternalMap = "";
 const std::vector<uint8_t> kDefaultMac = {0x00, 0x00, 0xDE, 0xAD, 0xBE, 0xAF};
 const std::vector<uint8_t> kLocalMac = {0x00, 0xFF, 0xDE, 0xAD, 0xBE, 0xAF};
+
 const std::vector<std::string> kReals = {
     "10.0.0.1",
     "10.0.0.2",
@@ -32,7 +33,9 @@ const std::vector<std::string> kReals = {
     "fc00::2",
     "fc00::3",
 };
-const std::vector<::katran::lb_stats> kRealStats = {
+
+// packet and bytes stats for reals corresponding to each index in the kReals
+const std::vector<::katran::lb_stats> kDefaultRealStats = {
     {4, 190},
     {7, 346},
     {5, 291},
@@ -40,6 +43,20 @@ const std::vector<::katran::lb_stats> kRealStats = {
     {2, 76},
     {3, 156},
 };
+
+const std::vector<::katran::lb_stats> kTPRRealStats = {
+    {0, 0},
+    {3, 181},
+    {4, 244},
+    {9, 423},
+    {0, 0},
+    {0, 0},
+};
+
+const std::map<TestMode, std::vector<::katran::lb_stats>> kRealStats = {
+    {TestMode::DEFAULT, kDefaultRealStats},
+    {TestMode::GUE, kDefaultRealStats},
+    {TestMode::TPR, kTPRRealStats}};
 
 void addReals(
     katran::KatranLb& lb,
@@ -173,6 +190,91 @@ void preparePerfTestingLbData(katran::KatranLb& lb) {
   for (auto& dst : kReals) {
     lb.addInlineDecapDst(dst);
   }
+}
+
+const std::vector<::katran::lb_stats> KatranTestParam::expectedRealStats() noexcept {
+  auto it = kRealStats.find(mode);
+  CHECK(it != kRealStats.end());
+  return it->second;
+}
+
+uint64_t KatranTestParam::expectedTotalPktsForVip(const katran::VipKey& vip) noexcept {
+  if (perVipCounters.count(vip) == 0) {
+    return 0;
+  }
+  return perVipCounters[vip].first;
+}
+uint64_t KatranTestParam::expectedTotalBytesForVip(const katran::VipKey& vip) noexcept {
+  if (perVipCounters.count(vip) == 0) {
+    return 0;
+  }
+  return perVipCounters[vip].second;
+}
+uint64_t KatranTestParam::expectedTotalPkts() noexcept {
+  return _lookup_counter(KatranTestCounters::TOTAL_PKTS);
+}
+uint64_t KatranTestParam::expectedTotalLruMisses() noexcept {
+  return _lookup_counter(KatranTestCounters::LRU_MISSES);
+}
+uint64_t KatranTestParam::expectedTotalTcpSyns() noexcept {
+  return _lookup_counter(KatranTestCounters::TCP_SYNS);
+}
+uint64_t KatranTestParam::expectedTotalTcpNonSynLruMisses() noexcept {
+  return _lookup_counter(KatranTestCounters::NON_SYN_LRU_MISSES);
+}
+uint64_t KatranTestParam::expectedTotalLruFallbackHits() noexcept {
+  return _lookup_counter(KatranTestCounters::LRU_FALLBACK_HITS);
+}
+uint64_t KatranTestParam::expectedQuicRoutingWithCh() noexcept {
+  return _lookup_counter(KatranTestCounters::QUIC_ROUTING_WITH_CH);
+}
+uint64_t KatranTestParam::expectedQuicRoutingWithCid() noexcept {
+  return _lookup_counter(KatranTestCounters::QUIC_ROUTING_WITH_CID);
+}
+uint64_t KatranTestParam::expectedQuicCidV1Counts() noexcept {
+  return _lookup_counter(KatranTestCounters::QUIC_CID_V1);
+}
+uint64_t KatranTestParam::expectedQuicCidV2Counts() noexcept {
+  return _lookup_counter(KatranTestCounters::QUIC_CID_V2);
+}
+uint64_t KatranTestParam::expectedQuicCidDropsReal0Counts() noexcept {
+  return _lookup_counter(KatranTestCounters::QUIC_CID_DROPS_REAL_0);
+}
+uint64_t KatranTestParam::expectedQuicCidDropsNoRealCounts() noexcept {
+  return _lookup_counter(KatranTestCounters::QUIC_CID_DROPS_NO_REAL);
+}
+uint64_t KatranTestParam::expectedTcpServerIdRoutingCounts() noexcept {
+  return _lookup_counter(KatranTestCounters::TCP_SERVER_ID_ROUNTING);
+}
+uint64_t KatranTestParam::expectedTcpServerIdRoutingFallbackCounts() noexcept {
+  return _lookup_counter(KatranTestCounters::TCP_SERVER_ID_ROUTING_FALLBACK_CH);
+}
+uint64_t KatranTestParam::expectedTotalFailedBpfCalls() noexcept {
+  return _lookup_counter(KatranTestCounters::TOTAL_FAILED_BPF_CALLS);
+}
+uint64_t KatranTestParam::expectedTotalAddressValidations() noexcept {
+  return _lookup_counter(KatranTestCounters::TOTAL_ADDRESS_VALIDATION_FAILED);
+}
+uint64_t KatranTestParam::expectedIcmpV4Counts() noexcept {
+  return _lookup_counter(KatranTestCounters::ICMP_V4_COUNTS);
+}
+uint64_t KatranTestParam::expectedIcmpV6Counts() noexcept {
+  return _lookup_counter(KatranTestCounters::ICMP_V6_COUNTS);
+}
+uint64_t KatranTestParam::expectedSrcRoutingPktsLocal() noexcept {
+  return _lookup_counter(KatranTestCounters::SRC_ROUTING_PKTS_LOCAL);
+}
+uint64_t KatranTestParam::expectedSrcRoutingPktsRemote() noexcept {
+  return _lookup_counter(KatranTestCounters::SRC_ROUTING_PKTS_REMOTE);
+}
+uint64_t KatranTestParam::expectedInlineDecapPkts() noexcept {
+  return _lookup_counter(KatranTestCounters::INLINE_DECAP_PKTS);
+}
+uint64_t KatranTestParam::_lookup_counter(KatranTestCounters counter) noexcept {
+  if (expectedCounters.count(counter) == 0) {
+    return 0;
+  }
+  return expectedCounters[counter];
 }
 
 } // namespace testing

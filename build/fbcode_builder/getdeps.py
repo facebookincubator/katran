@@ -235,7 +235,7 @@ class CachedProject(object):
         )
 
     def is_cacheable(self):
-        """ We only cache third party projects """
+        """We only cache third party projects"""
         return self.cache and self.m.shipit_project is None
 
     def was_cached(self):
@@ -793,7 +793,7 @@ class GenerateGitHubActionsCmd(ProjectCmdBase):
     # TODO: Break up complex function
     def write_job_for_platform(self, platform, args):  # noqa: C901
         build_opts = setup_build_options(args, platform)
-        ctx_gen = build_opts.get_context_generator()
+        ctx_gen = build_opts.get_context_generator(facebook_internal=False)
         loader = ManifestLoader(build_opts, ctx_gen)
         manifest = loader.load_manifest(args.project)
         manifest_ctx = loader.ctx_gen.get_context(manifest.name)

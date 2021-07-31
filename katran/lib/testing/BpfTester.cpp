@@ -123,8 +123,8 @@ void BpfTester::testPcktsFromPcap() {
   }
 }
 
-void BpfTester::testFromFixture() {
-  runBpfTesterFromFixtures(config_.bpfProgFd, kXdpCodes, {});
+bool BpfTester::testFromFixture() {
+  return runBpfTesterFromFixtures(config_.bpfProgFd, kXdpCodes, {});
 }
 
 void BpfTester::testClsFromFixture(
@@ -137,7 +137,7 @@ void BpfTester::testClsFromFixture(
   runBpfTesterFromFixtures(progFd, kTcCodes, {});
 }
 
-void BpfTester::runBpfTesterFromFixtures(
+bool BpfTester::runBpfTesterFromFixtures(
     int progFd,
     std::unordered_map<int, std::string> retvalTranslation,
     std::vector<void*> ctxs_in,
@@ -146,24 +146,25 @@ void BpfTester::runBpfTesterFromFixtures(
     if (ctx_size == 0) {
       LOG(INFO)
           << "size of single ctx value must be non zero if ctxs are specified";
-      return;
+      return false;
     }
     if (ctxs_in.size() != config_.inputData.size()) {
       LOG(INFO) << "ctxs and input datasets must have equal number of elements";
-      return;
+      return false;
     }
   }
   // for inputData format is <pckt_base64, test description>
   // for outputData format is <expected_pckt_base64, xdp_return_code_string>
   if (config_.inputData.size() != config_.outputData.size()) {
-    LOG(INFO) << "input and output datasets must have equal number of elements";
-    return;
+    LOG(ERROR) << "input and output datasets must have equal number of elements";
+    return false;
   }
   uint32_t output_pckt_size{0};
   uint32_t prog_ret_val{0};
   uint64_t pckt_num{1};
   std::string ret_val_str;
   std::string test_result;
+  bool success{true};
   for (int i = 0; i < config_.inputData.size(); i++) {
     if (config_.singleTestRunPacketNumber_ &&
         *config_.singleTestRunPacketNumber_ != (i+1)) {
@@ -190,6 +191,7 @@ void BpfTester::runBpfTesterFromFixtures(
       LOG(INFO) << "failed to run bpf test on pckt #" << pckt_num << " errno "
                 << errno << " : " << folly::errnoStr(errno);
       ++pckt_num;
+      success = false;
       continue;
     }
     auto ret_val_iter = retvalTranslation.find(prog_ret_val);
@@ -205,6 +207,7 @@ void BpfTester::runBpfTesterFromFixtures(
       VLOG(2) << "value from test: " << ret_val_str
               << " expected: " << config_.outputData[i].second;
       test_result = "\033[31mFailed\033[0m";
+      success = false;
     } else {
       test_result = "\033[32mPassed\033[0m";
       auto output_test_pckt =
@@ -214,6 +217,7 @@ void BpfTester::runBpfTesterFromFixtures(
                 << config_.outputData[i].first
                 << ", actual=" << output_test_pckt;
         test_result = "\033[31mFailed\033[0m";
+        success = false;
       }
     }
     VLOG(2) << "pckt #" << pckt_num;
@@ -221,12 +225,12 @@ void BpfTester::runBpfTesterFromFixtures(
         "Test: {:60} result: {}", config_.inputData[i].second, test_result);
     ++pckt_num;
   }
+  return success;
 }
 
 void BpfTester::resetTestFixtures(
     const std::vector<std::pair<std::string, std::string>>& inputData,
     const std::vector<std::pair<std::string, std::string>>& outputData) {
-  //
   config_.inputData = inputData;
   config_.outputData = outputData;
 }

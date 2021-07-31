@@ -17,8 +17,14 @@
 #ifndef __FLOW_DEBUG_HELPERS_H
 #define __FLOW_DEBUG_HELPERS_H
 
+#include <linux/if_ether.h>
+#include <linux/in.h>
+#include <linux/ip.h>
+#include <linux/ipv6.h>
+#include <linux/tcp.h>
+#include <linux/udp.h>
+
 #include "flow_debug_maps.h"
-#include "pckt_parsing.h"
 
 __attribute__((__always_inline__)) static inline __u32
 get_next_ports(void* transport_hdr, __u8 proto, void* data_end) {
@@ -47,22 +53,28 @@ get_next_ports(void* transport_hdr, __u8 proto, void* data_end) {
 }
 
 __attribute__((__always_inline__)) static inline void
-gue_record_route(struct eth_hdr* outer_eth, struct eth_hdr* inner_eth, void* data_end, bool outer_v4, bool inner_v4) {
+gue_record_route(struct ethhdr* outer_eth, struct ethhdr* inner_eth, void* data_end, bool outer_v4, bool inner_v4) {
   struct flow_key flow = {0};
   struct flow_debug_info debug_info = {0};
   struct ipv6hdr *ip6h = 0;
   struct iphdr *ip4h = 0;
   void *transport_header = 0;
 
+  __u32 cpu_num = bpf_get_smp_processor_id();
+  void *flow_debug_map = bpf_map_lookup_elem(&flow_debug_maps, &cpu_num);
+  if (!flow_debug_map) {
+    return;
+  }
+
   if (outer_v4) {
-    if ((void*)outer_eth + sizeof(struct eth_hdr) + sizeof(struct iphdr) > data_end) {
+    if ((void*)outer_eth + sizeof(struct ethhdr) + sizeof(struct iphdr) > data_end) {
       return;
     }
     ip4h = (void*)outer_eth + sizeof(struct ethhdr);
     debug_info.l4_hop = ip4h->saddr;
     debug_info.this_hop = ip4h->daddr;
   } else {
-    if ((void*)outer_eth + sizeof(struct eth_hdr) + sizeof(struct ipv6hdr) > data_end) {
+    if ((void*)outer_eth + sizeof(struct ethhdr) + sizeof(struct ipv6hdr) > data_end) {
       return;
     }
     ip6h = (void*)outer_eth + sizeof(struct ethhdr);
@@ -71,7 +83,7 @@ gue_record_route(struct eth_hdr* outer_eth, struct eth_hdr* inner_eth, void* dat
   }
 
   if (inner_v4) {
-    if ((void*)inner_eth + sizeof(struct eth_hdr) + sizeof(struct iphdr) > data_end) {
+    if ((void*)inner_eth + sizeof(struct ethhdr) + sizeof(struct iphdr) > data_end) {
       return;
     }
     ip4h = (void*)inner_eth + sizeof(struct ethhdr);
@@ -81,7 +93,7 @@ gue_record_route(struct eth_hdr* outer_eth, struct eth_hdr* inner_eth, void* dat
     flow.proto = ip4h->protocol;
     flow.ports = get_next_ports(transport_header, ip4h->protocol, data_end);
   } else {
-    if ((void*)inner_eth + sizeof(struct eth_hdr) + sizeof(struct ipv6hdr) > data_end) {
+    if ((void*)inner_eth + sizeof(struct ethhdr) + sizeof(struct ipv6hdr) > data_end) {
       return;
     }
     ip6h = (void*)inner_eth + sizeof(struct ethhdr);
@@ -91,7 +103,7 @@ gue_record_route(struct eth_hdr* outer_eth, struct eth_hdr* inner_eth, void* dat
     flow.proto = ip6h->nexthdr;
     flow.ports = get_next_ports(transport_header, ip6h->nexthdr, data_end);
   }
-  bpf_map_update_elem(&flow_debug_map, &flow, &debug_info, BPF_ANY);
+  bpf_map_update_elem(flow_debug_map, &flow, &debug_info, BPF_ANY);
   return;
 }
 

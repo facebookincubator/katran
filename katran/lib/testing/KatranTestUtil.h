@@ -1,4 +1,4 @@
-/* Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved.
+/* Copyright (C) 2018-present, Facebook, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -14,22 +14,20 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#ifndef __FLOW_DEBUG_MAPS_H
-#define __FLOW_DEBUG_MAPS_H
+#pragma once
+#include <string>
+#include <vector>
+#include "katran/lib/KatranLb.h"
+#include "katran/lib/testing/KatranTestProvision.h"
 
-#include "balancer_structs.h"
-#include "bpf.h"
-#include "bpf_helpers.h"
-#include "flow_debug.h"
+namespace katran {
+namespace testing {
 
-struct bpf_map_def SEC("maps") flow_debug_maps = {
-  .type = BPF_MAP_TYPE_ARRAY_OF_MAPS,
-  .key_size = sizeof(__u32),
-  .value_size = sizeof(__u32),
-  .max_entries = MAX_SUPPORTED_CPUS,
-  .map_flags = NO_FLAGS,
-};
+bool testSimulator(katran::KatranLb& lb);
 
+KatranTestParam createDefaultTestParam(TestMode testMode);
 
+KatranTestParam createTPRTestParam();
 
-#endif // of __FLOW_DEBUG_MAPS_H
+} // namespace testing
+} // namespace katran
