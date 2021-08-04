@@ -25,62 +25,60 @@ enum Action {
 }
 
 struct Vip {
-  1: string address,
-  2: i32 port,
-  3: i32 protocol,
+  1: string address;
+  2: i32 port;
+  3: i32 protocol;
 }
 
 struct VipMeta {
-  1: Vip vip,
-  2: i64 flags,
+  1: Vip vip;
+  2: i64 flags;
   /*
    * setFlag controls if we setting this flags or removing it from the VIP
    */
-  3: optional bool setFlag = 1,
+  3: optional bool setFlag = 1;
 }
 
 struct RealMeta {
-  1: string address,
-  2: i32 flags,
+  1: string address;
+  2: i32 flags;
   /*
    * setFlag controls if we setting this flags or removing it from the Real
    */
-  3: optional bool setFlag = 1,
+  3: optional bool setFlag = 1;
 }
 
 struct Real {
-  1: string address,
-  2: i32 weight,
-  3: i32 flags,
+  1: string address;
+  2: i32 weight;
+  3: i32 flags;
 }
 
 struct QuicReal {
-  1: string address,
-  2: i32 id,
+  1: string address;
+  2: i32 id;
 }
 
 struct Mac {
-  1: string mac,
+  1: string mac;
 }
 
 struct Stats {
-  1: i64 v1,
-  2: i64 v2,
+  1: i64 v1;
+  2: i64 v2;
 }
 
 struct Healthcheck {
-  1: i32 somark,
-  2: string address,
+  1: i32 somark;
+  2: string address;
 }
 
-typedef map<i32, string> ( cpp.template = "std::unordered_map" ) hcMap
+typedef map<i32, string> (cpp.template = "std::unordered_map") hcMap
 
 typedef list<Real> Reals
 typedef list<QuicReal> QuicReals
 
-
 service KatranService {
-
   bool changeMac(1: Mac newMac);
 
   Mac getMac();
@@ -91,9 +89,9 @@ service KatranService {
 
   list<Vip> getAllVips();
 
-  bool modifyVip (1: VipMeta vipMeta);
+  bool modifyVip(1: VipMeta vipMeta);
 
-  bool modifyReal (1: RealMeta realMeta);
+  bool modifyReal(1: RealMeta realMeta);
 
   i64 getVipFlags(1: Vip vip);
 
@@ -101,14 +99,11 @@ service KatranService {
 
   bool delRealForVip(1: Real real, 2: Vip vip);
 
-  bool modifyRealsForVip(
-    1: Action action,
-    2: Reals real,
-    3: Vip vip);
+  bool modifyRealsForVip(1: Action action, 2: Reals real, 3: Vip vip);
 
   Reals getRealsForVip(1: Vip vip);
 
-  bool modifyQuicRealsMapping(1: Action action, 2:QuicReals reals);
+  bool modifyQuicRealsMapping(1: Action action, 2: QuicReals reals);
 
   QuicReals getQuicRealsMapping();
 
