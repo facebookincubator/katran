@@ -25,11 +25,12 @@
 
 namespace katran {
 
+constexpr uint32_t kDefaultPriority = 2307;
+
 namespace {
 constexpr uint32_t kDefaultKatranPos = 2;
 constexpr uint32_t kDefaultMaxVips = 512;
 constexpr uint32_t kDefaultMaxReals = 4096;
-constexpr uint32_t kDefaultPriority = 2307;
 constexpr uint32_t kLbDefaultChRingSize = 65537;
 constexpr uint32_t kDefaultMaxLpmSrcSize = 3000000;
 constexpr uint32_t kDefaultMaxDecapDstSize = 6;
