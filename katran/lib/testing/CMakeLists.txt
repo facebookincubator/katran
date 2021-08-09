@@ -42,6 +42,7 @@ add_library(bpftester STATIC
     KatranTestFixtures.h
     KatranHCTestFixtures.h
     KatranGueTestFixtures.h
+    KatranTPRTestFixtures.h
     KatranOptionalTestFixtures.h
     KatranGueOptionalTestFixtures.h
 )
@@ -85,6 +86,7 @@ add_library(katran_test_util STATIC
 target_link_libraries(katran_test_util
   katran_test_provision
   katranlb
+  bpftester
 )
 
 # katran_tester is a 'standalone' integration test
