@@ -22,14 +22,13 @@
 #include "bpf_helpers.h"
 #include "flow_debug.h"
 
-struct bpf_map_def SEC("maps") flow_debug_maps = {
-  .type = BPF_MAP_TYPE_ARRAY_OF_MAPS,
-  .key_size = sizeof(__u32),
-  .value_size = sizeof(__u32),
-  .max_entries = MAX_SUPPORTED_CPUS,
-  .map_flags = NO_FLAGS,
-};
-
+struct {
+  __uint(type, BPF_MAP_TYPE_ARRAY_OF_MAPS);
+  __uint(key_size, sizeof(__u32));
+  __uint(value_size, sizeof(__u32));
+  __uint(max_entries, MAX_SUPPORTED_CPUS);
+  __uint(map_flags, NO_FLAGS);
+} flow_debug_maps SEC(".maps");
 
 
 #endif // of __FLOW_DEBUG_MAPS_H

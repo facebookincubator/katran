@@ -33,25 +33,22 @@
 /*
  * map_fd #0
  */
-
-struct bpf_map_def SEC("maps") ctl_array = {
-  .type = BPF_MAP_TYPE_ARRAY,
-  .key_size = sizeof(__u32),
-  .value_size = sizeof(__u32),
-  .max_entries = CTRL_ARRAY_SIZE,
-};
-
+struct {
+  __uint(type, BPF_MAP_TYPE_ARRAY);
+  __type(key, __u32);
+  __type(value, __u32);
+  __uint(max_entries, CTRL_ARRAY_SIZE);
+} ctl_array SEC(".maps");
 
 /*
  * map_fd #1
  */
-struct bpf_map_def SEC("maps") cntrs_array = {
- // @lint-ignore TXT2 T25377293 Grandfathered in
-	.type = BPF_MAP_TYPE_PERCPU_ARRAY,
-  .key_size = sizeof(__u32),
-  .value_size = sizeof(__u64),
-  .max_entries = CNTRS_ARRAY_SIZE,
-};
+struct {
+  __uint(type, BPF_MAP_TYPE_PERCPU_ARRAY);
+  __type(key, __u32);
+  __type(value, __u64);
+  __uint(max_entries, CNTRS_ARRAY_SIZE);
+} cntrs_array SEC(".maps");
 
 SEC("cls-pktcntr")
 int pktcntr(struct __sk_buff *skb) {

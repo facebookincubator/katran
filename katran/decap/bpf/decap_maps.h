@@ -35,13 +35,12 @@ struct decap_stats {
 };
 
 // map w/ per vip statistics
-struct bpf_map_def SEC("maps") decap_counters = {
-  .type = BPF_MAP_TYPE_PERCPU_ARRAY,
-  .key_size = sizeof(__u32),
-  .value_size = sizeof(struct decap_stats),
-  .max_entries = STATS_MAP_SIZE,
-  .map_flags = NO_FLAGS,
-};
-BPF_ANNOTATE_KV_PAIR(stats, __u32, struct decap_stats);
+struct {
+  __uint(type, BPF_MAP_TYPE_PERCPU_ARRAY);
+  __type(key, __u32);
+  __type(value, struct decap_stats);
+  __uint(max_entries, STATS_MAP_SIZE);
+  __uint(map_flags, NO_FLAGS);
+} decap_counters SEC(".maps");
 
 #endif // of _DECAP_MAPS

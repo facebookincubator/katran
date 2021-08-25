@@ -62,28 +62,28 @@ struct hc_stats {
   __u64 pckts_too_big;
 };
 
-struct bpf_map_def SEC("maps") hc_ctrl_map = {
-    .type = BPF_MAP_TYPE_ARRAY,
-    .key_size = sizeof(__u32),
-    .value_size = sizeof(__u32),
-    .max_entries = CTRL_MAP_SIZE,
-};
+struct {
+  __uint(type, BPF_MAP_TYPE_ARRAY);
+  __type(key, __u32);
+  __type(value, __u32);
+  __uint(max_entries, CTRL_MAP_SIZE);
+} hc_ctrl_map SEC(".maps");
 
-struct bpf_map_def SEC("maps") hc_reals_map = {
-    .type = BPF_MAP_TYPE_HASH,
-    .key_size = sizeof(__u32),
-    .value_size = sizeof(struct hc_real_definition),
-    .max_entries = REALS_MAP_SIZE,
-};
+struct {
+  __uint(type, BPF_MAP_TYPE_HASH);
+  __type(key, __u32);
+  __type(value, struct hc_real_definition);
+  __uint(max_entries, REALS_MAP_SIZE);
+} hc_reals_map SEC(".maps");
 
 // map which contains counters for monitoring
-struct bpf_map_def SEC("maps") hc_stats_map = {
-    .type = BPF_MAP_TYPE_PERCPU_ARRAY,
-    .key_size = sizeof(__u32),
-    .value_size = sizeof(struct hc_stats),
-    .max_entries = STATS_SIZE,
-    .map_flags = NO_FLAGS,
-};
+struct {
+  __uint(type, BPF_MAP_TYPE_PERCPU_ARRAY);
+  __type(key, __u32);
+  __type(value, struct hc_stats);
+  __uint(max_entries, STATS_SIZE);
+  __uint(map_flags, NO_FLAGS);
+} hc_stats_map SEC(".maps");
 
 SEC("cls-hc")
 int healthchecker(struct __sk_buff *skb)

@@ -31,19 +31,19 @@
 
 
 
-struct bpf_map_def SEC("maps") ctl_array = {
-  .type = BPF_MAP_TYPE_ARRAY,
-  .key_size = sizeof(__u32),
-  .value_size = sizeof(__u32),
-  .max_entries = CTRL_ARRAY_SIZE,
-};
+struct {
+  __uint(type, BPF_MAP_TYPE_ARRAY);
+  __type(key, __u32);
+  __type(value, __u32);
+  __uint(max_entries, CTRL_ARRAY_SIZE);
+} ctl_array SEC(".maps");
 
-struct bpf_map_def SEC("maps") cntrs_array = {
-  .type = BPF_MAP_TYPE_PERCPU_ARRAY,
-  .key_size = sizeof(__u32),
-  .value_size = sizeof(__u64),
-  .max_entries = CNTRS_ARRAY_SIZE,
-};
+struct {
+  __uint(type, BPF_MAP_TYPE_PERCPU_ARRAY);
+  __type(key, __u32);
+  __type(value, __u64);
+  __uint(max_entries, CNTRS_ARRAY_SIZE);
+} cntrs_array SEC(".maps");
 
 SEC("xdp-pktcntr")
 int pktcntr(struct xdp_md *ctx) {

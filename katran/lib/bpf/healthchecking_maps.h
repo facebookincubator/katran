@@ -24,50 +24,47 @@
 #include "healthchecking_consts.h"
 #include "healthchecking_structs.h"
 
-struct bpf_map_def SEC("maps") hc_ctrl_map = {
-    .type = BPF_MAP_TYPE_ARRAY,
-    .key_size = sizeof(__u32),
-    .value_size = sizeof(__u32),
-    .max_entries = CTRL_MAP_SIZE,
-};
-BPF_ANNOTATE_KV_PAIR(hc_ctrl_map, __u32, __u32);
+struct {
+  __uint(type, BPF_MAP_TYPE_ARRAY);
+  __type(key, __u32);
+  __type(value, __u32);
+  __uint(max_entries, CTRL_MAP_SIZE);
+} hc_ctrl_map SEC(".maps");
 
-struct bpf_map_def SEC("maps") hc_reals_map = {
-    .type = BPF_MAP_TYPE_HASH,
-    .key_size = sizeof(__u32),
-    .value_size = sizeof(struct hc_real_definition),
-    .max_entries = MAX_REALS,
-};
-BPF_ANNOTATE_KV_PAIR(hc_reals_map, __u32, struct hc_real_definition);
 
-struct bpf_map_def SEC("maps") hc_pckt_srcs_map = {
-  .type = BPF_MAP_TYPE_ARRAY,
-  .key_size = sizeof(__u32),
-  .value_size = sizeof(struct hc_real_definition),
-  .max_entries = 2,
-  .map_flags = NO_FLAGS,
-};
-BPF_ANNOTATE_KV_PAIR(hc_pckt_srcs_map, __u32, struct hc_real_definition);
+struct {
+  __uint(type, BPF_MAP_TYPE_HASH);
+  __type(key, __u32);
+  __type(value, struct hc_real_definition);
+  __uint(max_entries, MAX_REALS);
+} hc_reals_map SEC(".maps");
 
-struct bpf_map_def SEC("maps") hc_pckt_macs = {
-  .type = BPF_MAP_TYPE_ARRAY,
-  .key_size = sizeof(__u32),
-  .value_size = sizeof(struct hc_mac),
-  .max_entries = 2,
-  .map_flags = NO_FLAGS,
-};
-BPF_ANNOTATE_KV_PAIR(hc_pckt_macs, __u32, struct hc_mac);
+
+struct {
+  __uint(type, BPF_MAP_TYPE_ARRAY);
+  __type(key, __u32);
+  __type(value, struct hc_real_definition);
+  __uint(max_entries, 2);
+  __uint(map_flags, NO_FLAGS);
+} hc_pckt_srcs_map SEC(".maps");
+
+
+struct {
+  __uint(type, BPF_MAP_TYPE_ARRAY);
+  __type(key, __u32);
+  __type(value, struct hc_mac);
+  __uint(max_entries, 2);
+  __uint(map_flags, NO_FLAGS);
+} hc_pckt_macs SEC(".maps");
+
 
 // map which contains counters for monitoring
-struct bpf_map_def SEC("maps") hc_stats_map = {
-    .type = BPF_MAP_TYPE_PERCPU_ARRAY,
-    .key_size = sizeof(__u32),
-    .value_size = sizeof(struct hc_stats),
-    .max_entries = STATS_SIZE,
-    .map_flags = NO_FLAGS,
-};
-BPF_ANNOTATE_KV_PAIR(hc_stats_map, __u32, struct hc_stats);
-
-
+struct {
+  __uint(type, BPF_MAP_TYPE_PERCPU_ARRAY);
+  __type(key, __u32);
+  __type(value, struct hc_stats);
+  __uint(max_entries, STATS_SIZE);
+  __uint(map_flags, NO_FLAGS);
+} hc_stats_map SEC(".maps");
 
 #endif // of __HEALTHCHECKING_MAPS_H
