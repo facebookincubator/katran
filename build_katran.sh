@@ -282,8 +282,9 @@ get_clang() {
         mkdir -p "$CLANG_DIR"
         cd "$CLANG_DIR"
         echo -e "${COLOR_GREEN}[ INFO ] Downloading Clang ${COLOR_OFF}"
-        wget http://releases.llvm.org/8.0.0/clang+llvm-8.0.0-x86_64-linux-gnu-ubuntu-18.04.tar.xz
-        tar xvf ./clang+llvm-8.0.0-x86_64-linux-gnu-ubuntu-18.04.tar.xz
+        # download platform appropriate version (9.0+) of clang from https://github.com/llvm/llvm-project/releases/
+        wget https://github.com/llvm/llvm-project/releases/download/llvmorg-12.0.0/clang+llvm-12.0.0-x86_64-linux-gnu-ubuntu-20.04.tar.xz
+        tar xvf ./clang+llvm-12.0.0-x86_64-linux-gnu-ubuntu-20.04.tar.xz
         echo -e "${COLOR_GREEN}Clang is installed ${COLOR_OFF}"
         popd
     fi

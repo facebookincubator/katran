@@ -65,8 +65,8 @@ if [ -z "${SRC_DIR-}" ] ; then
   SRC_DIR="$(pwd)"
 fi
 
-
-CLANG_PATH="${BUILD_DIR}/deps/clang/clang+llvm-8.0.0-x86_64-linux-gnu-ubuntu-18.04"
+# Use the clang version based on the one fetched in 'build_katran.sh'
+CLANG_PATH="${BUILD_DIR}/deps/clang/clang+llvm-12.0.0-x86_64-linux-gnu-ubuntu-20.04"
 if [ -f /etc/redhat-release ]; then
   CLANG_PATH=/usr
 fi
