@@ -58,9 +58,9 @@ const std::vector<std::pair<std::string, std::string>> inputTPRTestFixtures = {
   },
   //4
   {
-    //Ether(src="0x1", dst="0x2")/IP(src="192.168.1.1", dst="10.200.1.3")/TCP(sport=31337, dport=80, flags="A", options=[('NOP', 0),('NOP', 0),('NOP', 0),('NOP', 0),(0xB7, '\xfe\x03\x00\x00')])/"katran test pkt"
-    "AgAAAAAAAQAAAAAACABFAABDAAEAAEAGrUDAqAEBCsgBA3ppAFAAAAAAAAAAAIAQIABAyQAAAQEBAbcG/gMAAAAAa2F0cmFuIHRlc3QgcGt0",
-    "V4 VIP (and v6 real), TPR Id: 1022. Real at 0. CH."
+    //Ether(src="0x1", dst="0x2")/IP(src="192.168.1.1", dst="10.200.1.3")/TCP(sport=31337, dport=80, flags="A", options=[('NOP', 0),('NOP', 0),('NOP', 0),('NOP', 0),(0xB7, '\x00\x04\x00\x00')])/"katran test pkt"
+    "AgAAAAAAAQAAAAAACABFAABDAAEAAEAGrUDAqAEBCsgBA3ppAFAAAAAAAAAAAIAQIABAyQAAAQEBAbcGAgQAAAAAa2F0cmFuIHRlc3QgcGt0",
+    "V4 VIP (and v6 real), TPR Id: 1026."
   },
   //5
   {
@@ -136,6 +136,12 @@ const std::vector<std::pair<std::string, std::string>> inputTPRTestFixtures = {
     "AgAAAAAAAQAAAAAAht1gAAAAACsGQPwAAAIAAAAAAAAAAAAAAAH8AAABAAAAAAAAAAAAAAABemkAUAAAAAAAAAAAcBAgANKPAAAAtwYBBAAAAGthdHJhbiB0ZXN0IHBrdA==",
     "V6 VIP, V6 real, EOL before TPR, LRU hit"
   },
+  //17
+  {
+    //Ether(src="0x1", dst="0x2")/IP(src="192.168.1.1", dst="10.200.1.3")/TCP(sport=31337, dport=80, flags="A", options=[('NOP', 0),('NOP', 0),('NOP', 0),('NOP', 0),(0xB7, '\xfd\x03\x00\x00')])/"katran test pkt"
+    "AgAAAAAAAQAAAAAACABFAABDAAEAAEAGrUDAqAEBCsgBA3ppAFAAAAAAAAAAAIAQIABAyQAAAQEBAbcG/QMAAAAAa2F0cmFuIHRlc3QgcGt0",
+    "V4 VIP (and v6 real), TPR Id: 1021. Invalid server id. CH"
+  },
 };
 
 const std::vector<std::pair<std::string, std::string>> outputTPRTestFixtures = {
@@ -161,8 +167,8 @@ const std::vector<std::pair<std::string, std::string>> outputTPRTestFixtures = {
   },
   //4
   {
-    // "Ether(src='x02', dst='0xdeadbeaf')/IPv6(src='100::bac1:101', dst='fc00::1')/IP(src='192.168.1.1', dst='10.200.1.3')/TCP(flags=16L, dport=80, sport=31337, options=[('NOP', None), ('NOP', None), ('NOP', None), ('NOP', None), (183, '\\xfe\\x03\\x00\\x00'), ('EOL', None)])/Raw(load='katran test pkt')"
-    "AADerb6vAgAAAAAAht1gAAAAAEMEQAEAAAAAAAAAAAAAALrBAQH8AAAAAAAAAAAAAAAAAAABRQAAQwABAABABq1AwKgBAQrIAQN6aQBQAAAAAAAAAACAECAAQMkAAAEBAQG3Bv4DAAAAAGthdHJhbiB0ZXN0IHBrdA==",
+    // "Ether(src='x02', dst='0xdeadbeaf')/IPv6(src='100::bac1:101', dst='fc00::1')/IP(src='192.168.1.1', dst='10.200.1.3')/TCP(flags=16L, dport=80, sport=31337, options=[('NOP', None), ('NOP', None), ('NOP', None), ('NOP', None), (183, '\\x00\\x04\\x00\\x00'), ('EOL', None)])/Raw(load='katran test pkt')"
+    "AADerb6vAgAAAAAAht1gAAAAAEMEQAEAAAAAAAAAAAAAALrBAQH8AAAAAAAAAAAAAAAAAAACRQAAQwABAABABq1AwKgBAQrIAQN6aQBQAAAAAAAAAACAECAAQMkAAAEBAQG3BgIEAAAAAGthdHJhbiB0ZXN0IHBrdA==",
     "XDP_TX"
   },
   //5
@@ -235,6 +241,12 @@ const std::vector<std::pair<std::string, std::string>> outputTPRTestFixtures = {
   {
     // "Ether(src='x02', dst='0xdeadbeaf')/IPv6(src='100::7a69:1', dst='fc00::1')/IPv6(src='fc00:2::1', dst='fc00:1::1')/TCP(flags=16L, dport=80, sport=31337, options=[('EOL', None)])/Raw(load='katran test pkt')"
     "AADerb6vAgAAAAAAht1gAAAAAFMpQAEAAAAAAAAAAAAAAHppAAH8AAAAAAAAAAAAAAAAAAABYAAAAAArBkD8AAACAAAAAAAAAAAAAAAB/AAAAQAAAAAAAAAAAAAAAXppAFAAAAAAAAAAAHAQIADSjwAAALcGAQQAAABrYXRyYW4gdGVzdCBwa3Q=",
+    "XDP_TX"
+  },
+  //17
+  {
+    // "Ether(src='x02', dst='0xdeadbeaf')/IPv6(src='100::bac1:101', dst='fc00::1')/IP(src='192.168.1.1', dst='10.200.1.3')/TCP(flags=16L, dport=80, sport=31337, options=[('NOP', None), ('NOP', None), ('NOP', None), ('NOP', None), (183, '\\xfd\\x03\\x00\\x00'), ('EOL', None)])/Raw(load='katran test pkt')"
+    "AADerb6vAgAAAAAAht1gAAAAAEMEQAEAAAAAAAAAAAAAALrBAQH8AAAAAAAAAAAAAAAAAAACRQAAQwABAABABq1AwKgBAQrIAQN6aQBQAAAAAAAAAACAECAAQMkAAAEBAQG3Bv0DAAAAAGthdHJhbiB0ZXN0IHBrdA==",
     "XDP_TX"
   },
 };

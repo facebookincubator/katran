@@ -526,19 +526,20 @@ static inline int process_packet(void *data, __u64 off, void *data_end,
       __u32 *real_pos = bpf_map_lookup_elem(&server_id_map, &key);
       if (real_pos) {
         key = *real_pos;
-        // TODO: server_id_map is array, which never fails to lookup element,
-        // resulting in default value 0 for real id
         if (key == 0) {
           increment_quic_cid_drop_real_0();
+          // increment counter for the CH based routing
+          quic_stats->v1 += 1;
+        } else {
+          pckt.real_index = key;
+          dst = bpf_map_lookup_elem(&reals, &key);
+          if (!dst) {
+            increment_quic_cid_drop_no_real();
+            REPORT_QUIC_PACKET_DROP_NO_REAL(xdp, data, data_end - data, false);
+            return XDP_DROP;
+          }
+          quic_stats->v2 += 1;
         }
-        pckt.real_index = key;
-        dst = bpf_map_lookup_elem(&reals, &key);
-        if (!dst) {
-          increment_quic_cid_drop_no_real();
-          REPORT_QUIC_PACKET_DROP_NO_REAL(xdp, data, data_end - data, false);
-          return XDP_DROP;
-        }
-        quic_stats->v2 += 1;
       } else {
         // increment counter for the CH based routing
         quic_stats->v1 += 1;

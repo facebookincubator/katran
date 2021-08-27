@@ -68,7 +68,7 @@
 
 #ifndef MAX_QUIC_REALS
 // use 24 bits in quic's connection id to store real's index
-#define MAX_QUIC_REALS 0x00fffffe // 2^24-1
+#define MAX_QUIC_REALS 0x00fffffe // 2^24-2
 #endif
 
 #define CTL_MAP_SIZE 16

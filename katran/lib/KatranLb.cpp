@@ -38,7 +38,7 @@ constexpr int kLruPrototypePos = 0;
 constexpr int kMaxForwardingCores = 128;
 constexpr int kFirstElem = 0;
 constexpr int kError = -1;
-constexpr uint32_t kMaxQuicId = 0x00fffffe; // 2^24-1
+constexpr uint32_t kMaxQuicId = 0x00fffffe; // 2^24-2
 constexpr uint32_t kDefaultStatsIndex = 0;
 constexpr folly::StringPiece kEmptyString = "";
 constexpr uint32_t kSrcV4Pos = 0;
@@ -64,7 +64,54 @@ KatranLb::KatranLb(const KatranConfig& config)
     vipNums_.push_back(i);
   }
 
-  for (uint32_t i = 0; i < config_.maxReals; i++) {
+  // realNums_ is a deque of available real indices.
+  // Each index points to an entry in reals array.
+  // When a new real (server) is added, it acquires the first available real
+  // index from the queue and assigns it to this real server, and inserts the
+  // real entry to the reals array at this particular index. In the datapath
+  // (XDP) there are two primary ways for picking destination real for incoming
+  // packets: i) Consisting hashing (with CH_Ring), and ii) reverse lookup of
+  // server_id (with server_id_map) if present in the packets, such as for QUIC,
+  // where server_id is bound to a real server. In either case, the mappings
+  // from CH_Ring to real server and the mapping from server_id to real server
+  // are independent of what is in realNums_.
+  //
+  // Example 1:
+  //    Say, realNums_ initialized to {0, 1, 2}
+  // After registering 3 quic servers, it will have server_id_map and reals
+  // array as follows:
+  //    reals = {10.0.0.1, 10.0.0.2, 10.0.0.3}
+  //    server_id_map = {{101=>0}, {102=>1}, {103=>2}}
+  // So 101, resolves to real server 10.0.0.1
+  // Now if we change realNums_ to {1, 2, 3},
+  // after registering 3 quic servers, it will have server_id_map and reals
+  // array as follows:
+  //    reals = {<reserved>, 10.0.0.1, 10.0.0.2, 10.0.0.3}
+  //    server_id_map = {{101=>1}, {102=>2}, {103=>3}}
+  // server_id 101 still resolves to 10.0.0.1
+  //
+  // Example 2:
+  //    Say, realNums_ is {0, 1, 2}
+  // Further, suppose there is 1 vip with 3 real servers with weights {2, 2, 3}.
+  // CH_ring size is 2 + 2 + 3 = 7.
+  // After CH_ring population, we get CH_ring (without shuffling) and reals
+  // array as below
+  //    CH_ring = {0, 0, 1, 1, 2, 2, 2}
+  //    reals = {10.0.0.1, 10.0.0.2, 10.0.0.3}
+  // Thus, from CH_ring index 0, which resolves to real-id 0, we get 10.0.0.1
+  // Now we change realNums_ to {1, 2, 3}
+  // After CH_ring population, we get CH_ring and reals array as below
+  //    CH_ring = {1, 1, 2, 2, 3, 3, 3}
+  //    reals = {<reserved>, 10.0.0.1, 10.0.0.2, 10.0.0.3}
+  // CH_ring at index 0 it resolves to real-id 1, which still resolves
+  // to 10.0.0.1
+  //
+  // Why avoid real-id 0?
+  // BPF arrays are initialized with value of 0. So it's hard to disambiguate
+  // issues where '0' is returned as server at index 0 vs error cases where it
+  // couldn't find the server. So we preserve 0 as the invalid entry to reals
+  // array.
+  for (uint32_t i = 1; i < config_.maxReals; i++) {
     realNums_.push_back(i);
   }
 

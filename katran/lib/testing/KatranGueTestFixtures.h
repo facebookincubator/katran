@@ -179,15 +179,15 @@ const std::vector<std::pair<std::string, std::string>> inputGueTestFixtures = {
   },
   //24
   {
-    // Ether(src="0x1", dst="0x2")/IP(src="192.168.1.42", dst="10.200.1.5")/UDP(sport=31337, dport=443)/'\xef\xfa\xce\xb0\x01\x08\x44\x01\x03\x04\x05\x06\x07\x00\x00\x01\x11\x01quic data\x00@'
-    "AgAAAAAAAQAAAAAACABFAAA5AAEAAEARrRTAqAEqCsgBBXppAbsAJZRt7/rOsAEIRAEDBAUGBwAAAREBcXVpYyBkYXRhAEA=",
-    "QUIC: long header. Handshake. v4 vip v6 real. Conn Id based."
+    // Ether(src="0x1", dst="0x2")/IP(src="192.168.1.42", dst="10.200.1.5")/UDP(sport=31337, dport=443)/'\xef\xfa\xce\xb0\x01\x08\x41\x00\x03\x04\x05\x06\x07\x00\x00\x01\x11\x01quic data\x00@'
+    "AgAAAAAAAQAAAAAACABFAAA5AAEAAEARrRTAqAEqCsgBBXppAbsAJZRt7/rOsAEIQQADBAUGBwAAAREBcXVpYyBkYXRhAEA=",
+    "QUIC: long header. Handshake. v4 vip v6 real. Conn Id V1 based. server id is 1024 mapped to fc00::1."
   },
   //25
   {
-    // Ether(src="0x1", dst="0x2")/IP(src="192.168.1.42", dst="10.200.1.5")/UDP(sport=31337, dport=443)/'\xff\xfa\xce\xb0\x01\x08\x44\x01\x03\x04\x05\x06\x07\x00\x00\x01\x11\x01quic data\x00@'
-    "AgAAAAAAAQAAAAAACABFAAA5AAEAAEARrRTAqAEqCsgBBXppAbsAJYRt//rOsAEIRAEDBAUGBwAAAREBcXVpYyBkYXRhAEA=",
-    "QUIC: long header. Retry. v4 vip v6 real. Conn Id based."
+    // Ether(src="0x1", dst="0x2")/IP(src="192.168.1.42", dst="10.200.1.5")/UDP(sport=31337, dport=443)/'\xff\xfa\xce\xb0\x01\x08\x41\x00\x03\x04\x05\x06\x07\x00\x00\x01\x11\x01quic data\x00@'
+    "AgAAAAAAAQAAAAAACABFAAA5AAEAAEARrRTAqAEqCsgBBXppAbsAJYRt//rOsAEIQQADBAUGBwAAAREBcXVpYyBkYXRhAEA=",
+    "QUIC: long header. Retry. v4 vip v6 real. Conn Id V1 based. server id is 1024 mapped to fc00::1."
   },
   //26
   {
@@ -211,7 +211,7 @@ const std::vector<std::pair<std::string, std::string>> inputGueTestFixtures = {
   {
     // Ether(src="0x1", dst="0x2")/IP(src="192.168.1.42", dst="10.200.1.5")/UDP(sport=31337, dport=443)/'\x00\x41\x11\x00\x00\x00\x00\x00\x00@'
     "AgAAAAAAAQAAAAAACABFAAAmAAEAAEARrSfAqAEqCsgBBXppAbsAEqSFAEERAAAAAAAAQA==",
-    "QUIC: short header w/ connection id but non-existing mapping"
+    "QUIC: short header w/ connection 1092 id but non-existing mapping. LRU hit"
   },
   //30
   {
@@ -241,7 +241,7 @@ const std::vector<std::pair<std::string, std::string>> inputGueTestFixtures = {
   {
     // Ether(src="0x1", dst="0x2")/IP(src="192.168.1.42", dst="10.200.1.5")/UDP(sport=31337, dport=443)/b'\x00\x80\x03\x04\x44\x00\x00\x00\x00@'
     "AgAAAAAAAQAAAAAACABFAAAmAAEAAEARrSfAqAEqCsgBBXppAbsAEm5CAIADBEQAAAAAQA==",
-    "QUIC: short header w/ connection id but non-existing mapping. CIDv2"
+    "QUIC: short header w/ connection id 197700 but non-existing mapping. CIDv2. LRU hit."
   },
 };
 
@@ -364,12 +364,12 @@ const std::vector<std::pair<std::string, std::string>> outputGueTestFixtures = {
   },
   //24
   {
-    "AADerb6vAgAAAAAACABFAABVAAAAAEARWXMKAA0lCgAAAWhQF8AAQSwMRQAAOQABAABAEa0UwKgBKgrIAQV6aQG7ACWUbe/6zrABCEQBAwQFBgcAAAERAXF1aWMgZGF0YQBA",
+    "AADerb6vAgAAAAAAht1gAAAAAEERQPwAIwcAAAAAAAAAAAAAEzf8AAAAAAAAAAAAAAAAAAABe0MXwABBC/5FAAA5AAEAAEARrRTAqAEqCsgBBXppAbsAJZRt7/rOsAEIQQADBAUGBwAAAREBcXVpYyBkYXRhAEA=",
     "XDP_TX"
   },
   //25
   {
-    "AADerb6vAgAAAAAACABFAABVAAAAAEARWXMKAA0lCgAAAWhQF8AAQSwMRQAAOQABAABAEa0UwKgBKgrIAQV6aQG7ACWEbf/6zrABCEQBAwQFBgcAAAERAXF1aWMgZGF0YQBA",
+    "AADerb6vAgAAAAAAht1gAAAAAEERQPwAIwcAAAAAAAAAAAAAEzf8AAAAAAAAAAAAAAAAAAABe0MXwABBC/5FAAA5AAEAAEARrRTAqAEqCsgBBXppAbsAJYRt//rOsAEIQQADBAUGBwAAAREBcXVpYyBkYXRhAEA=",
     "XDP_TX"
   },
   //26
@@ -389,7 +389,7 @@ const std::vector<std::pair<std::string, std::string>> outputGueTestFixtures = {
   },
   //29
   {
-    "AADerb6vAgAAAAAACABFAABCAAAAAEARWYYKAA0lCgAAAWhQF8AALiwfRQAAJgABAABAEa0nwKgBKgrIAQV6aQG7ABKkhQBBEQAAAAAAAEA=",
+    "AADerb6vAgAAAAAACABFAABCAAAAAEARWYUKAA0lCgAAAmhQF8AALiweRQAAJgABAABAEa0nwKgBKgrIAQV6aQG7ABKkhQBBEQAAAAAAAEA=",
     "XDP_TX"
   },
   //30
@@ -414,7 +414,7 @@ const std::vector<std::pair<std::string, std::string>> outputGueTestFixtures = {
   },
   //34
   {
-    "AADerb6vAgAAAAAACABFAABCAAAAAEARWYYKAA0lCgAAAWhQF8AALiwfRQAAJgABAABAEa0nwKgBKgrIAQV6aQG7ABJuQgCAAwREAAAAAEA=",
+    "AADerb6vAgAAAAAACABFAABCAAAAAEARWYUKAA0lCgAAAmhQF8AALiweRQAAJgABAABAEa0nwKgBKgrIAQV6aQG7ABJuQgCAAwREAAAAAEA=",
     "XDP_TX"
   },
 

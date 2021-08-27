@@ -21,6 +21,11 @@
 
 namespace katran {
 
+constexpr int kMaxRealTest = 4096;
+// real index 0 is preserved. So the real capacity would be
+// sizeof(reals array)-1.
+constexpr int kMaxNumOfReals = kMaxRealTest - 1;
+
 class KatranLbTest : public ::testing::Test {
  protected:
   KatranLbTest()
@@ -38,7 +43,7 @@ class KatranLbTest : public ::testing::Test {
             false, // tunnelBasedEncap
             false, // disableForwarding
             512, // maxVips
-            4096, // maxReals
+            kMaxRealTest, // maxReals
             65537, // chRingSize
             true, // testing
             1, // LruSize
@@ -73,7 +78,7 @@ class KatranLbTest : public ::testing::Test {
     for (int i = 0; i < 16; i++) {
       for (int j = 0; j < 256; j++) {
         k = (i * 256 + j);
-        if (k <= 4096) {
+        if (k < kMaxNumOfReals) {
           real1.address = folly::sformat("10.0.{}.{}", i, j);
           newReals1.push_back(real1);
           qreal1.address = real1.address;
@@ -220,17 +225,17 @@ TEST_F(KatranLbTest, testUpdateRealsHelper) {
   lb.addVip(v1);
   lb.addVip(v2);
   ModifyAction action = ModifyAction::ADD;
-  // ading max amount (4096) of reals
+  // ading max amount (kMaxNumOfReals) of reals
   ASSERT_TRUE(lb.modifyRealsForVip(action, newReals1, v1));
   ASSERT_TRUE(lb.modifyRealsForVip(action, newReals2, v2));
   // v1 has all reals;
-  ASSERT_EQ(lb.getRealsForVip(v1).size(), 4096);
+  ASSERT_EQ(lb.getRealsForVip(v1).size(), kMaxNumOfReals);
   // v2 has 0 reals because when we were trying to add new ones there was no
   // more space for new reals.
   ASSERT_EQ(lb.getRealsForVip(v2).size(), 0);
   // but if we add same reals as for v1 - everything must works
   ASSERT_TRUE(lb.modifyRealsForVip(action, newReals1, v2));
-  ASSERT_EQ(lb.getRealsForVip(v2).size(), 4096);
+  ASSERT_EQ(lb.getRealsForVip(v2).size(), kMaxNumOfReals);
   action = ModifyAction::DEL;
   // deleting 4k reals
   ASSERT_TRUE(lb.modifyRealsForVip(action, newReals1, v1));
@@ -238,23 +243,23 @@ TEST_F(KatranLbTest, testUpdateRealsHelper) {
   // retrying to add new rels to v2.
   action = ModifyAction::ADD;
   ASSERT_TRUE(lb.modifyRealsForVip(action, newReals2, v2));
-  ASSERT_EQ(lb.getRealsForVip(v2).size(), 4096);
-  ASSERT_EQ(lb.getNumToRealMap().size(), 4096);
+  ASSERT_EQ(lb.getRealsForVip(v2).size(), kMaxNumOfReals);
+  ASSERT_EQ(lb.getNumToRealMap().size(), kMaxNumOfReals);
 };
 
 TEST_F(KatranLbTest, testUpdateQuicRealsHelper) {
   lb.addVip(v1);
   lb.addVip(v2);
   ModifyAction action = ModifyAction::ADD;
-  // ading max amount (4096) of reals
+  // ading max amount (kMaxNumOfReals) of reals
   lb.modifyQuicRealsMapping(action, qReals2);
   ASSERT_TRUE(lb.modifyRealsForVip(action, newReals1, v1));
   ASSERT_TRUE(lb.modifyRealsForVip(action, newReals2, v2));
   // v1 has no reals, because quic consumed all of em;
   ASSERT_EQ(lb.getRealsForVip(v1).size(), 0);
   // v2 has same reals addresses as quic, so all of was added as well.
-  ASSERT_EQ(lb.getRealsForVip(v2).size(), 4096);
-  ASSERT_EQ(lb.getQuicRealsMapping().size(), 4096);
+  ASSERT_EQ(lb.getRealsForVip(v2).size(), kMaxNumOfReals);
+  ASSERT_EQ(lb.getQuicRealsMapping().size(), kMaxNumOfReals);
   action = ModifyAction::DEL;
   // deleting 4k reals
   ASSERT_TRUE(lb.modifyRealsForVip(action, newReals2, v2));
@@ -263,7 +268,7 @@ TEST_F(KatranLbTest, testUpdateQuicRealsHelper) {
   // retrying to add new rels to v1.
   action = ModifyAction::ADD;
   ASSERT_TRUE(lb.modifyRealsForVip(action, newReals1, v1));
-  ASSERT_EQ(lb.getRealsForVip(v1).size(), 4096);
+  ASSERT_EQ(lb.getRealsForVip(v1).size(), kMaxNumOfReals);
 };
 
 TEST_F(KatranLbTest, testUpdateQuicReal) {

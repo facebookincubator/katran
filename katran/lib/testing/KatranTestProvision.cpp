@@ -36,10 +36,10 @@ const std::vector<std::string> kReals = {
 
 // packet and bytes stats for reals corresponding to each index in the kReals
 const std::vector<::katran::lb_stats> kDefaultRealStats = {
-    {4, 190},
-    {7, 346},
+    {0, 0},
+    {9, 422},
     {5, 291},
-    {2, 92},
+    {4, 206},
     {2, 76},
     {3, 156},
 };
@@ -48,8 +48,8 @@ const std::vector<::katran::lb_stats> kTPRRealStats = {
     {0, 0},
     {3, 181},
     {4, 244},
-    {9, 423},
-    {0, 0},
+    {8, 356},
+    {2, 134},
     {0, 0},
 };
 
