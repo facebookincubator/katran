@@ -426,7 +426,40 @@ static inline int process_packet(void *data, __u64 off, void *data_end,
   protocol = pckt.flow.proto;
 
   #ifdef INLINE_DECAP_IPIP
-  if (protocol == IPPROTO_IPIP || protocol == IPPROTO_IPV6) {
+  /* This is to workaround a verifier issue for 5.2.
+   * The reason is that 5.2 verifier does not handle register
+   * copy states properly while 5.6 handles properly.
+   *
+   * For the following source code:
+   *   if (protocol == IPPROTO_IPIP || protocol == IPPROTO_IPV6) {
+   *     ...
+   *   }
+   * llvm12 may generate the following simplified code sequence
+   *   100  r5 = *(u8 *)(r9 +51)  // r5 is the protocol
+   *   120  r4 = r5
+   *   121  if r4 s> 0x10 goto target1
+   *   122  *(u64 *)(r10 -184) = r5
+   *   123  if r4 == 0x4 goto target2
+   *   ...
+   *   target2:
+   *   150  r1 = *(u64 *)(r10 -184)
+   *   151  if (r1 != 4) { __unreachable__}
+   *
+   * For the path 123->150->151, 5.6 correctly noticed
+   * at insn 150: r4, r5, *(u64 *)(r10 -184) all have value 4.
+   * while 5.2 has *(u64 *)(r10 -184) holding "r5" which could be
+   * any value 0-255. In 5.2, "__unreachable" code is verified
+   * and it caused verifier failure.
+   */
+  if (protocol == IPPROTO_IPIP) {
+    bool pass = true;
+    action = check_decap_dst(&pckt, is_ipv6, &pass);
+    if (action >= 0) {
+      return action;
+    }
+    return process_encaped_ipip_pckt(
+        &data, &data_end, xdp, &is_ipv6, &protocol, pass);
+  } else if (protocol == IPPROTO_IPV6) {
     bool pass = true;
     action = check_decap_dst(&pckt, is_ipv6, &pass);
     if (action >= 0) {
