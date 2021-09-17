@@ -5,7 +5,7 @@ possible.
 ## Pull Requests
 We actively welcome your pull requests.
 
-1. Fork the repo and create your branch from `master`.
+1. Fork the repo and create your branch from `main`.
 2. If you've added code that should be tested, add tests.
 3. If you've changed APIs, update the documentation.
 4. Ensure the test suite passes.
@@ -26,8 +26,8 @@ Facebook has a [bounty program](https://www.facebook.com/whitehat/) for the safe
 disclosure of security bugs. In those cases, please go through the process
 outlined on that page and do not file a public issue.
 
-## Coding Style  
-we are using clang-format tool for coding style. please 
+## Coding Style
+we are using clang-format tool for coding style. please
 run `clang-format -i <filename>` on file, where changes has been made, before
 you commit them.
 ## License

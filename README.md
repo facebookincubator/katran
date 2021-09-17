@@ -3,7 +3,7 @@
 </p>
 <p align="center">
   <a href="https://github.com/facebookincubator/katran/actions?workflow=CI">
-    <img src="https://github.com/facebookincubator/katran/workflows/CI/badge.svg?branch=master" alt="CI Status" />
+    <img src="https://github.com/facebookincubator/katran/workflows/CI/badge.svg" alt="CI Status" />
   </a>
 </p>
 
@@ -18,7 +18,7 @@ from the kernel to provide an in-kernel facility for fast packet's processing.
 2. Performance scaling linearly with a number of NIC's RX queues.
 3. RSS friendly encapsulation.
 
-See the detailed features' description below : 
+See the detailed features' description below :
 
 ## Documentation's sections
 
@@ -29,14 +29,14 @@ See the detailed features' description below :
 
 ## Examples of usage
 
-We provide simple examples of katran library usage w/ thrift and gRPC endpoints. 
+We provide simple examples of katran library usage w/ thrift and gRPC endpoints.
 Please refer to [`Examples`](EXAMPLE.md) for more detailed information.
 
 ## Installation
 
-We provide a shell script that automates the build of katran for Ubuntu 18.04. 
-To build and install katran library and thrift/gRPC examples - you need to run `build_katran.sh` script. 
-It should take care of all the required dependencies. 
+We provide a shell script that automates the build of katran for Ubuntu 18.04.
+To build and install katran library and thrift/gRPC examples - you need to run `build_katran.sh` script.
+It should take care of all the required dependencies.
 If you need to build it for other Linux distributions, you need to make sure that :
 
 1. it runs on recent linux kernel (4.13+)
@@ -51,7 +51,7 @@ Additionally, if you want to build examples, [`fbthrift`](https://github.com/fac
 
 Layer 4 load balancer (lb) enables to easily scale out Layer7 load balancers (the
 ones which terminate TCP sessions). Benefits of L4 lb over other
-techniques for scaling L7 lb is that it is : 
+techniques for scaling L7 lb is that it is :
 
 1. compared to DNS it doesn't need to wait for TTL to redirect traffic from failed
 L7 lb.
@@ -70,13 +70,13 @@ them:
 1. katran works only in DSR (direct service response) mode.
 
 2. Network topology should be L3 based (everything above the top of the rack switch should be routed).
-This is because we are 'offloading' routing decision for sending packets to the real server to first 
+This is because we are 'offloading' routing decision for sending packets to the real server to first
 routing device (by unconditionally sending all packets from katran there.)
 
-3. katran doesn't support fragmentation (it cannot forward the fragmented packet, nor it can fragment 
+3. katran doesn't support fragmentation (it cannot forward the fragmented packet, nor it can fragment
 them by itself if resulting packet size is bigger then MTU). This could be mitigated either by increasing MTU inside your
-network or by changing advertising TCP MSS from L7 lbs (this is recommended even if you have 
-increased MTU, as it will prevent fragmentation related issues towards some of the client. 
+network or by changing advertising TCP MSS from L7 lbs (this is recommended even if you have
+increased MTU, as it will prevent fragmentation related issues towards some of the client.
 For example, if instead of default TCP MSS 1460 (for ipv4) you will advertise 1450 - it will help clients behind [`PPPoE`](https://en.wikipedia.org/wiki/Point-to-Point_Protocol_over_Ethernet) connection).
 
 4. katran doesn't support packets w/ IP options set.
@@ -84,7 +84,7 @@ For example, if instead of default TCP MSS 1460 (for ipv4) you will advertise 14
 5. Maximum packet size cannot be bigger than 3.5k (and 1.5k by default).
 
 6. katran is built with the assumption that it's going to be used in a
-"load balancer on a stick" scenario: where single interface would be used both for 
+"load balancer on a stick" scenario: where single interface would be used both for
 traffic "from user to L4 lb (ingress)" and "from L4 lb to L7 lb (egress)."
 
 <h3 align="center"> L4 load balancing network topology </h3>
@@ -95,29 +95,29 @@ __Steps:__
 
 1. katran receives packet
 
-2. Checks if the destination of the packet is configured as a 
+2. Checks if the destination of the packet is configured as a
 VIP (virtual IP address - IP address of the service).
 
-3. For an incoming packet toward a VIP - katran is checking if it saw packet from the same 
-session before, and if it has - it sends the packet to the same real (actual server/l7 lb 
+3. For an incoming packet toward a VIP - katran is checking if it saw packet from the same
+session before, and if it has - it sends the packet to the same real (actual server/l7 lb
 which then processes/terminates the TCP session).
 
 4. If it's a new session - from 5 tuples in the packet, calculate a hash value.
 
 5. Using this hash value - pick a real server.
 
-6. Update session table with this lookup information so that katran can simply 
+6. Update session table with this lookup information so that katran can simply
 lookup this information for the next packet in the session and not calculate the hash again.
-  
+
 7. Encapsulate packet in another IP packet and send to the real.
 
 <h3 align="center"> L4 load balancing failure scenario </h3>
 
 ![alt text](imgs/katran_consistency.png "Failure Scenario")
 
-As we use only the data from the packet's headers to calculate a hash value, 
-which is then used to pick a real server, different L4 lbs are consistent in real server selection, 
-even w/o explicit state sharing amongst each other. This feature allows us to restart/drain single 
+As we use only the data from the packet's headers to calculate a hash value,
+which is then used to pick a real server, different L4 lbs are consistent in real server selection,
+even w/o explicit state sharing amongst each other. This feature allows us to restart/drain single
 L4 lb w/o affecting TCP sessions, going to the L7 lbs.
 
 ## katran's features description
