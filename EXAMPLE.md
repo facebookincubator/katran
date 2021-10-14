@@ -3,8 +3,8 @@
 ### Example of katran library usage -
 
 In this repository we provide two simple examples ([example](example) and [example_grpc](example_grpc) dirs)
-on how katran library can be used in production. They are based on thrift and 
-gRPC RPC frameworks. The actual code of this wrappers is simple, they just 
+on how katran library can be used in production. They are based on thrift and
+gRPC RPC frameworks. The actual code of this wrappers is simple, they just
 perform one-to-one translation between exposed RPC endpoint to internal methods of katran library.
 
 ### Example scenario:
@@ -27,7 +27,7 @@ sysctl net.core.bpf_jit_enable=1
 ```
 
 We are going to use gRPC in our example (but all this steps
-are applicable to thrift as well. They are intentionally written 
+are applicable to thrift as well. They are intentionally written
 to look and feel alike (with same flags, same behavior etc). The only
 difference is where the actual binaries are located).
 
@@ -57,8 +57,8 @@ $ ip n show | grep 10.0.2.2
 In this example mac address of default router is `52:54:00:12:35:02`
 
 2. __You need to know how many receive queues your NIC has and what the mapping between them and cpus__ :
-katran has built in optimizations, so it would allocate memory only for CPUs 
-which are actually forwarding traffic. If you do not need this 
+katran has built in optimizations, so it would allocate memory only for CPUs
+which are actually forwarding traffic. If you do not need this
 optimization - you can omit this step, by specifying that all CPUs are using for forwarding
 (for example: on 4 CPU server just specify -forwarding_cores="0,1,2,3" flag)
 
@@ -108,7 +108,7 @@ e.g. for cpu0 this info (NUMA id) is located here:
 $ cat /sys/devices/system/cpu/cpu0/topology/physical_package_id
 ```
 
-After collecting this mappings between cpus and NUMA nodes, for each cpu in -forwarding_cores list on the same 
+After collecting this mappings between cpus and NUMA nodes, for each cpu in -forwarding_cores list on the same
 position in -numa_nodes would be ID of NUMA for this cpu.
 
 For example: We have a server with 4 forwarding cpu 0,1,2,3. cpus 0 and 2 belongs to NUMA node 0
@@ -134,6 +134,16 @@ attach clsact qdisc on egress interface (enp0s3 in this example):
 
 ```
 $ sudo tc qd add  dev enp0s3 clsact
+```
+
+4. __Disable Receive Offload__:
+Receive offloads need to be disabled since Katran imposes limits on the maximum size for the packets it processes. If you are running Katran in the driver mode, Large Receive Offload (LRO) must be disabled.
+```
+$ /usr/sbin/ethtool --offload <interface name> lro off
+```
+If you are running Katran in the generic mode, Generic Receive Offload (GRO) must be disabled.
+```
+$ /usr/sbin/ethtool --offload <interface name> gro off
 ```
 
 After all this preparations we are ready to start katran_server
@@ -426,7 +436,7 @@ exiting
 ```
 
 Now, let’s initiate a ssh session from the client and look at tcpdump from the server side and
-stats output from katran. At katran, we are going to run client w/ `-s` and `-lru` flags. 
+stats output from katran. At katran, we are going to run client w/ `-s` and `-lru` flags.
 This flags will show total packet and byte rate. as well as will show connection table hit
 percentage.
 
@@ -472,4 +482,3 @@ The outer header contains specifically crafted src address and destination would
 
 3. When server receives this IPIP packet - it removes outer ip header, and processes original packet
 and while sending replies - it sends it directly from the "VIP" to the "client".
-
