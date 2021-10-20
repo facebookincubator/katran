@@ -31,6 +31,7 @@
 #include <linux/udp.h>
 #include <linux/if_ether.h>
 #include <linux/ptrace.h>
+#include <linux/version.h>
 #include <stdbool.h>
 
 #include "balancer_consts.h"
@@ -127,22 +128,84 @@ static inline bool parse_tcp(void *data, void *data_end,
   return true;
 }
 
+struct hdr_opt_state {
+  __u32 server_id;
+  __u8 byte_offset;
+  __u8 hdr_bytes_remaining;
+};
+
 #ifdef TCP_SERVER_ID_ROUTING
+__attribute__ ((noinline))
+int parse_hdr_opt(const struct xdp_md *xdp, struct hdr_opt_state *state)
+{
+  const void *data = (void *)(long)xdp->data;
+  const void *data_end = (void *)(long)xdp->data_end;
+  __u8 *tcp_opt, kind, hdr_len;
+
+  // Need this check to satisify the verifier
+  if (!state) {
+    return -1;
+  }
+
+  tcp_opt = (__u8*)(data + state->byte_offset);
+  if (tcp_opt + 1 > data_end) {
+    return -1;
+  }
+
+  kind = tcp_opt[0];
+  if (kind == TCP_OPT_EOL) {
+    return -1;
+  }
+
+  if (kind == TCP_OPT_NOP) {
+    state->hdr_bytes_remaining--;
+    state->byte_offset++;
+    return 0;
+  }
+
+  if (state->hdr_bytes_remaining < 2 ||
+      tcp_opt + sizeof(__u8) + sizeof(__u8) > data_end) {
+    return -1;
+  }
+
+  hdr_len = tcp_opt[1];
+  if (hdr_len > state->hdr_bytes_remaining) {
+    return -1;
+  }
+
+  if (kind == TCP_HDR_OPT_KIND_TPR) {
+    if (hdr_len != TCP_HDR_OPT_LEN_TPR) {
+      return -1;
+    }
+
+    if (tcp_opt + TCP_HDR_OPT_LEN_TPR > data_end) {
+      return -1;
+    }
+
+    state->server_id = *(__u32 *)&tcp_opt[2];
+    return 1;
+  }
+
+  state->hdr_bytes_remaining -= hdr_len;
+  state->byte_offset += hdr_len;
+  return 0;
+}
+
 __attribute__((__always_inline__)) static inline int tcp_hdr_opt_lookup(
-    void* data,
-    void* data_end,
+    const struct xdp_md *xdp,
     bool is_ipv6,
     struct real_definition** real,
     struct packet_description* pckt,
     bool bypass_lru,
     void* lru_map) {
+  const void *data = (void *)(long)xdp->data;
+  const void *data_end = (void *)(long)xdp->data_end;
   struct real_pos_lru* dst_lru;
   struct tcphdr* tcp_hdr;
-  void* tcp_opt;
   __u8 tcp_hdr_opt_len = 0;
-  __u8 hdr_bytes_parsed = 0;
   __u64 tcp_offset = 0;
-  __u32 server_id = 0;
+  struct hdr_opt_state opt_state = {};
+  int err = 0;
 
   tcp_offset = calc_offset(is_ipv6, false /* is_icmp */);
   tcp_hdr = (struct tcphdr*)(data + tcp_offset);
@@ -153,54 +216,26 @@ __attribute__((__always_inline__)) static inline int tcp_hdr_opt_lookup(
   if (tcp_hdr_opt_len < TCP_HDR_OPT_LEN_TPR) {
     return FURTHER_PROCESSING;
   }
-  tcp_opt = data + tcp_offset + sizeof(struct tcphdr);
 
+  opt_state.hdr_bytes_remaining = tcp_hdr_opt_len;
+  opt_state.byte_offset = sizeof(struct tcphdr) + tcp_offset;
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 3, 0)
+  // For linux kernel version < 5.3, there isn't support in the bpf verifier
+  // for validating bounded loops, so we need to unroll the loop
 #pragma clang loop unroll(full)
+#endif
   for (int i = 0; i < TCP_HDR_OPT_MAX_OPT_CHECKS; i++) {
-    if (tcp_opt + 1 > data_end) {
-      return FURTHER_PROCESSING;
-    }
-    if (hdr_bytes_parsed + 1 > tcp_hdr_opt_len) {
-      return FURTHER_PROCESSING;
-    }
-    __u8* kind = (__u8*)tcp_opt;
-    // 1 byte options
-    if (*kind == TCP_OPT_EOL) {
-      // EOL signifies end of options
-      return FURTHER_PROCESSING;
-    }
-    if (*kind == TCP_OPT_NOP) {
-      tcp_opt = (void*)(kind + sizeof(__u8));
-      hdr_bytes_parsed += sizeof(__u8);
-      continue;
-    }
-    if (kind + sizeof(__u8) + sizeof(__u8) > data_end) {
-      return FURTHER_PROCESSING;
-    }
-    __u8 hdr_len = *(kind + sizeof(__u8));
-    if (kind + hdr_len > data_end) {
-      return FURTHER_PROCESSING;
-    }
-    if (*kind == TCP_HDR_OPT_KIND_TPR) {
-      if (hdr_len != TCP_HDR_OPT_LEN_TPR) {
-        return FURTHER_PROCESSING;
-      }
-      __u8* hdr_data_off = kind + sizeof(__u8) + sizeof(__u8);
-      if (hdr_data_off + sizeof(__u32) > data_end) {
-        return FURTHER_PROCESSING;
-      }
-      server_id = *((__u32*)(hdr_data_off));
+    err = parse_hdr_opt(xdp, &opt_state);
+    if (err || !opt_state.hdr_bytes_remaining) {
       break;
     }
-    hdr_bytes_parsed += hdr_len;
-    tcp_opt = (void*)(kind + hdr_len);
   }
 
-  if (!server_id) {
+  if (!opt_state.server_id) {
     return FURTHER_PROCESSING;
   }
 
-  __u32 key = server_id;
+  __u32 key = opt_state.server_id;
   __u32* real_pos = bpf_map_lookup_elem(&server_id_map, &key);
   if (!real_pos) {
     return FURTHER_PROCESSING;

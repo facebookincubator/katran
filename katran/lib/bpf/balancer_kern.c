@@ -616,8 +616,7 @@ static inline int process_packet(struct xdp_md *xdp, __u64 off,
         return XDP_DROP;
       }
       if (tcp_hdr_opt_lookup(
-              data,
-              data_end,
+              xdp,
               is_ipv6,
               &dst,
               &pckt,
