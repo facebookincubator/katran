@@ -401,9 +401,10 @@ increment_quic_cid_drop_real_0() {
 }
 
 __attribute__((__always_inline__))
-static inline int process_packet(void *data, __u64 off, void *data_end,
-                                 bool is_ipv6, struct xdp_md *xdp) {
-
+static inline int process_packet(struct xdp_md *xdp, __u64 off,
+                                 bool is_ipv6) {
+  void *data = (void *)(long)xdp->data;
+  void *data_end = (void *)(long)xdp->data_end;
   struct ctl_value *cval;
   struct real_definition *dst = NULL;
   struct packet_description pckt = {};
@@ -721,9 +722,9 @@ int balancer_ingress(struct xdp_md *ctx) {
   eth_proto = eth->h_proto;
 
   if (eth_proto == BE_ETH_P_IP) {
-    return process_packet(data, nh_off, data_end, false, ctx);
+    return process_packet(ctx, nh_off, false);
   } else if (eth_proto == BE_ETH_P_IPV6) {
-    return process_packet(data, nh_off, data_end, true, ctx);
+    return process_packet(ctx, nh_off, true);
   } else {
     // pass to tcp/ip stack
     return XDP_PASS;
