@@ -135,7 +135,11 @@ struct hdr_opt_state {
 };
 
 #ifdef TCP_SERVER_ID_ROUTING
+#ifdef TCP_HDR_OPT_SKIP_UNROLL_LOOP
 __attribute__ ((noinline))
+#else
+__attribute__ ((__always_inline__))
+#endif
 int parse_hdr_opt(const struct xdp_md *xdp, struct hdr_opt_state *state)
 {
   const void *data = (void *)(long)xdp->data;
@@ -219,7 +223,8 @@ __attribute__((__always_inline__)) static inline int tcp_hdr_opt_lookup(
 
   opt_state.hdr_bytes_remaining = tcp_hdr_opt_len;
   opt_state.byte_offset = sizeof(struct tcphdr) + tcp_offset;
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 3, 0)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 3, 0) || \
+    !defined TCP_HDR_OPT_SKIP_UNROLL_LOOP
   // For linux kernel version < 5.3, there isn't support in the bpf verifier
   // for validating bounded loops, so we need to unroll the loop
 #pragma clang loop unroll(full)
