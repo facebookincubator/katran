@@ -17,6 +17,7 @@
 package katranc
 
 import (
+	"encoding/json"
 	"fmt"
 	lb_katran "katranc/lb_katran"
 	"log"
@@ -27,6 +28,7 @@ import (
 
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
+	"google.golang.org/protobuf/encoding/protojson"
 )
 
 const (
@@ -350,6 +352,41 @@ func (kc *KatranClient) List(addr string, proto int) {
 	for _, vip := range vips.Vips {
 		kc.ListVipAndReals(vip)
 	}
+}
+
+func (kc *KatranClient) RealsOfVip(vip *lb_katran.Vip) *lb_katran.VipReals {
+	d := lb_katran.VipReals{}
+	reals := kc.GetRealsForVip(vip)
+	proto := ""
+	if vip.Protocol == IPPROTO_TCP {
+		proto = "tcp"
+	} else {
+		proto = "udp"
+	}
+	d.Vip = vip
+	d.Protocol = proto
+	d.VipFlags = parseVipFlags(kc.GetVipFlags(vip))
+	d.Reals = reals.Reals
+	return &d
+}
+
+func (kc *KatranClient) Services(addr string, proto int) ([]byte, error) {
+	vipsMap := lb_katran.Services{VipReals: map[string]*lb_katran.VipReals{}}
+	vips := kc.GetAllVips()
+	for _, vip := range vips.Vips {
+		vipsMap.VipReals[vip.Address] = kc.RealsOfVip(vip)
+	}
+	m := protojson.MarshalOptions{AllowPartial: true, EmitUnpopulated: true, Indent: "  "}
+	b, err := m.Marshal(&vipsMap)
+	if err != nil {
+		return nil, err
+	}
+	mp := make(map[string]interface{}, 0)
+	err = json.Unmarshal(b, &mp)
+	if err != nil {
+		return nil, err
+	}
+	return json.MarshalIndent(mp["vipReals"], "", " ")
 }
 
 func (kc *KatranClient) ClearAll() {

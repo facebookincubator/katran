@@ -81,6 +81,18 @@ message hcMap {
     map<int32, string> healthchecks = 1;
 }
 
+message VipReals {
+  Vip vip = 1;
+  string Protocol = 2;
+  string vipFlags = 3;
+  repeated Real reals = 4;
+  
+  }
+  
+  message Services {
+    map<string, VipReals> vipReals = 1;  
+  }
+
 message Reals {
     repeated Real reals = 1;
 }

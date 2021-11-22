@@ -20,6 +20,8 @@ import (
 	"flag"
 	"fmt"
 	"katranc/katranc"
+	"log"
+	"os"
 )
 
 const (
@@ -38,14 +40,16 @@ var (
 		"Tcp service address. must be in format: <addr>:<port>")
 	udpService = flag.String("u", "",
 		"Udp service addr. must be in format: <addr>:<port>")
-	realServer     = flag.String("r", "", "Address of the real server")
-	realWeight     = flag.Int64("w", 1, "Weight (capacity) of real server")
-	showStats      = flag.Bool("s", false, "Show stats/counters")
-	showSumStats   = flag.Bool("sum", false, "Show summary stats")
-	showLruStats   = flag.Bool("lru", false, "Show LRU related stats")
-	showIcmpStats  = flag.Bool("icmp", false, "Show ICMP 'packet too big' related stats")
-	listServices   = flag.Bool("l", false, "List configured services")
-	vipChangeFlags = flag.String("vf", "",
+	realServer      = flag.String("r", "", "Address of the real server")
+	realWeight      = flag.Int64("w", 1, "Weight (capacity) of real server")
+	showStats       = flag.Bool("s", false, "Show stats/counters")
+	showSumStats    = flag.Bool("sum", false, "Show summary stats")
+	showLruStats    = flag.Bool("lru", false, "Show LRU related stats")
+	showIcmpStats   = flag.Bool("icmp", false, "Show ICMP 'packet too big' related stats")
+	listServices    = flag.Bool("l", false, "List configured services")
+	dumpServices    = flag.Bool("L", false, "Dump List configured services as json file")
+	servicesJsoPath = flag.String("json", "services.json", "List configured services")
+	vipChangeFlags  = flag.String("vf", "",
 		"change vip flags. Possible values: NO_SPORT, NO_LRU, QUIC_VIP, DPORT_HASH, LOCAL_VIP")
 	realChangeFlags = flag.String("rf", "",
 		"change real flags. Possible values: LOCAL_REAL")
@@ -90,6 +94,17 @@ func main() {
 	} else if *listServices {
 		// TODO(tehnerd): print only specified tcp/udp service
 		kc.List("", 0)
+	} else if *dumpServices {
+		d, err := kc.Services("", 0)
+		if err != nil {
+			log.Fatalf("Can't make dump message, err = %s", err.Error())
+		}
+		w, err := os.Create(*servicesJsoPath)
+		defer w.Close()
+		if err != nil {
+			log.Fatalf("Can't create '%s', error = %s", *servicesJsoPath, err.Error())
+		}
+		w.Write(d)
 	} else if *delService {
 		kc.DelService(service, proto)
 	} else if *editService {
