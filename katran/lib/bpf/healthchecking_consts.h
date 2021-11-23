@@ -25,6 +25,8 @@
 #define DEFAULT_TTL 64
 
 // Specify max packet size to avoid packets exceed mss (after encapsulation)
+// when set to 0, the healthchecker_kern would not perform skb length check,
+// relying on GSO to segment packets exceeding MSS on transmit path
 #ifndef HC_MAX_PACKET_SIZE
 #define HC_MAX_PACKET_SIZE 1474
 #endif
@@ -44,6 +46,5 @@
 
 #define HC_SRC_MAC_POS 0
 #define HC_DST_MAC_POS 1
-
 
 #endif // of __HEALTHCHECKING_CONSTS_H

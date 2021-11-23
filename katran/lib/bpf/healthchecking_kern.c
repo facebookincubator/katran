@@ -64,12 +64,14 @@ int healthchecker(struct __sk_buff *skb)
     return TC_ACT_UNSPEC;
   }
 
-  if (skb->len > HC_MAX_PACKET_SIZE) {
-    // do not allow packets bigger than the specified size
-    prog_stats->pckts_dropped += 1;
-    prog_stats->pckts_too_big += 1;
-    return TC_ACT_SHOT;
-  }
+  #if HC_MAX_PACKET_SIZE>0
+    if (skb->len > HC_MAX_PACKET_SIZE) {
+      // do not allow packets bigger than the specified size
+      prog_stats->pckts_dropped += 1;
+      prog_stats->pckts_too_big += 1;
+      return TC_ACT_SHOT;
+    }
+  #endif
 
   __u32* intf_ifindex = bpf_map_lookup_elem(&hc_ctrl_map, &key);
   if (!intf_ifindex) {
