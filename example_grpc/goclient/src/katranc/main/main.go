@@ -48,7 +48,7 @@ var (
 	showIcmpStats   = flag.Bool("icmp", false, "Show ICMP 'packet too big' related stats")
 	listServices    = flag.Bool("l", false, "List configured services")
 	dumpServices    = flag.Bool("L", false, "Dump List configured services as json file")
-	servicesJsoPath = flag.String("json", "services.json", "List configured services")
+	servicesJsoPath = flag.String("json", "services.json", "Path of the services Json dump")
 	vipChangeFlags  = flag.String("vf", "",
 		"change vip flags. Possible values: NO_SPORT, NO_LRU, QUIC_VIP, DPORT_HASH, LOCAL_VIP")
 	realChangeFlags = flag.String("rf", "",
@@ -95,7 +95,7 @@ func main() {
 		// TODO(tehnerd): print only specified tcp/udp service
 		kc.List("", 0)
 	} else if *dumpServices {
-		d, err := kc.Services("", 0)
+		d, err := kc.DumpServices("", 0)
 		if err != nil {
 			log.Fatalf("Can't make dump message, err = %s", err.Error())
 		}

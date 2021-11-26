@@ -325,7 +325,8 @@ func parseRealFlags(flags int32) string {
 	return flags_str
 }
 
-func (kc *KatranClient) ListVipAndReals(vip *lb_katran.Vip) {
+func (kc *KatranClient) ListVipAndReals(vip *lb_katran.Vip) *lb_katran.VipReals {
+	vipReals := lb_katran.VipReals{}
 	reals := kc.GetRealsForVip(vip)
 	proto := ""
 	if vip.Protocol == IPPROTO_TCP {
@@ -337,13 +338,20 @@ func (kc *KatranClient) ListVipAndReals(vip *lb_katran.Vip) {
 		vip.Address,
 		vip.Port,
 		proto)
+
 	flags := kc.GetVipFlags(vip)
+	vipReals.Vip = vip
+	vipReals.Protocol = proto
+	vipReals.VipFlags = parseVipFlags(flags)
+	vipReals.Reals = reals.Reals
+
 	fmt.Printf("Vip's flags: %v\n", parseVipFlags(flags))
 	for _, real := range reals.Reals {
 		fmt.Printf("%-20v weight: %v flags: %v\n",
 			" ->"+real.Address,
 			real.Weight, parseRealFlags(real.Flags))
 	}
+	return &vipReals
 }
 
 func (kc *KatranClient) List(addr string, proto int) {
@@ -354,28 +362,13 @@ func (kc *KatranClient) List(addr string, proto int) {
 	}
 }
 
-func (kc *KatranClient) RealsOfVip(vip *lb_katran.Vip) *lb_katran.VipReals {
-	d := lb_katran.VipReals{}
-	reals := kc.GetRealsForVip(vip)
-	proto := ""
-	if vip.Protocol == IPPROTO_TCP {
-		proto = "tcp"
-	} else {
-		proto = "udp"
-	}
-	d.Vip = vip
-	d.Protocol = proto
-	d.VipFlags = parseVipFlags(kc.GetVipFlags(vip))
-	d.Reals = reals.Reals
-	return &d
-}
-
-func (kc *KatranClient) Services(addr string, proto int) ([]byte, error) {
+func (kc *KatranClient) DumpServices(addr string, proto int) ([]byte, error) {
 	vipsMap := lb_katran.Services{VipReals: map[string]*lb_katran.VipReals{}}
 	vips := kc.GetAllVips()
 	for _, vip := range vips.Vips {
-		vipsMap.VipReals[vip.Address] = kc.RealsOfVip(vip)
+		vipsMap.VipReals[vip.Address] = kc.ListVipAndReals(vip)
 	}
+
 	m := protojson.MarshalOptions{AllowPartial: true, EmitUnpopulated: true, Indent: "  "}
 	b, err := m.Marshal(&vipsMap)
 	if err != nil {
