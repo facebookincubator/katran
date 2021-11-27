@@ -187,22 +187,49 @@ class MakeBuilder(BuilderBase):
 
 class CMakeBootStrapBuilder(MakeBuilder):
     def _build(self, install_dirs, reconfigure):
-        self._run_cmd(["./bootstrap", "--prefix=" + self.inst_dir])
+        self._run_cmd(
+            [
+                "./bootstrap",
+                "--prefix=" + self.inst_dir,
+                f"--parallel={self.build_opts.num_jobs}",
+            ]
+        )
         super(CMakeBootStrapBuilder, self)._build(install_dirs, reconfigure)
 
 
 class AutoconfBuilder(BuilderBase):
-    def __init__(self, build_opts, ctx, manifest, src_dir, build_dir, inst_dir, args):
+    def __init__(
+        self,
+        build_opts,
+        ctx,
+        manifest,
+        src_dir,
+        build_dir,
+        inst_dir,
+        args,
+        conf_env_args,
+    ):
         super(AutoconfBuilder, self).__init__(
             build_opts, ctx, manifest, src_dir, build_dir, inst_dir
         )
         self.args = args or []
+        self.conf_env_args = conf_env_args or {}
 
     def _build(self, install_dirs, reconfigure):
         configure_path = os.path.join(self.src_dir, "configure")
         autogen_path = os.path.join(self.src_dir, "autogen.sh")
 
         env = self._compute_env(install_dirs)
+
+        # Some configure scripts need additional env values passed derived from cmds
+        for (k, cmd_args) in self.conf_env_args.items():
+            out = (
+                subprocess.check_output(cmd_args, env=dict(env.items()))
+                .decode("utf-8")
+                .strip()
+            )
+            if out:
+                env.set(k, out)
 
         if not os.path.exists(configure_path):
             print("%s doesn't exist, so reconfiguring" % configure_path)
@@ -726,8 +753,6 @@ if __name__ == "__main__":
             # better signals for flaky tests.
             retry = 0
 
-        from sys import platform
-
         testpilot = path_search(env, "testpilot")
         tpx = path_search(env, "tpx")
         if (tpx or testpilot) and not no_testpilot:
@@ -887,14 +912,17 @@ class OpenSSLBuilder(BuilderBase):
 
         perl = path_search(env, "perl", "perl")
 
+        make_j_args = []
         if self.build_opts.is_windows():
             make = "nmake.exe"
             args = ["VC-WIN64A-masm", "-utf-8"]
         elif self.build_opts.is_darwin():
             make = "make"
+            make_j_args = ["-j%s" % self.build_opts.num_jobs]
             args = ["darwin64-x86_64-cc"]
         elif self.build_opts.is_linux():
             make = "make"
+            make_j_args = ["-j%s" % self.build_opts.num_jobs]
             args = (
                 ["linux-x86_64"] if not self.build_opts.is_arm() else ["linux-aarch64"]
             )
@@ -917,7 +945,10 @@ class OpenSSLBuilder(BuilderBase):
                 "no-tests",
             ]
         )
-        self._run_cmd([make, "install_sw", "install_ssldirs"])
+        make_build = [make] + make_j_args
+        self._run_cmd(make_build)
+        make_install = [make, "install_sw", "install_ssldirs"]
+        self._run_cmd(make_install)
 
 
 class Boost(BuilderBase):
