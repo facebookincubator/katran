@@ -134,7 +134,7 @@ void BpfTester::testClsFromFixture(
   for (auto& ctx : ctxs_in) {
     ctxs.push_back(&ctx);
   }
-  runBpfTesterFromFixtures(progFd, kTcCodes, {});
+  runBpfTesterFromFixtures(progFd, kTcCodes, ctxs, sizeof(struct __sk_buff));
 }
 
 bool BpfTester::runBpfTesterFromFixtures(

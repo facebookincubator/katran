@@ -42,8 +42,8 @@ namespace testing {
 
 const std::vector<struct __sk_buff> getInputCtxsForHcTest() {
     std::vector<struct __sk_buff> v;
-    for (int i = 0 ; i < 3 ; i++) {
-        struct __sk_buff skb;
+    for (int i = 0 ; i < 4 ; i++) {
+        struct __sk_buff skb = {};
         skb.mark = i;
         v.push_back(skb);
     }
@@ -59,15 +59,22 @@ const std::vector<std::pair<std::string, std::string>> inputHCTestFixtures = {
   },
   //2
   {
-    //Ether(src="0x1", dst="0x2")/IP(src="192.168.1.1", dst="10.200.1.1")/TCP(sport=31337, dport=80, flags="A")/"katran test pkt"
-    "AgAAAAAAAQAAAAAACABFAAA3AAEAAEAGrU7AqAEBCsgBAXppAFAAAAAAAAAAAFAQIAAn5AAAa2F0cmFuIHRlc3QgcGt0",
+    // Ether(src="0x1", dst="0x2")/IP(src="192.168.1.1", dst="10.200.1.1")/UDP(sport=31337, dport=80)/"katran test pkt"
+    "AgAAAAAAAQAAAAAACABFAAArAAEAAEARrU/AqAEBCsgBAXppAFAAF5fea2F0cmFuIHRlc3QgcGt0",
     "v4 packet. fwmark 1"
   },
+ 
   //3
+  {
+    //Ether(src="0x1", dst="0x2")/IP(src="192.168.1.1", dst="10.200.1.1")/TCP(sport=31337, dport=80, flags="A")/"katran test pkt"
+    "AgAAAAAAAQAAAAAACABFAAA3AAEAAEAGrU7AqAEBCsgBAXppAFAAAAAAAAAAAFAQIAAn5AAAa2F0cmFuIHRlc3QgcGt0",
+    "v4 packet. fwmark 2"
+  },
+  //4
   {
     //Ether(src="0x1", dst="0x2")/IPv6(src="fc00:2::1", dst="fc00:1::1")/TCP(sport=31337, dport=80,flags="A")/"katran test pkt"
     "AgAAAAAAAQAAAAAAht1gAAAAACMGQPwAAAIAAAAAAAAAAAAAAAH8AAABAAAAAAAAAAAAAAABemkAUAAAAAAAAAAAUBAgAP1PAABrYXRyYW4gdGVzdCBwa3Q=",
-    "v4 packet. fwmkark 2"
+    "v6 packet. fwmark 3"
   },
 };
 
@@ -75,17 +82,22 @@ const std::vector<std::pair<std::string, std::string>> outputHCTestFixtures = {
   //1
   {
     "AgAAAAAAAQAAAAAACABFAAArAAEAAEARrU/AqAEBCsgBAXppAFAAF5fea2F0cmFuIHRlc3QgcGt0",
-    "TC_ACT_UNSPEC"
+    "TC_ACT_UNSPEC",
   },
   //2
   {
-    "AgAAAAAAAQAAAAAACABFAAA3AAEAAEAGrU7AqAEBCsgBAXppAFAAAAAAAAAAAFAQIAAn5AAAa2F0cmFuIHRlc3QgcGt0",
-    "TC_ACT_UNSPEC"
+    "AADerb6vAP/erb6vCABFAAA/AAAAAEAEWZYKAA0lCgAAAUUAACsAAQAAQBGtT8CoAQEKyAEBemkAUAAXl95rYXRyYW4gdGVzdCBwa3Q=",
+    "TC_ACT_REDIRECT"
   },
   //3
   {
-    "AgAAAAAAAQAAAAAAht1gAAAAACMGQPwAAAIAAAAAAAAAAAAAAAH8AAABAAAAAAAAAAAAAAABemkAUAAAAAAAAAAAUBAgAP1PAABrYXRyYW4gdGVzdCBwa3Q=",
-    "TC_ACT_UNSPEC"
+    "AADerb6vAP/erb6vCABFAABLAAAAAEAEWYkKAA0lCgAAAkUAADcAAQAAQAatTsCoAQEKyAEBemkAUAAAAAAAAAAAUBAgACfkAABrYXRyYW4gdGVzdCBwa3Q=",
+    "TC_ACT_REDIRECT"
+  },
+  //4
+  {
+    "AADerb6vAP/erb6vht1gAAAAAEspQPwAIwcAAAAAAAAAAAAAEzf8AAAAAAAAAAAAAAAAAAABYAAAAAAjBkD8AAACAAAAAAAAAAAAAAAB/AAAAQAAAAAAAAAAAAAAAXppAFAAAAAAAAAAAFAQIAD9TwAAa2F0cmFuIHRlc3QgcGt0",
+    "TC_ACT_REDIRECT"
   },
 };
 } // namespace testing
