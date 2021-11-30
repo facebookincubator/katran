@@ -19,12 +19,9 @@
 #include <memory>
 #include <string>
 
+#include "katran/lib/PerfBufferEventReader.h"
 #include <folly/MPMCQueue.h>
 #include <folly/io/async/EventHandler.h>
-
-extern "C" {
-#include <linux/perf_event.h>
-}
 
 #include "katran/lib/PcapMsg.h"
 #include "katran/lib/PcapWriter.h"
@@ -40,43 +37,25 @@ class XdpEventLogger;
  * from XDP, print it to the cli, and, if configured
  * sending it to pcapWriter thru MPMCQueue.
  */
-class XdpEventReader : public folly::EventHandler {
+class XdpEventReader : public katran::PerfBufferEventReader {
 public:
   /**
    * @param shared_ptr<MPMCQueue<PcapMsg>> queue to pcapWriter
-   * @param XdpEventReaderMode mode of the event reader.
-   * @param int pages number of pages for mmaped memory region
-   * @param int cpu number where to attach this instance of xdpeventreader
    */
-  XdpEventReader(std::shared_ptr<folly::MPMCQueue<katran::PcapMsg>> queue,
-                 std::shared_ptr<XdpEventLogger> eventLogger, int pages,
-                 int cpu);
-  ~XdpEventReader() override;
+  explicit XdpEventReader(
+      std::shared_ptr<folly::MPMCQueue<katran::PcapMsg>> queue,
+      std::shared_ptr<XdpEventLogger> eventLogger)
+      : queue_(queue), eventLogger_(eventLogger) {}
 
   /**
-   * @param int eventMapFd descriptor of perf event map
-   * @param EventBase* evb event base to run this reader in
-   * @param int wakeUpNumEvents sampling rate: 1 out of wakeUpNumEvents
-   * @return true on success
-   *
-   * helper function to start/open perf event reader
-   */
-  bool open(int eventMapFd, folly::EventBase *evb, int wakeUpNumEvents);
-
-  /**
-   * @param uint16_t events bitmask of events which have been fired
-   *
-   * function, which is going to be run when event happened
-   */
-  void handlerReady(uint16_t events) noexcept override;
-
-private:
-  /**
+   * @param int cpu
    * @param const char* data received from the XDP prog.
    * @param size_t size of the data chunk
    */
-  void handlePerfEvent(const char *data, size_t size) noexcept;
+  void handlePerfBufferEvent(int cpu, const char *data,
+                             size_t size) noexcept override;
 
+private:
   /**
    * queue where we write data, which will be read by PcapWriter.
    * write is non-blocking. so if queue is full - we will drop the packet
@@ -89,31 +68,6 @@ private:
   uint64_t queueFull_;
 
   std::shared_ptr<XdpEventLogger> eventLogger_;
-
-  /**
-   * ptr to mapped memory region
-   */
-  struct perf_event_mmap_page *header_ = nullptr;
-
-  /**
-   * buffer where packets are going to be stored
-   */
-  std::string buffer_;
-
-  /**
-   * size of mmaped memory region. in pages
-   */
-  int pages_;
-
-  /**
-   * cpu, to which this event reader is attached
-   */
-  int cpu_;
-
-  /**
-   * size of the page on current architecture
-   */
-  int pageSize_;
 };
 
 } // namespace xdpdump

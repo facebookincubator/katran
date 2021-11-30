@@ -15,6 +15,7 @@ add_library(xdp_event_logger
 )
 
 target_link_libraries(xdp_event_logger
+  katranlb
   pcapwriter
   "Folly::folly"
   "glog::glog"
