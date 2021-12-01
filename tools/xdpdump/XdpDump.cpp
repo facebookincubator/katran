@@ -173,7 +173,7 @@ void XdpDump::load() {
 
   auto fnSize = bpf_->function_size(funcName_);
   auto bpfLogBuf = std::make_unique<char[]>(kBpfLogBufSize);
-  progFd_ = bpf_prog_load(BPF_PROG_TYPE_XDP, funcName_.c_str(),
+  progFd_ = bcc_prog_load(BPF_PROG_TYPE_XDP, funcName_.c_str(),
                           reinterpret_cast<struct bpf_insn *>(fnStart), fnSize,
                           bpf_->license(), bpf_->kern_version(),
                           0 /* log_level */, bpfLogBuf.get(), kBpfLogBufSize);
@@ -271,8 +271,7 @@ void XdpDump::startEventReaders() {
   std::shared_ptr<XdpEventLogger> eventLogger_;
   eventLogger_ = std::make_shared<ProgLogger>(filter_.mute, std::cerr);
   for (int cpu = 0; cpu < numCpu; ++cpu) {
-    auto reader = std::make_unique<XdpEventReader>(queue_, eventLogger_,
-                                                   filter_.pages, cpu);
+    auto reader = std::make_unique<XdpEventReader>(queue_, eventLogger_);
     if (!reader->open(perfEventMapFd_, eventBase_, kNoSample)) {
       LOG(ERROR) << "Perf event queue init failed for cpu: " << cpu;
     } else {
