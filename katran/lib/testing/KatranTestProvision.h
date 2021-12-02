@@ -127,6 +127,11 @@ void addReals(
     const katran::VipKey& vip,
     const std::vector<std::string>& reals);
 
+void deleteReals(
+    katran::KatranLb& lb,
+    const katran::VipKey& vip,
+    const std::vector<std::string>& reals);
+
 void addQuicMappings(katran::KatranLb& lb);
 
 void prepareLbData(katran::KatranLb& lb);

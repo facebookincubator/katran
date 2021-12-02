@@ -71,6 +71,18 @@ void addReals(
   }
 }
 
+void deleteReals(
+    katran::KatranLb& lb,
+    const katran::VipKey& vip,
+    const std::vector<std::string>& reals) {
+  katran::NewReal real;
+  real.weight = kDefaultWeight;
+  for (auto& r : reals) {
+    real.address = r;
+    lb.delRealForVip(real, vip);
+  }
+}
+
 void addQuicMappings(katran::KatranLb& lb) {
   katran::QuicReal qreal;
   std::vector<katran::QuicReal> qreals;
