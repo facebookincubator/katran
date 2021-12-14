@@ -97,14 +97,14 @@ struct lb_stats {
 
 // key for ipv4 lpm lookups
 struct v4_lpm_key {
-    __u32 prefixlen;
-    __be32 addr;
+  __u32 prefixlen;
+  __be32 addr;
 };
 
 // key for ipv6 lpm lookups
 struct v6_lpm_key {
-    __u32 prefixlen;
-    __be32 addr[4];
+  __u32 prefixlen;
+  __be32 addr[4];
 };
 
 struct address {

@@ -21,8 +21,10 @@
 namespace lb {
 namespace katran {
 
-GrpcSignalHandler::GrpcSignalHandler(std::shared_ptr<folly::EventBase> evb,
-                                     grpc::Server *server, int32_t delay)
+GrpcSignalHandler::GrpcSignalHandler(
+    std::shared_ptr<folly::EventBase> evb,
+    grpc::Server* server,
+    int32_t delay)
     : folly::AsyncSignalHandler(evb.get()), delay_(delay) {
   server_ = server;
   evb_ = evb;

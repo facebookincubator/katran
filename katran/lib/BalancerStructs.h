@@ -89,14 +89,14 @@ struct real_pos_lru {
 
 // key for longest prefix match ipv4 map
 struct v4_lpm_key {
-    uint32_t prefixlen;
-    uint32_t addr;
+  uint32_t prefixlen;
+  uint32_t addr;
 };
 
 // key for longest prefix match ipv6 map
 struct v6_lpm_key {
-    uint32_t prefixlen;
-    uint32_t addr[4];
+  uint32_t prefixlen;
+  uint32_t addr[4];
 };
 
 // Route information saved during inline decapsulation of GUE packets

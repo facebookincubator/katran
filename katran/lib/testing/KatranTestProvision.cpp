@@ -198,19 +198,22 @@ void preparePerfTestingLbData(katran::KatranLb& lb) {
   }
 }
 
-const std::vector<::katran::lb_stats> KatranTestParam::expectedRealStats() noexcept {
+const std::vector<::katran::lb_stats>
+KatranTestParam::expectedRealStats() noexcept {
   auto it = kRealStats.find(mode);
   CHECK(it != kRealStats.end());
   return it->second;
 }
 
-uint64_t KatranTestParam::expectedTotalPktsForVip(const katran::VipKey& vip) noexcept {
+uint64_t KatranTestParam::expectedTotalPktsForVip(
+    const katran::VipKey& vip) noexcept {
   if (perVipCounters.count(vip) == 0) {
     return 0;
   }
   return perVipCounters[vip].first;
 }
-uint64_t KatranTestParam::expectedTotalBytesForVip(const katran::VipKey& vip) noexcept {
+uint64_t KatranTestParam::expectedTotalBytesForVip(
+    const katran::VipKey& vip) noexcept {
   if (perVipCounters.count(vip) == 0) {
     return 0;
   }

@@ -30,5 +30,4 @@ struct {
   __uint(map_flags, NO_FLAGS);
 } flow_debug_maps SEC(".maps");
 
-
 #endif // of __FLOW_DEBUG_MAPS_H

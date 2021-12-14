@@ -31,14 +31,12 @@ struct {
   __uint(max_entries, CTRL_MAP_SIZE);
 } hc_ctrl_map SEC(".maps");
 
-
 struct {
   __uint(type, BPF_MAP_TYPE_HASH);
   __type(key, __u32);
   __type(value, struct hc_real_definition);
   __uint(max_entries, MAX_REALS);
 } hc_reals_map SEC(".maps");
-
 
 struct {
   __uint(type, BPF_MAP_TYPE_ARRAY);
@@ -48,7 +46,6 @@ struct {
   __uint(map_flags, NO_FLAGS);
 } hc_pckt_srcs_map SEC(".maps");
 
-
 struct {
   __uint(type, BPF_MAP_TYPE_ARRAY);
   __type(key, __u32);
@@ -56,7 +53,6 @@ struct {
   __uint(max_entries, 2);
   __uint(map_flags, NO_FLAGS);
 } hc_pckt_macs SEC(".maps");
-
 
 // map which contains counters for monitoring
 struct {

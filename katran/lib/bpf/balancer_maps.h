@@ -37,7 +37,6 @@ struct {
   __uint(map_flags, NO_FLAGS);
 } vip_map SEC(".maps");
 
-
 // map which contains cpu core to lru mapping
 struct {
   __uint(type, BPF_MAP_TYPE_ARRAY_OF_MAPS);
@@ -47,7 +46,6 @@ struct {
   __uint(map_flags, NO_FLAGS);
 } lru_mapping SEC(".maps");
 
-
 // fallback lru. we should never hit this one outside of unittests
 struct {
   __uint(type, BPF_MAP_TYPE_LRU_HASH);
@@ -56,7 +54,6 @@ struct {
   __uint(max_entries, DEFAULT_LRU_SIZE);
   __uint(map_flags, NO_FLAGS);
 } fallback_cache SEC(".maps");
-
 
 // map which contains all vip to real mappings
 struct {
@@ -94,7 +91,6 @@ struct {
   __uint(map_flags, NO_FLAGS);
 } stats SEC(".maps");
 
-
 // map for server-id to real's id mapping. The ids can be embedded in header of
 // QUIC or TCP (if enabled) packets for routing of packets for existing flows
 struct {
@@ -105,7 +101,6 @@ struct {
   __uint(map_flags, NO_FLAGS);
 } server_id_map SEC(".maps");
 
-
 #ifdef LPM_SRC_LOOKUP
 struct {
   __uint(type, BPF_MAP_TYPE_LPM_TRIE);
@@ -114,7 +109,6 @@ struct {
   __uint(max_entries, MAX_LPM_SRC);
   __uint(map_flags, BPF_F_NO_PREALLOC);
 } lpm_src_v4 SEC(".maps");
-
 
 struct {
   __uint(type, BPF_MAP_TYPE_LPM_TRIE);

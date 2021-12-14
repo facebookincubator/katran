@@ -86,8 +86,7 @@ struct {
 } hc_stats_map SEC(".maps");
 
 SEC("cls-hc")
-int healthchecker(struct __sk_buff *skb)
-{
+int healthchecker(struct __sk_buff* skb) {
   int ret = 0;
   int tun_flag = 0;
   __u32 ifindex;
@@ -109,9 +108,8 @@ int healthchecker(struct __sk_buff *skb)
     return TC_ACT_UNSPEC;
   }
 
-  struct hc_real_definition *real = bpf_map_lookup_elem(&hc_reals_map,
-                                                     &somark);
-  if(!real) {
+  struct hc_real_definition* real = bpf_map_lookup_elem(&hc_reals_map, &somark);
+  if (!real) {
     // some strange (w/ fwmark; but not a healthcheck) local packet
     prog_stats->pckts_skipped += 1;
     return TC_ACT_UNSPEC;

@@ -15,9 +15,9 @@
  */
 #pragma once
 
+#include <folly/io/IOBuf.h>
 #include <memory>
 #include <string>
-#include <folly/io/IOBuf.h>
 
 #include "katran/lib/DataWriter.h"
 
@@ -39,7 +39,9 @@ class IOBufWriter : public DataWriter {
 
   bool restart() override;
 
-  bool stop() override {return true;}
+  bool stop() override {
+    return true;
+  }
 
  private:
   folly::IOBuf* iobuf_;

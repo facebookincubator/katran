@@ -76,9 +76,12 @@ __attribute__((__always_inline__)) static inline void create_v6_hdr(
   memcpy(ip6h->daddr.s6_addr32, daddr, 16);
 }
 
-__attribute__((__always_inline__))
-static inline void create_udp_hdr(struct udphdr *udph, __u16 sport, __u16 dport,
-                                  __u16 len, __u16 csum) {
+__attribute__((__always_inline__)) static inline void create_udp_hdr(
+    struct udphdr* udph,
+    __u16 sport,
+    __u16 dport,
+    __u16 len,
+    __u16 csum) {
   udph->source = sport;
   udph->dest = bpf_htons(dport);
   udph->len = bpf_htons(len);

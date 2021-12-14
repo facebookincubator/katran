@@ -711,7 +711,7 @@ class KatranLb {
    * throws on failure
    * @param flowDebug Check the validity of flow_debug_maps
    */
-  void initialSanityChecking(bool flowDebug=false);
+  void initialSanityChecking(bool flowDebug = false);
 
   /**
    * helper function to create/initialize LRUs.
@@ -719,7 +719,7 @@ class KatranLb {
    * throws on failure
    * @param flowDebug Initialize flow_debug_maps/flow_debug_lru
    */
-  void initLrus(bool flowDebug=false);
+  void initLrus(bool flowDebug = false);
 
   /**
    * helper function to attach created LRUs. must be done after
@@ -727,7 +727,7 @@ class KatranLb {
    * throws on failure
    * @param flowDebug Attach the cpu-specific flow_debug_lru maps
    */
-  void attachLrus(bool flowDebug=false);
+  void attachLrus(bool flowDebug = false);
 
   /**
    * helper function to enable everything related to introspection/events

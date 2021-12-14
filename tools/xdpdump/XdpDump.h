@@ -53,7 +53,7 @@ constexpr uint8_t kProtoSet = (1 << 4);
  * kernel's tcp/ip stack).
  */
 class XdpDump : public folly::AsyncTimeout {
-public:
+ public:
   /**
    * @param EventBase* eventBase for AsyncTimeout
    * @param XdpDumpFilter filter
@@ -63,8 +63,10 @@ public:
    * or a line for pcap-based filter) which describes what packets we want to
    * capture
    */
-  explicit XdpDump(folly::EventBase *eventBase, XdpDumpFilter filter,
-                   std::shared_ptr<katran::PcapWriter> pcapWriter);
+  explicit XdpDump(
+      folly::EventBase* eventBase,
+      XdpDumpFilter filter,
+      std::shared_ptr<katran::PcapWriter> pcapWriter);
 
   /**
    * Destructor for XdpDump.
@@ -86,20 +88,20 @@ public:
    */
   virtual void timeoutExpired() noexcept override;
 
-private:
+ private:
   /**
    * helper class which implements sighandler. this allow us to detach
    * xdpdump from rootlets array when user decided to stop the program.
    */
   class XdpDumpSignalHandler : public folly::AsyncSignalHandler {
-  public:
-    XdpDumpSignalHandler(folly::EventBase *evb, XdpDump *parent);
+   public:
+    XdpDumpSignalHandler(folly::EventBase* evb, XdpDump* parent);
     ~XdpDumpSignalHandler() override {}
 
     void signalReceived(int signum) noexcept override;
 
-  private:
-    XdpDump *parent_;
+   private:
+    XdpDump* parent_;
   };
   /**
    * helper function which compiles bpf program.
@@ -230,7 +232,7 @@ private:
   /**
    * name of main bpf function
    */
-  folly::EventBase *eventBase_;
+  folly::EventBase* eventBase_;
 };
 
 } // namespace xdpdump

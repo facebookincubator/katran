@@ -60,7 +60,8 @@ void EventPipeCallback::readBuffer(
     if (enabled()) {
       auto subsmap = cb_subsmap_.rlock();
       for (auto& it : *subsmap) {
-        VLOG(4) << folly::sformat("sending event {} to client", toString(event_id_));
+        VLOG(4) << folly::sformat(
+            "sending event {} to client", toString(event_id_));
         it.second->sendEvent(msg);
       }
     }

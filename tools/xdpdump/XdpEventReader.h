@@ -19,9 +19,9 @@
 #include <memory>
 #include <string>
 
-#include "katran/lib/PerfBufferEventReader.h"
 #include <folly/MPMCQueue.h>
 #include <folly/io/async/EventHandler.h>
+#include "katran/lib/PerfBufferEventReader.h"
 
 #include "katran/lib/PcapMsg.h"
 #include "katran/lib/PcapWriter.h"
@@ -38,7 +38,7 @@ class XdpEventLogger;
  * sending it to pcapWriter thru MPMCQueue.
  */
 class XdpEventReader : public katran::PerfBufferEventReader {
-public:
+ public:
   /**
    * @param shared_ptr<MPMCQueue<PcapMsg>> queue to pcapWriter
    */
@@ -52,10 +52,10 @@ public:
    * @param const char* data received from the XDP prog.
    * @param size_t size of the data chunk
    */
-  void handlePerfBufferEvent(int cpu, const char *data,
-                             size_t size) noexcept override;
+  void handlePerfBufferEvent(int cpu, const char* data, size_t size) noexcept
+      override;
 
-private:
+ private:
   /**
    * queue where we write data, which will be read by PcapWriter.
    * write is non-blocking. so if queue is full - we will drop the packet

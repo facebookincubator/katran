@@ -289,7 +289,11 @@ int KatranLb::createLruMap(int size, int flags, int numaNode) {
       numaNode);
 }
 
-void KatranLb::initFlowDebugMapForCore(int core, int size, int flags, int numaNode) {
+void KatranLb::initFlowDebugMapForCore(
+    int core,
+    int size,
+    int flags,
+    int numaNode) {
   int lru_fd;
   VLOG(3) << "Creating flow debug lru for core " << core;
   lru_fd = bpfAdapter_.createNamedBpfMap(
@@ -305,7 +309,7 @@ void KatranLb::initFlowDebugMapForCore(int core, int size, int flags, int numaNo
     throw std::runtime_error(folly::sformat(
         "can't create LRU for forwarding core, error: {}",
         folly::errnoStr(errno)));
-    }
+  }
   VLOG(3) << "Created flow debug lru for core " << core;
   flowDebugMapsFd_[core] = lru_fd;
 }
@@ -317,20 +321,20 @@ void KatranLb::initFlowDebugPrototypeMap() {
   } else {
     VLOG(3) << "Creating generic flow debug lru";
     flow_proto_fd = bpfAdapter_.createNamedBpfMap(
-      kFlowDebugCpuLruName.data(),
-      kBpfMapTypeLruHash,
-      sizeof(struct flow_key),
-      sizeof(struct flow_debug_info),
-      katran::kFallbackLruSize,
-      kMapNoFlags,
-      kNoNuma);
+        kFlowDebugCpuLruName.data(),
+        kBpfMapTypeLruHash,
+        sizeof(struct flow_key),
+        sizeof(struct flow_debug_info),
+        katran::kFallbackLruSize,
+        kMapNoFlags,
+        kNoNuma);
   }
   if (flow_proto_fd < 0) {
     throw std::runtime_error(folly::sformat(
-      "can't create LRU prototype, error: {}",
-      folly::errnoStr(errno)));
+        "can't create LRU prototype, error: {}", folly::errnoStr(errno)));
   }
-  res = bpfAdapter_.setInnerMapPrototype(kFlowDebugParentMapName.data(), flow_proto_fd);
+  res = bpfAdapter_.setInnerMapPrototype(
+      kFlowDebugParentMapName.data(), flow_proto_fd);
   if (res < 0) {
     throw std::runtime_error(folly::sformat(
         "can't update inner_maps_fds w/ prototype for main lru, error: {}",
@@ -344,15 +348,17 @@ void KatranLb::attachFlowDebugLru(int core) {
   key = core;
   map_fd = flowDebugMapsFd_[core];
   if (map_fd < 0) {
-    throw std::runtime_error(folly::sformat(
-      "Invalid FD found for core {}: {}", core, map_fd));
+    throw std::runtime_error(
+        folly::sformat("Invalid FD found for core {}: {}", core, map_fd));
   }
   res = bpfAdapter_.bpfUpdateMap(
-    bpfAdapter_.getMapFdByName(kFlowDebugParentMapName.data()), &key, &map_fd);
+      bpfAdapter_.getMapFdByName(kFlowDebugParentMapName.data()),
+      &key,
+      &map_fd);
   if (res < 0) {
     throw std::runtime_error(folly::sformat(
-      "can't attach lru to forwarding core, error: {}",
-      folly::errnoStr(errno)));
+        "can't attach lru to forwarding core, error: {}",
+        folly::errnoStr(errno)));
   }
   VLOG(3) << "Set cpu core " << core << "flow map id to " << map_fd;
 }
@@ -397,7 +403,8 @@ void KatranLb::initLrus(bool flowDebug) {
       }
       lruMapsFd_[core] = lru_fd;
       if (flowDebug) {
-        initFlowDebugMapForCore(core, per_core_lru_size, lru_map_flags, numa_node);
+        initFlowDebugMapForCore(
+            core, per_core_lru_size, lru_map_flags, numa_node);
       }
     }
     forwarding_cores_specified = true;
@@ -618,7 +625,7 @@ void KatranLb::loadBpfProgs() {
 
   if (!config_.disableForwarding) {
     flowDebugInProg = bpfAdapter_.isMapInBpfObject(
-      config_.balancerProgPath, kFlowDebugParentMapName.data());
+        config_.balancerProgPath, kFlowDebugParentMapName.data());
     initLrus(flowDebugInProg);
     if (flowDebugInProg) {
       initFlowDebugPrototypeMap();
@@ -719,8 +726,8 @@ bool KatranLb::reloadBalancerProg(
 
   config_.balancerProgPath = path;
 
-  bool flowDebugInProg = bpfAdapter_.isMapInBpfObject(
-      path, kFlowDebugParentMapName.data());
+  bool flowDebugInProg =
+      bpfAdapter_.isMapInBpfObject(path, kFlowDebugParentMapName.data());
   initialSanityChecking(flowDebugInProg);
   featureDiscovering();
 

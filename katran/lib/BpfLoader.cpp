@@ -106,7 +106,9 @@ int BpfLoader::getProgFdByName(const std::string& name) {
   }
 }
 
-bool BpfLoader::isMapInProg(const std::string& progName, const std::string& name) {
+bool BpfLoader::isMapInProg(
+    const std::string& progName,
+    const std::string& name) {
   auto progMaps = currentMaps_.find(progName);
   if (progMaps == currentMaps_.end()) {
     return false;
@@ -264,7 +266,6 @@ int BpfLoader::reloadBpfObject(
     loadedProgNames.insert(prog_name);
   }
 
-
   bpf_map__for_each(map, obj) {
     auto map_name = bpf_map__name(map);
     auto map_iter = maps_.find(map_name);
@@ -365,6 +366,5 @@ int BpfLoader::loadBpfObject(
   bpfObjects_[name] = obj;
   return kSuccess;
 }
-
 
 } // namespace katran

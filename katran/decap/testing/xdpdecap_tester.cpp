@@ -21,10 +21,10 @@
 #include <folly/Range.h>
 #include <gflags/gflags.h>
 
-#include "katran/decap/testing/XdpDecapTestFixtures.h"
-#include "katran/decap/testing/XdpDecapGueTestFixtures.h"
 #include "katran/decap/XdpDecap.h"
 #include "katran/decap/XdpDecapStructs.h"
+#include "katran/decap/testing/XdpDecapGueTestFixtures.h"
+#include "katran/decap/testing/XdpDecapTestFixtures.h"
 #include "katran/lib/testing/BpfTester.h"
 
 DEFINE_string(pcap_input, "", "path to input pcap file");

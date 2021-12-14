@@ -28,12 +28,14 @@
 #include "flow_debug_helpers.h"
 
 // Flow debug enabled, enable helpers
-#define RECORD_GUE_ROUTE(old_eth, new_eth, data_end, outer_v4, inner_v4) gue_record_route(old_eth, new_eth, data_end, outer_v4, inner_v4)
+#define RECORD_GUE_ROUTE(old_eth, new_eth, data_end, outer_v4, inner_v4) \
+  gue_record_route(old_eth, new_eth, data_end, outer_v4, inner_v4)
 
 #else
 
 // Flow debug disabled, define helpers to be noop
-#define RECORD_GUE_ROUTE(...) {}
+#define RECORD_GUE_ROUTE(...) \
+  {}
 
 #endif // of RECORD_FLOW_INFO
 

@@ -1,8 +1,8 @@
 // Copyright 2004-present Facebook. All Rights Reserved.
 
-#include <gtest/gtest.h>
 #include "katran/lib/PipeWriter.h"
 #include <fcntl.h>
+#include <gtest/gtest.h>
 
 using namespace ::testing;
 
@@ -55,6 +55,7 @@ class PipeWriterTest : public Test {
         &evb_, folly::NetworkSocket::fromFd(pipeFds_[1]));
     writer_ = std::move(writer);
   }
+
  protected:
   folly::EventBase evb_;
   int pipeFds_[2];

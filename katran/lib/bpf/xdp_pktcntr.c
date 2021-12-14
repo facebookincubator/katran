@@ -14,12 +14,12 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#include <linux/in.h>
 #include <linux/if.h>
 #include <linux/if_ether.h>
+#include <linux/if_tunnel.h>
+#include <linux/in.h>
 #include <linux/ip.h>
 #include <linux/ipv6.h>
-#include <linux/if_tunnel.h>
 #include <linux/pkt_cls.h>
 
 #include "bpf.h"
@@ -27,9 +27,6 @@
 
 #define CTRL_ARRAY_SIZE 2
 #define CNTRS_ARRAY_SIZE 512
-
-
-
 
 struct {
   __uint(type, BPF_MAP_TYPE_ARRAY);
@@ -46,9 +43,9 @@ struct {
 } cntrs_array SEC(".maps");
 
 SEC("xdp-pktcntr")
-int pktcntr(struct xdp_md *ctx) {
-  void *data_end = (void *)(long)ctx->data_end;
-  void *data = (void *)(long)ctx->data;
+int pktcntr(struct xdp_md* ctx) {
+  void* data_end = (void*)(long)ctx->data_end;
+  void* data = (void*)(long)ctx->data;
   __u32 ctl_flag_pos = 0;
   __u32 cntr_pos = 0;
   __u32* flag = bpf_map_lookup_elem(&ctl_array, &ctl_flag_pos);
@@ -56,7 +53,6 @@ int pktcntr(struct xdp_md *ctx) {
   if (!flag || (*flag == 0)) {
     return XDP_PASS;
   };
-
 
   __u64* cntr_val = bpf_map_lookup_elem(&cntrs_array, &cntr_pos);
   if (cntr_val) {

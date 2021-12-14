@@ -68,7 +68,8 @@ class PerfBufferEventReader {
     /**
      * Ctor for CpuBufferHandler
      * @param evb EventBase
-     * @param pb Pointer to perf_buffer struct, used to make perf_buffer API calls
+     * @param pb Pointer to perf_buffer struct, used to make perf_buffer API
+     * calls
      * @param fd The buffer fd for a cpu
      * @param idx The buffer fd's index inside struct perf_buffer
      */

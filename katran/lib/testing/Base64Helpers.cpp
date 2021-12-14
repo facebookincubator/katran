@@ -43,7 +43,7 @@ std::string Base64Helpers::base64Encode(folly::IOBuf* buf) {
   for (int i = 0; i < (3 - (buf->length() % 3)) % 3; i++) {
     encoded.push_back('=');
   }
-  delete [] data;
+  delete[] data;
   return encoded;
 }
 

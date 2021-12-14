@@ -24,13 +24,15 @@ namespace katran {
 constexpr int Uint32_bytes = 4;
 constexpr uint8_t V6DADDR = 1;
 
-struct beaddr IpHelpers::parseAddrToBe(const std::string &addr,
-                                       bool bigendian) {
+struct beaddr IpHelpers::parseAddrToBe(
+    const std::string& addr,
+    bool bigendian) {
   return parseAddrToBe(folly::IPAddress(addr), bigendian);
 }
 
-struct beaddr IpHelpers::parseAddrToBe(const folly::IPAddress &addr,
-                                       bool bigendian) {
+struct beaddr IpHelpers::parseAddrToBe(
+    const folly::IPAddress& addr,
+    bool bigendian) {
   struct beaddr translated_addr = {};
   if (addr.isV4()) {
     translated_addr.flags = 0;
@@ -44,7 +46,7 @@ struct beaddr IpHelpers::parseAddrToBe(const folly::IPAddress &addr,
       // bytes() return a ptr to char* array
       // so we are doing some ptr arithmetics here
       uint32_t addr_part =
-          *(uint32_t *)(addr.bytes() + Uint32_bytes * partition);
+          *(uint32_t*)(addr.bytes() + Uint32_bytes * partition);
       if (bigendian) {
         translated_addr.v6daddr[partition] = addr_part;
       } else {
@@ -56,11 +58,11 @@ struct beaddr IpHelpers::parseAddrToBe(const folly::IPAddress &addr,
   return translated_addr;
 };
 
-struct beaddr IpHelpers::parseAddrToInt(const std::string &addr) {
+struct beaddr IpHelpers::parseAddrToInt(const std::string& addr) {
   return parseAddrToBe(addr, false);
 };
 
-struct beaddr IpHelpers::parseAddrToInt(const folly::IPAddress &addr) {
+struct beaddr IpHelpers::parseAddrToInt(const folly::IPAddress& addr) {
   return parseAddrToBe(addr, false);
 };
 

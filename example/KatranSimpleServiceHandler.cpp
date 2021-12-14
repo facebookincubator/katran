@@ -14,7 +14,6 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-
 #include "KatranSimpleServiceHandler.h"
 
 #include <cstdint>
@@ -115,7 +114,7 @@ bool KatranSimpleServiceHandler::modifyVip(
 }
 
 bool KatranSimpleServiceHandler::modifyReal(
-  std::unique_ptr<::lb::katran::RealMeta> realMeta) {
+    std::unique_ptr<::lb::katran::RealMeta> realMeta) {
   Guard lock(giant_);
   return lb_.modifyReal(realMeta->address, realMeta->flags, realMeta->setFlag);
 }

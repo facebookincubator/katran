@@ -16,8 +16,8 @@
 
 #pragma once
 
-#include "tools/xdpdump/XdpDumpStructs.h"
 #include <ostream>
+#include "tools/xdpdump/XdpDumpStructs.h"
 
 namespace xdpdump {
 
@@ -28,14 +28,14 @@ struct XdpEventInfo {
 };
 
 class XdpEventLogger {
-public:
+ public:
   /**
    * @param bool mute set true if logger shouldn't write any data into out
    * @param std::ostream& out is an ostream where logs are saved
    *
    * Constructor for XdpEventLogger
    */
-  explicit XdpEventLogger(bool mute, std::ostream &out)
+  explicit XdpEventLogger(bool mute, std::ostream& out)
       : mute_(mute), out_(out) {}
 
   /**
@@ -49,15 +49,15 @@ public:
    * Function that processes handleEvent, produces XdpEventInfo, and,
    * if required, logs some data.
    */
-  virtual XdpEventInfo handlePerfEvent(const char *data) = 0;
+  virtual XdpEventInfo handlePerfEvent(const char* data) = 0;
 
-protected:
+ protected:
   /*
    * @param uint8_t const* v6 is an array of 16 bytes
    *
    * Converts bytes of IPv6 address into the std::string
    */
-  static std::string binaryToV6String(uint8_t const *v6);
+  static std::string binaryToV6String(uint8_t const* v6);
 
   /*
    * @param uint32_t v4 is an IPv4 address
@@ -74,32 +74,32 @@ protected:
   /**
    * out_ is a stream where all information will be logged in.
    */
-  std::ostream &out_;
+  std::ostream& out_;
 };
 
 class ProgLogger : public XdpEventLogger {
-public:
+ public:
   /**
    * @param bool mute set if logger should write any data into out
    * @param std::ostream& out is an ostream where logs are saved
    *
    * Constructor for ProgLogger
    */
-  ProgLogger(bool mute, std::ostream &out) : XdpEventLogger(mute, out) {}
+  ProgLogger(bool mute, std::ostream& out) : XdpEventLogger(mute, out) {}
 
   /**
    * @param const char* data received from the XDP prog.
    *
    * Overrides XdpEventLogger::handlePerfEvent
    */
-  virtual XdpEventInfo handlePerfEvent(const char *data) override;
+  virtual XdpEventInfo handlePerfEvent(const char* data) override;
 
-private:
+ private:
   /**
    * @param XdpDumpOutput* msg
    *
    * Logs prog data
    */
-  void log(const XdpDumpOutput *msg);
+  void log(const XdpDumpOutput* msg);
 };
 } // namespace xdpdump

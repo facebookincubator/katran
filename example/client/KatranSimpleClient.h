@@ -35,50 +35,57 @@ namespace katran {
  * how to do so asynchronously.
  */
 class KatranSimpleClient {
-public:
+ public:
   KatranSimpleClient() = delete;
 
-  explicit KatranSimpleClient(const std::string &host, int port = 12307);
+  explicit KatranSimpleClient(const std::string& host, int port = 12307);
 
   ~KatranSimpleClient() = default;
 
-  void changeMac(const std::string &mac);
+  void changeMac(const std::string& mac);
 
   void getMac();
 
-  void addOrModifyService(const std::string &address, const std::string &flags,
-                          int proto, bool modify, bool setFlags);
+  void addOrModifyService(
+      const std::string& address,
+      const std::string& flags,
+      int proto,
+      bool modify,
+      bool setFlags);
 
-  void delService(const std::string &address, int proto);
+  void delService(const std::string& address, int proto);
 
-  void updateService(Vip &vip, uint64_t flags, Action action, bool setFlags);
+  void updateService(Vip& vip, uint64_t flags, Action action, bool setFlags);
 
- void updateReal(const std::string &address, uint32_t flags, bool setFlags);
+  void updateReal(const std::string& address, uint32_t flags, bool setFlags);
 
-  void updateServerForVip(const std::string &vipAddr, int proto,
-                          const std::string &realAddr, uint64_t weight,
-                          const std::string &flags,
-                          bool del);
+  void updateServerForVip(
+      const std::string& vipAddr,
+      int proto,
+      const std::string& realAddr,
+      uint64_t weight,
+      const std::string& flags,
+      bool del);
 
-  void modifyQuicMappings(const std::string &mapping, bool del);
+  void modifyQuicMappings(const std::string& mapping, bool del);
 
   std::vector<::lb::katran::Vip> getAllVips();
 
   hcMap getAllHcs();
 
-  Reals getRealsForVip(const Vip &vip);
+  Reals getRealsForVip(const Vip& vip);
 
-  uint64_t getFlags(const Vip &vip);
+  uint64_t getFlags(const Vip& vip);
 
-  void listVipAndReals(const Vip &vip);
+  void listVipAndReals(const Vip& vip);
 
-  void list(const std::string &address, int proto);
+  void list(const std::string& address, int proto);
 
   void clearAll();
 
   void listQm();
 
-  void addHc(const std::string &address, uint32_t somark);
+  void addHc(const std::string& address, uint32_t somark);
 
   void delHc(uint32_t somark);
 
@@ -92,20 +99,20 @@ public:
 
   void showIcmpStats();
 
-private:
-  Vip parseToVip(const std::string &address, uint32_t protocol);
+ private:
+  Vip parseToVip(const std::string& address, uint32_t protocol);
 
-  Real parseToReal(const std::string &address, uint32_t weight, uint32_t flags);
+  Real parseToReal(const std::string& address, uint32_t weight, uint32_t flags);
 
-  QuicReal parseToQuicReal(const std::string &mapping);
+  QuicReal parseToQuicReal(const std::string& mapping);
 
   std::string parseVipFlags(uint64_t flags);
 
   std::string parseRealFlags(uint32_t flags);
 
   // factory method to create KatranServiceClient instance
-  std::unique_ptr<KatranServiceAsyncClient>
-  createKatranClient(const folly::SocketAddress &addr);
+  std::unique_ptr<KatranServiceAsyncClient> createKatranClient(
+      const folly::SocketAddress& addr);
 
   std::string host_;
   int port_;

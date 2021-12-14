@@ -30,10 +30,10 @@
 #include "balancer_consts.h"
 #include "balancer_helpers.h"
 #include "balancer_structs.h"
-#include "control_data_maps.h"
 #include "bpf.h"
 #include "bpf_endian.h"
 #include "bpf_helpers.h"
+#include "control_data_maps.h"
 #include "encap_helpers.h"
 #include "flow_debug.h"
 #include "pckt_parsing.h"
@@ -248,20 +248,22 @@ __attribute__((__always_inline__)) static inline bool gue_csum(
   return true;
 }
 
-__attribute__((__always_inline__))
-static inline bool gue_encap_v4(struct xdp_md *xdp, struct ctl_value *cval,
-                                struct packet_description *pckt,
-                                struct real_definition *dst, __u32 pkt_bytes) {
-  void *data;
-  void *data_end;
-  struct iphdr *iph;
-  struct udphdr *udph;
-  struct ethhdr *new_eth;
-  struct ethhdr *old_eth;
-  struct real_definition *src;
+__attribute__((__always_inline__)) static inline bool gue_encap_v4(
+    struct xdp_md* xdp,
+    struct ctl_value* cval,
+    struct packet_description* pckt,
+    struct real_definition* dst,
+    __u32 pkt_bytes) {
+  void* data;
+  void* data_end;
+  struct iphdr* iph;
+  struct udphdr* udph;
+  struct ethhdr* new_eth;
+  struct ethhdr* old_eth;
+  struct real_definition* src;
 
   __u16 sport = bpf_htons(pckt->flow.port16[0]);
-  __u32 ipv4_src  = V4_SRC_INDEX;
+  __u32 ipv4_src = V4_SRC_INDEX;
 
   src = bpf_map_lookup_elem(&pckt_srcs, &ipv4_src);
   if (!src) {
@@ -272,14 +274,14 @@ static inline bool gue_encap_v4(struct xdp_md *xdp, struct ctl_value *cval,
   sport ^= ((pckt->flow.src >> 16) & 0xFFFF);
 
   if (bpf_xdp_adjust_head(
-      xdp, 0 - ((int)sizeof(struct iphdr) + (int)sizeof(struct udphdr)))) {
+          xdp, 0 - ((int)sizeof(struct iphdr) + (int)sizeof(struct udphdr)))) {
     return false;
   }
-  data = (void *)(long)xdp->data;
-  data_end = (void *)(long)xdp->data_end;
+  data = (void*)(long)xdp->data;
+  data_end = (void*)(long)xdp->data_end;
   new_eth = data;
   iph = data + sizeof(struct ethhdr);
-  udph = (void *)iph + sizeof(struct iphdr);
+  udph = (void*)iph + sizeof(struct iphdr);
   old_eth = data + sizeof(struct iphdr) + sizeof(struct udphdr);
   if (new_eth + 1 > data_end || old_eth + 1 > data_end || iph + 1 > data_end ||
       udph + 1 > data_end) {
@@ -304,20 +306,23 @@ static inline bool gue_encap_v4(struct xdp_md *xdp, struct ctl_value *cval,
   return true;
 }
 
-__attribute__((__always_inline__))
-static inline bool gue_encap_v6(struct xdp_md *xdp, struct ctl_value *cval,
-                                bool is_ipv6, struct packet_description *pckt,
-                                struct real_definition *dst, __u32 pkt_bytes) {
-  void *data;
-  void *data_end;
-  struct ipv6hdr *ip6h;
-  struct ethhdr *new_eth;
-  struct ethhdr *old_eth;
-  struct udphdr *udph;
+__attribute__((__always_inline__)) static inline bool gue_encap_v6(
+    struct xdp_md* xdp,
+    struct ctl_value* cval,
+    bool is_ipv6,
+    struct packet_description* pckt,
+    struct real_definition* dst,
+    __u32 pkt_bytes) {
+  void* data;
+  void* data_end;
+  struct ipv6hdr* ip6h;
+  struct ethhdr* new_eth;
+  struct ethhdr* old_eth;
+  struct udphdr* udph;
   __u32 key = V6_SRC_INDEX;
   __u16 payload_len;
   __u16 sport;
-  struct real_definition *src;
+  struct real_definition* src;
 
   src = bpf_map_lookup_elem(&pckt_srcs, &key);
   if (!src) {
@@ -325,18 +330,17 @@ static inline bool gue_encap_v6(struct xdp_md *xdp, struct ctl_value *cval,
   }
 
   if (bpf_xdp_adjust_head(
-    xdp, 0 - ((int)sizeof(struct ipv6hdr) + (int)sizeof(struct udphdr)))) {
+          xdp,
+          0 - ((int)sizeof(struct ipv6hdr) + (int)sizeof(struct udphdr)))) {
     return false;
   }
-  data = (void *)(long)xdp->data;
-  data_end = (void *)(long)xdp->data_end;
+  data = (void*)(long)xdp->data;
+  data_end = (void*)(long)xdp->data_end;
   new_eth = data;
   ip6h = data + sizeof(struct ethhdr);
-  udph = (void *)ip6h + sizeof(struct ipv6hdr);
+  udph = (void*)ip6h + sizeof(struct ipv6hdr);
   old_eth = data + sizeof(struct ipv6hdr) + sizeof(struct udphdr);
-  if (new_eth + 1 > data_end ||
-      old_eth + 1 > data_end ||
-      ip6h + 1 > data_end ||
+  if (new_eth + 1 > data_end || old_eth + 1 > data_end || ip6h + 1 > data_end ||
       udph + 1 > data_end) {
     return false;
   }
@@ -407,7 +411,5 @@ gue_decap_v6(struct xdp_md* xdp, void** data, void** data_end, bool inner_v4) {
   return true;
 }
 #endif // of INLINE_DECAP_GUE
-
-
 
 #endif // of __PCKT_ENCAP_H

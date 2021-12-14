@@ -653,8 +653,8 @@ class BpfAdapter {
    * unloaded bpf file
    */
   static bool isMapInBpfObject(
-    const std::string& path,
-    const std::string& mapName);
+      const std::string& path,
+      const std::string& mapName);
 
  private:
   /**

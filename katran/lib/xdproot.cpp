@@ -26,7 +26,7 @@ DEFINE_string(
     bpfpath,
     "/mnt/bpf/xdproot/xdproot_array",
     "path to where we want to pin root_array");
-DEFINE_int32(xdp_flags, 0 , "xdp attachment flags");
+DEFINE_int32(xdp_flags, 0, "xdp attachment flags");
 
 int main(int argc, char** argv) {
   gflags::ParseCommandLineFlags(&argc, &argv, true);

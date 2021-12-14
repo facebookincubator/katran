@@ -19,8 +19,7 @@
 
 namespace katran {
 
-IOBufWriter::IOBufWriter(folly::IOBuf* iobuf)
-    : iobuf_(iobuf) {}
+IOBufWriter::IOBufWriter(folly::IOBuf* iobuf) : iobuf_(iobuf) {}
 
 void IOBufWriter::writeData(const void* ptr, std::size_t size) {
   ::memcpy(static_cast<void*>(iobuf_->writableTail()), ptr, size);

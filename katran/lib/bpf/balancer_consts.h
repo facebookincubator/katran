@@ -42,7 +42,7 @@
 #define IPV4_PLUS_ICMP_HDR 28
 #define IPV6_PLUS_ICMP_HDR 48
 
-//consistent hashing ring size
+// consistent hashing ring size
 #ifndef RING_SIZE
 #define RING_SIZE 65537
 #endif
@@ -184,7 +184,6 @@
 // plus ipv4/ipv6 header and few bytes of payload
 #define ICMP_TOOBIG_SIZE 98
 #define ICMP6_TOOBIG_SIZE 262
-
 
 #define ICMP6_TOOBIG_PAYLOAD_SIZE (ICMP6_TOOBIG_SIZE - 6)
 #define ICMP_TOOBIG_PAYLOAD_SIZE (ICMP_TOOBIG_SIZE - 6)
@@ -332,7 +331,6 @@
 #define PCKT_ENCAP_V6 encap_v6
 #define HC_ENCAP hc_encap_ipip
 #endif
-
 
 /**
  * positions in pckts_srcs table

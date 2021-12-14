@@ -110,7 +110,6 @@ int main(int argc, char** argv) {
   server->setMaxRequests(FLAGS_thriftMaxRequests);
   server->setEnableCodel(FLAGS_thriftEnableCodel);
 
-
   server->setPort(FLAGS_port);
   server->setInterface(handler);
   server->setNumIOWorkerThreads(FLAGS_num_io_threads);

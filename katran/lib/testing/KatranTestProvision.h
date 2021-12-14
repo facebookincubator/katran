@@ -47,13 +47,13 @@ constexpr uint8_t kLocalReal = 2;
 
 // Each of the TestMode correspond to the TestFixtures
 enum class TestMode : uint8_t {
-    // Test mode by default, encap mode: IPinIP
-    DEFAULT = 0,
-    // Tests with GUE encap mode, requires enabling of -DGUE_ENCAP
-    GUE = 1,
-    // Tests for server_id based routing of TCP packets.
-    // Requires enabling of -DTCP_SERVER_ID_ROUTING
-    TPR = 2
+  // Test mode by default, encap mode: IPinIP
+  DEFAULT = 0,
+  // Tests with GUE encap mode, requires enabling of -DGUE_ENCAP
+  GUE = 1,
+  // Tests for server_id based routing of TCP packets.
+  // Requires enabling of -DTCP_SERVER_ID_ROUTING
+  TPR = 2
 };
 
 // commonly used counters to check against expected values

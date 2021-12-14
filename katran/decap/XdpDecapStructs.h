@@ -21,10 +21,10 @@
 namespace katran {
 
 namespace {
-  std::string kDefaultMapPath = "";
-  const int kDefaultProgPos = 8;
-  std::string kDefaultInterface = "lo";
-}
+std::string kDefaultMapPath = "";
+const int kDefaultProgPos = 8;
+std::string kDefaultInterface = "lo";
+} // namespace
 
 /**
  * structure which contains main statistics about XDP based decapsulation
@@ -55,4 +55,4 @@ struct XdpDecapConfig {
   bool detachOnExit = true;
 };
 
-}
+} // namespace katran

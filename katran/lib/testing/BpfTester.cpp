@@ -156,7 +156,8 @@ bool BpfTester::runBpfTesterFromFixtures(
   // for inputData format is <pckt_base64, test description>
   // for outputData format is <expected_pckt_base64, xdp_return_code_string>
   if (config_.inputData.size() != config_.outputData.size()) {
-    LOG(ERROR) << "input and output datasets must have equal number of elements";
+    LOG(ERROR)
+        << "input and output datasets must have equal number of elements";
     return false;
   }
   uint32_t output_pckt_size{0};
@@ -167,7 +168,7 @@ bool BpfTester::runBpfTesterFromFixtures(
   bool success{true};
   for (int i = 0; i < config_.inputData.size(); i++) {
     if (config_.singleTestRunPacketNumber_ &&
-        *config_.singleTestRunPacketNumber_ != (i+1)) {
+        *config_.singleTestRunPacketNumber_ != (i + 1)) {
       ++pckt_num;
       VLOG(2) << "Skipped test for packet #" << i;
       continue;

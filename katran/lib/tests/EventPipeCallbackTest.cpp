@@ -106,9 +106,10 @@ class EventPipeCallbackTest : public Test {
     EXPECT_GE(orig_len, raw.size());
     auto header = getDefaultPcapRecordHeader(raw.size(), orig_len);
     std::string event_data = getDefaultEventData(header, raw);
-    Event e{.id = EventId::TCP_NONSYN_LRUMISS,
-            .pktsize = orig_len,
-            .data = event_data};
+    Event e{
+        .id = EventId::TCP_NONSYN_LRUMISS,
+        .pktsize = orig_len,
+        .data = event_data};
     return e;
   }
 

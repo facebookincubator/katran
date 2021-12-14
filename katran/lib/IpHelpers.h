@@ -34,7 +34,7 @@ struct beaddr {
 };
 
 class IpHelpers {
-public:
+ public:
   /**
    * @param const string addr address to translate
    * @return struct beaddr representation of given address
@@ -43,13 +43,15 @@ public:
    * of beaddr structure. this function could throw, if given string is not
    * an ip address.
    */
-  static struct beaddr parseAddrToBe(const std::string &addr,
-                                     bool bigendian = true);
-  static struct beaddr parseAddrToInt(const std::string &addr);
+  static struct beaddr parseAddrToBe(
+      const std::string& addr,
+      bool bigendian = true);
+  static struct beaddr parseAddrToInt(const std::string& addr);
 
-  static struct beaddr parseAddrToBe(const folly::IPAddress &addr,
-                                     bool bigendian = true);
-  static struct beaddr parseAddrToInt(const folly::IPAddress &addr);
+  static struct beaddr parseAddrToBe(
+      const folly::IPAddress& addr,
+      bool bigendian = true);
+  static struct beaddr parseAddrToInt(const folly::IPAddress& addr);
 };
 
 } // namespace katran

@@ -14,10 +14,10 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#include <cstring>
 #include <folly/io/async/EventBaseManager.h>
 #include <gflags/gflags.h>
 #include <glog/logging.h>
+#include <cstring>
 #include <iostream>
 
 #include "katran/lib/IpHelpers.h"
@@ -38,21 +38,27 @@ DEFINE_int32(cpu, -1, "cpu to take dump from");
 DEFINE_int64(pattern, 0, "pattern for bytematching; up to 4bytes");
 DEFINE_string(map_path, "/sys/fs/bpf/jmp_eth0", "path to root jump array");
 DEFINE_string(pcap_path, "", "path to pcap file");
-DEFINE_int32(packet_limit, 0,
-             "max number of packets to be written in pcap file");
+DEFINE_int32(
+    packet_limit,
+    0,
+    "max number of packets to be written in pcap file");
 DEFINE_bool(clear, false, "remove xdpdump from shared array");
 DEFINE_bool(mute, false, "switch off output of received packets");
-DEFINE_int32(snaplen, 0,
-             "max length of the packet that will be captured "
-             "(set 0 to capture whole packet)");
-DEFINE_int32(bpf_mmap_pages, 2,
-             "How many pages should be mmap-ed to the perf event for each CPU. "
-             "It must be a power of 2.");
+DEFINE_int32(
+    snaplen,
+    0,
+    "max length of the packet that will be captured "
+    "(set 0 to capture whole packet)");
+DEFINE_int32(
+    bpf_mmap_pages,
+    2,
+    "How many pages should be mmap-ed to the perf event for each CPU. "
+    "It must be a power of 2.");
 DEFINE_int32(duration_ms, -1, "how long to take a capture");
 
 using PcapWriter = katran::PcapWriter;
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
   gflags::ParseCommandLineFlags(&argc, &argv, true);
   google::InitGoogleLogging(argv[0]);
   xdpdump::XdpDumpFilter filter = {};
@@ -120,8 +126,8 @@ int main(int argc, char **argv) {
   std::shared_ptr<PcapWriter> pcapWriter;
   if (!FLAGS_pcap_path.empty()) {
     auto fileWriter = std::make_shared<katran::FileWriter>(FLAGS_pcap_path);
-    pcapWriter = std::make_shared<PcapWriter>(fileWriter, FLAGS_packet_limit,
-                                              FLAGS_snaplen);
+    pcapWriter = std::make_shared<PcapWriter>(
+        fileWriter, FLAGS_packet_limit, FLAGS_snaplen);
   }
 
   auto evb = folly::EventBaseManager::get()->getEventBase();
@@ -136,7 +142,7 @@ int main(int argc, char **argv) {
       //}
       xdpdump.run();
     }
-  } catch (const std::runtime_error &e) {
+  } catch (const std::runtime_error& e) {
     LOG(ERROR) << "XdpDump error: " << e.what();
   }
   return 0;

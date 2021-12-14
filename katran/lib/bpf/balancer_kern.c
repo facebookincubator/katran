@@ -6,37 +6,38 @@
 #include <linux/in.h>
 #include <linux/ip.h>
 #include <linux/ipv6.h>
-#include <stddef.h>
 #include <stdbool.h>
+#include <stddef.h>
 
 #include "balancer_consts.h"
 #include "balancer_helpers.h"
-#include "balancer_structs.h"
 #include "balancer_maps.h"
+#include "balancer_structs.h"
 #include "bpf.h"
 #include "bpf_helpers.h"
+#include "handle_icmp.h"
 #include "jhash.h"
 #include "pckt_encap.h"
 #include "pckt_parsing.h"
-#include "handle_icmp.h"
 
-
-__attribute__((__always_inline__))
-static inline __u32 get_packet_hash(struct packet_description *pckt,
-                                    bool hash_16bytes) {
+__attribute__((__always_inline__)) static inline __u32 get_packet_hash(
+    struct packet_description* pckt,
+    bool hash_16bytes) {
   if (hash_16bytes) {
-    return jhash_2words(jhash(pckt->flow.srcv6, 16, INIT_JHASH_SEED_V6),
-                        pckt->flow.ports, INIT_JHASH_SEED);
+    return jhash_2words(
+        jhash(pckt->flow.srcv6, 16, INIT_JHASH_SEED_V6),
+        pckt->flow.ports,
+        INIT_JHASH_SEED);
   } else {
     return jhash_2words(pckt->flow.src, pckt->flow.ports, INIT_JHASH_SEED);
   }
 }
 
-__attribute__((__always_inline__))
-static inline bool is_under_flood(__u64 *cur_time) {
+__attribute__((__always_inline__)) static inline bool is_under_flood(
+    __u64* cur_time) {
   __u32 conn_rate_key = MAX_VIPS + NEW_CONN_RATE_CNTR;
-  struct lb_stats *conn_rate_stats = bpf_map_lookup_elem(
-    &stats, &conn_rate_key);
+  struct lb_stats* conn_rate_stats =
+      bpf_map_lookup_elem(&stats, &conn_rate_key);
   if (!conn_rate_stats) {
     return true;
   }
@@ -59,27 +60,26 @@ static inline bool is_under_flood(__u64 *cur_time) {
   return false;
 }
 
-__attribute__((__always_inline__))
-static inline bool get_packet_dst(struct real_definition **real,
-                                  struct packet_description *pckt,
-                                  struct vip_meta *vip_info,
-                                  bool is_ipv6,
-                                  void *lru_map) {
-
+__attribute__((__always_inline__)) static inline bool get_packet_dst(
+    struct real_definition** real,
+    struct packet_description* pckt,
+    struct vip_meta* vip_info,
+    bool is_ipv6,
+    void* lru_map) {
   // to update lru w/ new connection
   struct real_pos_lru new_dst_lru = {};
   bool under_flood = false;
   bool src_found = false;
-  __u32 *real_pos;
+  __u32* real_pos;
   __u64 cur_time = 0;
   __u32 hash;
   __u32 key;
 
   under_flood = is_under_flood(&cur_time);
 
-  #ifdef LPM_SRC_LOOKUP
+#ifdef LPM_SRC_LOOKUP
   if ((vip_info->flags & F_SRC_ROUTING) && !under_flood) {
-    __u32 *lpm_val;
+    __u32* lpm_val;
     if (is_ipv6) {
       struct v6_lpm_key lpm_key_v6 = {};
       lpm_key_v6.prefixlen = 128;
@@ -96,7 +96,7 @@ static inline bool get_packet_dst(struct real_definition **real,
       key = *lpm_val;
     }
     __u32 stats_key = MAX_VIPS + LPM_SRC_CNTRS;
-    struct lb_stats *data_stats = bpf_map_lookup_elem(&stats, &stats_key);
+    struct lb_stats* data_stats = bpf_map_lookup_elem(&stats, &stats_key);
     if (data_stats) {
       if (src_found) {
         data_stats->v2 += 1;
@@ -105,7 +105,7 @@ static inline bool get_packet_dst(struct real_definition **real,
       }
     }
   }
-  #endif
+#endif
   if (!src_found) {
     bool hash_16bytes = is_ipv6;
 
@@ -120,7 +120,7 @@ static inline bool get_packet_dst(struct real_definition **real,
     key = RING_SIZE * (vip_info->vip_num) + hash;
 
     real_pos = bpf_map_lookup_elem(&ch_rings, &key);
-    if(!real_pos) {
+    if (!real_pos) {
       return false;
     }
     key = *real_pos;
@@ -140,12 +140,11 @@ static inline bool get_packet_dst(struct real_definition **real,
   return true;
 }
 
-__attribute__((__always_inline__))
-static inline void connection_table_lookup(struct real_definition **real,
-                                           struct packet_description *pckt,
-                                           void *lru_map) {
-
-  struct real_pos_lru *dst_lru;
+__attribute__((__always_inline__)) static inline void connection_table_lookup(
+    struct real_definition** real,
+    struct packet_description* pckt,
+    void* lru_map) {
+  struct real_pos_lru* dst_lru;
   __u64 cur_time;
   __u32 key;
   dst_lru = bpf_map_lookup_elem(lru_map, &pckt->flow);
@@ -165,15 +164,18 @@ static inline void connection_table_lookup(struct real_definition **real,
   return;
 }
 
-__attribute__((__always_inline__))
-static inline int process_l3_headers(struct packet_description *pckt,
-                                     __u8 *protocol, __u64 off,
-                                     __u16 *pkt_bytes, void *data,
-                                     void *data_end, bool is_ipv6) {
+__attribute__((__always_inline__)) static inline int process_l3_headers(
+    struct packet_description* pckt,
+    __u8* protocol,
+    __u64 off,
+    __u16* pkt_bytes,
+    void* data,
+    void* data_end,
+    bool is_ipv6) {
   __u64 iph_len;
   int action;
-  struct iphdr *iph;
-  struct ipv6hdr *ip6h;
+  struct iphdr* iph;
+  struct ipv6hdr* ip6h;
   if (is_ipv6) {
     ip6h = data + off;
     if (ip6h + 1 > data_end) {
@@ -207,7 +209,7 @@ static inline int process_l3_headers(struct packet_description *pckt,
     if (iph + 1 > data_end) {
       return XDP_DROP;
     }
-    //ihl contains len of ipv4 header in 32bit words
+    // ihl contains len of ipv4 header in 32bit words
     if (iph->ihl != 5) {
       // if len of ipv4 hdr is not equal to 20bytes that means that header
       // contains ip options, and we dont support em
@@ -237,38 +239,40 @@ static inline int process_l3_headers(struct packet_description *pckt,
 }
 
 #ifdef INLINE_DECAP_GENERIC
-__attribute__((__always_inline__))
-static inline int check_decap_dst(struct packet_description *pckt,
-                                  bool is_ipv6, bool *pass) {
-    struct address dst_addr = {};
-    struct lb_stats *data_stats;
+__attribute__((__always_inline__)) static inline int
+check_decap_dst(struct packet_description* pckt, bool is_ipv6, bool* pass) {
+  struct address dst_addr = {};
+  struct lb_stats* data_stats;
 
-    if (is_ipv6) {
-      memcpy(dst_addr.addrv6, pckt->flow.dstv6, 16);
-    } else {
-      dst_addr.addr = pckt->flow.dst;
-    }
-    __u32 *decap_dst_flags = bpf_map_lookup_elem(&decap_dst, &dst_addr);
+  if (is_ipv6) {
+    memcpy(dst_addr.addrv6, pckt->flow.dstv6, 16);
+  } else {
+    dst_addr.addr = pckt->flow.dst;
+  }
+  __u32* decap_dst_flags = bpf_map_lookup_elem(&decap_dst, &dst_addr);
 
-    if (decap_dst_flags) {
-      *pass = false;
-      __u32 stats_key = MAX_VIPS + REMOTE_ENCAP_CNTRS;
-      data_stats = bpf_map_lookup_elem(&stats, &stats_key);
-      if (!data_stats) {
-        return XDP_DROP;
-      }
-      data_stats->v1 += 1;
+  if (decap_dst_flags) {
+    *pass = false;
+    __u32 stats_key = MAX_VIPS + REMOTE_ENCAP_CNTRS;
+    data_stats = bpf_map_lookup_elem(&stats, &stats_key);
+    if (!data_stats) {
+      return XDP_DROP;
     }
-    return FURTHER_PROCESSING;
+    data_stats->v1 += 1;
+  }
+  return FURTHER_PROCESSING;
 }
 
 #endif // of INLINE_DECAP_GENERIC
 
 #ifdef INLINE_DECAP_IPIP
-__attribute__((__always_inline__))
-static inline int process_encaped_ipip_pckt(void **data, void **data_end,
-                                            struct xdp_md *xdp, bool *is_ipv6,
-                                            __u8 *protocol, bool pass) {
+__attribute__((__always_inline__)) static inline int process_encaped_ipip_pckt(
+    void** data,
+    void** data_end,
+    struct xdp_md* xdp,
+    bool* is_ipv6,
+    __u8* protocol,
+    bool pass) {
   int action;
   if (*protocol == IPPROTO_IPIP) {
     if (*is_ipv6) {
@@ -313,16 +317,18 @@ static inline int process_encaped_ipip_pckt(void **data, void **data_end,
 #endif // of INLINE_DECAP_IPIP
 
 #ifdef INLINE_DECAP_GUE
-__attribute__((__always_inline__))
-static inline int process_encaped_gue_pckt(void **data, void **data_end,
-                                           struct xdp_md *xdp, bool is_ipv6,
-                                           bool pass) {
+__attribute__((__always_inline__)) static inline int process_encaped_gue_pckt(
+    void** data,
+    void** data_end,
+    struct xdp_md* xdp,
+    bool is_ipv6,
+    bool pass) {
   int offset = 0;
   int action;
   if (is_ipv6) {
     __u8 v6 = 0;
-    offset = sizeof(struct ipv6hdr) + sizeof(struct ethhdr) +
-      sizeof(struct udphdr);
+    offset =
+        sizeof(struct ipv6hdr) + sizeof(struct ethhdr) + sizeof(struct udphdr);
     // 1 byte for gue v1 marker to figure out what is internal protocol
     if ((*data + offset + 1) > *data_end) {
       return XDP_DROP;
@@ -343,14 +349,14 @@ static inline int process_encaped_gue_pckt(void **data, void **data_end,
       }
     }
   } else {
-    offset = sizeof(struct iphdr) + sizeof(struct ethhdr) +
-      sizeof(struct udphdr);
+    offset =
+        sizeof(struct iphdr) + sizeof(struct ethhdr) + sizeof(struct udphdr);
     if ((*data + offset) > *data_end) {
       return XDP_DROP;
     }
     action = decrement_ttl(*data, *data_end, offset, false);
     if (!gue_decap_v4(xdp, data, data_end)) {
-        return XDP_DROP;
+      return XDP_DROP;
     }
   }
   if (action >= 0) {
@@ -400,17 +406,16 @@ increment_quic_cid_drop_real_0() {
   quic_drop->v2 += 1;
 }
 
-__attribute__((__always_inline__))
-static inline int process_packet(struct xdp_md *xdp, __u64 off,
-                                 bool is_ipv6) {
-  void *data = (void *)(long)xdp->data;
-  void *data_end = (void *)(long)xdp->data_end;
-  struct ctl_value *cval;
-  struct real_definition *dst = NULL;
+__attribute__((__always_inline__)) static inline int
+process_packet(struct xdp_md* xdp, __u64 off, bool is_ipv6) {
+  void* data = (void*)(long)xdp->data;
+  void* data_end = (void*)(long)xdp->data_end;
+  struct ctl_value* cval;
+  struct real_definition* dst = NULL;
   struct packet_description pckt = {};
   struct vip_definition vip = {};
-  struct vip_meta *vip_info;
-  struct lb_stats *data_stats;
+  struct vip_meta* vip_info;
+  struct lb_stats* data_stats;
   __u64 iph_len;
   __u8 protocol;
   __u16 original_sport;
@@ -420,13 +425,13 @@ static inline int process_packet(struct xdp_md *xdp, __u64 off,
   __u32 mac_addr_pos = 0;
   __u16 pkt_bytes;
   action = process_l3_headers(
-    &pckt, &protocol, off, &pkt_bytes, data, data_end, is_ipv6);
+      &pckt, &protocol, off, &pkt_bytes, data, data_end, is_ipv6);
   if (action >= 0) {
     return action;
   }
   protocol = pckt.flow.proto;
 
-  #ifdef INLINE_DECAP_IPIP
+#ifdef INLINE_DECAP_IPIP
   /* This is to workaround a verifier issue for 5.2.
    * The reason is that 5.2 verifier does not handle register
    * copy states properly while 5.6 handles properly.
@@ -479,7 +484,7 @@ static inline int process_packet(struct xdp_md *xdp, __u64 off,
     if (!parse_udp(data, data_end, is_ipv6, &pckt)) {
       return XDP_DROP;
     }
-  #ifdef INLINE_DECAP_GUE
+#ifdef INLINE_DECAP_GUE
     if (pckt.flow.port16[1] == bpf_htons(GUE_DPORT)) {
       bool pass = true;
       action = check_decap_dst(&pckt, is_ipv6, &pass);
@@ -488,7 +493,7 @@ static inline int process_packet(struct xdp_md *xdp, __u64 off,
       }
       return process_encaped_gue_pckt(&data, &data_end, xdp, is_ipv6, pass);
     }
-  #endif // of INLINE_DECAP_GUE
+#endif // of INLINE_DECAP_GUE
   } else {
     // send to tcp/ip stack
     return XDP_PASS;
@@ -557,7 +562,7 @@ static inline int process_packet(struct xdp_md *xdp, __u64 off,
     if (real_index > 0) {
       increment_quic_cid_version_stats(real_index);
       __u32 key = real_index;
-      __u32 *real_pos = bpf_map_lookup_elem(&server_id_map, &key);
+      __u32* real_pos = bpf_map_lookup_elem(&server_id_map, &key);
       if (real_pos) {
         key = *real_pos;
         if (key == 0) {
@@ -583,7 +588,8 @@ static inline int process_packet(struct xdp_md *xdp, __u64 off,
     }
   }
 
-  // save the original sport before making real selection, possibly changing its value.
+  // save the original sport before making real selection, possibly changing its
+  // value.
   original_sport = pckt.flow.port16[0];
 
   if (!dst) {
@@ -593,11 +599,11 @@ static inline int process_packet(struct xdp_md *xdp, __u64 off,
       pckt.flow.port16[0] = 0;
     }
     __u32 cpu_num = bpf_get_smp_processor_id();
-    void *lru_map = bpf_map_lookup_elem(&lru_mapping, &cpu_num);
+    void* lru_map = bpf_map_lookup_elem(&lru_mapping, &cpu_num);
     if (!lru_map) {
       lru_map = &fallback_cache;
       __u32 lru_stats_key = MAX_VIPS + FALLBACK_LRU_CNTR;
-      struct lb_stats *lru_stats = bpf_map_lookup_elem(&stats, &lru_stats_key);
+      struct lb_stats* lru_stats = bpf_map_lookup_elem(&stats, &lru_stats_key);
       if (!lru_stats) {
         return XDP_DROP;
       }
@@ -639,8 +645,8 @@ static inline int process_packet(struct xdp_md *xdp, __u64 off,
     if (!dst) {
       if (pckt.flow.proto == IPPROTO_TCP) {
         __u32 lru_stats_key = MAX_VIPS + LRU_MISS_CNTR;
-        struct lb_stats *lru_stats = bpf_map_lookup_elem(
-          &stats, &lru_stats_key);
+        struct lb_stats* lru_stats =
+            bpf_map_lookup_elem(&stats, &lru_stats_key);
         if (!lru_stats) {
           return XDP_DROP;
         }
@@ -655,7 +661,7 @@ static inline int process_packet(struct xdp_md *xdp, __u64 off,
           lru_stats->v2 += 1;
         }
       }
-      if(!get_packet_dst(&dst, &pckt, vip_info, is_ipv6, lru_map)) {
+      if (!get_packet_dst(&dst, &pckt, vip_info, is_ipv6, lru_map)) {
         return XDP_DROP;
       }
       // lru misses (either new connection or lru is full and starts to trash)
@@ -692,11 +698,11 @@ static inline int process_packet(struct xdp_md *xdp, __u64 off,
   // restore the original sport value to use it as a seed for the GUE sport
   pckt.flow.port16[0] = original_sport;
   if (dst->flags & F_IPV6) {
-    if(!PCKT_ENCAP_V6(xdp, cval, is_ipv6, &pckt, dst, pkt_bytes)) {
+    if (!PCKT_ENCAP_V6(xdp, cval, is_ipv6, &pckt, dst, pkt_bytes)) {
       return XDP_DROP;
     }
   } else {
-    if(!PCKT_ENCAP_V4(xdp, cval, &pckt, dst, pkt_bytes)) {
+    if (!PCKT_ENCAP_V4(xdp, cval, &pckt, dst, pkt_bytes)) {
       return XDP_DROP;
     }
   }
@@ -705,10 +711,10 @@ static inline int process_packet(struct xdp_md *xdp, __u64 off,
 }
 
 SEC("xdp-balancer")
-int balancer_ingress(struct xdp_md *ctx) {
-  void *data = (void *)(long)ctx->data;
-  void *data_end = (void *)(long)ctx->data_end;
-  struct ethhdr *eth = data;
+int balancer_ingress(struct xdp_md* ctx) {
+  void* data = (void*)(long)ctx->data;
+  void* data_end = (void*)(long)ctx->data_end;
+  struct ethhdr* eth = data;
   __u32 eth_proto;
   __u32 nh_off;
   nh_off = sizeof(struct ethhdr);

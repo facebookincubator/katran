@@ -25,7 +25,7 @@ enum Action {
 }
 
 message Bool {
-    bool success = 1;
+  bool success = 1;
 }
 
 message Vip {
@@ -78,92 +78,90 @@ message Healthcheck {
 }
 
 message hcMap {
-    map<int32, string> healthchecks = 1;
+  map<int32, string> healthchecks = 1;
 }
 
 message Reals {
-    repeated Real reals = 1;
+  repeated Real reals = 1;
 }
 
 message Vips {
-    repeated Vip vips = 1;
+  repeated Vip vips = 1;
 }
 
 message QuicReals {
-    repeated QuicReal qreals = 1;
+  repeated QuicReal qreals = 1;
 }
 
 message modifiedRealsForVip {
-    Action action = 1;
-    Reals real = 2;
-    Vip vip = 3;
+  Action action = 1;
+  Reals real = 2;
+  Vip vip = 3;
 }
 
 message modifiedQuicReals {
-    Action action = 1;
-    QuicReals reals = 2;
+  Action action = 1;
+  QuicReals reals = 2;
 }
 
 message realForVip {
-    Real real = 1;
-    Vip vip = 2;
+  Real real = 1;
+  Vip vip = 2;
 }
 
 message Flags {
-    uint64 flags = 1;
+  uint64 flags = 1;
 }
 
 message Somark {
-    uint32 somark = 1;
+  uint32 somark = 1;
 }
 
 service KatranService {
+  rpc changeMac(Mac) returns (Bool);
 
-  rpc changeMac (Mac) returns (Bool);
+  rpc getMac(Empty) returns (Mac);
 
-  rpc getMac (Empty) returns (Mac);
+  rpc addVip(VipMeta) returns (Bool);
 
-  rpc addVip (VipMeta) returns (Bool);
+  rpc delVip(Vip) returns (Bool);
 
-  rpc delVip (Vip) returns (Bool);
+  rpc getAllVips(Empty) returns (Vips);
 
-  rpc getAllVips (Empty) returns (Vips);
+  rpc modifyVip(VipMeta) returns (Bool);
 
-  rpc modifyVip (VipMeta) returns (Bool);
+  rpc modifyReal(RealMeta) returns (Bool);
 
-  rpc modifyReal (RealMeta) returns (Bool);
+  rpc getVipFlags(Vip) returns (Flags);
 
-  rpc getVipFlags (Vip) returns (Flags);
+  rpc getRealFlags(Real) returns (Flags);
 
-  rpc getRealFlags (Real) returns (Flags);
+  rpc addRealForVip(realForVip) returns (Bool);
 
-  rpc addRealForVip (realForVip) returns (Bool);
+  rpc delRealForVip(realForVip) returns (Bool);
 
-  rpc delRealForVip (realForVip) returns (Bool);
+  rpc modifyRealsForVip(modifiedRealsForVip) returns (Bool);
 
-  rpc modifyRealsForVip (modifiedRealsForVip) returns (Bool);
+  rpc getRealsForVip(Vip) returns (Reals);
 
-  rpc getRealsForVip (Vip) returns (Reals);
+  rpc modifyQuicRealsMapping(modifiedQuicReals) returns (Bool);
 
-  rpc modifyQuicRealsMapping (modifiedQuicReals) returns (Bool);
+  rpc getQuicRealsMapping(Empty) returns (QuicReals);
 
-  rpc getQuicRealsMapping (Empty) returns (QuicReals);
+  rpc getStatsForVip(Vip) returns (Stats);
 
-  rpc getStatsForVip (Vip) returns (Stats);
+  rpc getLruStats(Empty) returns (Stats);
 
-  rpc getLruStats (Empty) returns (Stats);
+  rpc getLruMissStats(Empty) returns (Stats);
 
-  rpc getLruMissStats (Empty) returns (Stats);
+  rpc getLruFallbackStats(Empty) returns (Stats);
 
-  rpc getLruFallbackStats (Empty) returns (Stats);
+  rpc getIcmpTooBigStats(Empty) returns (Stats);
 
-  rpc getIcmpTooBigStats (Empty) returns (Stats);
+  rpc addHealthcheckerDst(Healthcheck) returns (Bool);
 
-  rpc addHealthcheckerDst (Healthcheck) returns (Bool);
+  rpc delHealthcheckerDst(Somark) returns (Bool);
 
-  rpc delHealthcheckerDst (Somark) returns (Bool);
-
-  rpc getHealthcheckersDst (Empty) returns (hcMap);
-
+  rpc getHealthcheckersDst(Empty) returns (hcMap);
 }
 option go_package = "./;protos";

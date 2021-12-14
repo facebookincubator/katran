@@ -241,8 +241,8 @@ void testLbCounters(katran::KatranLb& lb, KatranTestParam& testParam) {
   stats = lb.getTcpServerIdRoutingStats();
   if (stats.v2 != testParam.expectedTcpServerIdRoutingCounts() ||
       stats.v1 != testParam.expectedTcpServerIdRoutingFallbackCounts()) {
-    LOG(ERROR) << "Counters for TCP server-id routing with CH (v1): " << stats.v1
-               << ", with server-id (v2): " << stats.v2;
+    LOG(ERROR) << "Counters for TCP server-id routing with CH (v1): "
+               << stats.v1 << ", with server-id (v2): " << stats.v2;
     LOG(ERROR) << "Counters for TCP server-id based routing are wrong";
   }
   auto realStats = testParam.expectedRealStats();
@@ -420,15 +420,16 @@ int main(int argc, char** argv) {
     kmconfig.storage = katran::PcapStorageFormat::IOBUF;
     kmconfig.bufferSize = k1Mbyte;
   }
-  katran::KatranConfig kconfig{kMainInterface,
-                               kV4TunInterface,
-                               kV6TunInterface,
-                               FLAGS_balancer_prog,
-                               FLAGS_healthchecking_prog,
-                               kDefaultMac,
-                               kDefaultPriority,
-                               kNoExternalMap,
-                               kDefaultKatranPos};
+  katran::KatranConfig kconfig{
+      kMainInterface,
+      kV4TunInterface,
+      kV6TunInterface,
+      FLAGS_balancer_prog,
+      FLAGS_healthchecking_prog,
+      kDefaultMac,
+      kDefaultPriority,
+      kNoExternalMap,
+      kDefaultKatranPos};
 
   kconfig.enableHc = FLAGS_healthchecking_prog.empty() ? false : true;
   kconfig.monitorConfig = kmconfig;

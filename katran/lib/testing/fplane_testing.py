@@ -17,14 +17,23 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-
 import argparse
-from multiprocessing import Process, Queue
-from scapy.all import (
-    Ether, IP, IPv6, TCP, UDP, ICMP, ICMPv6EchoRequest, ICMPv6PacketTooBig, ARP,
-    sendp, sniff
-)
 import time
+from multiprocessing import Process, Queue
+
+from scapy.all import (
+    Ether,
+    IP,
+    IPv6,
+    TCP,
+    UDP,
+    ICMP,
+    ICMPv6EchoRequest,
+    ICMPv6PacketTooBig,
+    ARP,
+    sendp,
+    sniff,
+)
 
 QUEUE_READ_TIMEOUT = 5
 RECVED_PCKTS = 0
@@ -33,79 +42,79 @@ INDEX_LEN = 2
 
 TEST_PCKTS = [
     # pkt 1; reply expected
-    Ether(src="0x002", dst="0x2") /
-    IP(src="192.168.1.1", dst="10.200.1.1") /
-    UDP(sport=31337, dport=80) /
-    "katran test pckt 01",
+    Ether(src="0x002", dst="0x2")
+    / IP(src="192.168.1.1", dst="10.200.1.1")
+    / UDP(sport=31337, dport=80)
+    / "katran test pckt 01",
     # pkt 2; reply expected
-    Ether(src="0x002", dst="0x2") /
-    IP(src="192.168.1.1", dst="10.200.1.1") /
-    TCP(sport=31337, dport=80, flags="A") /
-    "katran test pckt 02",
+    Ether(src="0x002", dst="0x2")
+    / IP(src="192.168.1.1", dst="10.200.1.1")
+    / TCP(sport=31337, dport=80, flags="A")
+    / "katran test pckt 02",
     # pkt 3; reply expected
-    Ether(src="0x002", dst="0x2") /
-    IP(src="192.168.1.1", dst="10.200.1.2") /
-    TCP(sport=31337, dport=42, flags="A") /
-    "katran test pckt 03",
+    Ether(src="0x002", dst="0x2")
+    / IP(src="192.168.1.1", dst="10.200.1.2")
+    / TCP(sport=31337, dport=42, flags="A")
+    / "katran test pckt 03",
     # pkt 4; reply expected
-    Ether(src="0x002", dst="0x2") /
-    IP(src="192.168.1.1", dst="10.200.1.3") /
-    TCP(sport=31337, dport=80, flags="A") /
-    "katran test pckt 04",
+    Ether(src="0x002", dst="0x2")
+    / IP(src="192.168.1.1", dst="10.200.1.3")
+    / TCP(sport=31337, dport=80, flags="A")
+    / "katran test pckt 04",
     # pkt 5; reply expected
-    Ether(src="0x002", dst="0x2") /
-    IPv6(src="fc00:2::1", dst="fc00:1::1") /
-    TCP(sport=31337, dport=80, flags="A") /
-    "katran test pckt 05",
+    Ether(src="0x002", dst="0x2")
+    / IPv6(src="fc00:2::1", dst="fc00:1::1")
+    / TCP(sport=31337, dport=80, flags="A")
+    / "katran test pckt 05",
     # pkt 6; reply expected
-    Ether(src="0x002", dst="0x2") /
-    IP(src="192.168.1.1", dst="10.200.1.3") /
-    ICMP(type="echo-request") /
-    "katran test pckt 06",
+    Ether(src="0x002", dst="0x2")
+    / IP(src="192.168.1.1", dst="10.200.1.3")
+    / ICMP(type="echo-request")
+    / "katran test pckt 06",
     # pkt 7; reply expected
-    Ether(src="0x002", dst="0x2") /
-    IPv6(src="fc00:2::1", dst="fc00:1::1") /
-    ICMPv6EchoRequest() /
-    "katran test pckt 07",
+    Ether(src="0x002", dst="0x2")
+    / IPv6(src="fc00:2::1", dst="fc00:1::1")
+    / ICMPv6EchoRequest()
+    / "katran test pckt 07",
     # pkt 8; reply expected
-    Ether(src="0x002", dst="0x2") /
-    IP(src="192.168.100.1", dst="10.200.1.1") /
-    ICMP(type="dest-unreach", code="fragmentation-needed") /
-    IP(src="10.200.1.1", dst="192.168.1.1") /
-    TCP(sport=80, dport=31337) /
-    "katran test pckt 08",
+    Ether(src="0x002", dst="0x2")
+    / IP(src="192.168.100.1", dst="10.200.1.1")
+    / ICMP(type="dest-unreach", code="fragmentation-needed")
+    / IP(src="10.200.1.1", dst="192.168.1.1")
+    / TCP(sport=80, dport=31337)
+    / "katran test pckt 08",
     # pkt 9; reply expected
-    Ether(src="0x002", dst="0x2") /
-    IPv6(src="fc00:200::1", dst="fc00:1::1") /
-    ICMPv6PacketTooBig() /
-    IPv6(src="fc00:1::1", dst="fc00:2::1") /
-    TCP(sport=80, dport=31337) /
-    "katran test pckt 09",
+    Ether(src="0x002", dst="0x2")
+    / IPv6(src="fc00:200::1", dst="fc00:1::1")
+    / ICMPv6PacketTooBig()
+    / IPv6(src="fc00:1::1", dst="fc00:2::1")
+    / TCP(sport=80, dport=31337)
+    / "katran test pckt 09",
     # pkt 10; will be droped on katran side
-    Ether(src="0x002", dst="0x2") /
-    IP(src="192.168.1.1", dst="10.200.1.1", ihl=6) /
-    TCP(sport=31337, dport=80, flags="A") /
-    "katran test pckt 10",
+    Ether(src="0x002", dst="0x2")
+    / IP(src="192.168.1.1", dst="10.200.1.1", ihl=6)
+    / TCP(sport=31337, dport=80, flags="A")
+    / "katran test pckt 10",
     # pkt 11; will be droped on katran side
-    Ether(src="0x002", dst="0x2") /
-    IP(src="192.168.1.1", dst="10.200.1.1", ihl=5, flags="MF") /
-    TCP(sport=31337, dport=80, flags="A") /
-    "katran test pckt 11",
+    Ether(src="0x002", dst="0x2")
+    / IP(src="192.168.1.1", dst="10.200.1.1", ihl=5, flags="MF")
+    / TCP(sport=31337, dport=80, flags="A")
+    / "katran test pckt 11",
     # pkt 12; will be droped on katran side
-    Ether(src="0x002", dst="0x2") /
-    IPv6(src="fc00:2::1", dst="fc00:1::1", nh=44) /
-    TCP(sport=31337, dport=80, flags="A") /
-    "katran test pckt 12",
+    Ether(src="0x002", dst="0x2")
+    / IPv6(src="fc00:2::1", dst="fc00:1::1", nh=44)
+    / TCP(sport=31337, dport=80, flags="A")
+    / "katran test pckt 12",
     # pkt 13; will be passed to katran's tcp stack; no reply expected
-    Ether(src="0x002", dst="0x2") /
-    IP(src="192.168.1.1", dst="10.200.1.1", ihl=5) /
-    TCP(sport=31337, dport=82, flags="A") /
-    "katran test pckt 13",
+    Ether(src="0x002", dst="0x2")
+    / IP(src="192.168.1.1", dst="10.200.1.1", ihl=5)
+    / TCP(sport=31337, dport=82, flags="A")
+    / "katran test pckt 13",
     # pkt 14; will be passed to katran's tcp stack; no reply expected
-    Ether(src="0x002", dst="0x2") /
-    IPv6(src="fc00:2::1", dst="fc00:1::1") /
-    TCP(sport=31337, dport=82, flags="A") /
-    "katran test pckt 14",
+    Ether(src="0x002", dst="0x2")
+    / IPv6(src="fc00:2::1", dst="fc00:1::1")
+    / TCP(sport=31337, dport=82, flags="A")
+    / "katran test pckt 14",
     # pkt 15; will be passed to katran's tcp stack; no reply expected
     Ether(src="0x002", dst="0x2") / ARP(),
 ]
@@ -162,20 +171,13 @@ def parse_args():
         """
     )
     parser.add_argument(
-        "--katran-mac",
-        type=str,
-        help="Mac address of Katran load balancer"
+        "--katran-mac", type=str, help="Mac address of Katran load balancer"
     )
     parser.add_argument(
-        "--iface",
-        type=str,
-        default="eth0",
-        help="interface to send packets from"
+        "--iface", type=str, default="eth0", help="interface to send packets from"
     )
     parser.add_argument(
-        "--verbose",
-        action="store_true",
-        help="print verbose info about recved pckts"
+        "--verbose", action="store_true", help="print verbose info about recved pckts"
     )
     args = parser.parse_args()
     return args
@@ -192,8 +194,7 @@ class FplaneTester(object):
 
     def sniff_packets(self):
         pcap_filter = "ether src host {}".format(self._katran_mac)
-        sniff(filter=pcap_filter, iface=self._iface,
-              prn=self.process_received_packet)
+        sniff(filter=pcap_filter, iface=self._iface, prn=self.process_received_packet)
 
     def send_test_pckts(self):
         for pckt in TEST_PCKTS:
@@ -201,7 +202,7 @@ class FplaneTester(object):
             sendp(pckt, iface=self._iface)
 
     def check_pckt(self, pckt):
-        marker_line = b'katran test pckt '
+        marker_line = b"katran test pckt "
         init_index = pckt.find(marker_line)
         if init_index < 0:
             return
@@ -215,7 +216,7 @@ class FplaneTester(object):
             return
         if test_num in self._missed_pckts:
             self._recved_pckts[test_num] = self._missed_pckts[test_num]
-            del(self._missed_pckts[test_num])
+            del self._missed_pckts[test_num]
             self._queue.put((self._recved_pckts, self._missed_pckts))
 
     def read_queue(self):

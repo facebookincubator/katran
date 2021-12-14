@@ -37,9 +37,13 @@ class ByteRangeWriter : public DataWriter {
 
   bool available(std::size_t amount) override;
 
-  bool restart() override {return true;}
+  bool restart() override {
+    return true;
+  }
 
-  bool stop() override {return true;}
+  bool stop() override {
+    return true;
+  }
 
  private:
   folly::MutableByteRange& buffer_;

@@ -27,7 +27,7 @@ namespace {
 constexpr uint8_t kIPv6AddrSize = 16;
 }
 
-std::string XdpEventLogger::binaryToV6String(uint8_t const *v6) {
+std::string XdpEventLogger::binaryToV6String(uint8_t const* v6) {
   folly::ByteRange bytes(v6, kIPv6AddrSize);
   return folly::IPAddressV6::fromBinary(bytes).str();
 }
@@ -36,8 +36,8 @@ std::string XdpEventLogger::longToV4String(uint32_t v4) {
   return folly::IPAddressV4::fromLong(v4).str();
 }
 
-XdpEventInfo ProgLogger::handlePerfEvent(const char *data) {
-  auto msg = reinterpret_cast<const XdpDumpOutput *>(data);
+XdpEventInfo ProgLogger::handlePerfEvent(const char* data) {
+  auto msg = reinterpret_cast<const XdpDumpOutput*>(data);
   XdpEventInfo info;
   info.pkt_size = msg->pkt_size;
   info.data_len = msg->data_len;
@@ -48,10 +48,10 @@ XdpEventInfo ProgLogger::handlePerfEvent(const char *data) {
   return info;
 }
 
-void ProgLogger::log(const XdpDumpOutput *msg) {
+void ProgLogger::log(const XdpDumpOutput* msg) {
   if (msg->ipv6) {
-    out_ << "srcv6: " << binaryToV6String((uint8_t *)&msg->srcv6)
-         << " dstv6: " << binaryToV6String((uint8_t *)&msg->dstv6) << std::endl;
+    out_ << "srcv6: " << binaryToV6String((uint8_t*)&msg->srcv6)
+         << " dstv6: " << binaryToV6String((uint8_t*)&msg->dstv6) << std::endl;
   } else {
     out_ << "src: " << longToV4String(msg->src)
          << " dst: " << longToV4String(msg->dst) << std::endl;

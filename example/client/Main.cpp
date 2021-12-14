@@ -44,31 +44,38 @@ DEFINE_bool(icmp, false, "Show ICMP \"packet too big\"  related stats");
 DEFINE_bool(l, false, "List configured services");
 DEFINE_bool(C, false, "Clear all configs");
 DEFINE_string(
-    vf, "",
+    vf,
+    "",
     "change vip flags. Possible values: "
     "NO_SPORT, NO_LRU, QUIC_VIP, DPORT_HASH, LOCAL_VIP");
-DEFINE_string(
-    rf, "",
-    "change real flags. Possible values: LOCAL_REAL");
+DEFINE_string(rf, "", "change real flags. Possible values: LOCAL_REAL");
 DEFINE_bool(unset, false, "Unset specified flags");
 DEFINE_string(new_hc, "", "Address of new backend to healthcheck");
 DEFINE_uint64(somark, 0, "Socket mark to specified backend");
 DEFINE_bool(del_hc, false, "Delete backend w/ specified somark");
 DEFINE_bool(list_hc, false, "List configured healthchecks");
 DEFINE_bool(list_mac, false, "List configured mac address of default router");
-DEFINE_string(change_mac, "",
-              "Change configured mac address of default router");
-DEFINE_string(quic_mapping, "",
-              "mapping of real to connectionId. must be in <addr>=<id> format");
+DEFINE_string(
+    change_mac,
+    "",
+    "Change configured mac address of default router");
+DEFINE_string(
+    quic_mapping,
+    "",
+    "mapping of real to connectionId. must be in <addr>=<id> format");
 DEFINE_bool(list_qm, false, "List current quic's mappings");
 DEFINE_bool(del_qm, false, "Delete instead of adding specified quic mapping");
 // Address and port of katran thrift server
-DEFINE_string(katran_server, "::1",
-              "Address of katran thrift server. Default value is ::1");
-DEFINE_int32(katran_port, 12307,
-             "Port of katran thrift server. Default value is 12307");
+DEFINE_string(
+    katran_server,
+    "::1",
+    "Address of katran thrift server. Default value is ::1");
+DEFINE_int32(
+    katran_port,
+    12307,
+    "Port of katran thrift server. Default value is 12307");
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
   ::gflags::ParseCommandLineFlags(&argc, &argv, false);
   folly::init(&argc, &argv);
   // reassign flags for better readibility
@@ -114,13 +121,14 @@ int main(int argc, char **argv) {
   } else if (delServiceFlag) {
     client.delService(service, proto);
   } else if (editServiceFlag) {
-    client.addOrModifyService(service, vipChangeFlags, proto, true, !FLAGS_unset);
+    client.addOrModifyService(
+        service, vipChangeFlags, proto, true, !FLAGS_unset);
   } else if (addServerFlag || editServerFlag) {
-    client.updateServerForVip(service, proto, realServerFlag, realWeightFlag,
-                              realChangeFlags, false);
+    client.updateServerForVip(
+        service, proto, realServerFlag, realWeightFlag, realChangeFlags, false);
   } else if (delServerFlag) {
-    client.updateServerForVip(service, proto, realServerFlag, realWeightFlag,
-                              realChangeFlags, true);
+    client.updateServerForVip(
+        service, proto, realServerFlag, realWeightFlag, realChangeFlags, true);
   } else if (FLAGS_del_qm) {
     if (FLAGS_quic_mapping == "") {
       LOG(FATAL) << "quic_mapping is not specified.";

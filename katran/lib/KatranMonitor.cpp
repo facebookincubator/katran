@@ -41,8 +41,7 @@ KatranMonitor::KatranMonitor(const KatranMonitorConfig& config)
   auto evb = scopedEvb_->getEventBase();
 
   reader_ = std::make_unique<KatranEventReader>(queue_);
-  if (!reader_->open(
-          config_.mapFd, evb, config_.pages)) {
+  if (!reader_->open(config_.mapFd, evb, config_.pages)) {
     LOG(ERROR) << "Perf event reader init failed";
   }
 

@@ -30,17 +30,15 @@
 
 #include "encap_helpers.h"
 
-#include "healthchecking_structs.h"
 #include "healthchecking_maps.h"
-
+#include "healthchecking_structs.h"
 
 __attribute__((__always_inline__)) static inline bool hc_encap_ipip(
-  struct __sk_buff *skb,
-  struct hc_real_definition *real,
-  struct ethhdr* ethh,
-  bool is_ipv6
-) {
-  struct hc_real_definition *src;
+    struct __sk_buff* skb,
+    struct hc_real_definition* real,
+    struct ethhdr* ethh,
+    bool is_ipv6) {
+  struct hc_real_definition* src;
   __u64 flags = 0;
   __u16 pkt_len;
   int adjust_len;
@@ -58,20 +56,22 @@ __attribute__((__always_inline__)) static inline bool hc_encap_ipip(
     flags |= BPF_F_ADJ_ROOM_FIXED_GSO | BPF_F_ADJ_ROOM_ENCAP_L3_IPV6;
     adjust_len = sizeof(struct ipv6hdr);
     // new header would be inserted after MAC but before old L3 header
-    if(bpf_skb_adjust_room(skb, adjust_len, BPF_ADJ_ROOM_MAC, flags)) {
+    if (bpf_skb_adjust_room(skb, adjust_len, BPF_ADJ_ROOM_MAC, flags)) {
       return false;
     }
-    if ((skb->data + sizeof(struct ethhdr) + sizeof(struct ipv6hdr)) > skb->data_end) {
+    if ((skb->data + sizeof(struct ethhdr) + sizeof(struct ipv6hdr)) >
+        skb->data_end) {
       return false;
     }
     ethh = (void*)(long)skb->data;
     ethh->h_proto = BE_ETH_P_IPV6;
 
-    struct ipv6hdr *ip6h = (void*)(long)skb->data + sizeof(struct ethhdr);
+    struct ipv6hdr* ip6h = (void*)(long)skb->data + sizeof(struct ethhdr);
     if (!is_ipv6) {
       proto = IPPROTO_IPIP;
     }
-    create_v6_hdr(ip6h, DEFAULT_TOS, src->v6daddr, real->v6daddr, pkt_len, proto);
+    create_v6_hdr(
+        ip6h, DEFAULT_TOS, src->v6daddr, real->v6daddr, pkt_len, proto);
   } else {
     key = V4_SRC_INDEX;
     src = bpf_map_lookup_elem(&hc_pckt_srcs_map, &key);
@@ -81,14 +81,16 @@ __attribute__((__always_inline__)) static inline bool hc_encap_ipip(
     flags |= BPF_F_ADJ_ROOM_FIXED_GSO | BPF_F_ADJ_ROOM_ENCAP_L3_IPV4;
     adjust_len = sizeof(struct iphdr);
     // new header would be inserted after MAC but before old L3 header
-    if(bpf_skb_adjust_room(skb, adjust_len, BPF_ADJ_ROOM_MAC, flags)) {
+    if (bpf_skb_adjust_room(skb, adjust_len, BPF_ADJ_ROOM_MAC, flags)) {
       return false;
     }
-    if ((skb->data + sizeof(struct ethhdr) + sizeof(struct iphdr)) > skb->data_end) {
+    if ((skb->data + sizeof(struct ethhdr) + sizeof(struct iphdr)) >
+        skb->data_end) {
       return false;
     }
-    struct iphdr *iph = (void*)(long)skb->data + sizeof(struct ethhdr);
-    create_v4_hdr(iph, DEFAULT_TOS, src->daddr, real->daddr, pkt_len, IPPROTO_IPIP);
+    struct iphdr* iph = (void*)(long)skb->data + sizeof(struct ethhdr);
+    create_v4_hdr(
+        iph, DEFAULT_TOS, src->daddr, real->daddr, pkt_len, IPPROTO_IPIP);
   }
   return true;
 }
@@ -98,12 +100,11 @@ __attribute__((__always_inline__)) static inline __u16 gue_sport(__u32 seed) {
 }
 
 __attribute__((__always_inline__)) static inline bool hc_encap_gue(
-  struct __sk_buff *skb,
-  struct hc_real_definition *real,
-  struct ethhdr* ethh,
-  bool is_ipv6
-) {
-  struct hc_real_definition *src;
+    struct __sk_buff* skb,
+    struct hc_real_definition* real,
+    struct ethhdr* ethh,
+    bool is_ipv6) {
+  struct hc_real_definition* src;
   __u64 flags = 0;
   __u16 pkt_len;
   __u16 sport;
@@ -120,24 +121,26 @@ __attribute__((__always_inline__)) static inline bool hc_encap_gue(
     if (!src) {
       return false;
     }
-    flags |= BPF_F_ADJ_ROOM_FIXED_GSO | BPF_F_ADJ_ROOM_ENCAP_L3_IPV6 | BPF_F_ADJ_ROOM_ENCAP_L4_UDP;
+    flags |= BPF_F_ADJ_ROOM_FIXED_GSO | BPF_F_ADJ_ROOM_ENCAP_L3_IPV6 |
+        BPF_F_ADJ_ROOM_ENCAP_L4_UDP;
     adjust_len = sizeof(struct ipv6hdr) + sizeof(struct udphdr);
     // new headers would be inserted after MAC but before old L3 header
-    if(bpf_skb_adjust_room(skb, adjust_len, BPF_ADJ_ROOM_MAC, flags)) {
+    if (bpf_skb_adjust_room(skb, adjust_len, BPF_ADJ_ROOM_MAC, flags)) {
       return false;
     }
     if ((skb->data + sizeof(struct ethhdr) + sizeof(struct ipv6hdr) +
-        sizeof(struct udphdr)) > skb->data_end) {
+         sizeof(struct udphdr)) > skb->data_end) {
       return false;
     }
     ethh = (void*)(long)skb->data;
     ethh->h_proto = BE_ETH_P_IPV6;
 
-    struct ipv6hdr *ip6h = (void*)(long)skb->data + sizeof(struct ethhdr);
-    struct udphdr *udph = (void*)ip6h + sizeof(struct ipv6hdr);
+    struct ipv6hdr* ip6h = (void*)(long)skb->data + sizeof(struct ethhdr);
+    struct udphdr* udph = (void*)ip6h + sizeof(struct ipv6hdr);
     pkt_len += sizeof(struct udphdr);
     create_udp_hdr(udph, sport, GUE_DPORT, pkt_len, GUE_CSUM);
-    create_v6_hdr(ip6h, DEFAULT_TOS, src->v6daddr, real->v6daddr, pkt_len, IPPROTO_UDP);
+    create_v6_hdr(
+        ip6h, DEFAULT_TOS, src->v6daddr, real->v6daddr, pkt_len, IPPROTO_UDP);
   } else {
     sport = gue_sport(real->daddr);
     key = V4_SRC_INDEX;
@@ -145,24 +148,25 @@ __attribute__((__always_inline__)) static inline bool hc_encap_gue(
     if (!src) {
       return false;
     }
-    flags |= BPF_F_ADJ_ROOM_FIXED_GSO | BPF_F_ADJ_ROOM_ENCAP_L3_IPV4 | BPF_F_ADJ_ROOM_ENCAP_L4_UDP;
+    flags |= BPF_F_ADJ_ROOM_FIXED_GSO | BPF_F_ADJ_ROOM_ENCAP_L3_IPV4 |
+        BPF_F_ADJ_ROOM_ENCAP_L4_UDP;
     adjust_len = sizeof(struct iphdr) + sizeof(struct udphdr);
     // new headers would be inserted after MAC but before old L3 header
-    if(bpf_skb_adjust_room(skb, adjust_len, BPF_ADJ_ROOM_MAC, flags)) {
+    if (bpf_skb_adjust_room(skb, adjust_len, BPF_ADJ_ROOM_MAC, flags)) {
       return false;
     }
     if ((skb->data + sizeof(struct ethhdr) + sizeof(struct iphdr) +
-        sizeof(struct udphdr)) > skb->data_end) {
+         sizeof(struct udphdr)) > skb->data_end) {
       return false;
     }
-    struct iphdr *iph = (void*)(long)skb->data + sizeof(struct ethhdr);
-    struct udphdr *udph = (void*)iph + sizeof(struct iphdr);
+    struct iphdr* iph = (void*)(long)skb->data + sizeof(struct ethhdr);
+    struct udphdr* udph = (void*)iph + sizeof(struct iphdr);
     pkt_len += sizeof(struct udphdr);
     create_udp_hdr(udph, sport, GUE_DPORT, pkt_len, GUE_CSUM);
-    create_v4_hdr(iph, DEFAULT_TOS, src->daddr, real->daddr, pkt_len, IPPROTO_UDP);
+    create_v4_hdr(
+        iph, DEFAULT_TOS, src->daddr, real->daddr, pkt_len, IPPROTO_UDP);
   }
   return true;
 }
-
 
 #endif // of __HEALTHCHECKING_HELPERS_H

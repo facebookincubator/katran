@@ -27,7 +27,8 @@ class EventBase;
 namespace katran {
 class KatranEventReader : public PerfBufferEventReader {
  public:
-  explicit KatranEventReader(std::shared_ptr<folly::MPMCQueue<PcapMsgMeta>> queue)
+  explicit KatranEventReader(
+      std::shared_ptr<folly::MPMCQueue<PcapMsgMeta>> queue)
       : queue_(queue) {}
 
   /**
@@ -35,10 +36,8 @@ class KatranEventReader : public PerfBufferEventReader {
    * @param const char* data received from the XDP prog.
    * @param size_t size of the data chunk
    */
-  void handlePerfBufferEvent(
-      int cpu,
-      const char* data,
-      size_t size) noexcept override;
+  void handlePerfBufferEvent(int cpu, const char* data, size_t size) noexcept
+      override;
 
  private:
   /**

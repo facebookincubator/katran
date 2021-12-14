@@ -19,15 +19,14 @@
 
 const std::string kXdpDumpProg = R"***(
 
-#include <uapi/linux/if_ether.h>
-#include <uapi/linux/pkt_cls.h>
 #include <uapi/linux/bpf.h>
-#include <uapi/linux/in.h>
-#include <uapi/linux/if_ether.h>
-#include <uapi/linux/ip.h>
-#include <uapi/linux/ipv6.h>
 #include <uapi/linux/icmp.h>
 #include <uapi/linux/icmpv6.h>
+#include <uapi/linux/if_ether.h>
+#include <uapi/linux/in.h>
+#include <uapi/linux/ip.h>
+#include <uapi/linux/ipv6.h>
+#include <uapi/linux/pkt_cls.h>
 #include <uapi/linux/tcp.h>
 #include <uapi/linux/udp.h>
 

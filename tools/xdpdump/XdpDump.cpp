@@ -17,9 +17,9 @@
 #include "XdpDump.h"
 
 #include <arpa/inet.h>
+#include <signal.h>
 #include <chrono>
 #include <iostream>
-#include <signal.h>
 
 #include <bcc/libbpf.h>
 #include <bcc/table_storage.h>
@@ -47,10 +47,10 @@ constexpr uint32_t kNoSample = 1;
 constexpr uint32_t kQueueCapacity = 2048;
 
 uint64_t getPossibleCpus() {
-  static const char *fcpu = "/sys/devices/system/cpu/possible";
+  static const char* fcpu = "/sys/devices/system/cpu/possible";
   unsigned int start, end, possible_cpus = 0;
   char buff[128];
-  FILE *fp;
+  FILE* fp;
 
   fp = fopen(fcpu, "r");
   if (!fp) {
@@ -76,10 +76,14 @@ uint64_t getPossibleCpus() {
 
 } // namespace
 
-XdpDump::XdpDump(folly::EventBase *eventBase, XdpDumpFilter filter,
-                 std::shared_ptr<katran::PcapWriter> pcapWriter)
+XdpDump::XdpDump(
+    folly::EventBase* eventBase,
+    XdpDumpFilter filter,
+    std::shared_ptr<katran::PcapWriter> pcapWriter)
     : folly::AsyncTimeout(eventBase, AsyncTimeout::InternalEnum::INTERNAL),
-      filter_(filter), pcapWriter_(pcapWriter), eventBase_(eventBase) {}
+      filter_(filter),
+      pcapWriter_(pcapWriter),
+      eventBase_(eventBase) {}
 
 XdpDump::~XdpDump() {}
 
@@ -99,8 +103,8 @@ void XdpDump::prepareSharedMap() {
 
 void XdpDump::compile() {
   VLOG(2) << "compiling bpf prog";
-  std::vector<const char *> cflags;
-  for (const auto &flag : cflags_) {
+  std::vector<const char*> cflags;
+  for (const auto& flag : cflags_) {
     LOG(INFO) << "adding compile flag: " << flag;
     cflags.push_back(flag.c_str());
   }
@@ -109,7 +113,7 @@ void XdpDump::compile() {
     VLOG(2) << "compiling xdpdump from string";
     bpf_ = std::make_unique<ebpf::BPFModule>(kNoFlags);
     bpf_->load_string(kXdpDumpProg, cflags.data(), cflags.size());
-  } catch (const std::runtime_error &e) {
+  } catch (const std::runtime_error& e) {
     LOG(ERROR) << "Error while load xdpdump prog";
     throw e;
   }
@@ -167,22 +171,28 @@ void XdpDump::load() {
   }
   auto fnStart = bpf_->function_start(funcName_);
   if (!fnStart) {
-    throw std::runtime_error("cant find function w/ name " +
-                             folly::to<std::string>(funcName_));
+    throw std::runtime_error(
+        "cant find function w/ name " + folly::to<std::string>(funcName_));
   }
 
   auto fnSize = bpf_->function_size(funcName_);
   auto bpfLogBuf = std::make_unique<char[]>(kBpfLogBufSize);
-  progFd_ = bcc_prog_load(BPF_PROG_TYPE_XDP, funcName_.c_str(),
-                          reinterpret_cast<struct bpf_insn *>(fnStart), fnSize,
-                          bpf_->license(), bpf_->kern_version(),
-                          0 /* log_level */, bpfLogBuf.get(), kBpfLogBufSize);
+  progFd_ = bcc_prog_load(
+      BPF_PROG_TYPE_XDP,
+      funcName_.c_str(),
+      reinterpret_cast<struct bpf_insn*>(fnStart),
+      fnSize,
+      bpf_->license(),
+      bpf_->kern_version(),
+      0 /* log_level */,
+      bpfLogBuf.get(),
+      kBpfLogBufSize);
   if (progFd_ < 0) {
     VLOG(2) << "fd is negative: " << progFd_ << " errno: " << errno
             << " errno str: " << folly::to<std::string>(std::strerror(errno))
             << " fn size: " << fnSize;
-    throw std::runtime_error("cant load bpfprog. error:" +
-                             folly::to<std::string>(bpfLogBuf.get()));
+    throw std::runtime_error(
+        "cant load bpfprog. error:" + folly::to<std::string>(bpfLogBuf.get()));
   } else {
     VLOG(2) << "progs fd is: " << progFd_;
   }
@@ -191,8 +201,9 @@ void XdpDump::load() {
 void XdpDump::attach() {
   auto bpfError = bpf_update_elem(jmpFd_, &kMapPos, &progFd_, 0);
   if (bpfError) {
-    throw std::runtime_error("Error while updating value in map: " +
-                             folly::to<std::string>(std::strerror(errno)));
+    throw std::runtime_error(
+        "Error while updating value in map: " +
+        folly::to<std::string>(std::strerror(errno)));
   }
 }
 
@@ -200,8 +211,8 @@ void XdpDump::detach() {
   VLOG(2) << "detaching xdpdump from rootlet";
   auto bpfError = bpf_delete_elem(jmpFd_, &kMapPos);
   if (bpfError) {
-    throw std::runtime_error("Error while deleting key from map: " +
-                             folly::errnoStr(errno));
+    throw std::runtime_error(
+        "Error while deleting key from map: " + folly::errnoStr(errno));
   }
 }
 
@@ -211,7 +222,7 @@ void XdpDump::run() {
   prepareCflags();
   compile();
   load();
-  pumpEventBase();      // run evbThread_ here
+  pumpEventBase(); // run evbThread_ here
   tryStartPcapWriter(); // create: queue_ -> writerThread_ if pcap
   startEventReaders();
   startSigHandler();
@@ -223,7 +234,9 @@ void XdpDump::run() {
   LOG(INFO) << "Finalized xdpdump";
 }
 
-void XdpDump::timeoutExpired() noexcept { stop(); }
+void XdpDump::timeoutExpired() noexcept {
+  stop();
+}
 
 void XdpDump::getJmpFd() {
   jmpFd_ = bpf_obj_get(filter_.map_path.c_str());
@@ -307,8 +320,9 @@ void XdpDump::stop() {
   VLOG(2) << "XdpDump is stopped";
 }
 
-XdpDump::XdpDumpSignalHandler::XdpDumpSignalHandler(folly::EventBase *evb,
-                                                    XdpDump *parent)
+XdpDump::XdpDumpSignalHandler::XdpDumpSignalHandler(
+    folly::EventBase* evb,
+    XdpDump* parent)
     : folly::AsyncSignalHandler(evb) {
   parent_ = parent;
 }

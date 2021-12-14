@@ -17,8 +17,8 @@
 
 #include <folly/io/async/AsyncPipe.h>
 #include <folly/io/async/AsyncSocketException.h>
-#include "katran/lib/DataWriter.h"
 #include <cstdint>
+#include "katran/lib/DataWriter.h"
 
 namespace katran {
 
@@ -28,7 +28,8 @@ class PipeWriteCallback : public folly::AsyncWriter::WriteCallback {
     event_writes_++;
   }
 
-  void writeErr(size_t, const folly::AsyncSocketException& e) noexcept override {
+  void writeErr(size_t, const folly::AsyncSocketException& e) noexcept
+      override {
     LOG(ERROR) << "PipeWriter error: " << e.what();
     event_errs_++;
   }
@@ -116,8 +117,8 @@ class PipeWriter : public DataWriter {
 
  private:
   /**
-    * The write side of the pipe
-    */
+   * The write side of the pipe
+   */
   std::shared_ptr<folly::AsyncPipeWriter> pipe_;
 
   /**
@@ -136,4 +137,4 @@ class PipeWriter : public DataWriter {
   std::unique_ptr<folly::IOBuf> headerBuf_{nullptr};
 };
 
-} // namespace facebook
+} // namespace katran

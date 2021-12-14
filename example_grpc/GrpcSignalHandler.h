@@ -53,5 +53,5 @@ class GrpcSignalHandler : public folly::AsyncSignalHandler {
   bool shutdownScheduled_{false};
 };
 
-}
-}
+} // namespace katran
+} // namespace lb

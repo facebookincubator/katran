@@ -23,12 +23,14 @@
 
 namespace xdpdump {
 
-void XdpEventReader::handlePerfBufferEvent(int /* cpu */, const char *data,
-                                           size_t /* size */) noexcept {
+void XdpEventReader::handlePerfBufferEvent(
+    int /* cpu */,
+    const char* data,
+    size_t /* size */) noexcept {
   auto info = eventLogger_->handlePerfEvent(data);
   if (queue_ != nullptr) {
-    katran::PcapMsg pcap_msg(data + info.hdr_size, info.pkt_size,
-                             info.data_len);
+    katran::PcapMsg pcap_msg(
+        data + info.hdr_size, info.pkt_size, info.data_len);
     // best effort non blocking write. if writer thread is full we will lose
     // this packet
     auto res = queue_->write(std::move(pcap_msg));

@@ -297,7 +297,9 @@ int BpfAdapter::getProgFdByName(const std::string& name) {
   return loader_.getProgFdByName(name);
 }
 
-bool BpfAdapter::isMapInProg(const std::string& progName, const std::string& name) {
+bool BpfAdapter::isMapInProg(
+    const std::string& progName,
+    const std::string& name) {
   return loader_.isMapInProg(progName, name);
 }
 
@@ -857,9 +859,8 @@ void BpfAdapter::handlePerfEvent(
 }
 
 bool BpfAdapter::isMapInBpfObject(
-  const std::string& path,
-  const std::string& mapName
-) {
+    const std::string& path,
+    const std::string& mapName) {
   ::bpf_map* map;
   auto obj = ::bpf_object__open(path.c_str());
   if (obj == nullptr) {
@@ -870,7 +871,7 @@ bool BpfAdapter::isMapInBpfObject(
   };
 
   bpf_map__for_each(map, obj) {
-    if(mapName == ::bpf_map__name(map)) {
+    if (mapName == ::bpf_map__name(map)) {
       return true;
     }
   }

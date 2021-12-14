@@ -17,13 +17,13 @@
 #include <linux/in.h>
 #include <linux/ip.h>
 #include <linux/ipv6.h>
-#include <stddef.h>
 #include <stdbool.h>
+#include <stddef.h>
 
 #include "balancer_consts.h"
-#include "decap_maps.h"
 #include "bpf.h"
 #include "bpf_helpers.h"
+#include "decap_maps.h"
 #include "pckt_encap.h"
 #include "pckt_parsing.h"
 
@@ -31,14 +31,17 @@
 #define DECAP_PROG_SEC "xdp-decap"
 #endif
 
-__attribute__((__always_inline__))
-static inline int process_l3_headers(struct packet_description *pckt,
-                                     __u8 *protocol, __u64 off,
-                                     __u16 *pkt_bytes, void *data,
-                                     void *data_end, bool is_ipv6) {
+__attribute__((__always_inline__)) static inline int process_l3_headers(
+    struct packet_description* pckt,
+    __u8* protocol,
+    __u64 off,
+    __u16* pkt_bytes,
+    void* data,
+    void* data_end,
+    bool is_ipv6) {
   __u64 iph_len;
-  struct iphdr *iph;
-  struct ipv6hdr *ip6h;
+  struct iphdr* iph;
+  struct ipv6hdr* ip6h;
   if (is_ipv6) {
     ip6h = data + off;
     if (ip6h + 1 > data_end) {
@@ -59,7 +62,7 @@ static inline int process_l3_headers(struct packet_description *pckt,
     if (iph + 1 > data_end) {
       return XDP_DROP;
     }
-    //ihl contains len of ipv4 header in 32bit words
+    // ihl contains len of ipv4 header in 32bit words
     if (iph->ihl != 5) {
       // if len of ipv4 hdr is not equal to 20bytes that means that header
       // contains ip options, and we dont support em
@@ -79,24 +82,26 @@ static inline int process_l3_headers(struct packet_description *pckt,
   return FURTHER_PROCESSING;
 }
 
-__attribute__((__always_inline__))
-static inline int process_encaped_ipip_pckt(void **data, void **data_end,
-                                       struct xdp_md *xdp, bool *is_ipv6,
-                                       struct packet_description *pckt,
-                                       __u8 *protocol, __u64 off,
-                                       __u16 *pkt_bytes) {
+__attribute__((__always_inline__)) static inline int process_encaped_ipip_pckt(
+    void** data,
+    void** data_end,
+    struct xdp_md* xdp,
+    bool* is_ipv6,
+    struct packet_description* pckt,
+    __u8* protocol,
+    __u64 off,
+    __u16* pkt_bytes) {
   if (*protocol == IPPROTO_IPIP) {
     if (*is_ipv6) {
-      if ((*data + sizeof(struct ipv6hdr) +
-           sizeof(struct ethhdr)) > *data_end) {
+      if ((*data + sizeof(struct ipv6hdr) + sizeof(struct ethhdr)) >
+          *data_end) {
         return XDP_DROP;
       }
       if (!decap_v6(xdp, data, data_end, true)) {
         return XDP_DROP;
       }
     } else {
-      if ((*data + sizeof(struct iphdr) +
-           sizeof(struct ethhdr)) > *data_end) {
+      if ((*data + sizeof(struct iphdr) + sizeof(struct ethhdr)) > *data_end) {
         return XDP_DROP;
       }
       if (!decap_v4(xdp, data, data_end)) {
@@ -104,8 +109,7 @@ static inline int process_encaped_ipip_pckt(void **data, void **data_end,
       }
     }
   } else if (*protocol == IPPROTO_IPV6) {
-    if ((*data + sizeof(struct ipv6hdr) +
-         sizeof(struct ethhdr)) > *data_end) {
+    if ((*data + sizeof(struct ipv6hdr) + sizeof(struct ethhdr)) > *data_end) {
       return XDP_DROP;
     }
     if (!decap_v6(xdp, data, data_end, false)) {
@@ -116,14 +120,16 @@ static inline int process_encaped_ipip_pckt(void **data, void **data_end,
 }
 
 #ifdef INLINE_DECAP_GUE
-__attribute__((__always_inline__))
-static inline int process_encaped_gue_pckt(void **data, void **data_end,
-                                           struct xdp_md *xdp, bool is_ipv6) {
+__attribute__((__always_inline__)) static inline int process_encaped_gue_pckt(
+    void** data,
+    void** data_end,
+    struct xdp_md* xdp,
+    bool is_ipv6) {
   int offset = 0;
   if (is_ipv6) {
     __u8 v6 = 0;
-    offset = sizeof(struct ipv6hdr) + sizeof(struct ethhdr) +
-      sizeof(struct udphdr);
+    offset =
+        sizeof(struct ipv6hdr) + sizeof(struct ethhdr) + sizeof(struct udphdr);
     // 1 byte for gue v1 marker to figure out what is internal protocol
     if ((*data + offset + 1) > *data_end) {
       return XDP_DROP;
@@ -142,32 +148,34 @@ static inline int process_encaped_gue_pckt(void **data, void **data_end,
       }
     }
   } else {
-    offset = sizeof(struct iphdr) + sizeof(struct ethhdr) +
-      sizeof(struct udphdr);
+    offset =
+        sizeof(struct iphdr) + sizeof(struct ethhdr) + sizeof(struct udphdr);
     if ((*data + offset) > *data_end) {
       return XDP_DROP;
     }
     if (!gue_decap_v4(xdp, data, data_end)) {
-        return XDP_DROP;
+      return XDP_DROP;
     }
   }
   return FURTHER_PROCESSING;
 }
 #endif // INLINE_DECAP_GUE
 
-__attribute__((__always_inline__))
-static inline int process_packet(void *data, __u64 off, void *data_end,
-                                 bool is_ipv6, struct xdp_md *xdp) {
-
+__attribute__((__always_inline__)) static inline int process_packet(
+    void* data,
+    __u64 off,
+    void* data_end,
+    bool is_ipv6,
+    struct xdp_md* xdp) {
   struct packet_description pckt = {};
-  struct decap_stats *data_stats;
+  struct decap_stats* data_stats;
   __u32 key = 0;
   __u8 protocol;
 
   int action;
   __u16 pkt_bytes;
   action = process_l3_headers(
-    &pckt, &protocol, off, &pkt_bytes, data, data_end, is_ipv6);
+      &pckt, &protocol, off, &pkt_bytes, data, data_end, is_ipv6);
   if (action >= 0) {
     return action;
   }
@@ -213,10 +221,10 @@ static inline int process_packet(void *data, __u64 off, void *data_end,
 }
 
 SEC(DECAP_PROG_SEC)
-int xdpdecap(struct xdp_md *ctx) {
-  void *data = (void *)(long)ctx->data;
-  void *data_end = (void *)(long)ctx->data_end;
-  struct ethhdr *eth = data;
+int xdpdecap(struct xdp_md* ctx) {
+  void* data = (void*)(long)ctx->data;
+  void* data_end = (void*)(long)ctx->data_end;
+  struct ethhdr* eth = data;
   __u32 eth_proto;
   __u32 nh_off;
   nh_off = sizeof(struct ethhdr);

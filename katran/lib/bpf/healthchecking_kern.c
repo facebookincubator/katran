@@ -26,14 +26,12 @@
 
 #include "encap_helpers.h"
 
-#include "healthchecking_structs.h"
 #include "healthchecking_helpers.h"
 #include "healthchecking_maps.h"
-
+#include "healthchecking_structs.h"
 
 SEC("cls-hc")
-int healthchecker(struct __sk_buff *skb)
-{
+int healthchecker(struct __sk_buff* skb) {
   __u32 stats_key = GENERIC_STATS_INDEX;
   __u32 key = HC_MAIN_INTF_POSITION;
   __u32 somark = skb->mark;
@@ -45,7 +43,7 @@ int healthchecker(struct __sk_buff *skb)
   struct hc_stats* prog_stats;
   struct ethhdr* ethh;
   struct hc_mac *esrc, *edst;
-  struct hc_real_definition *src;
+  struct hc_real_definition* src;
   prog_stats = bpf_map_lookup_elem(&hc_stats_map, &stats_key);
   if (!prog_stats) {
     return TC_ACT_UNSPEC;
@@ -56,22 +54,21 @@ int healthchecker(struct __sk_buff *skb)
     return TC_ACT_UNSPEC;
   }
 
-  struct hc_real_definition *real = bpf_map_lookup_elem(&hc_reals_map,
-                                                     &somark);
-  if(!real) {
+  struct hc_real_definition* real = bpf_map_lookup_elem(&hc_reals_map, &somark);
+  if (!real) {
     // some strange (w/ fwmark; but not a healthcheck) local packet
     prog_stats->pckts_skipped += 1;
     return TC_ACT_UNSPEC;
   }
 
-  #if HC_MAX_PACKET_SIZE>0
-    if (skb->len > HC_MAX_PACKET_SIZE) {
-      // do not allow packets bigger than the specified size
-      prog_stats->pckts_dropped += 1;
-      prog_stats->pckts_too_big += 1;
-      return TC_ACT_SHOT;
-    }
-  #endif
+#if HC_MAX_PACKET_SIZE > 0
+  if (skb->len > HC_MAX_PACKET_SIZE) {
+    // do not allow packets bigger than the specified size
+    prog_stats->pckts_dropped += 1;
+    prog_stats->pckts_too_big += 1;
+    return TC_ACT_SHOT;
+  }
+#endif
 
   __u32* intf_ifindex = bpf_map_lookup_elem(&hc_ctrl_map, &key);
   if (!intf_ifindex) {
