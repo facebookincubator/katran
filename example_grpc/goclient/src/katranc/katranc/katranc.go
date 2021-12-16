@@ -18,8 +18,11 @@ package katranc
 
 import (
 	"fmt"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/push"
 	lb_katran "katranc/lb_katran"
 	"log"
+	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -439,6 +442,31 @@ func (kc *KatranClient) ShowSumStats() {
 	}
 }
 
+func (kc *KatranClient) ShowMetrics() (uint64, uint64) {
+	oldPkts := uint64(0)
+	oldBytes := uint64(0)
+	vips := kc.GetAllVips()
+	for true {
+		pkts := uint64(0)
+		bytes := uint64(0)
+		for _, vip := range vips.Vips {
+			stats, err := kc.client.GetStatsForVip(context.Background(), vip)
+			if err != nil {
+				continue
+			}
+			pkts += stats.V1
+			bytes += stats.V2
+		}
+		diffPkts := pkts - oldPkts
+		diffBytes := bytes - oldBytes
+		fmt.Printf("summary: %v pkts/sec %v bytes/sec\n", diffPkts, diffBytes)
+		oldPkts = pkts
+		oldBytes = bytes
+		time.Sleep(1 * time.Second)
+	}
+	return oldPkts, oldBytes
+}
+
 func (kc *KatranClient) ShowLruStats() {
 	oldTotalPkts := uint64(0)
 	oldMiss := uint64(0)
@@ -536,6 +564,132 @@ func (kc *KatranClient) ShowIcmpStats() {
 			diffIcmpV4, diffIcmpV6)
 		oldIcmpV4 = icmps.V1
 		oldIcmpV6 = icmps.V2
+		time.Sleep(1 * time.Second)
+	}
+}
+
+func (kc *KatranClient) PrometheusLruStats(pushGateway string, dbName string, serverAddr string) {
+	oldTotalPkts := uint64(0)
+	oldMiss := uint64(0)
+	oldTcpMiss := uint64(0)
+	oldTcpNonSynMiss := uint64(0)
+	oldFallbackLru := uint64(0)
+	hostname  := strings.Split(serverAddr, ":")[0]
+	if err != nil{
+		fmt.Printf("Can't get hostname")
+	}
+	fmt.Printf("Push Gateway server: %v and DBName: %v", pushGateway, dbName)
+
+	pktSecMetrics := prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "katran_summary_pkts",
+		Help: "The summary of pkts katran",
+	})
+
+	lruHitMetrics := prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "katran_summary_lru_hit",
+		Help: "The summary of lru hit katran",
+	})
+
+	lruMissMetrics := prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "katran_summary_lru_miss",
+		Help: "The summary of lru miss katran",
+	})
+
+	tcpSyncMetrics := prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "katran_summary_tcp_sync",
+		Help: "The summary of tcp sync katran",
+	})
+
+	tcpNonSyncMetrics := prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "katran_summary_tcp_non_sync",
+		Help: "The summary of tcp non sync katran",
+	})
+
+	udpMissMetrics := prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "katran_summary_udp_miss",
+		Help: "The summary of udp miss metrics katran",
+	})
+
+	fallbackLruHitMetrics := prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "katran_summary_fallback_lru_hit",
+		Help: "The summary of fallback lru hit katran",
+	})
+
+	for true {
+		lruMiss := float64(0)
+		tcpMiss := float64(0)
+		tcpNonSynMiss := float64(0)
+		udpMiss := float64(0)
+		lruHit := float64(0)
+		stats, err := kc.client.GetLruStats(
+			context.Background(), &lb_katran.Empty{})
+		if err != nil {
+			continue
+		}
+		missStats, err := kc.client.GetLruMissStats(
+			context.Background(), &lb_katran.Empty{})
+		if err != nil {
+			continue
+		}
+		fallbackStats, err := kc.client.GetLruFallbackStats(
+			context.Background(), &lb_katran.Empty{})
+		if err != nil {
+			continue
+		}
+		diffTotal := stats.V1 - oldTotalPkts
+		diffMiss := stats.V2 - oldMiss
+		diffTcpMiss := missStats.V1 - oldTcpMiss
+		diffTcpNonSynMiss := missStats.V2 - oldTcpNonSynMiss
+		diffFallbackLru := fallbackStats.V1 - oldFallbackLru
+		if diffTotal != 0 {
+			lruMiss = float64(diffMiss) / float64(diffTotal)
+			tcpMiss = float64(diffTcpMiss) / float64(diffTotal)
+			tcpNonSynMiss = float64(diffTcpNonSynMiss) / float64(diffTotal)
+			udpMiss = 1 - (tcpMiss + tcpNonSynMiss)
+			lruHit = 1 - lruMiss
+		}
+
+		pktSecMetrics.Set(float64(diffTotal))
+		lruHitMetrics.Set(lruHit * 100)
+		lruMissMetrics.Set(lruMiss * 100)
+		tcpSyncMetrics.Set(tcpMiss)
+		tcpNonSyncMetrics.Set(tcpNonSynMiss)
+		udpMissMetrics.Set(udpMiss)
+		fallbackLruHitMetrics.Set(float64(diffFallbackLru))
+		// Push metrics to pushgateway
+		if err := push.New(pushGateway, dbName).Collector(pktSecMetrics).Grouping("metrics", "pktps").Grouping("instance",hostname).Push(); err != nil {
+			fmt.Printf("Can't push pkt/s to metrics server, %v \n", err)
+		}
+
+		if err := push.New(pushGateway, dbName).Collector(lruHitMetrics).Grouping("metrics", "lruhitmetrics").Grouping("instance",hostname).Push(); err != nil {
+			fmt.Printf("Can't push lru hit metrics to metrics server, %v \n", err)
+		}
+
+		if err := push.New(pushGateway, dbName).Collector(lruMissMetrics).Grouping("metrics", "lrumissmetrics").Grouping("instance",hostname).Push(); err != nil {
+			fmt.Printf("Can't push lru miss metrics to metrics server, %v \n", err)
+		}
+
+		if err := push.New(pushGateway, dbName).Collector(tcpSyncMetrics).Grouping("metrics", "tcpsync").Grouping("instance",hostname).Push(); err != nil {
+			fmt.Printf("Can't push tcp sync metrics to metrics server, %v \n", err)
+		}
+
+		if err := push.New(pushGateway, dbName).Collector(tcpNonSyncMetrics).Grouping("metrics", "tcpnonsync").Grouping("instance",hostname).Push(); err != nil {
+			fmt.Printf("Can't tcp non sync metrics to metrics server, %v \n", err)
+		}
+
+		if err := push.New(pushGateway, dbName).Collector(udpMissMetrics).Grouping("metrics", "udpmiss").Grouping("instance",hostname).Push(); err != nil {
+			fmt.Printf("Can't push udp miss metrics to metrics server, %v \n", err)
+		}
+
+		if err := push.New(pushGateway, dbName).Collector(fallbackLruHitMetrics).Grouping("katran", "fallbacklruhit").Grouping("instance",hostname).Push(); err != nil {
+			fmt.Printf("Can't push fallback lru hit metrics to metrics server, %v \n", err)
+		}
+
+		oldTotalPkts = stats.V1
+		oldMiss = stats.V2
+		oldTcpMiss = missStats.V1
+		oldTcpNonSynMiss = missStats.V2
+		oldFallbackLru = fallbackStats.V1
 		time.Sleep(1 * time.Second)
 	}
 }
