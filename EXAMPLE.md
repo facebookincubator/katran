@@ -447,6 +447,11 @@ summary: 9 pkts/sec. lru hit: 88.89% lru miss: 11.11% (tcp syn: 0.11% tcp non-sy
 summary: 0 pkts/sec. lru hit: 0.00% lru miss: 0.00% (tcp syn: 0.00% tcp non-syn: 0.00% udp: 0.00%) fallback lru hit: 0 pkts/sec
 summary: 2 pkts/sec. lru hit: 100.00% lru miss: 0.00% (tcp syn: 0.00% tcp non-syn: 0.00% udp: 0.00%) fallback lru hit: 0 pkts/sec
 ```
+Or you can monitoring these metrics by pushgateway and prometheus.
+
+```
+./katran_goclient -prometheus -push_gw http://${YOUR_PUSHGATEWAY_IP}:9091 -server ${IP_KATRAN_SERVER}:50051
+```
 
 On the server side, if we run tcpdump, we can see ingress ipip packets and egress regular IP, with a destination of the client -
 
