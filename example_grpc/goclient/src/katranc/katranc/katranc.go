@@ -22,7 +22,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus/push"
 	lb_katran "katranc/lb_katran"
 	"log"
-	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -575,9 +574,6 @@ func (kc *KatranClient) PrometheusLruStats(pushGateway string, dbName string, se
 	oldTcpNonSynMiss := uint64(0)
 	oldFallbackLru := uint64(0)
 	hostname  := strings.Split(serverAddr, ":")[0]
-	if err != nil{
-		fmt.Printf("Can't get hostname")
-	}
 	fmt.Printf("Push Gateway server: %v and DBName: %v", pushGateway, dbName)
 
 	pktSecMetrics := prometheus.NewGauge(prometheus.GaugeOpts{
