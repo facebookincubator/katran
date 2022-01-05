@@ -22,6 +22,7 @@
 #include <linux/ipv6.h>
 #include <linux/pkt_cls.h>
 #include <linux/string.h>
+#include <linux/tcp.h>
 #include <linux/udp.h>
 #include <stdbool.h>
 
@@ -32,6 +33,48 @@
 
 #include "healthchecking_maps.h"
 #include "healthchecking_structs.h"
+
+__attribute__((__always_inline__)) static inline bool
+set_hc_key(const struct __sk_buff* skb, struct hc_key* hckey, bool is_ipv6) {
+  void* iphdr = (void*)(long)skb->data + sizeof(struct ethhdr);
+  void* transport_hdr;
+
+  if (is_ipv6) {
+    struct ipv6hdr* ip6h = iphdr;
+    if (ip6h + 1 > (void*)(long)skb->data_end) {
+      return false;
+    }
+    transport_hdr = iphdr + sizeof(struct ipv6hdr);
+    memcpy(hckey->addrv6, ip6h->daddr.s6_addr32, 16);
+    hckey->proto = ip6h->nexthdr;
+  } else {
+    struct iphdr* iph = iphdr;
+    if (iph + 1 > (void*)(long)skb->data_end) {
+      return false;
+    }
+    transport_hdr = iphdr + sizeof(struct iphdr);
+    hckey->addr = iph->daddr;
+    hckey->proto = iph->protocol;
+  }
+
+  if (hckey->proto == IPPROTO_TCP) {
+    struct tcphdr* tcp = transport_hdr;
+    if (tcp + 1 > (void*)(long)skb->data_end) {
+      return false;
+    }
+    hckey->port = tcp->dest;
+  } else if (hckey->proto == IPPROTO_UDP) {
+    struct udphdr* udp = transport_hdr;
+    if (udp + 1 > (void*)(long)skb->data_end) {
+      return false;
+    }
+    hckey->port = udp->dest;
+  } else {
+    return false;
+  }
+
+  return true;
+}
 
 __attribute__((__always_inline__)) static inline bool hc_encap_ipip(
     struct __sk_buff* skb,
