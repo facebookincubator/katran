@@ -63,4 +63,20 @@ struct {
   __uint(map_flags, NO_FLAGS);
 } hc_stats_map SEC(".maps");
 
+struct {
+  __uint(type, BPF_MAP_TYPE_PERCPU_ARRAY);
+  __type(key, __u32);
+  __type(value, __u64);
+  __uint(max_entries, MAX_VIPS);
+  __uint(map_flags, NO_FLAGS);
+} per_hckey_stats SEC(".maps");
+
+struct {
+  __uint(type, BPF_MAP_TYPE_HASH);
+  __type(key, struct hc_key);
+  __type(value, __u32);
+  __uint(max_entries, MAX_VIPS);
+  __uint(map_flags, NO_FLAGS);
+} hc_key_map SEC(".maps");
+
 #endif // of __HEALTHCHECKING_MAPS_H

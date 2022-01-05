@@ -33,6 +33,16 @@ struct hc_stats {
   __u64 pckts_too_big;
 };
 
+// hc_key's definition
+struct hc_key {
+  union {
+    __be32 addr;
+    __be32 addrv6[4];
+  };
+  __u16 port;
+  __u8 proto;
+};
+
 // struct to store mac address
 struct hc_mac {
   __u8 mac[6];
