@@ -102,6 +102,9 @@ int healthchecker(struct __sk_buff* skb) {
     is_ipv6 = true;
   }
 
+  struct hc_key hckey = {};
+  bool hc_key_parseable = set_hc_key(skb, &hckey, is_ipv6);
+
   // to prevent recursion, if encapsulated packet would run through this filter
   skb->mark = 0;
 
@@ -120,6 +123,18 @@ int healthchecker(struct __sk_buff* skb) {
   memcpy(ethh->h_dest, edst->mac, 6);
 
   prog_stats->pckts_processed += 1;
+
+  if (hc_key_parseable) {
+    __u32* hc_key_cntr_index = bpf_map_lookup_elem(&hc_key_map, &hckey);
+    if (hc_key_cntr_index) {
+      __u32* packets_processed_for_hc_key =
+          bpf_map_lookup_elem(&per_hckey_stats, hc_key_cntr_index);
+      if (packets_processed_for_hc_key) {
+        *packets_processed_for_hc_key += 1;
+      }
+    }
+  }
+
   return bpf_redirect(*intf_ifindex, REDIRECT_EGRESS);
 }
 
