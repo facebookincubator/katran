@@ -2050,9 +2050,9 @@ bool KatranLb::updateVipMap(
 }
 
 bool KatranLb::updateHcKeyMap(
-      const ModifyAction action,
-      const VipKey& hcKey,
-      uint32_t hcKeyId) {
+    const ModifyAction action,
+    const VipKey& hcKey,
+    uint32_t hcKeyId) {
   vip_definition hc_key_def = vipKeyToVipDefinition(hcKey);
 
   if (action == ModifyAction::ADD) {
