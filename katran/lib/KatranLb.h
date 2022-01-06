@@ -161,12 +161,30 @@ class KatranLb {
   bool addVip(const VipKey& vip, const uint32_t flags = 0);
 
   /**
+   * @param HcKey& hc_key to be added
+   * @return true on success
+   *
+   * helper function to add new hc_key. it returns false if maximum number of
+   * hc_keys has been reached.
+   * could throw if specified address can't be parsed to v4 or v6
+   */
+  bool addHcKey(const VipKey& hcKey);
+
+  /**
    * @param VipKey& vip
    * @return true on success
    *
    * helper function to delete vip
    */
   bool delVip(const VipKey& vip);
+
+  /**
+   * @param VipKey& hc_key
+   * @return true on success
+   *
+   * helper function to delete hc_key
+   */
+  bool delHcKey(const VipKey& hcKey);
 
   /**
    * @return std::vector<VipKey> currently configured vips
@@ -681,6 +699,14 @@ class KatranLb {
       vip_meta* meta = nullptr);
 
   /**
+   * Update hc_key_map (add or delete) in healthchecking bpf program.
+   */
+  bool updateHcKeyMap(
+      const ModifyAction action,
+      const VipKey& hcKey,
+      uint32_t hcKeyId = 0);
+
+  /**
    * update(add or remove) reals map in forwarding plane
    */
   bool
@@ -690,6 +716,11 @@ class KatranLb {
    * helper function to get stats from counter on specified possition
    */
   lb_stats getLbStats(uint32_t position, const std::string& map = "stats");
+
+  /**
+   * helper function to convert a VipKey to a vip_definition
+   */
+  vip_definition vipKeyToVipDefinition(const VipKey& vipKey);
 
   /**
    * helper function to decrease real's ref count and delete it from
@@ -861,12 +892,13 @@ class KatranLb {
   std::shared_ptr<KatranMonitor> monitor_{nullptr};
 
   /**
-   * vector of unused possitions for vips and reals. for each element
+   * vector of unused positions for vips, reals, and hckeys. for each element
    * we are going to pop position's num from the vector. for deleted one -
    * push it back (so it could be reused in future)
    */
   std::deque<uint32_t> vipNums_;
   std::deque<uint32_t> realNums_;
+  std::deque<uint32_t> hcKeyNums_;
 
   /**
    * vector of control elements (such as default's mac; ifindexes etc)
@@ -891,6 +923,11 @@ class KatranLb {
   std::unordered_map<uint32_t, folly::IPAddress> numToReals_;
 
   std::unordered_map<VipKey, Vip, VipKeyHasher> vips_;
+
+  /**
+   * Maps an HcKey to its id
+   */
+  std::unordered_map<VipKey, uint32_t, VipKeyHasher> hckeys_;
 
   /**
    * map of src address to dst mapping. used for source based routing.

@@ -36,6 +36,7 @@ struct hc_mac {
 };
 
 // vip's definition for lookup
+// also used for hc_keys
 struct vip_definition {
   union {
     uint32_t vip;

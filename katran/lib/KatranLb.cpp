@@ -62,6 +62,9 @@ KatranLb::KatranLb(const KatranConfig& config)
       flowDebugMapsFd_(kMaxForwardingCores) {
   for (uint32_t i = 0; i < config_.maxVips; i++) {
     vipNums_.push_back(i);
+    if (config_.enableHc) {
+      hcKeyNums_.push_back(i);
+    }
   }
 
   // realNums_ is a deque of available real indices.
@@ -897,6 +900,29 @@ bool KatranLb::addVip(const VipKey& vip, const uint32_t flags) {
   return true;
 }
 
+bool KatranLb::addHcKey(const VipKey& hcKey) {
+  if (!config_.enableHc) {
+    LOG(ERROR) << "Ignoring addHcKey call on non-healthchecking instance";
+    return false;
+  }
+
+  if (hcKeyNums_.size() == 0) {
+    LOG(ERROR) << "exhausted hc key's space";
+    return false;
+  }
+  if (hckeys_.find(hcKey) != hckeys_.end()) {
+    LOG(ERROR) << "trying to add already existing hc key";
+    return false;
+  }
+  auto hc_key_num = hcKeyNums_[0];
+  hcKeyNums_.pop_front();
+  hckeys_.emplace(hcKey, hc_key_num);
+  if (!config_.testing) {
+    return updateHcKeyMap(ModifyAction::ADD, hcKey, hc_key_num);
+  }
+  return true;
+}
+
 bool KatranLb::changeHashFunctionForVip(const VipKey& vip, HashFunction func) {
   if (config_.disableForwarding) {
     LOG(ERROR) << "Ignoring addVip call on non-forwarding instance";
@@ -944,6 +970,29 @@ bool KatranLb::delVip(const VipKey& vip) {
     updateVipMap(ModifyAction::DEL, vip);
   }
   vips_.erase(vip_iter);
+  return true;
+}
+
+bool KatranLb::delHcKey(const VipKey& hcKey) {
+  if (!config_.enableHc) {
+    LOG(ERROR) << "Ignoring delHcKey call on non-healthchecking instance";
+    return false;
+  }
+
+  LOG(INFO) << folly::format(
+      "deleting hc_key: {}:{}:{}", hcKey.address, hcKey.port, hcKey.proto);
+
+  auto hc_key_iter = hckeys_.find(hcKey);
+  if (hc_key_iter == hckeys_.end()) {
+    LOG(INFO) << "trying to delete non-existing hc_key";
+    return false;
+  }
+  hcKeyNums_.push_back(hc_key_iter->second);
+  hckeys_.erase(hcKey);
+
+  if (!config_.testing) {
+    return updateHcKeyMap(ModifyAction::DEL, hcKey);
+  }
   return true;
 }
 
@@ -1786,6 +1835,19 @@ lb_stats KatranLb::getLbStats(uint32_t position, const std::string& map) {
   return sum_stat;
 }
 
+vip_definition KatranLb::vipKeyToVipDefinition(const VipKey& vipKey) {
+  auto vip_addr = IpHelpers::parseAddrToBe(vipKey.address);
+  vip_definition vip_def = {};
+  if ((vip_addr.flags & V6DADDR) > 0) {
+    std::memcpy(vip_def.vipv6, vip_addr.v6daddr, 16);
+  } else {
+    vip_def.vip = vip_addr.daddr;
+  }
+  vip_def.port = folly::Endian::big(vipKey.port);
+  vip_def.proto = vipKey.proto;
+  return vip_def;
+}
+
 HealthCheckProgStats KatranLb::getStatsForHealthCheckProgram() {
   unsigned int nr_cpus = BpfAdapter::getPossibleCpus();
   if (nr_cpus < 0) {
@@ -1927,15 +1989,7 @@ bool KatranLb::updateVipMap(
     const ModifyAction action,
     const VipKey& vip,
     vip_meta* meta) {
-  auto vip_addr = IpHelpers::parseAddrToBe(vip.address);
-  vip_definition vip_def = {};
-  if ((vip_addr.flags & V6DADDR) > 0) {
-    std::memcpy(vip_def.vipv6, vip_addr.v6daddr, 16);
-  } else {
-    vip_def.vip = vip_addr.daddr;
-  }
-  vip_def.port = folly::Endian::big(vip.port);
-  vip_def.proto = vip.proto;
+  vip_definition vip_def = vipKeyToVipDefinition(vip);
   if (action == ModifyAction::ADD) {
     auto res = bpfAdapter_.bpfUpdateMap(
         bpfAdapter_.getMapFdByName("vip_map"), &vip_def, meta);
@@ -1950,6 +2004,34 @@ bool KatranLb::updateVipMap(
         bpfAdapter_.getMapFdByName("vip_map"), &vip_def);
     if (res != 0) {
       LOG(INFO) << "can't delete element from vip_map, error: "
+                << folly::errnoStr(errno);
+      lbStats_.bpfFailedCalls++;
+      return false;
+    }
+  }
+  return true;
+}
+
+bool KatranLb::updateHcKeyMap(
+      const ModifyAction action,
+      const VipKey& hcKey,
+      uint32_t hcKeyId) {
+  vip_definition hc_key_def = vipKeyToVipDefinition(hcKey);
+
+  if (action == ModifyAction::ADD) {
+    auto res = bpfAdapter_.bpfUpdateMap(
+        bpfAdapter_.getMapFdByName("hc_key_map"), &hc_key_def, &hcKeyId);
+    if (res != 0) {
+      LOG(INFO) << "can't add new element into hc_key_map, error: "
+                << folly::errnoStr(errno);
+      lbStats_.bpfFailedCalls++;
+      return false;
+    }
+  } else {
+    auto res = bpfAdapter_.bpfMapDeleteElement(
+        bpfAdapter_.getMapFdByName("hc_key_map"), &hc_key_def);
+    if (res != 0) {
+      LOG(INFO) << "can't delete element from hc_key_map, error: "
                 << folly::errnoStr(errno);
       lbStats_.bpfFailedCalls++;
       return false;
