@@ -1763,6 +1763,43 @@ lb_stats KatranLb::getStatsForVip(const VipKey& vip) {
   return getLbStats(num);
 }
 
+uint64_t KatranLb::getPacketsProcessedForHcKey(const VipKey& hcKey) {
+  auto hc_key_iter = hckeys_.find(hcKey);
+  if (hc_key_iter == hckeys_.end()) {
+    LOG(ERROR) << "couldn't find hc_key";
+    return 0;
+  }
+
+  uint32_t hcKeyId = hc_key_iter->second;
+
+  unsigned int nr_cpus = BpfAdapter::getPossibleCpus();
+  if (nr_cpus < 0) {
+    LOG(ERROR) << "Error while getting number of possible cpus";
+    return 0;
+  }
+
+  uint64_t stats[nr_cpus];
+  uint64_t sum_stat = 0;
+
+  for (auto& stat : stats) {
+    stat = 0;
+  }
+
+  if (!config_.testing) {
+    auto res = bpfAdapter_.bpfMapLookupElement(
+        bpfAdapter_.getMapFdByName("per_hckey_stats"), &hcKeyId, stats);
+    if (!res) {
+      for (auto& stat : stats) {
+        sum_stat += stat;
+      }
+    } else {
+      LOG(ERROR) << "failed to lookup element in per_hckey_stats";
+      lbStats_.bpfFailedCalls++;
+    }
+  }
+  return sum_stat;
+}
+
 lb_stats KatranLb::getLruStats() {
   return getLbStats(config_.maxVips + kLruCntrOffset);
 }

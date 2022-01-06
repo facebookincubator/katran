@@ -427,6 +427,15 @@ class KatranLb {
   lb_stats getStatsForVip(const VipKey& vip);
 
   /**
+   * @param VipKey vip
+   *
+   * function which return total number of packets that the
+   * healthchecking BPF program has encapsulated for the given
+   * hcKey.
+   */
+  uint64_t getPacketsProcessedForHcKey(const VipKey& hcKey);
+
+  /**
    * @return struct lb_stats w/ statistics for lru misses
    *
    * helper function which returns total amount of processed packets and
