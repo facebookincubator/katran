@@ -2107,6 +2107,10 @@ void KatranLb::decreaseRefCountForReal(const folly::IPAddress& real) {
     realNums_.push_back(num);
     reals_.erase(real_iter);
     numToReals_.erase(num);
+
+    if (realsIdCallback_) {
+      realsIdCallback_->onRealDeleted(real, num);
+    }
   }
 }
 
@@ -2133,6 +2137,11 @@ uint32_t KatranLb::increaseRefCountForReal(
     if (!config_.testing) {
       updateRealsMap(real, rnum, flags);
     }
+
+    if (realsIdCallback_) {
+      realsIdCallback_->onRealAdded(real, rnum);
+    }
+
     return rnum;
   }
 }
@@ -2206,6 +2215,14 @@ bool KatranLb::removeFeature(
     attachBpfProgs();
   }
   return !hasFeature(feature);
+}
+
+void KatranLb::setRealsIdCallback(RealsIdCallback* callback) {
+  realsIdCallback_ = callback;
+}
+
+void KatranLb::unsetRealsIdCallback() {
+  realsIdCallback_ = nullptr;
 }
 
 } // namespace katran

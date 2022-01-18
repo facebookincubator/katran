@@ -92,6 +92,15 @@ constexpr folly::StringPiece kHealthcheckerProgName = "cls-hc";
  */
 class KatranLb {
  public:
+  class RealsIdCallback {
+   public:
+    virtual ~RealsIdCallback() {}
+
+    virtual void onRealAdded(const folly::IPAddress& real, uint32_t id) = 0;
+
+    virtual void onRealDeleted(const folly::IPAddress& real, uint32_t id) = 0;
+  };
+
   KatranLb() = delete;
   /**
    * @param KatranConfig config main configuration of Katran load balancer
@@ -698,6 +707,20 @@ class KatranLb {
       KatranFeatureEnum feature,
       const std::string& prog_path = "");
 
+  /**
+   * @param callback The RealsIdCallback to register
+   *
+   * Registers the real addition/deletion callback. There can be only one
+   * callback registered at a time. If a callback has already been registered,
+   * it is replaced by this one.
+   */
+  void setRealsIdCallback(RealsIdCallback* callback);
+
+  /**
+   * Unregisters the real addition/deletion callback
+   */
+  void unsetRealsIdCallback();
+
  private:
   /**
    * update vipmap(add or remove vip) in forwarding plane
@@ -1009,6 +1032,11 @@ class KatranLb {
    * flag which indicates that bpf program was reloaded
    */
   bool progsReloaded_{false};
+
+  /**
+   * Callback to be notified when a real is added or deleted
+   */
+  RealsIdCallback* realsIdCallback_{nullptr};
 };
 
 } // namespace katran
