@@ -55,9 +55,6 @@ constexpr short MAX_MSG_SIZE = 4096;
 constexpr unsigned TCA_BPF_PRIO_1 = 1;
 constexpr int kMaxProgsToQuery = 1024;
 constexpr int kMaxPathLen = 255;
-constexpr folly::StringPiece kPossibleCpusFile(
-    "/sys/devices/system/cpu/possible");
-constexpr folly::StringPiece kOnlineCpusFile("/sys/devices/system/cpu/online");
 
 enum {
   TCA_BPF_UNSPEC,
@@ -148,28 +145,6 @@ struct perf_event_mmap_page* FOLLY_NULLABLE mmap_perf_event(int fd, int pages) {
   }
 
   return reinterpret_cast<struct perf_event_mmap_page*>(base);
-}
-
-int getCpuCount(const folly::StringPiece file) {
-  std::string cpus;
-  auto res = folly::readFile(file.data(), cpus);
-  if (!res) {
-    LOG(ERROR) << "Can't read number of cpus from " << file;
-    return kError;
-  }
-  VLOG(3) << "cpus file " << file << " content: " << cpus;
-  std::vector<uint32_t> range;
-  folly::split("-", cpus, range);
-  if (range.size() == 2) {
-    return range[kMinIndex] == 0 ? range[kMaxIndex] + 1 : kError;
-  } else if (range.size() == 1) {
-    // if system contains just a single cpu content of the file would be just
-    // "0"
-    return 1;
-  } else {
-    LOG(ERROR) << "unsupported format of file: " << file << " format: " << cpus;
-    return kError;
-  }
 }
 
 } // namespace
@@ -744,11 +719,7 @@ bpf_prog_info BpfAdapter::getBpfProgInfo(int progFd) {
 }
 
 int BpfAdapter::getPossibleCpus() {
-  return getCpuCount(kPossibleCpusFile);
-}
-
-int BpfAdapter::getOnlineCpus() {
-  return getCpuCount(kOnlineCpusFile);
+  return libbpf_num_possible_cpus();
 }
 
 bool BpfAdapter::perfEventUnmmap(
