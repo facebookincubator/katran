@@ -151,4 +151,78 @@ TEST(CHHelpersTest, testMaglevV2CHDiffWeight) {
   ASSERT_EQ(diff, 16385);
 }
 
+TEST(CHHelpersTest, testMaglevWeightsSumLargerThanRing) {
+  // Illustrate hashing behaviour when sum of all weights exceeds the
+  // CH ring size
+  std::vector<Endpoint> endpoints;
+  std::vector<uint32_t> freq(nreals, 0);
+  Endpoint endpoint;
+  // Sum of the all endpoint weights will exceed CH ring by factor of 2
+  uint32_t weight = (kDefaultChRingSize * 2) / nreals;
+
+  for (int i = 0; i < nreals; i++) {
+    endpoint.num = i;
+    endpoint.weight = weight;
+    endpoint.hash = i;
+    endpoints.push_back(endpoint);
+  }
+
+  auto maglev_hashing = CHFactory::make(HashFunction::Maglev);
+
+  auto maglev_ch = maglev_hashing->generateHashRing(endpoints);
+
+  for (int i = 0; i < maglev_ch.size(); i++) {
+    // test that we have changed all points inside ch ring
+    ASSERT_NE(maglev_ch[i], -1);
+    freq[maglev_ch[i]]++;
+  }
+
+  // Expect only half of the reals to have full slots count
+  int realsWithFullSlots = (nreals / 2);
+  int realsWithPartailSlots = 1; // 1 real get partial slots
+  for (int i = 0; i < freq.size(); i++) {
+    if (i < realsWithFullSlots) {
+      EXPECT_EQ(freq[i], weight);
+    } else if (i < realsWithFullSlots + realsWithPartailSlots) {
+      EXPECT_GT(freq[i], 0);
+    } else {
+      EXPECT_EQ(freq[i], 0);
+    }
+  }
+}
+
+TEST(CHHelpersTest, testMaglevWeightsSumBelowRingSize) {
+  // Illustrate hashing behaviour when sum of all weights is slightly below the
+  // CH ring size
+  std::vector<Endpoint> endpoints;
+  std::vector<uint32_t> freq(nreals, 0);
+  Endpoint endpoint;
+  // Sum of the all endpoint weights is less than nreals from CH ring size
+  uint32_t weight = (kDefaultChRingSize / nreals) - 1;
+
+  for (int i = 0; i < nreals; i++) {
+    endpoint.num = i;
+    endpoint.weight = weight;
+    endpoint.hash = i;
+    endpoints.push_back(endpoint);
+  }
+
+  auto maglev_hashing = CHFactory::make(HashFunction::Maglev);
+
+  auto maglev_ch = maglev_hashing->generateHashRing(endpoints);
+
+  for (int i = 0; i < maglev_ch.size(); i++) {
+    // test that we have changed all points inside ch ring
+    ASSERT_NE(maglev_ch[i], -1);
+    freq[maglev_ch[i]]++;
+  }
+
+  std::sort(freq.begin(), freq.end());
+
+  // all reals included with equal frequency
+  auto diff = freq[freq.size() - 1] - freq[0];
+  EXPECT_EQ(diff, 1);
+  // none have 0 frequency (sorted vector)
+  EXPECT_GT(freq[0], 0);
+}
 } // namespace katran
