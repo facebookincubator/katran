@@ -119,6 +119,8 @@
 #define F_SRC_ROUTING (1 << 4)
 // vip is select to optimize local delivery
 #define F_LOCAL_VIP (1 << 5)
+// do a global lru lookup if we were unable to find the flow in the main lru map
+#define F_GLOBAL_LRU (1 << 6)
 // packet_description flags:
 // the description has been created from icmp msg
 #define F_ICMP (1 << 0)
@@ -209,6 +211,8 @@
 #define QUIC_CID_DROP_STATS 9
 // offset of stats for server_id based routing of TCP packets (TPR)
 #define TCP_SERVER_ID_ROUTE_STATS 10
+// offset of stats for global LRU
+#define GLOBAL_LRU_CNTR 11
 
 // max ammount of new connections per seconda per core for lru update
 // if we go beyond this value - we will bypass lru update.

@@ -143,7 +143,8 @@ __attribute__((__always_inline__)) static inline bool get_packet_dst(
 __attribute__((__always_inline__)) static inline void connection_table_lookup(
     struct real_definition** real,
     struct packet_description* pckt,
-    void* lru_map) {
+    void* lru_map,
+    bool isGlobalLru) {
   struct real_pos_lru* dst_lru;
   __u64 cur_time;
   __u32 key;
@@ -151,7 +152,7 @@ __attribute__((__always_inline__)) static inline void connection_table_lookup(
   if (!dst_lru) {
     return;
   }
-  if (pckt->flow.proto == IPPROTO_UDP) {
+  if (!isGlobalLru && pckt->flow.proto == IPPROTO_UDP) {
     cur_time = bpf_ktime_get_ns();
     if (cur_time - dst_lru->atime > LRU_UDP_TIMEOUT) {
       return;
@@ -264,6 +265,38 @@ check_decap_dst(struct packet_description* pckt, bool is_ipv6, bool* pass) {
 }
 
 #endif // of INLINE_DECAP_GENERIC
+
+#ifdef GLOBAL_LRU_LOOKUP
+
+__attribute__((__always_inline__)) static inline int perform_global_lru_lookup(
+    struct real_definition** dst,
+    struct packet_description* pckt,
+    __u32 cpu_num) {
+  // lookup in the global cache
+  void* g_lru_map = bpf_map_lookup_elem(&global_lru_maps, &cpu_num);
+  __u32 global_lru_stats_key = MAX_VIPS + GLOBAL_LRU_CNTR;
+
+  struct lb_stats* global_lru_stats =
+      bpf_map_lookup_elem(&stats, &global_lru_stats_key);
+  if (!global_lru_stats) {
+    return XDP_DROP;
+  }
+
+  if (!g_lru_map) {
+    // We were not able to retrieve the global lru for this cpu.
+    // This counter should never be anything except 0 in prod.
+    // We are going to use it for monitoring.
+    global_lru_stats->v1 += 1; // global lru map doesn't exist for this cpu
+  } else {
+    connection_table_lookup(dst, pckt, g_lru_map, /*isGlobalLru=*/true);
+    if (*dst) {
+      global_lru_stats->v2 += 1; // we routed a flow using global lru
+    }
+  }
+  return FURTHER_PROCESSING;
+}
+
+#endif // GLOBAL_LRU_LOOKUP
 
 #ifdef INLINE_DECAP_IPIP
 __attribute__((__always_inline__)) static inline int process_encaped_ipip_pckt(
@@ -638,8 +671,18 @@ process_packet(struct xdp_md* xdp, __u64 off, bool is_ipv6) {
     // Next, try to lookup dst in the lru_cache
     if (!dst && !(pckt.flags & F_SYN_SET) &&
         !(vip_info->flags & F_LRU_BYPASS)) {
-      connection_table_lookup(&dst, &pckt, lru_map);
+      connection_table_lookup(&dst, &pckt, lru_map, /*isGlobalLru=*/false);
     }
+
+#ifdef GLOBAL_LRU_LOOKUP
+    if (!dst && !(pckt.flags & F_SYN_SET) && vip_info->flags & F_GLOBAL_LRU) {
+      int global_lru_lookup_result =
+          perform_global_lru_lookup(&dst, &pckt, cpu_num);
+      if (global_lru_lookup_result >= 0) {
+        return global_lru_lookup_result;
+      }
+    }
+#endif // GLOBAL_LRU_LOOKUP
 
     // if dst is not found, route via consistent-hashing of the flow.
     if (!dst) {
