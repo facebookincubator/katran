@@ -118,6 +118,18 @@ struct {
   __uint(map_flags, BPF_F_NO_PREALLOC);
 } lpm_src_v6 SEC(".maps");
 
-#endif
+#endif // of LPM_SRC_LOOKUP
+
+#ifdef GLOBAL_LRU_LOOKUP
+
+struct {
+  __uint(type, BPF_MAP_TYPE_ARRAY_OF_MAPS);
+  __uint(key_size, sizeof(__u32));
+  __uint(value_size, sizeof(__u32));
+  __uint(max_entries, MAX_SUPPORTED_CPUS);
+  __uint(map_flags, NO_FLAGS);
+} global_lru_maps SEC(".maps");
+
+#endif // of GLOBAL_LRU_LOOKUP
 
 #endif // of _BALANCER_MAPS
