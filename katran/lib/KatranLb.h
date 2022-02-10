@@ -773,24 +773,45 @@ class KatranLb {
    * to see/use are exists etc)
    * throws on failure
    * @param flowDebug Check the validity of flow_debug_maps
+   * @param globalLruMap Check the validity of global_lru_maps
    */
-  void initialSanityChecking(bool flowDebug = false);
+  void initialSanityChecking(bool flowDebug = false, bool globalLru = false);
 
   /**
    * helper function to create/initialize LRUs.
    * we must init LRUs before we are going to load bpf program.
    * throws on failure
    * @param flowDebug Initialize flow_debug_maps/flow_debug_lru
+   * @param globalLru Initialize global_lru_maps
    */
-  void initLrus(bool flowDebug = false);
+  void initLrus(bool flowDebug = false, bool globalLru = false);
 
   /**
    * helper function to attach created LRUs. must be done after
    * bpf program is loaded.
    * throws on failure
    * @param flowDebug Attach the cpu-specific flow_debug_lru maps
+   * @param globalLru Attach the cpu-specific global_lru maps
    */
-  void attachLrus(bool flowDebug = false);
+  void attachLrus(bool flowDebug = false, bool globalLru = false);
+
+  /**
+   * create and save the fd of a map used for global lru
+   * throws on failure
+   */
+  void initGlobalLruMapForCore(int core, int size, int flags, int numaNode);
+
+  /**
+   * create a prototype map for global lru
+   * throws on failure
+   */
+  void initGlobalLruPrototypeMap();
+
+  /**
+   * sets the cpu-specific entry in the parent map
+   * throws on failure
+   */
+  void attachGlobalLru(int core);
 
   /**
    * helper function to enable everything related to introspection/events
@@ -1017,6 +1038,11 @@ class KatranLb {
    * vector of flow debug maps descriptors;
    */
   std::vector<int> flowDebugMapsFd_;
+
+  /**
+   * vector of global lru maps descriptors;
+   */
+  std::vector<int> globalLruMapsFd_;
 
   /**
    * userspace library stats

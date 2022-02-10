@@ -39,6 +39,7 @@ constexpr uint32_t kDefaultMonitorQueueSize = 4096;
 constexpr uint32_t kDefaultMonitorPcktLimit = 0;
 constexpr uint32_t kDefaultMonitorSnapLen = 128;
 constexpr unsigned int kDefaultLruSize = 8000000;
+constexpr uint32_t kDefaultGlobalLruSize = 100000;
 constexpr uint32_t kNoFlags = 0;
 std::string kNoExternalMap = "";
 std::string kDefaultHcInterface = "";
@@ -159,6 +160,7 @@ struct KatranMonitorConfig {
  * @param std::vector<uint8_t> localMac mac address of local server
  * @param HashFunction hashFunction to create hash ring
  * @param flowDebug if set, creates and populates extra debugging maps
+ * @param globalLruSize sets the size of the per-cpu global lru maps
  *
  * note about rootMapPath and rootMapPos:
  * katran has two modes of operation.
@@ -209,6 +211,7 @@ struct KatranConfig {
   std::vector<uint8_t> localMac;
   HashFunction hashFunction = HashFunction::Maglev;
   bool flowDebug = false;
+  uint32_t globalLruSize = kDefaultGlobalLruSize;
 };
 
 /**

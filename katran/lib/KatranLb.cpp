@@ -48,6 +48,9 @@ constexpr uint32_t kHcSrcMacPos = 0;
 constexpr uint32_t kHcDstMacPos = 1;
 constexpr folly::StringPiece kFlowDebugParentMapName = "flow_debug_maps";
 constexpr folly::StringPiece kFlowDebugCpuLruName = "flow_debug_lru";
+constexpr folly::StringPiece kGlobalLruMapName = "global_lru_maps";
+constexpr folly::StringPiece kGlobalLruPerCpuName = "global_lru";
+
 using EventId = monitoring::EventId;
 } // namespace
 
@@ -59,7 +62,8 @@ KatranLb::KatranLb(const KatranConfig& config)
       forwardingCores_(config.forwardingCores),
       numaNodes_(config.numaNodes),
       lruMapsFd_(kMaxForwardingCores),
-      flowDebugMapsFd_(kMaxForwardingCores) {
+      flowDebugMapsFd_(kMaxForwardingCores),
+      globalLruMapsFd_(kMaxForwardingCores) {
   for (uint32_t i = 0; i < config_.maxVips; i++) {
     vipNums_.push_back(i);
     if (config_.enableHc) {
@@ -228,7 +232,7 @@ AddressType KatranLb::validateAddress(
   return AddressType::HOST;
 }
 
-void KatranLb::initialSanityChecking(bool flowDebug) {
+void KatranLb::initialSanityChecking(bool flowDebug, bool globalLru) {
   int res;
 
   std::vector<std::string> maps;
@@ -244,6 +248,10 @@ void KatranLb::initialSanityChecking(bool flowDebug) {
 
     if (flowDebug) {
       maps.push_back(kFlowDebugParentMapName.data());
+    }
+
+    if (globalLru) {
+      maps.push_back(kGlobalLruMapName.data());
     }
 
     res = getKatranProgFd();
@@ -366,7 +374,82 @@ void KatranLb::attachFlowDebugLru(int core) {
   VLOG(3) << "Set cpu core " << core << "flow map id to " << map_fd;
 }
 
-void KatranLb::initLrus(bool flowDebug) {
+void KatranLb::initGlobalLruMapForCore(
+    int core,
+    int size,
+    int flags,
+    int numaNode) {
+  VLOG(0) << __func__;
+  int lru_fd;
+  VLOG(3) << "Creating global lru for core " << core;
+  lru_fd = bpfAdapter_.createNamedBpfMap(
+      kGlobalLruPerCpuName.data(),
+      kBpfMapTypeLruHash,
+      sizeof(struct flow_key),
+      sizeof(uint32_t),
+      size,
+      flags,
+      numaNode);
+  if (lru_fd < 0) {
+    LOG(ERROR) << "can't create global lru for core: " << core;
+    throw std::runtime_error(folly::sformat(
+        "can't create global LRU for forwarding core, error: {}",
+        folly::errnoStr(errno)));
+  }
+  VLOG(3) << "Created global lru for core " << core;
+  globalLruMapsFd_[core] = lru_fd;
+}
+
+void KatranLb::initGlobalLruPrototypeMap() {
+  VLOG(0) << __func__;
+  int proto_fd;
+  if (forwardingCores_.size() != 0) {
+    proto_fd = globalLruMapsFd_[forwardingCores_[kFirstElem]];
+  } else {
+    VLOG(3) << "Creating generic flow debug lru";
+    proto_fd = bpfAdapter_.createNamedBpfMap(
+        kGlobalLruPerCpuName.data(),
+        kBpfMapTypeLruHash,
+        sizeof(struct flow_key),
+        sizeof(uint32_t),
+        katran::kFallbackLruSize,
+        kMapNoFlags,
+        kNoNuma);
+  }
+  if (proto_fd < 0) {
+    throw std::runtime_error(folly::sformat(
+        "can't create global LRU prototype, error: {}",
+        folly::errnoStr(errno)));
+  }
+  int res =
+      bpfAdapter_.setInnerMapPrototype(kGlobalLruMapName.data(), proto_fd);
+  if (res < 0) {
+    throw std::runtime_error(folly::sformat(
+        "can't update inner_maps_fds w/ prototype for global lru, error: {}",
+        folly::errnoStr(errno)));
+  }
+  VLOG(1) << "Created global_lru map proto";
+}
+
+void KatranLb::attachGlobalLru(int core) {
+  VLOG(0) << __func__;
+  int key = core;
+  int map_fd = globalLruMapsFd_[core];
+  if (map_fd < 0) {
+    throw std::runtime_error(
+        folly::sformat("Invalid FD found for core {}: {}", core, map_fd));
+  }
+  int res = bpfAdapter_.bpfUpdateMap(
+      bpfAdapter_.getMapFdByName(kGlobalLruMapName.data()), &key, &map_fd);
+  if (res < 0) {
+    throw std::runtime_error(folly::sformat(
+        "can't attach global lru to forwarding core, error: {}",
+        folly::errnoStr(errno)));
+  }
+  VLOG(1) << "Set cpu core " << core << "global_lru map id to " << map_fd;
+}
+
+void KatranLb::initLrus(bool flowDebug, bool globalLru) {
   bool forwarding_cores_specified{false};
   bool numa_mapping_specified{false};
   int lru_map_flags = 0;
@@ -409,6 +492,10 @@ void KatranLb::initLrus(bool flowDebug) {
         initFlowDebugMapForCore(
             core, per_core_lru_size, lru_map_flags, numa_node);
       }
+      if (globalLru) {
+        initGlobalLruMapForCore(
+            core, config_.globalLruSize, lru_map_flags, numa_node);
+      }
     }
     forwarding_cores_specified = true;
   }
@@ -436,7 +523,7 @@ void KatranLb::initLrus(bool flowDebug) {
   }
 }
 
-void KatranLb::attachLrus(bool flowDebug) {
+void KatranLb::attachLrus(bool flowDebug, bool globalLru) {
   if (!progsLoaded_) {
     throw std::runtime_error("can't attach lru when bpf progs are not loaded");
   }
@@ -453,6 +540,9 @@ void KatranLb::attachLrus(bool flowDebug) {
     }
     if (flowDebug) {
       attachFlowDebugLru(core);
+    }
+    if (globalLru) {
+      attachGlobalLru(core);
     }
   }
 }
@@ -625,13 +715,19 @@ void KatranLb::startIntrospectionRoutines() {
 void KatranLb::loadBpfProgs() {
   int res;
   bool flowDebugInProg = false;
+  bool globalLruInProg = false;
 
   if (!config_.disableForwarding) {
     flowDebugInProg = bpfAdapter_.isMapInBpfObject(
         config_.balancerProgPath, kFlowDebugParentMapName.data());
-    initLrus(flowDebugInProg);
+    globalLruInProg = bpfAdapter_.isMapInBpfObject(
+        config_.balancerProgPath, kGlobalLruMapName.data());
+    initLrus(flowDebugInProg, globalLruInProg);
     if (flowDebugInProg) {
       initFlowDebugPrototypeMap();
+    }
+    if (globalLruInProg) {
+      initGlobalLruPrototypeMap();
     }
     res = bpfAdapter_.loadBpfProg(config_.balancerProgPath);
     if (res) {
@@ -648,7 +744,7 @@ void KatranLb::loadBpfProgs() {
     }
   }
 
-  initialSanityChecking(flowDebugInProg);
+  initialSanityChecking(flowDebugInProg, globalLruInProg);
   featureDiscovering();
 
   if (!config_.disableForwarding && features_.gueEncap) {
@@ -706,7 +802,7 @@ void KatranLb::loadBpfProgs() {
   }
 
   if (!config_.disableForwarding) {
-    attachLrus(flowDebugInProg);
+    attachLrus(flowDebugInProg, globalLruInProg);
   }
 }
 
@@ -731,7 +827,9 @@ bool KatranLb::reloadBalancerProg(
 
   bool flowDebugInProg =
       bpfAdapter_.isMapInBpfObject(path, kFlowDebugParentMapName.data());
-  initialSanityChecking(flowDebugInProg);
+  bool globalLruInProg =
+      bpfAdapter_.isMapInBpfObject(path, kGlobalLruMapName.data());
+  initialSanityChecking(flowDebugInProg, globalLruInProg);
   featureDiscovering();
 
   if (features_.gueEncap) {
