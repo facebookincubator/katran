@@ -105,7 +105,7 @@ class BpfAdapter {
    * bpf_prog_type hint
    */
   int loadBpfProg(
-      char* buf,
+      const char* buf,
       int buf_size,
       const bpf_prog_type type = BPF_PROG_TYPE_UNSPEC,
       bool use_names = false);

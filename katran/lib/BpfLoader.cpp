@@ -167,7 +167,7 @@ int BpfLoader::reloadBpfFromFile(
 }
 
 int BpfLoader::loadBpfFromBuffer(
-    char* buf,
+    const char* buf,
     int buf_size,
     const bpf_prog_type type,
     bool use_names) {

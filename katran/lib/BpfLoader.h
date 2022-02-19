@@ -49,7 +49,7 @@ class BpfLoader {
    * could throw if object buffer is malformed.
    */
   int loadBpfFromBuffer(
-      char* buf,
+      const char* buf,
       int buf_size,
       const bpf_prog_type type = BPF_PROG_TYPE_UNSPEC,
       bool use_names = false);
