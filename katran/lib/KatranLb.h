@@ -61,6 +61,7 @@ constexpr uint32_t kQuicRoutingOffset = 7;
 constexpr uint32_t kQuicCidVersionOffset = 8;
 constexpr uint32_t kQuicCidDropOffset = 9;
 constexpr uint32_t kTcpServerIdRoutingOffset = 10;
+constexpr uint32_t kGlobalLruOffset = 11;
 
 /**
  * LRU map related constants
@@ -530,6 +531,15 @@ class KatranLb {
    * inline (v1)
    */
   lb_stats getInlineDecapStats();
+
+  /**
+   * @return struct lb_stats w/ src global lru statistics
+   *
+   * helper function which returns how many times we failed to get a global lru
+   * map for a core (v1) and how many times we routed a flow using global lru
+   * (v2)
+   */
+  lb_stats getGlobalLruStats();
 
   /**
    * @param uint32_t index of the real

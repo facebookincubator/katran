@@ -1938,6 +1938,10 @@ lb_stats KatranLb::getInlineDecapStats() {
   return getLbStats(config_.maxVips + kInlineDecapOffset);
 }
 
+lb_stats KatranLb::getGlobalLruStats() {
+  return getLbStats(config_.maxVips + kGlobalLruOffset);
+}
+
 lb_stats KatranLb::getRealStats(uint32_t index) {
   return getLbStats(index, "reals_stats");
 }
