@@ -114,9 +114,7 @@ void testHcFromFixture(katran::KatranLb& lb, katran::BpfTester& tester) {
     LOG(INFO) << "Healthchecking not enabled. Skipping HC related tests";
     return;
   }
-  tester.resetTestFixtures(
-      katran::testing::inputHCTestFixtures,
-      katran::testing::outputHCTestFixtures);
+  tester.resetTestFixtures(katran::testing::hcTestFixtures);
   auto ctxs = katran::testing::getInputCtxsForHcTest();
   tester.testClsFromFixture(lb.getHealthcheckerProgFd(), ctxs);
 }
@@ -285,7 +283,7 @@ void runTestsFromFixture(
     katran::BpfTester& tester,
     KatranTestParam& testParam) {
   prepareLbData(lb);
-  tester.resetTestFixtures(testParam.inputData, testParam.outputData);
+  tester.resetTestFixtures(testParam.testData);
   auto prog_fd = lb.getKatranProgFd();
   tester.setBpfProgFd(prog_fd);
   tester.testFromFixture();
@@ -304,13 +302,9 @@ void runTestsFromFixture(
     LOG(INFO) << "Running optional tests. they could fail if requirements "
               << "are not satisfied";
     if (FLAGS_gue) {
-      tester.resetTestFixtures(
-          katran::testing::inputGueOptionalTestFixtures,
-          katran::testing::outputGueOptionalTestFixtures);
+      tester.resetTestFixtures(katran::testing::gueOptionalTestFixtures);
     } else {
-      tester.resetTestFixtures(
-          katran::testing::inputOptionalTestFixtures,
-          katran::testing::outputOptionalTestFixtures);
+      tester.resetTestFixtures(katran::testing::optionalTestFixtures);
     }
     tester.testFromFixture();
     testOptionalLbCounters(lb, testParam);
@@ -399,8 +393,7 @@ int main(int argc, char** argv) {
   auto testParam = getTestParam();
   config.inputFileName = FLAGS_pcap_input;
   config.outputFileName = FLAGS_pcap_output;
-  config.inputData = testParam.inputData;
-  config.outputData = testParam.outputData;
+  config.testData = testParam.testData;
 
   if (FLAGS_packet_num >= 0) {
     config.singleTestRunPacketNumber_ = FLAGS_packet_num;

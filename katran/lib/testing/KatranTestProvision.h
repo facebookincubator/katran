@@ -15,6 +15,7 @@
  */
 
 #pragma once
+#include <katran/lib/testing/PacketAttributes.h>
 #include <string>
 #include <vector>
 #include "katran/lib/KatranLb.h"
@@ -84,8 +85,7 @@ enum class KatranTestCounters : uint8_t {
 
 struct KatranTestParam {
   TestMode mode{TestMode::DEFAULT};
-  std::vector<std::pair<std::string, std::string>> inputData;
-  std::vector<std::pair<std::string, std::string>> outputData;
+  std::vector<PacketAttributes> testData;
   // expected packets and bytes per Real
   const std::vector<::katran::lb_stats> expectedRealStats() noexcept;
   uint64_t expectedTotalPktsForVip(const katran::VipKey& vip) noexcept;

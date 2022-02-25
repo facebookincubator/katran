@@ -148,25 +148,19 @@ bool BpfTester::runBpfTesterFromFixtures(
           << "size of single ctx value must be non zero if ctxs are specified";
       return false;
     }
-    if (ctxs_in.size() != config_.inputData.size()) {
+    if (ctxs_in.size() != config_.testData.size()) {
       LOG(INFO) << "ctxs and input datasets must have equal number of elements";
       return false;
     }
   }
-  // for inputData format is <pckt_base64, test description>
-  // for outputData format is <expected_pckt_base64, xdp_return_code_string>
-  if (config_.inputData.size() != config_.outputData.size()) {
-    LOG(ERROR)
-        << "input and output datasets must have equal number of elements";
-    return false;
-  }
+
   uint32_t output_pckt_size{0};
   uint32_t prog_ret_val{0};
   uint64_t pckt_num{1};
   std::string ret_val_str;
   std::string test_result;
   bool success{true};
-  for (int i = 0; i < config_.inputData.size(); i++) {
+  for (int i = 0; i < config_.testData.size(); i++) {
     if (config_.singleTestRunPacketNumber_ &&
         *config_.singleTestRunPacketNumber_ != (i + 1)) {
       ++pckt_num;
@@ -175,7 +169,8 @@ bool BpfTester::runBpfTesterFromFixtures(
     }
     void* ctx_in = ctxs_in.size() != 0 ? ctxs_in[i] : nullptr;
     auto pckt_buf = folly::IOBuf::create(kMaxXdpPcktSize);
-    auto input_pckt = parser_.getPacketFromBase64(config_.inputData[i].first);
+    auto input_pckt =
+        parser_.getPacketFromBase64(config_.testData[i].inputPacket);
     writePcapOutput(input_pckt->cloneOne());
     auto res = adapter_.testXdpProg(
         progFd,
@@ -204,18 +199,18 @@ bool BpfTester::runBpfTesterFromFixtures(
     // adjust IOBuf so data data_end will acount for writen data
     pckt_buf->append(output_pckt_size);
     writePcapOutput(pckt_buf->cloneOne());
-    if (ret_val_str != config_.outputData[i].second) {
+    if (ret_val_str != config_.testData[i].expectedReturnValue) {
       VLOG(2) << "value from test: " << ret_val_str
-              << " expected: " << config_.outputData[i].second;
+              << " expected: " << config_.testData[i].expectedReturnValue;
       test_result = "\033[31mFailed\033[0m";
       success = false;
     } else {
       test_result = "\033[32mPassed\033[0m";
       auto output_test_pckt =
           parser_.convertPacketToBase64(std::move(pckt_buf));
-      if (output_test_pckt != config_.outputData[i].first) {
+      if (output_test_pckt != config_.testData[i].expectedOutputPacket) {
         VLOG(2) << "output packet not equal to expected one; expected pkt="
-                << config_.outputData[i].first
+                << config_.testData[i].expectedOutputPacket
                 << ", actual=" << output_test_pckt;
         test_result = "\033[31mFailed\033[0m";
         success = false;
@@ -223,17 +218,14 @@ bool BpfTester::runBpfTesterFromFixtures(
     }
     VLOG(2) << "pckt #" << pckt_num;
     LOG(INFO) << folly::format(
-        "Test: {:60} result: {}", config_.inputData[i].second, test_result);
+        "Test: {:60} result: {}", config_.testData[i].description, test_result);
     ++pckt_num;
   }
   return success;
 }
 
-void BpfTester::resetTestFixtures(
-    const std::vector<std::pair<std::string, std::string>>& inputData,
-    const std::vector<std::pair<std::string, std::string>>& outputData) {
-  config_.inputData = inputData;
-  config_.outputData = outputData;
+void BpfTester::resetTestFixtures(const std::vector<PacketAttributes>& data) {
+  config_.testData = data;
 }
 
 void BpfTester::testPerfFromFixture(uint32_t repeat, const int position) {
@@ -243,16 +235,17 @@ void BpfTester::testPerfFromFixture(uint32_t repeat, const int position) {
   uint64_t pckt_num{1};
   std::string ret_val_str;
   std::string test_result;
-  if (position < 0 || position >= config_.inputData.size()) {
+  if (position < 0 || position >= config_.testData.size()) {
     first_index = 0;
-    last_index = config_.inputData.size();
+    last_index = config_.testData.size();
   } else {
     first_index = position;
     last_index = first_index + 1;
   }
   for (int i = first_index; i < last_index; i++) {
     auto buf = folly::IOBuf::create(kMaxXdpPcktSize);
-    auto input_pckt = parser_.getPacketFromBase64(config_.inputData[i].first);
+    auto input_pckt =
+        parser_.getPacketFromBase64(config_.testData[i].inputPacket);
     auto res = adapter_.testXdpProg(
         config_.bpfProgFd,
         repeat,
@@ -274,7 +267,7 @@ void BpfTester::testPerfFromFixture(uint32_t repeat, const int position) {
     auto pps = kNanosecInSec / duration;
     LOG(INFO) << folly::format(
         "Test: {:60} duration: {:10} ns/pckt or {} pps",
-        config_.inputData[i].second,
+        config_.testData[i].description,
         duration,
         pps);
     ++pckt_num;

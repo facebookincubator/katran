@@ -125,12 +125,8 @@ KatranTestParam createDefaultTestParam(TestMode testMode) {
   vip.proto = kTcp;
   KatranTestParam testParam = {
       .mode = testMode,
-      .inputData = testMode == TestMode::GUE
-          ? katran::testing::inputGueTestFixtures
-          : katran::testing::inputTestFixtures,
-      .outputData = testMode == TestMode::GUE
-          ? katran::testing::outputGueTestFixtures
-          : katran::testing::outputTestFixtures,
+      .testData = testMode == TestMode::GUE ? katran::testing::gueTestFixtures
+                                            : katran::testing::testFixtures,
       .expectedCounters =
           {
               {KatranTestCounters::TOTAL_PKTS, 23},
@@ -167,8 +163,7 @@ KatranTestParam createTPRTestParam() {
   vip.proto = kTcp;
   KatranTestParam testParam = {
       .mode = TestMode::TPR,
-      .inputData = katran::testing::inputTPRTestFixtures,
-      .outputData = katran::testing::outputTPRTestFixtures,
+      .testData = katran::testing::tprTestFixtures,
       .expectedCounters =
           {
               {KatranTestCounters::TOTAL_PKTS, 17},

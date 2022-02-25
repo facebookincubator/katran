@@ -65,10 +65,8 @@ int main(int argc, char** argv) {
   katran::TesterConfig config;
   config.inputFileName = FLAGS_pcap_input;
   config.outputFileName = FLAGS_pcap_output;
-  config.inputData = FLAGS_gue ? katran::testing::inputGueTestFixtures
-                               : katran::testing::inputTestFixtures;
-  config.outputData = FLAGS_gue ? katran::testing::outputGueTestFixtures
-                                : katran::testing::outputTestFixtures;
+  config.testData = FLAGS_gue ? katran::testing::gueTestFixtures
+                              : katran::testing::testFixtures;
   katran::BpfTester tester(config);
   if (FLAGS_print_base64) {
     if (FLAGS_pcap_input.empty()) {

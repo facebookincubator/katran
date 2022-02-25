@@ -23,6 +23,7 @@
 #include <vector>
 
 #include "katran/lib/BpfAdapter.h"
+#include "katran/lib/testing/PacketAttributes.h"
 #include "katran/lib/testing/PcapParser.h"
 
 namespace katran {
@@ -32,20 +33,9 @@ namespace katran {
  */
 struct TesterConfig {
   /**
-   * vector of input test data to run tests from fixtures.
-   * first value in pair must be base64 representation of a packet
-   * second one is a test's description.
+   * vector of test data to run tests from fixtures.
    */
-  std::vector<std::pair<std::string, std::string>> outputData;
-  /**
-   * vector of output (control) data to run tests from fixtures.
-   * actual output of bpf prog's run would be compared to control data in this
-   * vector.
-   * first value in a pair must be base64 representation of a packet
-   * second one is a return code of bpf prog in string format (e.g. XDP_PASS,
-   * XDP_DROP, XDP_TX; as specified in bpf.h)
-   */
-  std::vector<std::pair<std::string, std::string>> inputData;
+  std::vector<PacketAttributes> testData;
   /**
    * path to output pcap file. could be omitted. if specified - output of
    * testPcktsFromPcap run would be writen to this file
@@ -115,9 +105,7 @@ class BpfTester {
    * @param vector<string, string> new output fixtures
    * helper function which set test fixtures to new values
    */
-  void resetTestFixtures(
-      const std::vector<std::pair<std::string, std::string>>& inputData,
-      const std::vector<std::pair<std::string, std::string>>& outputData);
+  void resetTestFixtures(const std::vector<katran::PacketAttributes>& data);
 
   /**
    * @param int repeat      how many time should we repeat the test
