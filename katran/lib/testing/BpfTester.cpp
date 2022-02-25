@@ -159,8 +159,10 @@ bool BpfTester::runBpfTesterFromFixtures(
   uint64_t pckt_num{1};
   std::string ret_val_str;
   std::string test_result;
-  bool success{true};
+  bool overallSuccess{true};
   for (int i = 0; i < config_.testData.size(); i++) {
+    bool iterationSuccess = true;
+
     if (config_.singleTestRunPacketNumber_ &&
         *config_.singleTestRunPacketNumber_ != (i + 1)) {
       ++pckt_num;
@@ -187,7 +189,7 @@ bool BpfTester::runBpfTesterFromFixtures(
       LOG(INFO) << "failed to run bpf test on pckt #" << pckt_num << " errno "
                 << errno << " : " << folly::errnoStr(errno);
       ++pckt_num;
-      success = false;
+      overallSuccess = false;
       continue;
     }
     auto ret_val_iter = retvalTranslation.find(prog_ret_val);
@@ -199,12 +201,15 @@ bool BpfTester::runBpfTesterFromFixtures(
     // adjust IOBuf so data data_end will acount for writen data
     pckt_buf->append(output_pckt_size);
     writePcapOutput(pckt_buf->cloneOne());
+
     if (ret_val_str != config_.testData[i].expectedReturnValue) {
       VLOG(2) << "value from test: " << ret_val_str
               << " expected: " << config_.testData[i].expectedReturnValue;
       test_result = "\033[31mFailed\033[0m";
-      success = false;
-    } else {
+      iterationSuccess = false;
+    }
+
+    if (iterationSuccess) {
       test_result = "\033[32mPassed\033[0m";
       auto output_test_pckt =
           parser_.convertPacketToBase64(std::move(pckt_buf));
@@ -213,15 +218,18 @@ bool BpfTester::runBpfTesterFromFixtures(
                 << config_.testData[i].expectedOutputPacket
                 << ", actual=" << output_test_pckt;
         test_result = "\033[31mFailed\033[0m";
-        success = false;
+        iterationSuccess = false;
       }
     }
+
+    overallSuccess = overallSuccess && iterationSuccess;
+
     VLOG(2) << "pckt #" << pckt_num;
     LOG(INFO) << folly::format(
         "Test: {:60} result: {}", config_.testData[i].description, test_result);
     ++pckt_num;
   }
-  return success;
+  return overallSuccess;
 }
 
 void BpfTester::resetTestFixtures(const std::vector<PacketAttributes>& data) {
