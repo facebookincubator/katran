@@ -159,6 +159,8 @@ bool BpfTester::runBpfTesterFromFixtures(
   uint64_t pckt_num{1};
   std::string ret_val_str;
   std::string test_result;
+  uint64_t packetsRoutedGlobalLruBefore{0};
+  uint64_t packetsRoutedGlobalLruAfter{0};
   bool overallSuccess{true};
   for (int i = 0; i < config_.testData.size(); i++) {
     bool iterationSuccess = true;
@@ -174,6 +176,9 @@ bool BpfTester::runBpfTesterFromFixtures(
     auto input_pckt =
         parser_.getPacketFromBase64(config_.testData[i].inputPacket);
     writePcapOutput(input_pckt->cloneOne());
+    if (config_.testData[i].routedThroughGlobalLru) {
+      packetsRoutedGlobalLruBefore = getGlobalLruRoutedPackets();
+    }
     auto res = adapter_.testXdpProg(
         progFd,
         kTestRepeatCount,
@@ -192,6 +197,12 @@ bool BpfTester::runBpfTesterFromFixtures(
       overallSuccess = false;
       continue;
     }
+    if (config_.testData[i].routedThroughGlobalLru) {
+      packetsRoutedGlobalLruAfter = getGlobalLruRoutedPackets();
+    }
+    bool packetRoutedThroughGlobalLru =
+        ((packetsRoutedGlobalLruAfter - packetsRoutedGlobalLruBefore) == 1);
+
     auto ret_val_iter = retvalTranslation.find(prog_ret_val);
     if (ret_val_iter == retvalTranslation.end()) {
       ret_val_str = "UNKNOWN";
@@ -207,6 +218,23 @@ bool BpfTester::runBpfTesterFromFixtures(
               << " expected: " << config_.testData[i].expectedReturnValue;
       test_result = "\033[31mFailed\033[0m";
       iterationSuccess = false;
+    }
+
+    if (iterationSuccess && config_.testData[i].routedThroughGlobalLru) {
+      if (*config_.testData[i].routedThroughGlobalLru &&
+          !packetRoutedThroughGlobalLru) {
+        VLOG(2)
+            << "packet should have been routed through global lru, but wasn't";
+        test_result = "\033[31mFailed\033[0m";
+        iterationSuccess = false;
+      } else if (
+          !*config_.testData[i].routedThroughGlobalLru &&
+          packetRoutedThroughGlobalLru) {
+        VLOG(2)
+            << "packet should not have been routed through global lru, but was";
+        test_result = "\033[31mFailed\033[0m";
+        iterationSuccess = false;
+      }
     }
 
     if (iterationSuccess) {
@@ -280,6 +308,11 @@ void BpfTester::testPerfFromFixture(uint32_t repeat, const int position) {
         pps);
     ++pckt_num;
   }
+}
+
+uint64_t BpfTester::getGlobalLruRoutedPackets() {
+  auto globalLruStats = katranLb_->getGlobalLruStats();
+  return globalLruStats.v2;
 }
 
 } // namespace katran

@@ -16,6 +16,7 @@
 
 #pragma once
 
+#include <folly/Optional.h>
 #include <string>
 
 namespace katran {
@@ -33,6 +34,10 @@ struct PacketAttributes {
   // Base-64 encoded value of the packet we expect after passing
   // the input packet through Katran.
   std::string expectedOutputPacket;
+
+  // We set this if we want to verify whether or not the packet was
+  // routed through global lru
+  folly::Optional<bool> routedThroughGlobalLru{folly::none};
 };
 
 } // namespace katran

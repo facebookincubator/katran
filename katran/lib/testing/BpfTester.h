@@ -23,6 +23,7 @@
 #include <vector>
 
 #include "katran/lib/BpfAdapter.h"
+#include "katran/lib/KatranLb.h"
 #include "katran/lib/testing/PacketAttributes.h"
 #include "katran/lib/testing/PcapParser.h"
 
@@ -86,6 +87,17 @@ class BpfTester {
   }
 
   /**
+   * @param KatranLb* pointer to a KatranLb that wraps
+   * around the bpf program being tested.
+   *
+   * helper function to set the KatranLb. This is useful when
+   * we want to check some stats in the test.
+   */
+  void setKatranLb(KatranLb* katranLb) {
+    katranLb_ = katranLb;
+  }
+
+  /**
    * helper function to run tests on data from test fixtures
    * (inpu/outputData vectors from tester's config.)
    * Returns true if all tests are successful.
@@ -132,9 +144,14 @@ class BpfTester {
       std::vector<void*> ctxs_in,
       uint32_t ctx_size = 0);
 
+  // helper function that returns the number of packets that were routed
+  // through the global lru
+  uint64_t getGlobalLruRoutedPackets();
+
   TesterConfig config_;
   PcapParser parser_;
   BpfAdapter adapter_;
+  KatranLb* katranLb_;
 };
 
 } // namespace katran
