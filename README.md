@@ -2,6 +2,9 @@
   <img src="logo.png" alt="logo" width="50%"/>
 </p>
 <p align="center">
+  <a href="https://opensource.fb.com/support-ukraine">
+    <img src="https://img.shields.io/badge/Support-Ukraine-FFD500?style=flat&labelColor=005BBB" alt="Support Ukraine" />
+  </a>
   <a href="https://github.com/facebookincubator/katran/actions?workflow=CI">
     <img src="https://github.com/facebookincubator/katran/workflows/CI/badge.svg" alt="CI Status" />
   </a>
