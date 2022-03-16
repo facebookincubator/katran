@@ -41,7 +41,6 @@ extern "C" {
 #include <linux/rtnetlink.h>
 #include <linux/tc_act/tc_gact.h>
 #include <net/if.h>
-#include <stdlib.h>
 #include <sys/ioctl.h>
 #include <sys/mman.h>
 #include <sys/resource.h>
