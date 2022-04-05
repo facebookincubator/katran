@@ -8,6 +8,7 @@
 #include <linux/ipv6.h>
 #include <stdbool.h>
 #include <stddef.h>
+#include <string.h>
 
 #include "balancer_consts.h"
 #include "balancer_helpers.h"
@@ -130,7 +131,7 @@ __attribute__((__always_inline__)) static inline bool get_packet_dst(
   if (!(*real)) {
     return false;
   }
-  if (!(vip_info->flags & F_LRU_BYPASS) && !under_flood) {
+  if (lru_map && !(vip_info->flags & F_LRU_BYPASS) && !under_flood) {
     if (pckt->flow.proto == IPPROTO_UDP) {
       new_dst_lru.atime = cur_time;
     }
@@ -268,10 +269,30 @@ check_decap_dst(struct packet_description* pckt, bool is_ipv6, bool* pass) {
 
 #ifdef GLOBAL_LRU_LOOKUP
 
+__attribute__((__always_inline__)) static inline bool reals_have_same_addr(
+    struct real_definition* a,
+    struct real_definition* b) {
+  if (a->flags != b->flags) {
+    return false;
+  }
+  if (a->flags & F_IPV6) {
+    for (int i = 0; i < 4; i++) {
+      if (a->dstv6[i] != b->dstv6[i]) {
+        return false;
+      }
+      return true;
+    }
+  } else {
+    return a->dst == b->dst;
+  }
+}
+
 __attribute__((__always_inline__)) static inline int perform_global_lru_lookup(
     struct real_definition** dst,
     struct packet_description* pckt,
-    __u32 cpu_num) {
+    __u32 cpu_num,
+    struct vip_meta* vip_info,
+    bool is_ipv6) {
   // lookup in the global cache
   void* g_lru_map = bpf_map_lookup_elem(&global_lru_maps, &cpu_num);
   __u32 global_lru_stats_key = MAX_VIPS + GLOBAL_LRU_CNTR;
@@ -291,6 +312,33 @@ __attribute__((__always_inline__)) static inline int perform_global_lru_lookup(
     connection_table_lookup(dst, pckt, g_lru_map, /*isGlobalLru=*/true);
     if (*dst) {
       global_lru_stats->v2 += 1; // we routed a flow using global lru
+
+      // Find the real that we route the packet to if we use consistent hashing
+      struct real_definition* dst_consistent_hash = NULL;
+      if (get_packet_dst(
+              &dst_consistent_hash,
+              pckt,
+              vip_info,
+              is_ipv6,
+              /*lru_map=*/NULL)) {
+        __u32 global_lru_mismatch_stats_key =
+            MAX_VIPS + GLOBAL_LRU_MISMATCH_CNTR;
+
+        struct lb_stats* global_lru_mismatch_stats =
+            bpf_map_lookup_elem(&stats, &global_lru_mismatch_stats_key);
+
+        if (dst_consistent_hash && global_lru_mismatch_stats) {
+          if (reals_have_same_addr(dst_consistent_hash, *dst)) {
+            // We route to the same real as that indicated by the consistent
+            // hash
+            global_lru_mismatch_stats->v1++;
+          } else {
+            // We route to a real different from that indicated by the
+            // consistent hash
+            global_lru_mismatch_stats->v2++;
+          }
+        }
+      }
     }
   }
   return FURTHER_PROCESSING;
@@ -677,7 +725,7 @@ process_packet(struct xdp_md* xdp, __u64 off, bool is_ipv6) {
 #ifdef GLOBAL_LRU_LOOKUP
     if (!dst && !(pckt.flags & F_SYN_SET) && vip_info->flags & F_GLOBAL_LRU) {
       int global_lru_lookup_result =
-          perform_global_lru_lookup(&dst, &pckt, cpu_num);
+          perform_global_lru_lookup(&dst, &pckt, cpu_num, vip_info, is_ipv6);
       if (global_lru_lookup_result >= 0) {
         return global_lru_lookup_result;
       }

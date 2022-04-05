@@ -213,6 +213,8 @@
 #define TCP_SERVER_ID_ROUTE_STATS 10
 // offset of stats for global LRU
 #define GLOBAL_LRU_CNTR 11
+// offset of stats for global LRU mismatch
+#define GLOBAL_LRU_MISMATCH_CNTR 12
 
 // max ammount of new connections per seconda per core for lru update
 // if we go beyond this value - we will bypass lru update.
