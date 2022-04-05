@@ -358,7 +358,7 @@ int BpfAdapter::getBpfMapMaxSize(const std::string& name) {
   int err = getBpfMapInfo(fd, &info);
   if (err) {
     LOG(ERROR) << "Error while retrieving map metadata for " << name << " : "
-               << folly::errnoStr(err);
+               << folly::errnoStr(errno);
     return -1;
   }
   return info.max_entries;
@@ -376,7 +376,7 @@ int BpfAdapter::getBpfMapUsedSize(const std::string& name) {
   err = getBpfMapInfo(fd, &info);
   if (err) {
     LOG(ERROR) << "Error while retrieving map metadata for " << name << ": "
-               << folly::errnoStr(err);
+               << folly::errnoStr(errno);
     return -1;
   }
 
