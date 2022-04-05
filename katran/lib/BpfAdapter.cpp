@@ -368,6 +368,7 @@ int BpfAdapter::getBpfMapUsedSize(const std::string& name) {
   int num_entries = 0, err = 0;
   void* prev_key = nullptr;
   struct bpf_map_info info;
+  memset(&info, 0, sizeof(info));
   int fd = getMapFdByName(name);
   if (fd < 0) {
     LOG(ERROR) << "Error while retrieving fd for " << name << ": " << fd;
