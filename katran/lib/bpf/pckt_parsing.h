@@ -109,20 +109,24 @@ __attribute__((__always_inline__)) static inline bool parse_tcp(
   struct tcphdr* tcp;
   tcp = data + off;
 
-  if (tcp + 1 > data_end) {
-    return false;
-  }
-
-  if (tcp->syn) {
-    pckt->flags |= F_SYN_SET;
-  }
-
   if (!is_icmp) {
+    if (tcp + 1 > data_end) {
+      return false;
+    }
+    if (tcp->syn) {
+      pckt->flags |= F_SYN_SET;
+    }
     pckt->flow.port16[0] = tcp->source;
     pckt->flow.port16[1] = tcp->dest;
   } else {
+    // "destination unreachable" icmp packet must have first 8 bytes of TCP header at least
+    // from the original packet, those are src/dst ports and seq. number
+    if ((__u8*)tcp + 8 > data_end) {
+      return false;
+    }
     // packet_description was created from icmp "packet too big". hence
     // we need to invert src/dst ports
+    // for "destination unreachable" icmp packet, as well.
     pckt->flow.port16[0] = tcp->dest;
     pckt->flow.port16[1] = tcp->source;
   }
