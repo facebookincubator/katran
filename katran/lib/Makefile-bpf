@@ -12,7 +12,6 @@ INCLUDEFLAGS = -I$(obj)/usr/include \
 
 
 always = bpf/balancer_kern.o
-always += bpf/adapter_integration_test_kern.o
 always += bpf/healthchecking_ipip.o
 always += bpf/healthchecking_kern.o
 always += bpf/xdp_pktcntr.o
@@ -30,7 +29,7 @@ CLANG ?= clang
 # Trick to allow make to be run from this directory
 all: $(always)
 	$(MAKE) -C .. $$PWD/
-	
+
 clean:
 	$(MAKE) -C .. M=$$PWD clean
 	@rm -f *~
@@ -40,4 +39,3 @@ $(obj)/bpf/%.o: $(src)/bpf/%.c
 	$(DEBUGBPF) -D__KERNEL__ -Wno-unused-value -Wno-pointer-sign \
 		-Wno-compare-distinct-pointer-types \
 		-O2 -emit-llvm -c -g $< -o -| $(LLC) -march=bpf -filetype=obj -o $@
-
