@@ -55,7 +55,7 @@ constexpr unsigned int kBpfMapTypeHashOfMaps = 13;
  */
 class BpfAdapter {
  public:
-  explicit BpfAdapter(bool set_limits = true);
+  explicit BpfAdapter(bool set_limits = true, bool strictMode = false);
 
   // BpfAdapter is not thread safe.  Discourage unsafe use by disabling copy
   // construction/assignment.
@@ -199,6 +199,16 @@ class BpfAdapter {
   int getProgFdByName(const std::string& name);
 
   /**
+   * @param string name of the program (bpf function name)
+   * @return int bpf's prog descriptor
+   *
+   * helper function which returns program's descriptor for prog
+   * with given name (bpf function name)
+   * on error returns -1
+   */
+  int getProgFdByFnName(const std::string& name);
+
+  /**
    * @param int fd of the object (e.g. map)
    * @param string path where we want our obj to pin
    * @return int 0 on success; non-zero othewise
@@ -262,8 +272,8 @@ class BpfAdapter {
   static int attachBpfProgToTc(
       const int prog_fd,
       const std::string& interface_name,
-      const int direction = TC_INGRESS,
-      const std::string& bpf_name = "tc-bpf",
+      const int direction,
+      const std::string& bpf_name,
       const uint32_t priority = 2307);
 
   /**

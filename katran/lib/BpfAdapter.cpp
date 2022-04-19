@@ -195,7 +195,7 @@ static int NetlinkRoundtrip(const NetlinkMessage& msg) {
   return ret;
 }
 
-BpfAdapter::BpfAdapter(bool set_limits) {
+BpfAdapter::BpfAdapter(bool set_limits, bool strictMode) : loader_(strictMode) {
   if (set_limits) {
     struct rlimit lck_mem = {};
     lck_mem.rlim_cur = RLIM_INFINITY;
@@ -269,6 +269,10 @@ int BpfAdapter::setInnerMapPrototype(const std::string& name, int map_fd) {
 
 int BpfAdapter::getProgFdByName(const std::string& name) {
   return loader_.getProgFdByName(name);
+}
+
+int BpfAdapter::getProgFdByFnName(const std::string& name) {
+  return loader_.getProgFdByFnName(name);
 }
 
 bool BpfAdapter::isMapInProg(

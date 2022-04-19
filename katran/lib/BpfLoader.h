@@ -32,7 +32,7 @@ namespace katran {
  */
 class BpfLoader {
  public:
-  BpfLoader();
+  explicit BpfLoader(bool strictMode);
 
   ~BpfLoader();
 
@@ -109,12 +109,20 @@ class BpfLoader {
   int setInnerMapPrototype(const std::string& name, int fd);
 
   /**
-   * @param string name of the bpf program
+   * @param string section name of the bpf program
    * @return int negative on failure, prog's fd on success
    *
    * helper function to get program's descriptor
    */
   int getProgFdByName(const std::string& name);
+
+  /**
+   * @param string name of the bpf program (function name)
+   * @return int negative on failure, prog's fd on success
+   *
+   * helper function to get program's descriptor
+   */
+  int getProgFdByFnName(const std::string& name);
 
   /**
    * @param string name of the shared map
@@ -131,7 +139,7 @@ class BpfLoader {
    */
   int loadBpfObject(
       ::bpf_object* obj,
-      const std::string& name,
+      const std::string& objName,
       const bpf_prog_type type = BPF_PROG_TYPE_UNSPEC);
 
   /**
@@ -139,13 +147,19 @@ class BpfLoader {
    */
   int reloadBpfObject(
       ::bpf_object* obj,
-      const std::string& name,
+      const std::string& objName,
       const bpf_prog_type type = BPF_PROG_TYPE_UNSPEC);
 
   /**
    * helper function to close bpf object and return error.
    */
   int closeBpfObject(::bpf_object* obj);
+
+  int getProgFdByNameInternal(const std::string& name);
+
+  const char* getProgNameFromBpfProg(const struct bpf_program* prog);
+
+  bool strictMode_;
 
   /**
    * dict of path to bpf objects mapping
