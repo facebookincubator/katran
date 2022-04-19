@@ -86,7 +86,7 @@ enum class KatranMonitorState {
  * Prog names
  */
 constexpr folly::StringPiece kBalancerProgName = "xdp-balancer";
-constexpr folly::StringPiece kHealthcheckerProgName = "cls-hc";
+constexpr folly::StringPiece kHealthcheckerProgName = "healthcheck_encap";
 } // namespace
 
 /**
@@ -601,7 +601,7 @@ class KatranLb {
    * helper function to get fd of healthchecker bpf program
    */
   int getHealthcheckerProgFd() {
-    return bpfAdapter_.getProgFdByName(kHealthcheckerProgName.toString());
+    return bpfAdapter_.getProgFdByFnName(kHealthcheckerProgName.toString());
   }
 
   /**

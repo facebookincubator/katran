@@ -30,8 +30,8 @@
 #include "healthchecking_maps.h"
 #include "healthchecking_structs.h"
 
-SEC("cls-hc")
-int healthchecker(struct __sk_buff* skb) {
+SEC("tc")
+int healthcheck_encap(struct __sk_buff* skb) {
   __u32 stats_key = GENERIC_STATS_INDEX;
   __u32 key = HC_MAIN_INTF_POSITION;
   __u32 somark = skb->mark;
