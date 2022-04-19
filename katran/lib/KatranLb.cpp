@@ -56,7 +56,7 @@ using EventId = monitoring::EventId;
 
 KatranLb::KatranLb(const KatranConfig& config)
     : config_(config),
-      bpfAdapter_(config.memlockUnlimited),
+      bpfAdapter_(config.memlockUnlimited, /*strictMode=*/true),
       ctlValues_(kCtlMapSize),
       standalone_(true),
       forwardingCores_(config.forwardingCores),
@@ -853,7 +853,7 @@ void KatranLb::attachBpfProgs() {
     throw std::invalid_argument("failed to attach bpf prog: prog not loaded");
   }
   int res;
-  auto main_fd = bpfAdapter_.getProgFdByName(kBalancerProgName.toString());
+  auto main_fd = bpfAdapter_.getProgFdByFnName(kBalancerProgName.toString());
   auto interface_index = ctlValues_[kMainIntfPos].ifindex;
   if (standalone_) {
     // attaching main bpf prog in standalone mode
