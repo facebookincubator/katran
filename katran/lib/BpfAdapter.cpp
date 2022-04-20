@@ -252,15 +252,19 @@ int BpfAdapter::createNamedBpfMap(
     unsigned int map_flags,
     int numa_node) {
   const char* name_ptr = !name.empty() ? name.c_str() : nullptr;
+  LIBBPF_OPTS(
+      bpf_map_create_opts,
+      opts,
+      .map_flags = map_flags | (numa_node >= 0 ? BPF_F_NUMA_NODE : 0),
+      .numa_node = (__u32)numa_node);
 
-  return bpf_create_map_node(
+  return bpf_map_create(
       static_cast<enum bpf_map_type>(type),
       name_ptr,
       key_size,
       value_size,
       max_entries,
-      map_flags,
-      numa_node);
+      &opts);
 }
 
 int BpfAdapter::setInnerMapPrototype(const std::string& name, int map_fd) {
@@ -516,16 +520,18 @@ int BpfAdapter::testXdpProg(
     uint32_t ctx_size_in,
     void* ctx_out,
     uint32_t* ctx_size_out) {
-  struct bpf_prog_test_run_attr attr = {};
-  attr.prog_fd = prog_fd;
-  attr.repeat = repeat;
-  attr.data_in = data;
-  attr.data_size_in = data_size;
-  attr.data_out = data_out;
-  attr.ctx_in = ctx_in;
-  attr.ctx_size_in = ctx_size_in;
-  attr.ctx_out = ctx_out;
-  auto ret = bpf_prog_test_run_xattr(&attr);
+  LIBBPF_OPTS(
+      bpf_test_run_opts,
+      attr,
+      .data_in = data,
+      .data_out = data_out,
+      .data_size_in = data_size,
+      .ctx_in = ctx_in,
+      .ctx_out = ctx_out,
+      .ctx_size_in = ctx_size_in,
+      .repeat = repeat);
+
+  auto ret = bpf_prog_test_run_opts(prog_fd, &attr);
   if (size_out) {
     *size_out = attr.data_size_out;
   }

@@ -59,12 +59,8 @@ bool PerfBufferEventReader::open(
     return false;
   }
 
-  struct perf_buffer_opts pbOpts;
-  pbOpts.sample_cb = handleEvent;
-  pbOpts.lost_cb = handleLost;
-  pbOpts.ctx = this;
-
-  pb_ = perf_buffer__new(bpfPerfMap, pageCount, &pbOpts);
+  pb_ = perf_buffer__new(
+      bpfPerfMap, pageCount, handleEvent, handleLost, this, nullptr);
   auto maybeError = libbpf_get_error(pb_);
   if (maybeError != 0) {
     LOG(ERROR) << "perf_buffer__new() failed: " << maybeError;

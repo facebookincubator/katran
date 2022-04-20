@@ -196,7 +196,8 @@ int BpfLoader::loadBpfFromBuffer(
     int buf_size,
     const bpf_prog_type type,
     bool use_names) {
-  auto obj = ::bpf_object__open_buffer(buf, buf_size, "buffer");
+  LIBBPF_OPTS(bpf_object_open_opts, opts, .object_name = "buffer");
+  auto obj = ::bpf_object__open_mem(buf, buf_size, &opts);
   const auto err = ::libbpf_get_error(obj);
   if (err) {
     LOG(ERROR) << "Error while opening bpf object from buffer, error: "
@@ -218,9 +219,9 @@ int BpfLoader::reloadBpfObject(
   bpf_object__for_each_program(prog, obj) {
     // reload bpf program only if we have loaded it already. we distinct bpf
     // programs by their name
-    if (progs_.find(getProgNameFromBpfProg(prog)) == progs_.end()) {
+    if (progs_.find(::bpf_program__section_name(prog)) == progs_.end()) {
       LOG(ERROR) << "trying to reload not yet loaded program: "
-                 << getProgNameFromBpfProg(prog);
+                 << ::bpf_program__section_name(prog);
       return closeBpfObject(obj);
     }
     if (!strictMode_) {
@@ -286,7 +287,7 @@ int BpfLoader::reloadBpfObject(
   bpf_object__for_each_program(prog, obj) {
     // close old bpf program and (as we successfully reloaded it) and override
     // fd with a new one
-    auto prog_name = getProgNameFromBpfProg(prog);
+    auto prog_name = ::bpf_program__section_name(prog);
     VLOG(4) << "closing old bpf program w/ name: " << prog_name;
     auto old_fd = progs_[prog_name];
     ::close(old_fd);
@@ -331,9 +332,9 @@ int BpfLoader::loadBpfObject(
   std::set<std::string> loadedMapNames;
 
   bpf_object__for_each_program(prog, obj) {
-    if (progs_.find(getProgNameFromBpfProg(prog)) != progs_.end()) {
+    if (progs_.find(::bpf_program__section_name(prog)) != progs_.end()) {
       LOG(ERROR) << "bpf's program name collision: "
-                 << getProgNameFromBpfProg(prog);
+                 << ::bpf_program__section_name(prog);
       return closeBpfObject(obj);
     }
     if (!strictMode_) {
