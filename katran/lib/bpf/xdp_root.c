@@ -26,7 +26,7 @@ struct {
   __uint(max_entries, ROOT_ARRAY_SIZE);
 } root_array SEC(".maps");
 
-SEC("xdp-root")
+SEC("xdp")
 int xdp_root(struct xdp_md* ctx) {
   __u32* fd;
 #pragma clang loop unroll(full)

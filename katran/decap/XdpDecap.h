@@ -56,7 +56,7 @@ class XdpDecap {
    * helper function to get descriptor of XdpDecap program
    */
   int getXdpDecapFd() {
-    return bpfAdapter_.getProgFdByName("xdp-decap");
+    return bpfAdapter_.getProgFdByFnName("xdpdecap");
   }
 
  private:
