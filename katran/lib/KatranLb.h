@@ -741,6 +741,11 @@ class KatranLb {
    */
   void unsetRealsIdCallback();
 
+  /**
+   * Returns the fds of the global lru maps
+   */
+  std::vector<int> getGlobalLruMapsFds();
+
  private:
   /**
    * update vipmap(add or remove vip) in forwarding plane

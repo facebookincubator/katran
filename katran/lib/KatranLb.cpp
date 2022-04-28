@@ -2331,4 +2331,12 @@ void KatranLb::unsetRealsIdCallback() {
   realsIdCallback_ = nullptr;
 }
 
+std::vector<int> KatranLb::getGlobalLruMapsFds() {
+  std::vector<int> result;
+  for (auto& forwardingCore : forwardingCores_) {
+    result.push_back(globalLruMapsFd_[forwardingCore]);
+  }
+  return result;
+}
+
 } // namespace katran
