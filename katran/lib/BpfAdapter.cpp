@@ -271,10 +271,6 @@ int BpfAdapter::setInnerMapPrototype(const std::string& name, int map_fd) {
   return loader_.setInnerMapPrototype(name, map_fd);
 }
 
-int BpfAdapter::getProgFdByName(const std::string& name) {
-  return loader_.getProgFdByName(name);
-}
-
 int BpfAdapter::getProgFdByFnName(const std::string& name) {
   return loader_.getProgFdByFnName(name);
 }

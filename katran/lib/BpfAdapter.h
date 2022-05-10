@@ -189,16 +189,6 @@ class BpfAdapter {
   int setInnerMapPrototype(const std::string& name, int map_fd);
 
   /**
-   * @param string name of the prog's section (as SEC("name") in bpf)
-   * @return int bpf's prog descriptor
-   *
-   * helper function which returns program's descriptor for prog
-   * which section's name is equal to specified one
-   * on error returns -1
-   */
-  int getProgFdByName(const std::string& name);
-
-  /**
    * @param string name of the program (bpf function name)
    * @return int bpf's prog descriptor
    *

@@ -110,18 +110,8 @@ int BpfLoader::getMapFdByName(const std::string& name) {
   }
 }
 
-int BpfLoader::getProgFdByName(const std::string& name) {
-  CHECK(!strictMode_)
-      << "Lookup by section name is only supported in non-strict mode";
-  return getProgFdByNameInternal(name);
-}
-
 int BpfLoader::getProgFdByFnName(const std::string& name) {
   CHECK(strictMode_) << "Lookup by func name is only supported in strict mode";
-  return getProgFdByNameInternal(name);
-}
-
-int BpfLoader::getProgFdByNameInternal(const std::string& name) {
   auto prog = progs_.find(name);
   if (prog == progs_.end()) {
     LOG(ERROR) << "Can't find prog with name: " << name;
