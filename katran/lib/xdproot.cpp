@@ -46,7 +46,7 @@ int main(int argc, char** argv) {
     return 1;
   }
 
-  auto prog_fd = adapter.getProgFdByFnName("xdp_root");
+  auto prog_fd = adapter.getProgFdByName("xdp_root");
   if (prog_fd < 0) {
     std::cout << "can't get prog_fd\n";
     return 1;

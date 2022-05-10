@@ -55,7 +55,7 @@ constexpr unsigned int kBpfMapTypeHashOfMaps = 13;
  */
 class BpfAdapter {
  public:
-  explicit BpfAdapter(bool set_limits = true, bool strictMode = false);
+  explicit BpfAdapter(bool set_limits = true);
 
   // BpfAdapter is not thread safe.  Discourage unsafe use by disabling copy
   // construction/assignment.
@@ -196,7 +196,7 @@ class BpfAdapter {
    * with given name (bpf function name)
    * on error returns -1
    */
-  int getProgFdByFnName(const std::string& name);
+  int getProgFdByName(const std::string& name);
 
   /**
    * @param int fd of the object (e.g. map)

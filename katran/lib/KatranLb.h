@@ -593,7 +593,7 @@ class KatranLb {
    * helper function to get fd of katran bpf program
    */
   int getKatranProgFd() {
-    return bpfAdapter_.getProgFdByFnName(kBalancerProgName.toString());
+    return bpfAdapter_.getProgFdByName(kBalancerProgName.toString());
   }
 
   /**
@@ -601,7 +601,7 @@ class KatranLb {
    * helper function to get fd of healthchecker bpf program
    */
   int getHealthcheckerProgFd() {
-    return bpfAdapter_.getProgFdByFnName(kHealthcheckerProgName.toString());
+    return bpfAdapter_.getProgFdByName(kHealthcheckerProgName.toString());
   }
 
   /**

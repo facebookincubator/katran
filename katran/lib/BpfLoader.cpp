@@ -31,25 +31,6 @@ constexpr int kMaxSharedMapNameSize = 15;
 } // namespace
 
 namespace {
-::bpf_prog_type normalizeBpfProgType(
-    ::bpf_program* prog,
-    ::bpf_prog_type type) {
-  // helper function to deduct bpf prog type if it was not specified.
-  // currently works only for clsact and xdp
-  if (type != BPF_PROG_TYPE_UNSPEC) {
-    return type;
-  }
-  std::string prog_name(::bpf_program__section_name(prog));
-  auto prefix = prog_name.substr(kStart, kPrefixLen);
-  if (prefix == "xdp") {
-    VLOG(2) << "prog " << prog_name << " type: XDP";
-    return BPF_PROG_TYPE_XDP;
-  } else if (prefix == "cls") {
-    VLOG(2) << "prog " << prog_name << "type: CLS";
-    return BPF_PROG_TYPE_SCHED_CLS;
-  }
-  return BPF_PROG_TYPE_UNSPEC;
-}
 
 void checkBpfProgType(::bpf_object* obj, ::bpf_prog_type type) {
   if (type == BPF_PROG_TYPE_UNSPEC) {
@@ -81,12 +62,10 @@ std::string libBpfErrMsg(int err) {
 
 } // namespace
 
-BpfLoader::BpfLoader(bool strictMode) : strictMode_(strictMode) {
+BpfLoader::BpfLoader() {
   libbpf_set_print(libbpf_print);
-  if (strictMode) {
-    VLOG(1) << "Enabled libbpf strict mode";
-    libbpf_set_strict_mode(LIBBPF_STRICT_ALL);
-  }
+  VLOG(1) << "Enabled libbpf strict mode";
+  libbpf_set_strict_mode(LIBBPF_STRICT_ALL);
 }
 
 BpfLoader::~BpfLoader() {
@@ -110,8 +89,7 @@ int BpfLoader::getMapFdByName(const std::string& name) {
   }
 }
 
-int BpfLoader::getProgFdByFnName(const std::string& name) {
-  CHECK(strictMode_) << "Lookup by func name is only supported in strict mode";
+int BpfLoader::getProgFdByName(const std::string& name) {
   auto prog = progs_.find(name);
   if (prog == progs_.end()) {
     LOG(ERROR) << "Can't find prog with name: " << name;
@@ -214,10 +192,6 @@ int BpfLoader::reloadBpfObject(
                  << ::bpf_program__section_name(prog);
       return closeBpfObject(obj);
     }
-    if (!strictMode_) {
-      auto prog_type = normalizeBpfProgType(prog, type);
-      ::bpf_program__set_type(prog, prog_type);
-    }
   }
 
   bpf_map__for_each(map, obj) {
@@ -270,9 +244,7 @@ int BpfLoader::reloadBpfObject(
     LOG(ERROR) << "error while trying to load bpf object: " << objName;
     return closeBpfObject(obj);
   }
-  if (strictMode_) {
-    checkBpfProgType(obj, type);
-  }
+  checkBpfProgType(obj, type);
 
   bpf_object__for_each_program(prog, obj) {
     // close old bpf program and (as we successfully reloaded it) and override
@@ -327,10 +299,6 @@ int BpfLoader::loadBpfObject(
                  << ::bpf_program__section_name(prog);
       return closeBpfObject(obj);
     }
-    if (!strictMode_) {
-      auto prog_type = normalizeBpfProgType(prog, type);
-      ::bpf_program__set_type(prog, prog_type);
-    }
   }
 
   bpf_map__for_each(map, obj) {
@@ -367,12 +335,10 @@ int BpfLoader::loadBpfObject(
     return closeBpfObject(obj);
   }
 
-  if (strictMode_) {
-    checkBpfProgType(obj, type);
-  }
+  checkBpfProgType(obj, type);
 
   bpf_object__for_each_program(prog, obj) {
-    auto prog_name = getProgNameFromBpfProg(prog);
+    auto prog_name = ::bpf_program__name(prog);
     VLOG(4) << "adding bpf program: " << prog_name
             << " with fd: " << ::bpf_program__fd(prog);
     progs_[prog_name] = ::bpf_program__fd(prog);
@@ -396,11 +362,7 @@ int BpfLoader::loadBpfObject(
 }
 
 const char* BpfLoader::getProgNameFromBpfProg(const struct bpf_program* prog) {
-  if (strictMode_) {
-    return ::bpf_program__name(prog);
-  } else {
-    return ::bpf_program__section_name(prog);
-  }
+  return ::bpf_program__name(prog);
 }
 
 } // namespace katran

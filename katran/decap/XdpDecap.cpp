@@ -20,8 +20,7 @@
 
 namespace katran {
 
-XdpDecap::XdpDecap(const XdpDecapConfig& config)
-    : config_(config), bpfAdapter_(/*set_limits=*/true, /*strictMode=*/true) {
+XdpDecap::XdpDecap(const XdpDecapConfig& config) : config_(config) {
   if (!config_.mapPath.empty()) {
     isStandalone_ = false;
   } else {
@@ -73,7 +72,7 @@ void XdpDecap::loadXdpDecap() {
   }
   // sanity checking
   // check that program w/ expected name has been loaded
-  if (bpfAdapter_.getProgFdByFnName("xdpdecap") < 0) {
+  if (bpfAdapter_.getProgFdByName("xdpdecap") < 0) {
     LOG(FATAL) << "Was not able to find xdp prog w/ name xdpdecap in "
                << config_.progPath;
     return;
@@ -93,7 +92,7 @@ void XdpDecap::attachXdpDecap() {
                << "XdpDecap program";
     return;
   }
-  auto prog_fd = bpfAdapter_.getProgFdByFnName("xdpdecap");
+  auto prog_fd = bpfAdapter_.getProgFdByName("xdpdecap");
   if (isStandalone_) {
     if (bpfAdapter_.attachXdpProg(prog_fd, config_.interface)) {
       LOG(FATAL) << "Was not able to attach XdpDecap to interface "

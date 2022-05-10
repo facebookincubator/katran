@@ -32,7 +32,7 @@ namespace katran {
  */
 class BpfLoader {
  public:
-  explicit BpfLoader(bool strictMode);
+  explicit BpfLoader();
 
   ~BpfLoader();
 
@@ -114,7 +114,7 @@ class BpfLoader {
    *
    * helper function to get program's descriptor
    */
-  int getProgFdByFnName(const std::string& name);
+  int getProgFdByName(const std::string& name);
 
   /**
    * @param string name of the shared map
@@ -148,8 +148,6 @@ class BpfLoader {
   int closeBpfObject(::bpf_object* obj);
 
   const char* getProgNameFromBpfProg(const struct bpf_program* prog);
-
-  bool strictMode_;
 
   /**
    * dict of path to bpf objects mapping
