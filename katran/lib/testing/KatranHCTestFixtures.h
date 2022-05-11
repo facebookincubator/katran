@@ -20,7 +20,7 @@
 #include <vector>
 #include <utility>
 #include <bpf/bpf.h>
-#include <katran/lib/testing/PacketAttributes.h>
+#include "katran/lib/testing/PacketAttributes.h"
 
 namespace katran {
 namespace testing {
