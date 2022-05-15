@@ -13,26 +13,24 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
+from __future__ import absolute_import, division, print_function
 
 import argparse
 import time
 from multiprocessing import Process, Queue
 
 from scapy.all import (
+    ARP,
     Ether,
-    IP,
-    IPv6,
-    TCP,
-    UDP,
     ICMP,
     ICMPv6EchoRequest,
     ICMPv6PacketTooBig,
-    ARP,
+    IP,
+    IPv6,
     sendp,
     sniff,
+    TCP,
+    UDP,
 )
 
 QUEUE_READ_TIMEOUT = 5
