@@ -545,6 +545,10 @@ void KatranLb::attachLrus(bool flowDebug, bool globalLru) {
       attachGlobalLru(core);
     }
   }
+
+  if (globalLru) {
+    globalLruFallbackFd_ = bpfAdapter_.getMapFdByName("fallback_glru");
+  }
 }
 
 void KatranLb::setupGueEnvironment() {
@@ -2335,6 +2339,9 @@ std::vector<int> KatranLb::getGlobalLruMapsFds() {
   std::vector<int> result;
   for (auto& forwardingCore : forwardingCores_) {
     result.push_back(globalLruMapsFd_[forwardingCore]);
+  }
+  if (globalLruFallbackFd_ >= 0) {
+    result.push_back(globalLruFallbackFd_);
   }
   return result;
 }

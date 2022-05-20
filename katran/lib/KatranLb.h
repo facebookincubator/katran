@@ -1070,6 +1070,11 @@ class KatranLb {
   std::vector<int> globalLruMapsFd_;
 
   /**
+   * descriptor of the fallback_global_lru map
+   */
+  int globalLruFallbackFd_{-1};
+
+  /**
    * userspace library stats
    */
   KatranLbStats lbStats_;
