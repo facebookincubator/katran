@@ -130,6 +130,14 @@ struct {
   __uint(map_flags, NO_FLAGS);
 } global_lru_maps SEC(".maps");
 
+struct {
+  __uint(type, BPF_MAP_TYPE_LRU_HASH);
+  __type(key, struct flow_key);
+  __type(value, __u32);
+  __uint(max_entries, DEFAULT_GLOBAL_LRU_SIZE);
+  __uint(map_flags, NO_FLAGS);
+} fallback_glru SEC(".maps");
+
 #endif // of GLOBAL_LRU_LOOKUP
 
 #endif // of _BALANCER_MAPS
