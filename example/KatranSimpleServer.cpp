@@ -58,13 +58,13 @@ DEFINE_int32(prog_pos, 2, "katran's position inside root xdp array");
 DEFINE_bool(hc_forwarding, true, "turn on forwarding path for healthchecks");
 DEFINE_int32(shutdown_delay, 10000, "shutdown delay in milliseconds");
 DEFINE_int64(lru_size, 8000000, "size of LRU table");
-DEFINE_string(forwarding_cores, "", "coma separed list of forwarding cores");
+DEFINE_string(forwarding_cores, "", "comma separed list of forwarding cores");
 DEFINE_string(
     numa_nodes,
     "",
-    "coma separed list of numa nodes to forwarding cores mapping");
+    "comma separed list of numa nodes to forwarding cores mapping");
 
-// routine which parses coma separated string of numbers
+// routine which parses comma separated string of numbers
 // (e.g. "1,2,3,4,10,11,12,13") to vector of int32_t
 // will throw on failure.
 std::vector<int32_t> parseIntLine(const std::string& line) {
