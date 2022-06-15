@@ -139,6 +139,10 @@
 #define DEFAULT_TTL 64
 #endif
 
+#ifndef PROG_SEC_NAME
+#define PROG_SEC_NAME "xdp"
+#endif
+
 // QUIC invariants from draft-ietf-quic-transport-22 and
 // draft-ietf-quic-invariants-06
 #define QUIC_LONG_HEADER 0x80
