@@ -108,7 +108,8 @@ class BpfAdapter {
       const char* buf,
       int buf_size,
       const bpf_prog_type type = BPF_PROG_TYPE_UNSPEC,
-      bool use_names = false);
+      bool use_names = false,
+      const char* objName = "buffer");
 
   /**
    * @param string name of the map (as in bpf's .c file)

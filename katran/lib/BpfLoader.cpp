@@ -163,8 +163,9 @@ int BpfLoader::loadBpfFromBuffer(
     const char* buf,
     int buf_size,
     const bpf_prog_type type,
-    bool use_names) {
-  LIBBPF_OPTS(bpf_object_open_opts, opts, .object_name = "buffer");
+    bool use_names,
+    const char* objName) {
+  LIBBPF_OPTS(bpf_object_open_opts, opts, .object_name = objName);
   auto obj = ::bpf_object__open_mem(buf, buf_size, &opts);
   const auto err = ::libbpf_get_error(obj);
   if (err) {
@@ -172,7 +173,7 @@ int BpfLoader::loadBpfFromBuffer(
                << libBpfErrMsg(err);
     return kError;
   }
-  return loadBpfObject(obj, "buffer", type);
+  return loadBpfObject(obj, objName, type);
 }
 
 int BpfLoader::reloadBpfObject(
@@ -314,7 +315,12 @@ int BpfLoader::loadBpfObject(
       continue;
     }
     if (maps_.find(map_name) != maps_.end()) {
-      LOG(ERROR) << "bpf's map name collision";
+      if (knownDuplicateMaps_.find(std::string(map_name)) !=
+          knownDuplicateMaps_.end()) {
+        VLOG(2) << "bpf ignoring map collision of - " << map_name;
+        continue;
+      }
+      LOG(ERROR) << "bpf's map name collision - " << map_name;
       return closeBpfObject(obj);
     }
     auto inner_map_iter = innerMapsProto_.find(map_name);

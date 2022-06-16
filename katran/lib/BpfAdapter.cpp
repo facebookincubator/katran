@@ -224,8 +224,9 @@ int BpfAdapter::loadBpfProg(
     const char* buf,
     int buf_size,
     const bpf_prog_type type,
-    bool use_names) {
-  return loader_.loadBpfFromBuffer(buf, buf_size, type, use_names);
+    bool use_names,
+    const char* objName) {
+  return loader_.loadBpfFromBuffer(buf, buf_size, type, use_names, objName);
 }
 
 int BpfAdapter::getMapFdByName(const std::string& name) {
