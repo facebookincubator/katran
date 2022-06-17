@@ -64,6 +64,8 @@ target_include_directories(
 )
 
 add_library(bpfadapter STATIC
+    BaseBpfAdapter.cpp
+    BaseBpfAdapter.h
     BpfAdapter.cpp
     BpfLoader.cpp
     BpfAdapter.h
