@@ -873,7 +873,7 @@ void KatranLb::attachBpfProgs() {
           "to main inteface, error: {}",
           folly::errnoStr(errno)));
     }
-  } else if (!config_.disableForwarding) {
+  } else if (config_.useRootMap && !config_.disableForwarding) {
     // we are in "shared" mode and must register ourself in root xdp prog
     rootMapFd_ = bpfAdapter_->getPinnedBpfObject(config_.rootMapPath);
     if (rootMapFd_ < 0) {
