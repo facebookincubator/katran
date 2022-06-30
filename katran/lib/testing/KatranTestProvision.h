@@ -15,11 +15,11 @@
  */
 
 #pragma once
-#include <katran/lib/testing/PacketAttributes.h>
 #include <string>
 #include <vector>
 #include "katran/lib/KatranLb.h"
 #include "katran/lib/KatranLbStructs.h"
+#include "katran/lib/testing/PacketAttributes.h"
 
 namespace katran {
 namespace testing {

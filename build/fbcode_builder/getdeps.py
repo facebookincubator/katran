@@ -21,15 +21,15 @@ from getdeps.buildopts import setup_build_options
 from getdeps.dyndeps import create_dyn_dep_munger
 from getdeps.errors import TransientFailure
 from getdeps.fetcher import (
-    SystemPackageFetcher,
     file_name_is_cmake_file,
     list_files_under_dir_newer_than_timestamp,
+    SystemPackageFetcher,
 )
 from getdeps.load import ManifestLoader
 from getdeps.manifest import ManifestParser
 from getdeps.platform import HostType
 from getdeps.runcmd import run_cmd
-from getdeps.subcmd import SubCmd, add_subcommands, cmd
+from getdeps.subcmd import add_subcommands, cmd, SubCmd
 
 
 try:
@@ -973,7 +973,6 @@ jobs:
             out.write("  build:\n")
             out.write("    runs-on: %s\n" % runs_on)
             out.write("    steps:\n")
-            out.write("    - uses: actions/checkout@v2\n")
 
             if build_opts.is_windows():
                 # cmake relies on BOOST_ROOT but GH deliberately don't set it in order
@@ -994,6 +993,10 @@ jobs:
                 # that we want it to use them!
                 out.write("    - name: Fix Git config\n")
                 out.write("      run: git config --system core.longpaths true\n")
+                out.write("    - name: Disable autocrlf\n")
+                out.write("      run: git config --system core.autocrlf false\n")
+
+            out.write("    - uses: actions/checkout@v2\n")
 
             allow_sys_arg = ""
             if (

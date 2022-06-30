@@ -85,8 +85,8 @@ struct {
   __uint(map_flags, NO_FLAGS);
 } hc_stats_map SEC(".maps");
 
-SEC("cls-hc")
-int healthchecker(struct __sk_buff* skb) {
+SEC("tc")
+int healthcheck_encap(struct __sk_buff* skb) {
   int ret = 0;
   int tun_flag = 0;
   __u32 ifindex;

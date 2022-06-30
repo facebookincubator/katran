@@ -93,6 +93,13 @@
 // thats why by default the value of this lru is this small
 #define DEFAULT_LRU_SIZE 1000
 
+// default global_lru is a fallback lru, which will be used when
+// forwarding cpu/core cannot find per core global_lru in global_lrus
+// map-in-map. we should only have a hit in this default global_lru while
+// running unittests. thats why by default the value of this global_lru is this
+// small
+#define DEFAULT_GLOBAL_LRU_SIZE 10000
+
 #define ONE_SEC 1000000000U // 1 sec in nanosec
 
 // how long we will keep udp's connection as active in lru map. in nanosec
@@ -130,6 +137,10 @@
 // ttl for outer ipip packet
 #ifndef DEFAULT_TTL
 #define DEFAULT_TTL 64
+#endif
+
+#ifndef PROG_SEC_NAME
+#define PROG_SEC_NAME "xdp"
 #endif
 
 // QUIC invariants from draft-ietf-quic-transport-22 and

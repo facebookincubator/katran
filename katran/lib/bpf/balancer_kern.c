@@ -308,39 +308,40 @@ __attribute__((__always_inline__)) static inline int perform_global_lru_lookup(
     // This counter should never be anything except 0 in prod.
     // We are going to use it for monitoring.
     global_lru_stats->v1 += 1; // global lru map doesn't exist for this cpu
-  } else {
-    connection_table_lookup(dst, pckt, g_lru_map, /*isGlobalLru=*/true);
-    if (*dst) {
-      global_lru_stats->v2 += 1; // we routed a flow using global lru
+    g_lru_map = &fallback_glru;
+  }
 
-      // Find the real that we route the packet to if we use consistent hashing
-      struct real_definition* dst_consistent_hash = NULL;
-      if (get_packet_dst(
-              &dst_consistent_hash,
-              pckt,
-              vip_info,
-              is_ipv6,
-              /*lru_map=*/NULL)) {
-        __u32 global_lru_mismatch_stats_key =
-            MAX_VIPS + GLOBAL_LRU_MISMATCH_CNTR;
+  connection_table_lookup(dst, pckt, g_lru_map, /*isGlobalLru=*/true);
+  if (*dst) {
+    global_lru_stats->v2 += 1; // we routed a flow using global lru
 
-        struct lb_stats* global_lru_mismatch_stats =
-            bpf_map_lookup_elem(&stats, &global_lru_mismatch_stats_key);
+    // Find the real that we route the packet to if we use consistent hashing
+    struct real_definition* dst_consistent_hash = NULL;
+    if (get_packet_dst(
+            &dst_consistent_hash,
+            pckt,
+            vip_info,
+            is_ipv6,
+            /*lru_map=*/NULL)) {
+      __u32 global_lru_mismatch_stats_key = MAX_VIPS + GLOBAL_LRU_MISMATCH_CNTR;
 
-        if (dst_consistent_hash && global_lru_mismatch_stats) {
-          if (reals_have_same_addr(dst_consistent_hash, *dst)) {
-            // We route to the same real as that indicated by the consistent
-            // hash
-            global_lru_mismatch_stats->v1++;
-          } else {
-            // We route to a real different from that indicated by the
-            // consistent hash
-            global_lru_mismatch_stats->v2++;
-          }
+      struct lb_stats* global_lru_mismatch_stats =
+          bpf_map_lookup_elem(&stats, &global_lru_mismatch_stats_key);
+
+      if (dst_consistent_hash && global_lru_mismatch_stats) {
+        if (reals_have_same_addr(dst_consistent_hash, *dst)) {
+          // We route to the same real as that indicated by the consistent
+          // hash
+          global_lru_mismatch_stats->v1++;
+        } else {
+          // We route to a real different from that indicated by the
+          // consistent hash
+          global_lru_mismatch_stats->v2++;
         }
       }
     }
   }
+
   return FURTHER_PROCESSING;
 }
 
@@ -801,7 +802,7 @@ process_packet(struct xdp_md* xdp, __u64 off, bool is_ipv6) {
   return XDP_TX;
 }
 
-SEC("xdp-balancer")
+SEC(PROG_SEC_NAME)
 int balancer_ingress(struct xdp_md* ctx) {
   void* data = (void*)(long)ctx->data;
   void* data_end = (void*)(long)ctx->data_end;

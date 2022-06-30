@@ -31,24 +31,15 @@ constexpr int kMaxSharedMapNameSize = 15;
 } // namespace
 
 namespace {
-::bpf_prog_type normalizeBpfProgType(
-    ::bpf_program* prog,
-    ::bpf_prog_type type) {
-  // helper function to deduct bpf prog type if it was not specified.
-  // currently works only for clsact and xdp
-  if (type != BPF_PROG_TYPE_UNSPEC) {
-    return type;
+
+void checkBpfProgType(::bpf_object* obj, ::bpf_prog_type type) {
+  if (type == BPF_PROG_TYPE_UNSPEC) {
+    return;
   }
-  std::string prog_name(::bpf_program__title(prog, false));
-  auto prefix = prog_name.substr(kStart, kPrefixLen);
-  if (prefix == "xdp") {
-    VLOG(2) << "prog " << prog_name << " type: XDP";
-    return BPF_PROG_TYPE_XDP;
-  } else if (prefix == "cls") {
-    VLOG(2) << "prog " << prog_name << "type: CLS";
-    return BPF_PROG_TYPE_SCHED_CLS;
+  ::bpf_program* prog;
+  bpf_object__for_each_program(prog, obj) {
+    CHECK_EQ(bpf_program__type(prog), type);
   }
-  return BPF_PROG_TYPE_UNSPEC;
 }
 
 // custom libbpf print function so we would be able to control
@@ -73,6 +64,8 @@ std::string libBpfErrMsg(int err) {
 
 BpfLoader::BpfLoader() {
   libbpf_set_print(libbpf_print);
+  VLOG(1) << "Enabled libbpf strict mode";
+  libbpf_set_strict_mode(LIBBPF_STRICT_ALL);
 }
 
 BpfLoader::~BpfLoader() {
@@ -170,20 +163,22 @@ int BpfLoader::loadBpfFromBuffer(
     const char* buf,
     int buf_size,
     const bpf_prog_type type,
-    bool use_names) {
-  auto obj = ::bpf_object__open_buffer(buf, buf_size, "buffer");
+    bool use_names,
+    const char* objName) {
+  LIBBPF_OPTS(bpf_object_open_opts, opts, .object_name = objName);
+  auto obj = ::bpf_object__open_mem(buf, buf_size, &opts);
   const auto err = ::libbpf_get_error(obj);
   if (err) {
     LOG(ERROR) << "Error while opening bpf object from buffer, error: "
                << libBpfErrMsg(err);
     return kError;
   }
-  return loadBpfObject(obj, "buffer", type);
+  return loadBpfObject(obj, objName, type);
 }
 
 int BpfLoader::reloadBpfObject(
     ::bpf_object* obj,
-    const std::string& name,
+    const std::string& objName,
     const bpf_prog_type type) {
   ::bpf_program* prog;
   ::bpf_map* map;
@@ -193,13 +188,11 @@ int BpfLoader::reloadBpfObject(
   bpf_object__for_each_program(prog, obj) {
     // reload bpf program only if we have loaded it already. we distinct bpf
     // programs by their name
-    if (progs_.find(::bpf_program__title(prog, false)) == progs_.end()) {
+    if (progs_.find(::bpf_program__section_name(prog)) == progs_.end()) {
       LOG(ERROR) << "trying to reload not yet loaded program: "
-                 << ::bpf_program__title(prog, false);
+                 << ::bpf_program__section_name(prog);
       return closeBpfObject(obj);
     }
-    auto prog_type = normalizeBpfProgType(prog, type);
-    ::bpf_program__set_type(prog, prog_type);
   }
 
   bpf_map__for_each(map, obj) {
@@ -249,14 +242,15 @@ int BpfLoader::reloadBpfObject(
   }
 
   if (::bpf_object__load(obj)) {
-    LOG(ERROR) << "error while trying to load bpf object: " << name;
+    LOG(ERROR) << "error while trying to load bpf object: " << objName;
     return closeBpfObject(obj);
   }
+  checkBpfProgType(obj, type);
 
   bpf_object__for_each_program(prog, obj) {
     // close old bpf program and (as we successfully reloaded it) and override
     // fd with a new one
-    auto prog_name = ::bpf_program__title(prog, false);
+    auto prog_name = ::bpf_program__section_name(prog);
     VLOG(4) << "closing old bpf program w/ name: " << prog_name;
     auto old_fd = progs_[prog_name];
     ::close(old_fd);
@@ -281,16 +275,17 @@ int BpfLoader::reloadBpfObject(
     currentMaps_[progName] = loadedMapNames;
   }
 
-  bpfObjects_[name] = obj;
+  bpfObjects_[objName] = obj;
   return kSuccess;
 }
 
 int BpfLoader::loadBpfObject(
     ::bpf_object* obj,
-    const std::string& name,
+    const std::string& objName,
     const bpf_prog_type type) {
-  if (bpfObjects_.find(name) != bpfObjects_.end()) {
-    LOG(ERROR) << "collision while trying to load bpf object w/ name " << name;
+  if (bpfObjects_.find(objName) != bpfObjects_.end()) {
+    LOG(ERROR) << "collision while trying to load bpf object w/ name "
+               << objName;
     return closeBpfObject(obj);
   }
 
@@ -300,13 +295,11 @@ int BpfLoader::loadBpfObject(
   std::set<std::string> loadedMapNames;
 
   bpf_object__for_each_program(prog, obj) {
-    if (progs_.find(::bpf_program__title(prog, false)) != progs_.end()) {
+    if (progs_.find(::bpf_program__section_name(prog)) != progs_.end()) {
       LOG(ERROR) << "bpf's program name collision: "
-                 << ::bpf_program__title(prog, false);
+                 << ::bpf_program__section_name(prog);
       return closeBpfObject(obj);
     }
-    auto prog_type = normalizeBpfProgType(prog, type);
-    ::bpf_program__set_type(prog, prog_type);
   }
 
   bpf_map__for_each(map, obj) {
@@ -322,7 +315,12 @@ int BpfLoader::loadBpfObject(
       continue;
     }
     if (maps_.find(map_name) != maps_.end()) {
-      LOG(ERROR) << "bpf's map name collision";
+      if (knownDuplicateMaps_.find(std::string(map_name)) !=
+          knownDuplicateMaps_.end()) {
+        VLOG(2) << "bpf ignoring map collision of - " << map_name;
+        continue;
+      }
+      LOG(ERROR) << "bpf's map name collision - " << map_name;
       return closeBpfObject(obj);
     }
     auto inner_map_iter = innerMapsProto_.find(map_name);
@@ -339,12 +337,14 @@ int BpfLoader::loadBpfObject(
   }
 
   if (::bpf_object__load(obj)) {
-    LOG(ERROR) << "error while trying to load bpf object: " << name;
+    LOG(ERROR) << "error while trying to load bpf object: " << objName;
     return closeBpfObject(obj);
   }
 
+  checkBpfProgType(obj, type);
+
   bpf_object__for_each_program(prog, obj) {
-    auto prog_name = ::bpf_program__title(prog, false);
+    auto prog_name = ::bpf_program__name(prog);
     VLOG(4) << "adding bpf program: " << prog_name
             << " with fd: " << ::bpf_program__fd(prog);
     progs_[prog_name] = ::bpf_program__fd(prog);
@@ -363,8 +363,12 @@ int BpfLoader::loadBpfObject(
     currentMaps_[progName] = loadedMapNames;
   }
 
-  bpfObjects_[name] = obj;
+  bpfObjects_[objName] = obj;
   return kSuccess;
+}
+
+const char* BpfLoader::getProgNameFromBpfProg(const struct bpf_program* prog) {
+  return ::bpf_program__name(prog);
 }
 
 } // namespace katran

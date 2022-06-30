@@ -42,7 +42,7 @@ struct {
   __uint(max_entries, CNTRS_ARRAY_SIZE);
 } cntrs_array SEC(".maps");
 
-SEC("xdp-pktcntr")
+SEC("xdp")
 int pktcntr(struct xdp_md* ctx) {
   void* data_end = (void*)(long)ctx->data_end;
   void* data = (void*)(long)ctx->data;

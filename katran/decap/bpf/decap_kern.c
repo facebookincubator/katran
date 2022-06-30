@@ -28,7 +28,7 @@
 #include "pckt_parsing.h"
 
 #ifndef DECAP_PROG_SEC
-#define DECAP_PROG_SEC "xdp-decap"
+#define DECAP_PROG_SEC "xdp"
 #endif
 
 __attribute__((__always_inline__)) static inline int process_l3_headers(

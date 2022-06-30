@@ -37,18 +37,20 @@ Please refer to [`Examples`](EXAMPLE.md) for more detailed information.
 
 ## Installation
 
-We provide a shell script that automates the build of katran for Ubuntu 18.04.
+We provide a shell script that automates the build of katran for Ubuntu 20.04.
 To build and install katran library and thrift/gRPC examples - you need to run `build_katran.sh` script.
 It should take care of all the required dependencies.
 If you need to build it for other Linux distributions, you need to make sure that :
 
-1. it runs on recent linux kernel (4.13+)
+1. it runs on recent linux kernel (5.6+)
 2. you have installed:
     - [`folly`](https://github.com/facebook/folly)
     - recent version of clang compiler (6.0+)
     - glog/gtest/gflags/elf libraries
 
 Additionally, if you want to build examples, [`fbthrift`](https://github.com/facebook/fbthrift) and [`gRPC`](https://github.com/grpc/grpc) must be installed, as well!
+
+While we run Meta's CI on CentOS, we do our best to support OSS build on recent Ubuntu versions. If you have any issues with build or need older Ubuntu versions - open github issue or better send us PR :)
 
 ## Motivation behind layer 4 load balancing
 

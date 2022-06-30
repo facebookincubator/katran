@@ -72,8 +72,8 @@ void XdpDecap::loadXdpDecap() {
   }
   // sanity checking
   // check that program w/ expected name has been loaded
-  if (bpfAdapter_.getProgFdByName("xdp-decap") < 0) {
-    LOG(FATAL) << "Was not able to find xdp prog w/ name xdp-decap in "
+  if (bpfAdapter_.getProgFdByName("xdpdecap") < 0) {
+    LOG(FATAL) << "Was not able to find xdp prog w/ name xdpdecap in "
                << config_.progPath;
     return;
   }
@@ -92,7 +92,7 @@ void XdpDecap::attachXdpDecap() {
                << "XdpDecap program";
     return;
   }
-  auto prog_fd = bpfAdapter_.getProgFdByName("xdp-decap");
+  auto prog_fd = bpfAdapter_.getProgFdByName("xdpdecap");
   if (isStandalone_) {
     if (bpfAdapter_.attachXdpProg(prog_fd, config_.interface)) {
       LOG(FATAL) << "Was not able to attach XdpDecap to interface "

@@ -26,6 +26,7 @@
 #include <folly/IPAddress.h>
 
 #include "katran/lib/BalancerStructs.h"
+#include "katran/lib/BaseBpfAdapter.h"
 #include "katran/lib/BpfAdapter.h"
 #include "katran/lib/CHHelpers.h"
 #include "katran/lib/IpHelpers.h"
@@ -85,8 +86,8 @@ enum class KatranMonitorState {
 /**
  * Prog names
  */
-constexpr folly::StringPiece kBalancerProgName = "xdp-balancer";
-constexpr folly::StringPiece kHealthcheckerProgName = "cls-hc";
+constexpr folly::StringPiece kBalancerProgName = "balancer_ingress";
+constexpr folly::StringPiece kHealthcheckerProgName = "healthcheck_encap";
 } // namespace
 
 /**
@@ -107,7 +108,9 @@ class KatranLb {
   /**
    * @param KatranConfig config main configuration of Katran load balancer
    */
-  explicit KatranLb(const KatranConfig& config);
+  explicit KatranLb(
+      const KatranConfig& config,
+      std::unique_ptr<BaseBpfAdapter>&& bpfAdapter);
 
   ~KatranLb();
 
@@ -593,7 +596,7 @@ class KatranLb {
    * helper function to get fd of katran bpf program
    */
   int getKatranProgFd() {
-    return bpfAdapter_.getProgFdByName(kBalancerProgName.toString());
+    return bpfAdapter_->getProgFdByName(kBalancerProgName.toString());
   }
 
   /**
@@ -601,7 +604,7 @@ class KatranLb {
    * helper function to get fd of healthchecker bpf program
    */
   int getHealthcheckerProgFd() {
-    return bpfAdapter_.getProgFdByName(kHealthcheckerProgName.toString());
+    return bpfAdapter_->getProgFdByName(kHealthcheckerProgName.toString());
   }
 
   /**
@@ -740,6 +743,11 @@ class KatranLb {
    * Unregisters the real addition/deletion callback
    */
   void unsetRealsIdCallback();
+
+  /**
+   * Returns the fds of the global lru maps
+   */
+  std::vector<int> getGlobalLruMapsFds();
 
  private:
   /**
@@ -957,7 +965,7 @@ class KatranLb {
   /**
    * bpf adapter to program forwarding plane
    */
-  BpfAdapter bpfAdapter_;
+  std::unique_ptr<BaseBpfAdapter> bpfAdapter_;
 
   /**
    * implements all introspection related routines
@@ -1063,6 +1071,11 @@ class KatranLb {
    * vector of global lru maps descriptors;
    */
   std::vector<int> globalLruMapsFd_;
+
+  /**
+   * descriptor of the fallback_global_lru map
+   */
+  int globalLruFallbackFd_{-1};
 
   /**
    * userspace library stats
