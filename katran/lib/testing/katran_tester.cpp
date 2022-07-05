@@ -431,39 +431,40 @@ int main(int argc, char** argv) {
   kconfig.localMac = kLocalMac;
   kconfig.maxVips = MAX_VIPS;
 
-  katran::KatranLb lb(kconfig);
-  lb.loadBpfProgs();
-  listFeatures(lb);
-  auto balancer_prog_fd = lb.getKatranProgFd();
+  auto lb = std::make_unique<katran::KatranLb>(
+      kconfig, std::make_unique<katran::BpfAdapter>(kconfig.memlockUnlimited));
+  lb->loadBpfProgs();
+  listFeatures(*lb);
+  auto balancer_prog_fd = lb->getKatranProgFd();
   if (FLAGS_optional_counter_tests) {
-    preTestOptionalLbCounters(lb);
+    preTestOptionalLbCounters(*lb);
   }
   tester.setBpfProgFd(balancer_prog_fd);
   if (FLAGS_test_from_fixtures) {
-    runTestsFromFixture(lb, tester, testParam);
+    runTestsFromFixture(*lb, tester, testParam);
     if (FLAGS_install_features_mask > 0 || FLAGS_remove_features_mask > 0) {
       // install/remove features will reload prog if provided, therefore
       // reloading again is redundant
-      testInstallAndRemoveFeatures(lb);
-      runTestsFromFixture(lb, tester, testParam);
+      testInstallAndRemoveFeatures(*lb);
+      runTestsFromFixture(*lb, tester, testParam);
     } else if (!FLAGS_reloaded_balancer_prog.empty()) {
-      auto res = lb.reloadBalancerProg(FLAGS_reloaded_balancer_prog);
+      auto res = lb->reloadBalancerProg(FLAGS_reloaded_balancer_prog);
       if (!res) {
         LOG(INFO) << "cannot reload balancer program";
         return 1;
       }
-      listFeatures(lb);
-      runTestsFromFixture(lb, tester, testParam);
+      listFeatures(*lb);
+      runTestsFromFixture(*lb, tester, testParam);
     }
     return 0;
   }
-  prepareLbData(lb);
+  prepareLbData(*lb);
   if (!FLAGS_pcap_input.empty()) {
     tester.testPcktsFromPcap();
     return 0;
   } else if (FLAGS_perf_testing) {
     // for perf tests to work katran must be compiled w -DINLINE_DECAP
-    preparePerfTestingLbData(lb);
+    preparePerfTestingLbData(*lb);
     tester.testPerfFromFixture(FLAGS_repeat, FLAGS_position);
   }
   return 0;

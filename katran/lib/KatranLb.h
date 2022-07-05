@@ -26,6 +26,7 @@
 #include <folly/IPAddress.h>
 
 #include "katran/lib/BalancerStructs.h"
+#include "katran/lib/BaseBpfAdapter.h"
 #include "katran/lib/BpfAdapter.h"
 #include "katran/lib/CHHelpers.h"
 #include "katran/lib/IpHelpers.h"
@@ -107,7 +108,9 @@ class KatranLb {
   /**
    * @param KatranConfig config main configuration of Katran load balancer
    */
-  explicit KatranLb(const KatranConfig& config);
+  explicit KatranLb(
+      const KatranConfig& config,
+      std::unique_ptr<BaseBpfAdapter>&& bpfAdapter);
 
   ~KatranLb();
 
@@ -593,7 +596,7 @@ class KatranLb {
    * helper function to get fd of katran bpf program
    */
   int getKatranProgFd() {
-    return bpfAdapter_.getProgFdByName(kBalancerProgName.toString());
+    return bpfAdapter_->getProgFdByName(kBalancerProgName.toString());
   }
 
   /**
@@ -601,7 +604,7 @@ class KatranLb {
    * helper function to get fd of healthchecker bpf program
    */
   int getHealthcheckerProgFd() {
-    return bpfAdapter_.getProgFdByName(kHealthcheckerProgName.toString());
+    return bpfAdapter_->getProgFdByName(kHealthcheckerProgName.toString());
   }
 
   /**
@@ -962,7 +965,7 @@ class KatranLb {
   /**
    * bpf adapter to program forwarding plane
    */
-  BpfAdapter bpfAdapter_;
+  std::unique_ptr<BaseBpfAdapter> bpfAdapter_;
 
   /**
    * implements all introspection related routines

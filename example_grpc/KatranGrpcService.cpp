@@ -63,7 +63,9 @@ Status returnStatus(bool result) {
 }
 
 KatranGrpcService::KatranGrpcService(const ::katran::KatranConfig& config)
-    : lb_(config), hcForwarding_(config.enableHc) {
+    : lb_(config,
+          std::make_unique<::katran::BpfAdapter>(config.memlockUnlimited)),
+      hcForwarding_(config.enableHc) {
   LOG(INFO) << "Starting Katran";
   lb_.loadBpfProgs();
   lb_.attachBpfProgs();

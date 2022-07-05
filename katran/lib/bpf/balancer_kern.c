@@ -802,7 +802,7 @@ process_packet(struct xdp_md* xdp, __u64 off, bool is_ipv6) {
   return XDP_TX;
 }
 
-SEC("xdp")
+SEC(PROG_SEC_NAME)
 int balancer_ingress(struct xdp_md* ctx) {
   void* data = (void*)(long)ctx->data;
   void* data_end = (void*)(long)ctx->data_end;

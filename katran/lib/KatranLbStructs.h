@@ -212,6 +212,7 @@ struct KatranConfig {
   HashFunction hashFunction = HashFunction::Maglev;
   bool flowDebug = false;
   uint32_t globalLruSize = kDefaultGlobalLruSize;
+  bool useRootMap = true;
 };
 
 /**
