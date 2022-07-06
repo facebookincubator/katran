@@ -31,7 +31,7 @@ build() {
 }
 
 default_build() {
-    build --allow-system-packages --build-dir "$BUILD_DIR"
+    build --build-dir "$BUILD_DIR"
 }
 
 case $1 in
