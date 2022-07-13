@@ -313,12 +313,17 @@ class BaseBpfAdapter {
    * @param int map_fd file descriptor of map to update
    * @param void* key pointer to map's key which value we want to get
    * @param void* value pointer where we will write value from map
+   * @param usinged long long flags
    * @return int 0 on success, other val otherwise
    *
    * helper function to update (and/or create; depends on container)
    * value inside bpf map
    */
-  static int bpfMapLookupElement(int map_fd, void* key, void* value);
+  static int bpfMapLookupElement(
+      int map_fd,
+      void* key,
+      void* value,
+      unsigned long long flags = 0);
 
   /**
    * @param int map_fd file descriptor of bpf map

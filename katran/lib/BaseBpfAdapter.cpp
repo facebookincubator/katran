@@ -224,8 +224,12 @@ int BaseBpfAdapter::bpfUpdateMap(
   return bpfError;
 }
 
-int BaseBpfAdapter::bpfMapLookupElement(int map_fd, void* key, void* value) {
-  auto bpfError = bpf_map_lookup_elem(map_fd, key, value);
+int BaseBpfAdapter::bpfMapLookupElement(
+    int map_fd,
+    void* key,
+    void* value,
+    unsigned long long flags) {
+  auto bpfError = bpf_map_lookup_elem_flags(map_fd, key, value, flags);
   if (bpfError) {
     VLOG(4) << "Error while geting value from map: " << folly::errnoStr(errno);
   }
