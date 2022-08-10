@@ -29,11 +29,12 @@
 #include <linux/ipv6.h>
 #include <stddef.h>
 
-#include "balancer_consts.h"
-#include "balancer_helpers.h"
-#include "balancer_structs.h"
-#include "bpf.h"
-#include "bpf_endian.h"
+#include "katran/lib/linux_includes/bpf.h"
+#include "katran/lib/linux_includes/bpf_endian.h"
+
+#include "katran/lib/bpf/balancer_consts.h"
+#include "katran/lib/bpf/balancer_helpers.h"
+#include "katran/lib/bpf/balancer_structs.h"
 
 __attribute__((__always_inline__)) static inline int swap_mac_and_send(
     void* data,

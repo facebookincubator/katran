@@ -19,8 +19,8 @@
 #include <linux/pkt_cls.h>
 #include <linux/string.h>
 
-#include "bpf.h"
-#include "bpf_helpers.h"
+#include "katran/lib/linux_includes/bpf.h"
+#include "katran/lib/linux_includes/bpf_helpers.h"
 
 #define CTRL_MAP_SIZE 4
 

@@ -26,13 +26,13 @@
 #include <linux/udp.h>
 #include <stdbool.h>
 
-#include "bpf.h"
-#include "bpf_helpers.h"
+#include "katran/lib/linux_includes/bpf.h"
+#include "katran/lib/linux_includes/bpf_helpers.h"
 
-#include "encap_helpers.h"
+#include "katran/lib/bpf/encap_helpers.h"
 
-#include "healthchecking_maps.h"
-#include "healthchecking_structs.h"
+#include "katran/lib/bpf/healthchecking_maps.h"
+#include "katran/lib/bpf/healthchecking_structs.h"
 
 __attribute__((__always_inline__)) static inline bool
 set_hc_key(const struct __sk_buff* skb, struct hc_key* hckey, bool is_ipv6) {

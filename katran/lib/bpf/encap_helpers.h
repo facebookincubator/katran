@@ -22,11 +22,12 @@
 #include <linux/udp.h>
 #include <string.h>
 
-#include "balancer_consts.h"
-#include "bpf.h"
-#include "bpf_endian.h"
-#include "bpf_helpers.h"
-#include "csum_helpers.h"
+#include "katran/lib/linux_includes/bpf.h"
+#include "katran/lib/linux_includes/bpf_endian.h"
+#include "katran/lib/linux_includes/bpf_helpers.h"
+
+#include "katran/lib/bpf/balancer_consts.h"
+#include "katran/lib/bpf/csum_helpers.h"
 
 __attribute__((__always_inline__)) static inline void create_v4_hdr(
     struct iphdr* iph,
