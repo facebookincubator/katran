@@ -23,9 +23,9 @@
 #include <linux/udp.h>
 #include <stdbool.h>
 
-#include "katran/lib/linux_includes/bpf.h"
-#include "katran/lib/linux_includes/bpf_endian.h"
-#include "katran/lib/linux_includes/bpf_helpers.h"
+#include "bpf.h"
+#include "bpf_endian.h"
+#include "bpf_helpers.h"
 
 __attribute__((__always_inline__)) static inline __u16 csum_fold_helper(
     __u64 csum) {

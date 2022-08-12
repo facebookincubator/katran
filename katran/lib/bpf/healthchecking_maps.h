@@ -17,12 +17,12 @@
 #ifndef __HEALTHCHECKING_MAPS_H
 #define __HEALTHCHECKING_MAPS_H
 
-#include "katran/lib/linux_includes/bpf.h"
-#include "katran/lib/linux_includes/bpf_helpers.h"
+#include "bpf.h"
+#include "bpf_helpers.h"
 
-#include "katran/lib/bpf/balancer_consts.h"
-#include "katran/lib/bpf/healthchecking_consts.h"
-#include "katran/lib/bpf/healthchecking_structs.h"
+#include "balancer_consts.h"
+#include "healthchecking_consts.h"
+#include "healthchecking_structs.h"
 
 struct {
   __uint(type, BPF_MAP_TYPE_ARRAY);

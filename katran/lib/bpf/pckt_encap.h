@@ -27,17 +27,16 @@
 #include <linux/ipv6.h>
 #include <string.h>
 
-#include "katran/lib/linux_includes/bpf.h"
-#include "katran/lib/linux_includes/bpf_endian.h"
-#include "katran/lib/linux_includes/bpf_helpers.h"
-
-#include "katran/lib/bpf/balancer_consts.h"
-#include "katran/lib/bpf/balancer_helpers.h"
-#include "katran/lib/bpf/balancer_structs.h"
-#include "katran/lib/bpf/control_data_maps.h"
-#include "katran/lib/bpf/encap_helpers.h"
-#include "katran/lib/bpf/flow_debug.h"
-#include "katran/lib/bpf/pckt_parsing.h"
+#include "balancer_consts.h"
+#include "balancer_helpers.h"
+#include "balancer_structs.h"
+#include "bpf.h"
+#include "bpf_endian.h"
+#include "bpf_helpers.h"
+#include "control_data_maps.h"
+#include "encap_helpers.h"
+#include "flow_debug.h"
+#include "pckt_parsing.h"
 
 __attribute__((__always_inline__)) static inline bool encap_v6(
     struct xdp_md* xdp,
