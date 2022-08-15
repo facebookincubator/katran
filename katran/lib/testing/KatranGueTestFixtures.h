@@ -47,7 +47,7 @@ const std::vector<::katran::PacketAttributes> gueTestFixtures = {
      .inputPacket = "AgAAAAAAAQAAAAAACABFAAArAAEAAEARrU/AqAEBCsgBAXppAFAAF5fea2F0cmFuIHRlc3QgcGt0",
      .description = "packet to UDP based v4 VIP (and v4 real)",
      .expectedReturnValue = "XDP_TX",
-     .expectedOutputPacket = "AADerb6vAgAAAAAACABFAABHAAAAAEARWX8KAA0lCgAAA2h7F8AAMyvARQAAKwABAABAEa1PwKgBAQrIAQF6aQBQABeX3mthdHJhbiB0ZXN0IHBrdA=="
+     .expectedOutputPacket = "AADerb6vAgAAAAAACABFAABHAAAAAEARWX8KAA0lCgAAA2h7Jp4AMxziRQAAKwABAABAEa1PwKgBAQrIAQF6aQBQABeX3mthdHJhbiB0ZXN0IHBrdA=="
     },
     // 2
     {// Ether(src="0x1", dst="0x2")/IP(src="192.168.1.1",
@@ -55,7 +55,7 @@ const std::vector<::katran::PacketAttributes> gueTestFixtures = {
      .inputPacket = "AgAAAAAAAQAAAAAACABFAAA3AAEAAEAGrU7AqAEBCsgBAXppAFAAAAAAAAAAAFAQIAAn5AAAa2F0cmFuIHRlc3QgcGt0",
      .description = "packet to TCP based v4 VIP (and v4 real)",
      .expectedReturnValue = "XDP_TX",
-     .expectedOutputPacket = "AADerb6vAgAAAAAACABFAABTAAAAAEARWXMKAA0lCgAAA2h7F8AAPyupRQAANwABAABABq1OwKgBAQrIAQF6aQBQAAAAAAAAAABQECAAJ+QAAGthdHJhbiB0ZXN0IHBrdA=="
+     .expectedOutputPacket = "AADerb6vAgAAAAAACABFAABTAAAAAEARWXMKAA0lCgAAA2h7Jp4APxzLRQAANwABAABABq1OwKgBAQrIAQF6aQBQAAAAAAAAAABQECAAJ+QAAGthdHJhbiB0ZXN0IHBrdA=="
     },
     // 3
     {// Ether(src="0x1", dst="0x2")/IP(src="192.168.1.1",
@@ -63,7 +63,7 @@ const std::vector<::katran::PacketAttributes> gueTestFixtures = {
      .inputPacket = "AgAAAAAAAQAAAAAACABFAAA3AAEAAEAGrU3AqAEBCsgBAnppACoAAAAAAAAAAFAQIAAoCQAAa2F0cmFuIHRlc3QgcGt0",
      .description = "packet to TCP based v4 VIP (and v4 real; any dst ports).",
      .expectedReturnValue = "XDP_TX",
-     .expectedOutputPacket = "AADerb6vAgAAAAAACABFAABTAAAAAEARWXQKAA0lCgAAAmh7F8AAPyurRQAANwABAABABq1NwKgBAQrIAQJ6aQAqAAAAAAAAAABQECAAKAkAAGthdHJhbiB0ZXN0IHBrdA=="
+     .expectedOutputPacket = "AADerb6vAgAAAAAACABFAABTAAAAAEARWXQKAA0lCgAAAmh7Jp4APxzNRQAANwABAABABq1NwKgBAQrIAQJ6aQAqAAAAAAAAAABQECAAKAkAAGthdHJhbiB0ZXN0IHBrdA=="
     },
     // 4
     {// Ether(src="0x1", dst="0x2")/IP(src="192.168.1.1",
@@ -71,7 +71,7 @@ const std::vector<::katran::PacketAttributes> gueTestFixtures = {
      .inputPacket = "AgAAAAAAAQAAAAAACABFAAA3AAEAAEAGrUzAqAEBCsgBA3ppAFAAAAAAAAAAAFAQIAAn4gAAa2F0cmFuIHRlc3QgcGt0",
      .description = "packet to TCP based v4 VIP (and v6 real)",
      .expectedReturnValue = "XDP_TX",
-     .expectedOutputPacket = "AADerb6vAgAAAAAAht1gAAAAAD8RQPwAIwcAAAAAAAAAAAAAEzf8AAAAAAAAAAAAAAAAAAABe2gXwAA/C6VFAAA3AAEAAEAGrUzAqAEBCsgBA3ppAFAAAAAAAAAAAFAQIAAn4gAAa2F0cmFuIHRlc3QgcGt0"
+     .expectedOutputPacket = "AADerb6vAgAAAAAAht1gAAAAAD8RQPwAIwcAAAAAAAAAAAAAEzf8AAAAAAAAAAAAAAAAAAABe2gmngA//MZFAAA3AAEAAEAGrUzAqAEBCsgBA3ppAFAAAAAAAAAAAFAQIAAn4gAAa2F0cmFuIHRlc3QgcGt0"
     },
     // 5
     {// Ether(src="0x1", dst="0x2")/IPv6(src="fc00:2::1",
@@ -79,7 +79,7 @@ const std::vector<::katran::PacketAttributes> gueTestFixtures = {
      .inputPacket = "AgAAAAAAAQAAAAAAht1gAAAAACMGQPwAAAIAAAAAAAAAAAAAAAH8AAABAAAAAAAAAAAAAAABemkAUAAAAAAAAAAAUBAgAP1PAABrYXRyYW4gdGVzdCBwa3Q=",
      .description = "packet to TCP based v6 VIP (and v6 real)",
      .expectedReturnValue = "XDP_TX",
-     .expectedOutputPacket = "AADerb6vAgAAAAAAht1gAAAAAFMRQPwAIwcAAAAAAAAAAAAAEzf8AAAAAAAAAAAAAAAAAAADemkXwABT2KFgAAAAACMGQPwAAAIAAAAAAAAAAAAAAAH8AAABAAAAAAAAAAAAAAABemkAUAAAAAAAAAAAUBAgAP1PAABrYXRyYW4gdGVzdCBwa3Q="
+     .expectedOutputPacket = "AADerb6vAgAAAAAAht1gAAAAAFMRQPwAIwcAAAAAAAAAAAAAEzf8AAAAAAAAAAAAAAAAAAADemkmngBTycNgAAAAACMGQPwAAAIAAAAAAAAAAAAAAAH8AAABAAAAAAAAAAAAAAABemkAUAAAAAAAAAAAUBAgAP1PAABrYXRyYW4gdGVzdCBwa3Q="
     },
     // 6
     {// Ether(src="0x1", dst="0x2")/IP(src="192.168.1.1",
@@ -105,7 +105,7 @@ const std::vector<::katran::PacketAttributes> gueTestFixtures = {
      .inputPacket = "AgAAAAAAAQAAAAAACABFAABTAAEAAEABSjfAqGQBCsgBAQMEypcAAAAARQAANwABAABABq1OCsgBAcCoAQEAUHppAAAAAAAAAABQAiAAGQEAAHRlc3Qga2F0cmFuIHBrdA==",
      .description = "v4 ICMP dest-unreachabe fragmentation-needed",
      .expectedReturnValue = "XDP_TX",
-     .expectedOutputPacket = "AADerb6vAgAAAAAACABFAABvAAAAAEARWVcKAA0lCgAAA2h7F8AAW46IRQAAUwABAABAAUo3wKhkAQrIAQEDBMqXAAAAAEUAADcAAQAAQAatTgrIAQHAqAEBAFB6aQAAAAAAAAAAUAIgABkBAAB0ZXN0IGthdHJhbiBwa3Q="
+     .expectedOutputPacket = "AADerb6vAgAAAAAACABFAABvAAAAAEARWVcKAA0lCgAAA2h7Jp4AW3+qRQAAUwABAABAAUo3wKhkAQrIAQEDBMqXAAAAAEUAADcAAQAAQAatTgrIAQHAqAEBAFB6aQAAAAAAAAAAUAIgABkBAAB0ZXN0IGthdHJhbiBwa3Q="
     },
     // 9
     {// Ether(src="0x1", dst="0x2")/IPv6(src="fc00:200::1",
@@ -114,7 +114,7 @@ const std::vector<::katran::PacketAttributes> gueTestFixtures = {
      .inputPacket = "AgAAAAAAAQAAAAAAht1gAAAAAFY6QPwAAgAAAAAAAAAAAAAAAAH8AAABAAAAAAAAAAAAAAABAgCYMAAABQBgAAAAACYGQPwAAAEAAAAAAAAAAAAAAAH8AAACAAAAAAAAAAAAAAABAFB6aQAAAAAAAAAAUAIgAKiFAABrYXRyYW4gdGVzdCBwYWNrZXQ=",
      .description = "v6 ICMP packet-too-big",
      .expectedReturnValue = "XDP_TX",
-     .expectedOutputPacket = "AADerb6vAgAAAAAAht1gAAAAAIYRQPwAIwcAAAAAAAAAAAAAEzf8AAAAAAAAAAAAAAAAAAADemkXwACGpG9gAAAAAFY6QPwAAgAAAAAAAAAAAAAAAAH8AAABAAAAAAAAAAAAAAABAgCYMAAABQBgAAAAACYGQPwAAAEAAAAAAAAAAAAAAAH8AAACAAAAAAAAAAAAAAABAFB6aQAAAAAAAAAAUAIgAKiFAABrYXRyYW4gdGVzdCBwYWNrZXQ="
+     .expectedOutputPacket = "AADerb6vAgAAAAAAht1gAAAAAIYRQPwAIwcAAAAAAAAAAAAAEzf8AAAAAAAAAAAAAAAAAAADemkmngCGlZFgAAAAAFY6QPwAAgAAAAAAAAAAAAAAAAH8AAABAAAAAAAAAAAAAAABAgCYMAAABQBgAAAAACYGQPwAAAEAAAAAAAAAAAAAAAH8AAACAAAAAAAAAAAAAAABAFB6aQAAAAAAAAAAUAIgAKiFAABrYXRyYW4gdGVzdCBwYWNrZXQ="
     },
     // 10
     {// Ether(src="0x1", dst="0x2")/IP(src="192.168.1.1",
@@ -173,7 +173,7 @@ const std::vector<::katran::PacketAttributes> gueTestFixtures = {
      .inputPacket = "AgAAAAAAAQAAAAAACABFAAA3AAEAAEAGrU7AqAEBCsgBAXppAFAAAAAAAAAAAFAQIAAn5AAAa2F0cmFuIHRlc3QgcGt0",
      .description = "LRU hit",
      .expectedReturnValue = "XDP_TX",
-     .expectedOutputPacket = "AADerb6vAgAAAAAACABFAABTAAAAAEARWXMKAA0lCgAAA2h7F8AAPyupRQAANwABAABABq1OwKgBAQrIAQF6aQBQAAAAAAAAAABQECAAJ+QAAGthdHJhbiB0ZXN0IHBrdA=="
+     .expectedOutputPacket = "AADerb6vAgAAAAAACABFAABTAAAAAEARWXMKAA0lCgAAA2h7Jp4APxzLRQAANwABAABABq1OwKgBAQrIAQF6aQBQAAAAAAAAAABQECAAJ+QAAGthdHJhbiB0ZXN0IHBrdA=="
     },
     // 17
     {// Ether(src="0x1", dst="0x2")/IP(src="192.168.1.1",
@@ -181,14 +181,15 @@ const std::vector<::katran::PacketAttributes> gueTestFixtures = {
      .inputPacket = "AgAAAAAAAQAAAAAACABFAAA3AAEAAEAGrUvAqAEBCsgBBHppACoAAAAAAAAAAFAQIAAoBwAAa2F0cmFuIHRlc3QgcGt0",
      .description = "packet #1 dst port hashing only",
      .expectedReturnValue = "XDP_TX",
-     .expectedOutputPacket = "AADerb6vAgAAAAAACABFAABTAAAAAEARWXQKAA0lCgAAAml6F8AAPyquRQAANwABAABABq1LwKgBAQrIAQR6aQAqAAAAAAAAAABQECAAKAcAAGthdHJhbiB0ZXN0IHBrdA=="},
+     .expectedOutputPacket = "AADerb6vAgAAAAAACABFAABTAAAAAEARWXQKAA0lCgAAAml6Jp4APxvQRQAANwABAABABq1LwKgBAQrIAQR6aQAqAAAAAAAAAABQECAAKAcAAGthdHJhbiB0ZXN0IHBrdA=="
+    },
     // 18
     {// Ether(src="0x1", dst="0x2")/IP(src="192.168.1.100",
      // dst="10.200.1.4")/TCP(sport=1337, dport=42, flags="A")/"katran test pkt"
      .inputPacket = "AgAAAAAAAQAAAAAACABFAAA3AAEAAEAGrOjAqAFkCsgBBAU5ACoAAAAAAAAAAFAQIACc1AAAa2F0cmFuIHRlc3QgcGt0",
      .description = "packet #2 dst port hashing only",
      .expectedReturnValue = "XDP_TX",
-     .expectedOutputPacket = "AADerb6vAgAAAAAACABFAABTAAAAAEARWXQKAA0lCgAAAjkFF8AAP1uGRQAANwABAABABqzowKgBZArIAQQFOQAqAAAAAAAAAABQECAAnNQAAGthdHJhbiB0ZXN0IHBrdA=="
+     .expectedOutputPacket = "AADerb6vAgAAAAAACABFAABTAAAAAEARWXQKAA0lCgAAAjkFJp4AP0yoRQAANwABAABABqzowKgBZArIAQQFOQAqAAAAAAAAAABQECAAnNQAAGthdHJhbiB0ZXN0IHBrdA=="
     },
     // 19
     {// Ether(src="0x1", dst="0x2")/IP(src="172.16.1.1",
@@ -225,7 +226,7 @@ const std::vector<::katran::PacketAttributes> gueTestFixtures = {
      .inputPacket = "AgAAAAAAAQAAAAAACABFAAA5AAEAAEARrRTAqAEqCsgBBXppAbsAJbdsz/rOsAEIQQIDBAUGBwAAAREBcXVpYyBkYXRhAEA=",
      .description = "QUIC: long header. Client Initial type. LRU miss",
      .expectedReturnValue = "XDP_TX",
-     .expectedOutputPacket = "AADerb6vAgAAAAAACABFAABVAAAAAEARWXIKAA0lCgAAAmhQF8AAQSwLRQAAOQABAABAEa0UwKgBKgrIAQV6aQG7ACW3bM/6zrABCEECAwQFBgcAAAERAXF1aWMgZGF0YQBA"
+     .expectedOutputPacket = "AADerb6vAgAAAAAACABFAABVAAAAAEARWXIKAA0lCgAAAmhQJp4AQR0tRQAAOQABAABAEa0UwKgBKgrIAQV6aQG7ACW3bM/6zrABCEECAwQFBgcAAAERAXF1aWMgZGF0YQBA"
     },
     // 23
     {// Ether(src="0x1", dst="0x2")/IP(src="192.168.1.42",
@@ -235,7 +236,7 @@ const std::vector<::katran::PacketAttributes> gueTestFixtures = {
      .inputPacket = "AgAAAAAAAQAAAAAACABFAAA5AAEAAEARrRTAqAEqCsgBBXppAbsAJbNG3/rOsAEIQ/8zRFVmd4gAAREBcXVpYyBkYXRhAEA=",
      .description = "QUIC: long header. 0-RTT Protected. CH. LRU hit.",
      .expectedReturnValue = "XDP_TX",
-     .expectedOutputPacket = "AADerb6vAgAAAAAACABFAABVAAAAAEARWXIKAA0lCgAAAmhQF8AAQSwLRQAAOQABAABAEa0UwKgBKgrIAQV6aQG7ACWzRt/6zrABCEP/M0RVZneIAAERAXF1aWMgZGF0YQBA"
+     .expectedOutputPacket = "AADerb6vAgAAAAAACABFAABVAAAAAEARWXIKAA0lCgAAAmhQJp4AQR0tRQAAOQABAABAEa0UwKgBKgrIAQV6aQG7ACWzRt/6zrABCEP/M0RVZneIAAERAXF1aWMgZGF0YQBA"
     },
     // 24
     {// Ether(src="0x1", dst="0x2")/IP(src="192.168.1.42",
@@ -245,7 +246,7 @@ const std::vector<::katran::PacketAttributes> gueTestFixtures = {
      .inputPacket = "AgAAAAAAAQAAAAAACABFAAA5AAEAAEARrRTAqAEqCsgBBXppAbsAJZRt7/rOsAEIQQADBAUGBwAAAREBcXVpYyBkYXRhAEA=",
      .description = "QUIC: long header. Handshake. v4 vip v6 real. Conn Id V1 based. server id is 1024 mapped to fc00::1.",
      .expectedReturnValue = "XDP_TX",
-     .expectedOutputPacket = "AADerb6vAgAAAAAAht1gAAAAAEERQPwAIwcAAAAAAAAAAAAAEzf8AAAAAAAAAAAAAAAAAAABe0MXwABBC/5FAAA5AAEAAEARrRTAqAEqCsgBBXppAbsAJZRt7/rOsAEIQQADBAUGBwAAAREBcXVpYyBkYXRhAEA="
+     .expectedOutputPacket = "AADerb6vAgAAAAAAht1gAAAAAEERQPwAIwcAAAAAAAAAAAAAEzf8AAAAAAAAAAAAAAAAAAABe0MmngBB/R9FAAA5AAEAAEARrRTAqAEqCsgBBXppAbsAJZRt7/rOsAEIQQADBAUGBwAAAREBcXVpYyBkYXRhAEA="
     },
     // 25
     {// Ether(src="0x1", dst="0x2")/IP(src="192.168.1.42",
@@ -255,7 +256,7 @@ const std::vector<::katran::PacketAttributes> gueTestFixtures = {
      .inputPacket = "AgAAAAAAAQAAAAAACABFAAA5AAEAAEARrRTAqAEqCsgBBXppAbsAJYRt//rOsAEIQQADBAUGBwAAAREBcXVpYyBkYXRhAEA=",
      .description = "QUIC: long header. Retry. v4 vip v6 real. Conn Id V1 based. server id is 1024 mapped to fc00::1.",
      .expectedReturnValue = "XDP_TX",
-     .expectedOutputPacket = "AADerb6vAgAAAAAAht1gAAAAAEERQPwAIwcAAAAAAAAAAAAAEzf8AAAAAAAAAAAAAAAAAAABe0MXwABBC/5FAAA5AAEAAEARrRTAqAEqCsgBBXppAbsAJYRt//rOsAEIQQADBAUGBwAAAREBcXVpYyBkYXRhAEA="
+     .expectedOutputPacket = "AADerb6vAgAAAAAAht1gAAAAAEERQPwAIwcAAAAAAAAAAAAAEzf8AAAAAAAAAAAAAAAAAAABe0MmngBB/R9FAAA5AAEAAEARrRTAqAEqCsgBBXppAbsAJYRt//rOsAEIQQADBAUGBwAAAREBcXVpYyBkYXRhAEA="
     },
     // 26
     {// Ether(src="0x1", dst="0x2")/IPv6(src="fc00:2::42",
@@ -265,7 +266,7 @@ const std::vector<::katran::PacketAttributes> gueTestFixtures = {
      .inputPacket = "AgAAAAAAAQAAAAAAht1gAAAAACURQPwAAAIAAAAAAAAAAAAAAEL8AAABAAAAAAAAAAAAAAACemkBuwAlicTP+s6wAQhEAQMEBQYHAAABEQFxdWljIGRhdGEAQA==",
      .description = "QUIC: long header. client initial. v6 vip v6 real. LRU miss",
      .expectedReturnValue = "XDP_TX",
-     .expectedOutputPacket = "AADerb6vAgAAAAAAht1gAAAAAFURQPwAIwcAAAAAAAAAAAAAEzf8AAAAAAAAAAAAAAAAAAABemkXwABVzapgAAAAACURQPwAAAIAAAAAAAAAAAAAAEL8AAABAAAAAAAAAAAAAAACemkBuwAlicTP+s6wAQhEAQMEBQYHAAABEQFxdWljIGRhdGEAQA=="
+     .expectedOutputPacket = "AADerb6vAgAAAAAAht1gAAAAAFURQPwAIwcAAAAAAAAAAAAAEzf8AAAAAAAAAAAAAAAAAAABemkmngBVvsxgAAAAACURQPwAAAIAAAAAAAAAAAAAAEL8AAABAAAAAAAAAAAAAAACemkBuwAlicTP+s6wAQhEAQMEBQYHAAABEQFxdWljIGRhdGEAQA=="
     },
     // 27
     {// Ether(src="0x1", dst="0x2")/IP(src="192.168.1.42",
@@ -273,7 +274,7 @@ const std::vector<::katran::PacketAttributes> gueTestFixtures = {
      .inputPacket = "AgAAAAAAAQAAAAAACABFAAAdAAEAAEARrTDAqAEqCsgBBXppAbsACbYYAA==",
      .description = "QUIC: short header. No connection id. CH. LRU hit",
      .expectedReturnValue = "XDP_TX",
-     .expectedOutputPacket = "AADerb6vAgAAAAAACABFAAA5AAAAAEARWY4KAA0lCgAAAmhQF8AAJSwnRQAAHQABAABAEa0wwKgBKgrIAQV6aQG7AAm2GAA="
+     .expectedOutputPacket = "AADerb6vAgAAAAAACABFAAA5AAAAAEARWY4KAA0lCgAAAmhQJp4AJR1JRQAAHQABAABAEa0wwKgBKgrIAQV6aQG7AAm2GAA="
     },
     // 28
     {// Ether(src="0x1", dst="0x2")/IP(src="192.168.1.42",
@@ -282,7 +283,7 @@ const std::vector<::katran::PacketAttributes> gueTestFixtures = {
      .inputPacket = "AgAAAAAAAQAAAAAACABFAAAmAAEAAEARrSfAqAEqCsgBBXppAbsAEqr2AEEAgwQFBgcAQA==",
      .description = "QUIC: short header w/ connection id",
      .expectedReturnValue = "XDP_TX",
-     .expectedOutputPacket = "AADerb6vAgAAAAAAht1gAAAAAC4RQPwAIwcAAAAAAAAAAAAAEzf8AAAAAAAAAAAAAAAAAAACe0MXwAAuDBBFAAAmAAEAAEARrSfAqAEqCsgBBXppAbsAEqr2AEEAgwQFBgcAQA=="
+     .expectedOutputPacket = "AADerb6vAgAAAAAAht1gAAAAAC4RQPwAIwcAAAAAAAAAAAAAEzf8AAAAAAAAAAAAAAAAAAACe0MmngAu/TFFAAAmAAEAAEARrSfAqAEqCsgBBXppAbsAEqr2AEEAgwQFBgcAQA=="
     },
     // 29
     {// Ether(src="0x1", dst="0x2")/IP(src="192.168.1.42",
@@ -291,7 +292,7 @@ const std::vector<::katran::PacketAttributes> gueTestFixtures = {
      .inputPacket = "AgAAAAAAAQAAAAAACABFAAAmAAEAAEARrSfAqAEqCsgBBXppAbsAEqSFAEERAAAAAAAAQA==",
      .description = "QUIC: short header w/ connection 1092 id but non-existing mapping. LRU hit",
      .expectedReturnValue = "XDP_TX",
-     .expectedOutputPacket = "AADerb6vAgAAAAAACABFAABCAAAAAEARWYUKAA0lCgAAAmhQF8AALiweRQAAJgABAABAEa0nwKgBKgrIAQV6aQG7ABKkhQBBEQAAAAAAAEA="
+     .expectedOutputPacket = "AADerb6vAgAAAAAACABFAABCAAAAAEARWYUKAA0lCgAAAmhQJp4ALh1ARQAAJgABAABAEa0nwKgBKgrIAQV6aQG7ABKkhQBBEQAAAAAAAEA="
     },
     // 30
     {// Ether(src="0x1", dst="0x2")/IP(src="192.168.1.42",
@@ -300,7 +301,7 @@ const std::vector<::katran::PacketAttributes> gueTestFixtures = {
      .inputPacket = "AgAAAAAAAQAAAAAACABFAAAmAAEAAEARrSfAqAEqCsgBBXppAbsAEqt3AEAAAwQFBgcAQA==",
      .description = "QUIC: short header w/ conn id. host id = 0. CH. LRU hit",
      .expectedReturnValue = "XDP_TX",
-     .expectedOutputPacket = "AADerb6vAgAAAAAACABFAABCAAAAAEARWYUKAA0lCgAAAmhQF8AALiweRQAAJgABAABAEa0nwKgBKgrIAQV6aQG7ABKrdwBAAAMEBQYHAEA="
+     .expectedOutputPacket = "AADerb6vAgAAAAAACABFAABCAAAAAEARWYUKAA0lCgAAAmhQJp4ALh1ARQAAJgABAABAEa0nwKgBKgrIAQV6aQG7ABKrdwBAAAMEBQYHAEA="
     },
     // 31
     {// Ether(src="0x1", dst="0x2")/IP(src="192.168.1.1", dst="10.200.1.1",
@@ -308,7 +309,7 @@ const std::vector<::katran::PacketAttributes> gueTestFixtures = {
      .inputPacket = "AgAAAAAAAQAAAAAACABFjAA3AAEAAEAGrMLAqAEBCsgBAXppAFAAAAAAAAAAAFAQIAAn5AAAa2F0cmFuIHRlc3QgcGt0",
      .description = "packet to TCP based v4 VIP (and v4 real) + ToS in IPV4",
      .expectedReturnValue = "XDP_TX",
-     .expectedOutputPacket = "AADerb6vAgAAAAAACABFjABTAAAAAEARWOcKAA0lCgAAA2h7F8AAPyupRYwANwABAABABqzCwKgBAQrIAQF6aQBQAAAAAAAAAABQECAAJ+QAAGthdHJhbiB0ZXN0IHBrdA=="
+     .expectedOutputPacket = "AADerb6vAgAAAAAACABFjABTAAAAAEARWOcKAA0lCgAAA2h7Jp4APxzLRYwANwABAABABqzCwKgBAQrIAQF6aQBQAAAAAAAAAABQECAAJ+QAAGthdHJhbiB0ZXN0IHBrdA=="
     },
     // 32
     {// Ether(src="0x1", dst="0x2")/IPv6(src="fc00:2::1", dst="fc00:1::1",
@@ -316,7 +317,7 @@ const std::vector<::katran::PacketAttributes> gueTestFixtures = {
      .inputPacket = "AgAAAAAAAQAAAAAAht1owAAAACMGQPwAAAIAAAAAAAAAAAAAAAH8AAABAAAAAAAAAAAAAAABemkAUAAAAAAAAAAAUBAgAP1PAABrYXRyYW4gdGVzdCBwa3Q=",
      .description = "packet to TCP based v6 VIP (and v6 real) with ToS / tc set",
      .expectedReturnValue = "XDP_TX",
-     .expectedOutputPacket = "AADerb6vAgAAAAAAht1owAAAAFMRQPwAIwcAAAAAAAAAAAAAEzf8AAAAAAAAAAAAAAAAAAADemkXwABTz+FowAAAACMGQPwAAAIAAAAAAAAAAAAAAAH8AAABAAAAAAAAAAAAAAABemkAUAAAAAAAAAAAUBAgAP1PAABrYXRyYW4gdGVzdCBwa3Q="
+     .expectedOutputPacket = "AADerb6vAgAAAAAAht1owAAAAFMRQPwAIwcAAAAAAAAAAAAAEzf8AAAAAAAAAAAAAAAAAAADemkmngBTwQNowAAAACMGQPwAAAIAAAAAAAAAAAAAAAH8AAABAAAAAAAAAAAAAAABemkAUAAAAAAAAAAAUBAgAP1PAABrYXRyYW4gdGVzdCBwa3Q="
     },
     // 33
     {// Ether(src="0x1", dst="0x2")/IP(src="192.168.1.42",
@@ -325,7 +326,7 @@ const std::vector<::katran::PacketAttributes> gueTestFixtures = {
      .inputPacket = "AgAAAAAAAQAAAAAACABFAAAmAAEAAEARrSfAqAEqCsgBBXppAbsAEqo2AIADBAIFBgcAQA==",
      .description = "QUIC: short header w/ connection id. CIDv2",
      .expectedReturnValue = "XDP_TX",
-     .expectedOutputPacket = "AADerb6vAgAAAAAAht1gAAAAAC4RQPwAIwcAAAAAAAAAAAAAEzf8AAAAAAAAAAAAAAAAAAACe0MXwAAuDBBFAAAmAAEAAEARrSfAqAEqCsgBBXppAbsAEqo2AIADBAIFBgcAQA=="
+     .expectedOutputPacket = "AADerb6vAgAAAAAAht1gAAAAAC4RQPwAIwcAAAAAAAAAAAAAEzf8AAAAAAAAAAAAAAAAAAACe0MmngAu/TFFAAAmAAEAAEARrSfAqAEqCsgBBXppAbsAEqo2AIADBAIFBgcAQA=="
     },
     // 34
     {// Ether(src="0x1", dst="0x2")/IP(src="192.168.1.42",
@@ -334,7 +335,7 @@ const std::vector<::katran::PacketAttributes> gueTestFixtures = {
      .inputPacket = "AgAAAAAAAQAAAAAACABFAAAmAAEAAEARrSfAqAEqCsgBBXppAbsAEm5CAIADBEQAAAAAQA==",
      .description = "QUIC: short header w/ connection id 197700 but non-existing mapping. CIDv2. LRU hit.",
      .expectedReturnValue = "XDP_TX",
-     .expectedOutputPacket = "AADerb6vAgAAAAAACABFAABCAAAAAEARWYUKAA0lCgAAAmhQF8AALiweRQAAJgABAABAEa0nwKgBKgrIAQV6aQG7ABJuQgCAAwREAAAAAEA="
+     .expectedOutputPacket = "AADerb6vAgAAAAAACABFAABCAAAAAEARWYUKAA0lCgAAAmhQJp4ALh1ARQAAJgABAABAEa0nwKgBKgrIAQV6aQG7ABJuQgCAAwREAAAAAEA="
     },
 };
 
