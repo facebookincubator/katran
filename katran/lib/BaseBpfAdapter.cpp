@@ -316,6 +316,12 @@ int BaseBpfAdapter::getBpfMapUsedSize(const std::string& name) {
     return -1;
   }
 
+  // Sanity check key size before allocation
+  if (info.key_size > 1024 * 1024) {
+    LOG(ERROR) << "Key size of map " << name << " is to big, " << info.key_size;
+    return -1;
+  }
+
   // Walk the keys to get the current number of entries
   unsigned char key[info.key_size];
   while (0 == (err = bpf_map_get_next_key(fd, prev_key, &key))) {
