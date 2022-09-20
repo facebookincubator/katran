@@ -22,11 +22,11 @@
  * information about encapsulation / decapsulation
  */
 
-#include "bpf.h"
-#include "bpf_helpers.h"
+#include "katran/lib/linux_includes/bpf.h"
+#include "katran/lib/linux_includes/bpf_helpers.h"
 
-#include "balancer_consts.h"
-#include "balancer_structs.h"
+#include "katran/lib/bpf/balancer_consts.h"
+#include "katran/lib/bpf/balancer_structs.h"
 
 // control array. contains metadata such as default router mac
 // and/or interfaces ifindexes

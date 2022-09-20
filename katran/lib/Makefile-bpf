@@ -8,6 +8,7 @@ PFLAGS = $(DEBUGFLAGS)
 
 INCLUDEFLAGS = -I$(obj)/usr/include \
 	       -I$(obj)/include \
+	       -I$(obj)
 
 
 
@@ -34,7 +35,7 @@ clean:
 	$(MAKE) -C .. M=$$PWD clean
 	@rm -f *~
 
-$(obj)/bpf/%.o: $(src)/bpf/%.c
+$(obj)/bpf/%.o: $(src)/katran/lib/bpf/%.c
 	$(CLANG) $(INCLUDEFLAGS) $(EXTRA_CFLAGS) \
 	$(DEBUGBPF) -D__KERNEL__ -Wno-unused-value -Wno-pointer-sign \
 		-Wno-compare-distinct-pointer-types \

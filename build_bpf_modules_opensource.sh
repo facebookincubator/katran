@@ -73,11 +73,13 @@ fi
 
 rm -rf "${BUILD_DIR}/deps/bpfprog"
 mkdir -p "${BUILD_DIR}/deps/bpfprog/include"
+mkdir -p "${BUILD_DIR}/deps/bpfprog/katran/lib/bpf"
 cp "${SRC_DIR}/katran/lib/Makefile-bpf" "${BUILD_DIR}/deps/bpfprog/Makefile"
-cp -r "${SRC_DIR}/katran/lib/bpf" "${BUILD_DIR}/deps/bpfprog/"
+cp -r "${SRC_DIR}/katran/lib/bpf" "${BUILD_DIR}/deps/bpfprog/katran/lib/"
+cp -r "${SRC_DIR}/katran/lib/linux_includes" "${BUILD_DIR}/deps/bpfprog/katran/lib/linux_includes"
 cp -r "${SRC_DIR}/katran/decap/bpf" "${BUILD_DIR}/deps/bpfprog/"
 cp "${SRC_DIR}"/katran/lib/linux_includes/* "${BUILD_DIR}/deps/bpfprog/include/"
 cd "${BUILD_DIR}/deps/bpfprog" && LD_LIBRARY_PATH="${CLANG_PATH}/lib" make \
   EXTRA_CFLAGS="${DEFINES}" \
   LLC="${CLANG_PATH}/bin/llc" CLANG="${CLANG_PATH}/bin/clang"
-echo "BPF BUILD COMPLITED"
+echo "BPF BUILD COMPLETED"

@@ -17,10 +17,11 @@
 #ifndef __FLOW_DEBUG_MAPS_H
 #define __FLOW_DEBUG_MAPS_H
 
-#include "balancer_structs.h"
-#include "bpf.h"
-#include "bpf_helpers.h"
-#include "flow_debug.h"
+#include "katran/lib/linux_includes/bpf.h"
+#include "katran/lib/linux_includes/bpf_helpers.h"
+
+#include "katran/lib/bpf/balancer_structs.h"
+#include "katran/lib/bpf/flow_debug.h"
 
 struct {
   __uint(type, BPF_MAP_TYPE_ARRAY_OF_MAPS);

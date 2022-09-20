@@ -21,14 +21,14 @@
 #include <linux/string.h>
 #include <linux/udp.h>
 
-#include "bpf.h"
-#include "bpf_helpers.h"
+#include "katran/lib/linux_includes/bpf.h"
+#include "katran/lib/linux_includes/bpf_helpers.h"
 
-#include "encap_helpers.h"
+#include "katran/lib/bpf/encap_helpers.h"
 
-#include "healthchecking_helpers.h"
-#include "healthchecking_maps.h"
-#include "healthchecking_structs.h"
+#include "katran/lib/bpf/healthchecking_helpers.h"
+#include "katran/lib/bpf/healthchecking_maps.h"
+#include "katran/lib/bpf/healthchecking_structs.h"
 
 SEC("tc")
 int healthcheck_encap(struct __sk_buff* skb) {

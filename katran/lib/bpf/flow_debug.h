@@ -25,7 +25,7 @@
 
 #define NO_FLAGS 0
 
-#include "flow_debug_helpers.h"
+#include "katran/lib/bpf/flow_debug_helpers.h"
 
 // Flow debug enabled, enable helpers
 #define RECORD_GUE_ROUTE(old_eth, new_eth, data_end, outer_v4, inner_v4) \
