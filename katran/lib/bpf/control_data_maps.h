@@ -69,7 +69,7 @@ struct {
 } subprograms SEC(".maps");
 #endif
 
-#ifdef GUE_ENCAP
+#if defined(GUE_ENCAP) || defined(DECAP_STRICT_DESTINATION)
 // map which src ip address for outer ip packet while using GUE encap
 // NOTE: This is not a stable API. This is to be reworked when static
 // variables will be available in mainline kernels

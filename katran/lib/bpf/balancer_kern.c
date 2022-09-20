@@ -246,6 +246,39 @@ check_decap_dst(struct packet_description* pckt, bool is_ipv6, bool* pass) {
   struct address dst_addr = {};
   struct lb_stats* data_stats;
 
+#ifdef DECAP_STRICT_DESTINATION
+  struct real_definition* host_primary_addrs;
+  __u32 addr_index;
+
+  if (is_ipv6) {
+    addr_index = V6_SRC_INDEX;
+    host_primary_addrs = bpf_map_lookup_elem(&pckt_srcs, &addr_index);
+    if (host_primary_addrs) {
+      // a workaround for eBPF's `__builtin_memcmp` bug
+      if (host_primary_addrs->dstv6[0] != pckt->flow.dstv6[0] ||
+          host_primary_addrs->dstv6[1] != pckt->flow.dstv6[1] ||
+          host_primary_addrs->dstv6[2] != pckt->flow.dstv6[2] ||
+          host_primary_addrs->dstv6[3] != pckt->flow.dstv6[3]) {
+        // Since the outer packet destination does not match host IPv6,
+        // do not decapsulate. It would allow to deliver the packet
+        // to the correct network namespace.
+        return XDP_PASS;
+      }
+    }
+  } else {
+    addr_index = V4_SRC_INDEX;
+    host_primary_addrs = bpf_map_lookup_elem(&pckt_srcs, &addr_index);
+    if (host_primary_addrs) {
+      if (host_primary_addrs->dst != pckt->flow.dst) {
+        // Since the outer packet destination does not match host IPv4,
+        // do not decapsulate. It would allow to deliver the packet
+        // to the correct network namespace.
+        return XDP_PASS;
+      }
+    }
+  }
+#endif // DECAP_STRICT_DESTINATION
+
   if (is_ipv6) {
     memcpy(dst_addr.addrv6, pckt->flow.dstv6, 16);
   } else {
@@ -409,6 +442,7 @@ __attribute__((__always_inline__)) static inline int process_encaped_gue_pckt(
   int action;
   if (is_ipv6) {
     __u8 v6 = 0;
+
     offset =
         sizeof(struct ipv6hdr) + sizeof(struct ethhdr) + sizeof(struct udphdr);
     // 1 byte for gue v1 marker to figure out what is internal protocol
