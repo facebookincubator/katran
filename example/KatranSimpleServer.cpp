@@ -108,7 +108,6 @@ int main(int argc, char** argv) {
   auto server = std::make_shared<ThriftServer>();
 
   server->setMaxRequests(FLAGS_thriftMaxRequests);
-  server->setEnableCodel(FLAGS_thriftEnableCodel);
 
   server->setPort(FLAGS_port);
   server->setInterface(handler);
