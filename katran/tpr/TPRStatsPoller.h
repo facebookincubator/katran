@@ -10,7 +10,7 @@
 #include <memory>
 #include <string>
 
-namespace proxygen::tpr {
+namespace katran_tpr {
 
 /**
  * Library class to periodically poll stats exported by the tcp_router_stats
@@ -82,4 +82,4 @@ class TPRStatsPoller : public folly::AsyncTimeout {
   std::atomic<bool> shutdown_{false};
 };
 
-} // namespace proxygen::tpr
+} // namespace katran_tpr

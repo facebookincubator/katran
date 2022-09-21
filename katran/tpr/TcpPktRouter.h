@@ -12,7 +12,7 @@
 #include <katran/tpr/TPRTypes.h>
 #include <katran/tpr/TprBpfAdapter.h>
 
-namespace proxygen::tpr {
+namespace katran_tpr {
 
 class TcpPktRouter {
  public:
@@ -80,4 +80,4 @@ class TcpPktRouter {
   std::unique_ptr<TPRStatsPoller> statsPoller_;
 };
 
-} // namespace proxygen::tpr
+} // namespace katran_tpr

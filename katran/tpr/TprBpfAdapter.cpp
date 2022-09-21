@@ -20,7 +20,7 @@ extern "C" {
 #include <katran/tpr/TPRTypes.h>
 #include <katran/tpr/TprBpfAdapter.h>
 
-namespace proxygen::tpr {
+namespace katran_tpr {
 
 constexpr int kMaxProgsToQuery = 1024;
 const std::string kSockOpsObjName = "tcp_pkt_router_socksopt_obj";
@@ -482,4 +482,4 @@ bool TprBpfAdapter::already(
   }
 }
 
-} // namespace proxygen::tpr
+} // namespace katran_tpr

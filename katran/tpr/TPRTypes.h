@@ -5,7 +5,7 @@
 #include <fmt/format.h>
 #include <folly/Expected.h>
 
-namespace proxygen::tpr {
+namespace katran_tpr {
 
 constexpr int kNoFlags = 0;
 
@@ -80,4 +80,4 @@ inline std::ostream& operator<<(std::ostream& os, const RunningMode& mode) {
   return os;
 }
 
-} // namespace proxygen::tpr
+} // namespace katran_tpr

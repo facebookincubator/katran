@@ -12,7 +12,7 @@ extern "C" {
 #include <bpf/libbpf.h>
 }
 
-namespace proxygen::tpr {
+namespace katran_tpr {
 
 namespace {
 constexpr int kError = -1;
@@ -193,4 +193,4 @@ folly::Expected<int, std::system_error> TPRStatsPoller::getCpuCount() {
   }
 }
 
-} // namespace proxygen::tpr
+} // namespace katran_tpr

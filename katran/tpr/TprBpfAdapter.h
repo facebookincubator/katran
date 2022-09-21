@@ -13,7 +13,7 @@
 
 #include <katran/tpr/TPRTypes.h>
 
-namespace proxygen::tpr {
+namespace katran_tpr {
 
 /**
  * Class that interfaces with the BPF layer.
@@ -268,4 +268,4 @@ class TprBpfAdapter {
   bool isRlimitSet_{false};
 };
 
-} // namespace proxygen::tpr
+} // namespace katran_tpr

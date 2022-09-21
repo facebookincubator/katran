@@ -2,10 +2,8 @@
 
 #pragma once
 
-namespace proxygen {
-namespace tpr {
+namespace katran_tpr {
 
 unsigned char kTcpPktRouterProgramBuffer[] = {__HexdumpPlaceholder__};
 
-}
-} // namespace proxygen
+} // namespace katran_tpr

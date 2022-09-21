@@ -7,7 +7,7 @@
 #include <katran/tpr/TcpPktRouter.h>
 #include <katran/tpr/bpf/TcpPktRouterBpf-gen.h>
 
-namespace proxygen::tpr {
+namespace katran_tpr {
 
 // max 24-bit value
 constexpr uint32_t kMaxServerId = (1 << 24) - 1;
@@ -158,4 +158,4 @@ TcpPktRouter::collectTPRStats() {
   return statsPoller_->collectTPRStats(maybeCpus.value());
 }
 
-} // namespace proxygen::tpr
+} // namespace katran_tpr
