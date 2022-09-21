@@ -5,7 +5,8 @@
 
 #include <katran/tpr/TPRTypes.h>
 #include <katran/tpr/TcpPktRouter.h>
-#include <katran/tpr/bpf/TcpPktRouterBpf-gen.h>
+#include <katran/tpr/bpf/tpr_bpf.skel.h>
+#include <katran/tpr/bpf_util/BpfSkeleton.h>
 
 namespace katran_tpr {
 
@@ -28,10 +29,8 @@ folly::Expected<folly::Unit, std::system_error> TcpPktRouter::init(
   if (res.hasError()) {
     return makeError(res.error(), __func__);
   }
-  res = adapter_.loadFromBuffer(
-      (char*)&kTcpPktRouterProgramBuffer,
-      sizeof(kTcpPktRouterProgramBuffer) /
-          sizeof(kTcpPktRouterProgramBuffer[0]));
+  auto buf = BpfSkeleton<tpr_bpf>::elfBytes();
+  res = adapter_.loadFromBuffer((char*)buf.data(), buf.size());
   if (res.hasError()) {
     return makeError(res.error(), __func__);
   }
