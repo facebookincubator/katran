@@ -5,7 +5,6 @@
 #include <fmt/format.h>
 #include <folly/FileUtil.h>
 #include <folly/String.h>
-#include "common/fb303/cpp/FacebookBase2.h"
 
 extern "C" {
 #include <bpf/bpf.h>
@@ -21,30 +20,18 @@ constexpr int kMinIndex = 0;
 constexpr int kTenSecondsInMs = 10000; // sec in msec
 constexpr static folly::StringPiece kPossibleCpusFile(
     "/sys/devices/system/cpu/possible");
-
-void incrementCounter(const std::string& statsPrefix, const std::string& name) {
-  auto fullname = statsPrefix + "tpr." + name;
-  facebook::fbData->incrementCounter(fullname);
-}
-
-void setCounter(
-    const std::string& statsPrefix,
-    const std::string& name,
-    int64_t val) {
-  auto fullname = statsPrefix + "tpr." + name;
-  facebook::fbData->setCounter(fullname, val);
-}
 } // namespace
 
-TPRStatsPoller::TPRStatsPoller(
-    folly::EventBase* evb,
-    int statsMapFd,
-    const folly::Optional<std::string>& statsPrefix)
-    : AsyncTimeout(evb), evb_(evb), statsMapFd_(statsMapFd) {
-  if (statsPrefix) {
-    statsPrefix_ = statsPrefix.value();
-  }
+void TPRStatsPoller::incrementCounter(const std::string& name) {
+  VLOG(5) << "Incremented counter " << name;
 }
+
+void TPRStatsPoller::setCounter(const std::string& name, int64_t val) {
+  VLOG(5) << "Set counter " << name << " to " << val;
+}
+
+TPRStatsPoller::TPRStatsPoller(folly::EventBase* evb, int statsMapFd)
+    : AsyncTimeout(evb), evb_(evb), statsMapFd_(statsMapFd) {}
 
 TPRStatsPoller::~TPRStatsPoller() {
   shutdown();
@@ -88,20 +75,20 @@ void TPRStatsPoller::updateStatsPeriodically() {
   if (shutdown_) {
     return;
   }
-  incrementCounter(statsPrefix_, "periodic_stats_update");
+  incrementCounter("periodic_stats_update");
   auto stats = collectTPRStats(numCpus_);
   if (stats.hasError()) {
     LOG(ERROR) << "error while polling tcp_router_stats stats: "
                << stats.error().what();
     return;
   }
-  setCounter(statsPrefix_, "server_id_read", stats->server_id_read);
-  setCounter(statsPrefix_, "server_id_set", stats->server_id_set);
-  setCounter(statsPrefix_, "conns_skipped", stats->conns_skipped);
-  setCounter(statsPrefix_, "no_tcp_opt_hdr", stats->no_tcp_opt_hdr);
-  setCounter(statsPrefix_, "error_bad_id", stats->error_bad_id);
-  setCounter(statsPrefix_, "error_write_opt", stats->error_write_opt);
-  setCounter(statsPrefix_, "error_sys_calls", stats->error_sys_calls);
+  setCounter("server_id_read", stats->server_id_read);
+  setCounter("server_id_set", stats->server_id_set);
+  setCounter("conns_skipped", stats->conns_skipped);
+  setCounter("no_tcp_opt_hdr", stats->no_tcp_opt_hdr);
+  setCounter("error_bad_id", stats->error_bad_id);
+  setCounter("error_write_opt", stats->error_write_opt);
+  setCounter("error_sys_calls", stats->error_sys_calls);
 }
 
 void TPRStatsPoller::timeoutExpired() noexcept {

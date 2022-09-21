@@ -56,7 +56,7 @@ folly::Expected<folly::Unit, std::system_error> TcpPktRouter::init(
       // Try to be graceful even if it can't find that stats map
       return shutdown();
     }
-    statsPoller_ = std::make_unique<TPRStatsPoller>(
+    statsPoller_ = createStatsPoller(
         folly::EventBaseManager::get()->getEventBase(), mayBeStatsFd.value());
     auto statsRes = statsPoller_->runStatsPoller();
     if (statsRes.hasError()) {
@@ -155,6 +155,12 @@ TcpPktRouter::collectTPRStats() {
     return makeError(maybeCpus.error(), __func__);
   }
   return statsPoller_->collectTPRStats(maybeCpus.value());
+}
+
+std::unique_ptr<TPRStatsPoller> TcpPktRouter::createStatsPoller(
+    folly::EventBase* evb,
+    int statsMapFd) {
+  return std::make_unique<TPRStatsPoller>(evb, statsMapFd);
 }
 
 } // namespace katran_tpr

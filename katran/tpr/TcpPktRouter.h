@@ -18,7 +18,7 @@ class TcpPktRouter {
  public:
   explicit TcpPktRouter(RunningMode mode, const std::string& cgroupPath);
 
-  ~TcpPktRouter();
+  virtual ~TcpPktRouter();
 
   /**
    * Instantiates TcpPktRouter including attaching of sockops
@@ -64,6 +64,11 @@ class TcpPktRouter {
    * Collects aggregated tcp_router_stats over numCpus.
    */
   folly::Expected<tcp_router_stats, std::system_error> collectTPRStats();
+
+ protected:
+  virtual std::unique_ptr<TPRStatsPoller> createStatsPoller(
+      folly::EventBase* evb,
+      int statsMapFd);
 
  private:
   folly::Expected<folly::Unit, std::system_error> updateServerInfo() noexcept;
