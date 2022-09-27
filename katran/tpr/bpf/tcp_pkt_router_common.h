@@ -2,12 +2,9 @@
 
 #pragma once
 
-#include <linux/bpf.h>
+#include <bpf/vmlinux/vmlinux.h>
 
 #include <bpf/bpf_helpers.h>
-#include <bpf/helpers/bpf_endian.h>
-#include <linux/types.h>
-#include <stdbool.h>
 
 #include "tcp_pkt_router_consts.h"
 #include "tcp_pkt_router_maps.h"

@@ -2,13 +2,9 @@
 
 #pragma once
 
+#include <bpf/vmlinux/vmlinux.h>
+
 #include <bpf/bpf_helpers.h>
-#include <bpf/helpers/bpf_endian.h>
-#include <linux/bpf.h>
-#include <linux/string.h>
-#include <linux/tcp.h>
-#include <linux/types.h>
-#include <stdbool.h>
 
 #include "tcp_pkt_router_common.h"
 #include "tcp_pkt_router_consts.h"
@@ -35,14 +31,12 @@ static inline int handle_active_parse_hdr(
     return PASS;
   }
 
-  if (_UNLIKELY(!skops->sk)) {
+  struct bpf_sock* sk = skops->sk;
+  if (_UNLIKELY(!sk)) {
     return PASS;
   }
   __u32* id = bpf_sk_storage_get(
-      &sk_sid_store,
-      skops->sk,
-      &hdr_opt.server_id,
-      BPF_SK_STORAGE_GET_F_CREATE);
+      &sk_sid_store, sk, &hdr_opt.server_id, BPF_SK_STORAGE_GET_F_CREATE);
   if (_UNLIKELY(!id)) {
     stat->error_sys_calls++;
     return PASS;
@@ -70,13 +64,13 @@ static int handle_active_write_hdr_opt(
   int err;
   struct tcp_opt hdr_opt = {};
 
-  if (_UNLIKELY(!skops->sk)) {
+  struct bpf_sock* sk = skops->sk;
+  if (_UNLIKELY(!sk)) {
     return PASS;
   }
   hdr_opt.kind = TCP_HDR_OPT_KIND;
   hdr_opt.len = TCP_HDR_OPT_LEN;
-  __u32* existing_id =
-      bpf_sk_storage_get(&sk_sid_store, skops->sk, NULL, NO_FLAGS);
+  __u32* existing_id = bpf_sk_storage_get(&sk_sid_store, sk, NULL, NO_FLAGS);
   if (_UNLIKELY(!existing_id)) {
     // If there's no existing id, it could be because sk_storage failed in
     // while storing 'hdr_opt.server_id'. Send id == 0 so that the passive
@@ -126,16 +120,14 @@ static inline int handle_active_estab(
     return PASS;
   }
 
-  if (_UNLIKELY(!skops->sk)) {
+  struct bpf_sock* sk = skops->sk;
+  if (_UNLIKELY(!sk)) {
     return PASS;
   }
   // server_id received during the estd-phase takes precedence over others
   // if there's one already present (although this should almost never happen)
   __u32* id = bpf_sk_storage_get(
-      &sk_sid_store,
-      skops->sk,
-      &hdr_opt.server_id,
-      BPF_SK_STORAGE_GET_F_CREATE);
+      &sk_sid_store, sk, &hdr_opt.server_id, BPF_SK_STORAGE_GET_F_CREATE);
   if (_UNLIKELY(!id || *id != hdr_opt.server_id)) {
     if (id) {
       // We somehow stored the wrong id which should not happen. Reset it to 0

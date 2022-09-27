@@ -1,13 +1,8 @@
 // (c) Facebook, Inc. and its affiliates. Confidential and proprietary.
 
-#include <linux/bpf.h>
+#include <bpf/vmlinux/vmlinux.h>
 
 #include <bpf/bpf_helpers.h>
-#include <bpf/helpers/bpf_endian.h>
-#include <linux/string.h>
-#include <linux/tcp.h>
-#include <linux/types.h>
-#include <stdbool.h>
 
 #include "tcp_pkt_router_active_hdlr.h"
 #include "tcp_pkt_router_common.h"
