@@ -2,7 +2,11 @@
 
 #pragma once
 
+#ifdef KATRAN_CMAKE_BUILD
+#include "vmlinux.h"
+#else
 #include <bpf/vmlinux/vmlinux.h>
+#endif
 
 #include <bpf/bpf_helpers.h>
 

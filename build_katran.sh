@@ -90,6 +90,11 @@ if [ -n "$BUILD_TOOLS" ]; then
     export CMAKE_BUILD_TOOLS="$BUILD_TOOLS"
 fi
 
+if [ -n "$BUILD_KATRAN_TPR" ]; then
+    BUILD_KATRAN_TPR=1
+    export CMAKE_BUILD_KATRAN_TPR="$BUILD_KATRAN_TPR"
+fi
+
 get_dev_tools() {
     if [ -f /etc/redhat-release ]; then
         sudo yum install -y epel-release
@@ -571,6 +576,25 @@ get_libbpf() {
     touch "${DEPS_DIR}/libbpf_installed"
 }
 
+get_bpftool() {
+    if [ -f "${DEPS_DIR}/bpftool_installed" ]; then
+        return
+    fi
+    BPFTOOL_DIR="${DEPS_DIR}/bpftool"
+    rm -rf "${BPFTOOL_DIR}"
+    pushd .
+    cd "${DEPS_DIR}"
+    echo -e "${COLOR_GREEN}[ INFO ] Cloning bpftool repo ${COLOR_OFF}"
+    git clone --recurse-submodules https://github.com/libbpf/bpftool.git || true
+    cd "${BPFTOOL_DIR}"/src
+    make
+    cp "${BPFTOOL_DIR}"/src/bpftool "${INSTALL_DIR}/bin/bpftool"
+    echo -e "${COLOR_GREEN}bpftool is installed ${COLOR_OFF}"
+    popd
+    touch "${DEPS_DIR}/bpftool_installed"
+}
+
+
 build_katran() {
     pushd .
     KATRAN_BUILD_DIR=$BUILD_DIR/build
@@ -622,6 +646,9 @@ if [ "$BUILD_EXAMPLE_THRIFT" -eq 1 ]; then
 fi
 if [ "$BUILD_EXAMPLE_GRPC" -eq 1 ]; then
   get_grpc
+fi
+if [ "$BUILD_KATRAN_TPR" -eq 1 ]; then
+  get_bpftool
 fi
 if [ -z "$INSTALL_DEPS_ONLY" ]; then
   build_katran

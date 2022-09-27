@@ -5,8 +5,13 @@
 
 #include <katran/tpr/TPRTypes.h>
 #include <katran/tpr/TcpPktRouter.h>
-#include <katran/tpr/bpf/tpr_bpf.skel.h>
 #include <katran/tpr/bpf_util/BpfSkeleton.h>
+
+#ifdef KATRAN_CMAKE_BUILD
+#include "tpr_bpf.skel.h" // @manual
+#else
+#include <katran/tpr/bpf/tpr_bpf.skel.h>
+#endif
 
 namespace katran_tpr {
 
