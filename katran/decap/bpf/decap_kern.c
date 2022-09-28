@@ -20,12 +20,14 @@
 #include <stdbool.h>
 #include <stddef.h>
 
-#include "balancer_consts.h"
-#include "bpf.h"
-#include "bpf_helpers.h"
+#include "katran/lib/linux_includes/bpf.h"
+#include "katran/lib/linux_includes/bpf_helpers.h"
+
+#include "katran/lib/bpf/balancer_consts.h"
+#include "katran/lib/bpf/pckt_encap.h"
+#include "katran/lib/bpf/pckt_parsing.h"
+
 #include "decap_maps.h"
-#include "pckt_encap.h"
-#include "pckt_parsing.h"
 
 #ifndef DECAP_PROG_SEC
 #define DECAP_PROG_SEC "xdp"

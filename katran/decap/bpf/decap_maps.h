@@ -21,8 +21,10 @@
  * This file contains definition of all maps which has been used by balancer
  */
 
-#include "bpf.h"
-#include "bpf_helpers.h"
+#include "katran/lib/linux_includes/bpf.h"
+#include "katran/lib/linux_includes/bpf_helpers.h"
+
+#include "katran/lib/bpf/balancer_consts.h"
 
 #ifndef STATS_MAP_SIZE
 #define STATS_MAP_SIZE 4
