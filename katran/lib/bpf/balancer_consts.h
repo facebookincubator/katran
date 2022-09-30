@@ -226,6 +226,8 @@
 #define GLOBAL_LRU_CNTR 11
 // offset of stats for global LRU mismatch
 #define GLOBAL_LRU_MISMATCH_CNTR 12
+// offset of stats for decap packets
+#define DECAP_CNTR 13
 
 // max ammount of new connections per seconda per core for lru update
 // if we go beyond this value - we will bypass lru update.

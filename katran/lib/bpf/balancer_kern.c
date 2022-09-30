@@ -421,6 +421,18 @@ __attribute__((__always_inline__)) static inline int process_encaped_ipip_pckt(
       return XDP_DROP;
     }
   }
+
+  __u32 stats_key = MAX_VIPS + DECAP_CNTR;
+  struct lb_stats* data_stats = bpf_map_lookup_elem(&stats, &stats_key);
+  if (!data_stats) {
+    return XDP_DROP;
+  }
+  if (is_ipv6) {
+    data_stats->v2 += 1;
+  } else {
+    data_stats->v1 += 1;
+  }
+
   if (action >= 0) {
     return action;
   }
@@ -476,6 +488,18 @@ __attribute__((__always_inline__)) static inline int process_encaped_gue_pckt(
       return XDP_DROP;
     }
   }
+
+  __u32 stats_key = MAX_VIPS + DECAP_CNTR;
+  struct lb_stats* data_stats = bpf_map_lookup_elem(&stats, &stats_key);
+  if (!data_stats) {
+    return XDP_DROP;
+  }
+  if (is_ipv6) {
+    data_stats->v2 += 1;
+  } else {
+    data_stats->v1 += 1;
+  }
+
   if (action >= 0) {
     return action;
   }

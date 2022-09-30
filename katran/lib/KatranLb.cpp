@@ -1954,6 +1954,10 @@ lb_stats KatranLb::getGlobalLruMismatchStats() {
   return getLbStats(config_.maxVips + kGlobalLruMismatchOffset);
 }
 
+lb_stats KatranLb::getDecapStats() {
+  return getLbStats(config_.maxVips + kDecapCounterOffset);
+}
+
 lb_stats KatranLb::getRealStats(uint32_t index) {
   return getLbStats(index, "reals_stats");
 }

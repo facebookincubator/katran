@@ -64,6 +64,7 @@ constexpr uint32_t kQuicCidDropOffset = 9;
 constexpr uint32_t kTcpServerIdRoutingOffset = 10;
 constexpr uint32_t kGlobalLruOffset = 11;
 constexpr uint32_t kGlobalLruMismatchOffset = 12;
+constexpr uint32_t kDecapCounterOffset = 13;
 
 /**
  * LRU map related constants
@@ -553,6 +554,16 @@ class KatranLb {
    * many times it didn't match (v2)
    */
   lb_stats getGlobalLruMismatchStats();
+
+  /**
+   * @return struct lb_stats w/ statistic of decap packets
+   *
+   * helper function which returns how many v4/v6 packets were
+   * decaped.
+   */
+  lb_stats getDecapStats();
+
+  /**
 
   /**
    * @param uint32_t index of the real
