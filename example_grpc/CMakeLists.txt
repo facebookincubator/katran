@@ -4,25 +4,12 @@ set (CMAKE_CXX_STANDARD 14)
 
 find_library(PROTOBUF libprotobuf.a protobuf)
 set(GRPC_BUILD_PATH "${CMAKE_PREFIX_PATH}/grpc/_build")
-set(GRPC_LIBRARIES_PATH "${GRPC_BUILD_PATH}")
-set(CARES_LIBRARIES_PATH "${GRPC_LIBRARIES_PATH}/third_party/cares/cares/lib")
-set(ABSL_LIBRARIES_PATH "${GRPC_LIBRARIES_PATH}/third_party/abseil-cpp/absl")
 
-find_library(ADDR_SORT libaddress_sorting.a address_sorting PATHS ${GRPC_LIBRARIES_PATH} NO_DEFAULT_PATH)
-find_library(GPR libgpr.a gpr PATHS ${GRPC_LIBRARIES_PATH} NO_DEFAULT_PATH)
-find_library(GRPC libgrpc.a grpc PATHS ${GRPC_LIBRARIES_PATH} NO_DEFAULT_PATH)
-find_library(GRPC++ libgrpc++.a grpc++ PATHS ${GRPC_LIBRARIES_PATH} NO_DEFAULT_PATH)
-find_library(CARES libcares.a cares PATHS ${CARES_LIBRARIES_PATH} NO_DEFAULT_PATH)
-find_library(GRPC_UNSECURE libgrpc_unsecure.a grpc_unsecure PATHS ${GRPC_LIBRARIES_PATH} NO_DEFAULT_PATH)
-find_library(UPB libupb.a grpc PATHS ${GRPC_LIBRARIES_PATH} NO_DEFAULT_PATH)
 find_library(LIBIBERTY libiberty.a iberty)
 find_library(DL dl)
 find_library(EVENT libevent.a event)
-find_library(ABSL_BASE libabsl_base.a absl_base "${ABSL_LIBRARIES_PATH}/base" NO_DEFAULT_PATH)
-find_library(ABSL_BASE_THROW libabsl_throw_delegate.a absl_throw_delegate "${ABSL_LIBRARIES_PATH}/base" NO_DEFAULT_PATH)
-find_library(ABSL_STRINGS libabsl_strings.a absl_strings "${ABSL_LIBRARIES_PATH}/strings" NO_DEFAULT_PATH)
-find_library(ABSL_BAD_OPTIONAL libabsl_bad_optional_access.a absl_bad_optional_access "${ABSL_LIBRARIES_PATH}/types" NO_DEFAULT_PATH)
 find_package(Protobuf REQUIRED)
+find_package(gRPC CONFIG REQUIRED)
 
 set(PROTO_PATH "${CMAKE_SOURCE_DIR}/example_grpc/protos")
 set(KATRAN_PROTO "${PROTO_PATH}/katran.proto")
@@ -75,11 +62,8 @@ add_library(grpc_signal_handler
 target_link_libraries(grpc_signal_handler
     "Folly::folly"
     "${DL}"
-    "${EVENT}"
-    "${GRPC++}"
-    "${GPR}"
-    "${ADDR_SORT}"
-    "${CARES}"
+    gRPC::grpc++
+    gRPC::gpr
 )
 
 add_executable(katran_server_grpc katran_server.cpp)
@@ -87,10 +71,6 @@ target_link_libraries(katran_server_grpc
   "-Wl,--start-group"
   "${LIBUNWIND}"
   "${PROTOBUF}"
-  "${GRPC++}"
-  "${GPR}"
-  "${ADDR_SORT}"
-  "${CARES}"
   "Folly::folly"
   "glog::glog"
   "${GFLAGS}"
@@ -98,14 +78,18 @@ target_link_libraries(katran_server_grpc
   "${LIBDC}"
   "${DL}"
   "${LIBIBERTY}"
-  "${GRPC_UNSECURE}"
   "${LIBZ}"
-  "${UPB}"
-  "${ABSL_BASE_THROW}"
-  "${ABSL_STRINGS}"
-  "${ABSL_BAD_OPTIONAL}"
   katran_service_handler
   grpc_signal_handler
+  gRPC::grpc++
+  gRPC::gpr
+  gRPC::grpc_unsecure
+  # absl is from grpc
+  absl::base
+  absl::cord
+  absl::node_hash_set
+  absl::random_random
+  absl::statusor
   "-Wl,--end-group"
 )
 
