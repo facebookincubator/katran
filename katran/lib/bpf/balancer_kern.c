@@ -314,8 +314,8 @@ __attribute__((__always_inline__)) static inline bool reals_have_same_addr(
       if (a->dstv6[i] != b->dstv6[i]) {
         return false;
       }
-      return true;
     }
+    return true;
   } else {
     return a->dst == b->dst;
   }
