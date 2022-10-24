@@ -16,11 +16,11 @@
 
 #include "katran/lib/testing/BpfTester.h"
 
-#include <iostream>
-
-#include <folly/Format.h>
+#include <fmt/core.h>
+#include <folly/String.h>
 #include <folly/io/IOBuf.h>
 #include <glog/logging.h>
+#include <iostream>
 
 namespace katran {
 
@@ -253,7 +253,7 @@ bool BpfTester::runBpfTesterFromFixtures(
     overallSuccess = overallSuccess && iterationSuccess;
 
     VLOG(2) << "pckt #" << pckt_num;
-    LOG(INFO) << folly::format(
+    LOG(INFO) << fmt::format(
         "Test: {:60} result: {}", config_.testData[i].description, test_result);
     ++pckt_num;
   }
@@ -301,7 +301,7 @@ void BpfTester::testPerfFromFixture(uint32_t repeat, const int position) {
       duration = 1;
     }
     auto pps = kNanosecInSec / duration;
-    LOG(INFO) << folly::format(
+    LOG(INFO) << fmt::format(
         "Test: {:60} duration: {:10} ns/pckt or {} pps",
         config_.testData[i].description,
         duration,

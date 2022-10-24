@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include <folly/Format.h>
+#include <fmt/core.h>
 #include <folly/Utility.h>
 #include <folly/io/Cursor.h>
 #include <folly/io/async/AsyncPipe.h>
@@ -94,7 +94,7 @@ class EventPipeCallback : public folly::AsyncReader::ReadCallback {
   void readBuffer(std::unique_ptr<folly::IOBuf>&& buf) noexcept;
 
   void logerror(std::string msg) {
-    LOG(ERROR) << folly::format(
+    LOG(ERROR) << fmt::format(
         "EventPipeCallback({}): {}", toString(event_id_), msg);
   }
 

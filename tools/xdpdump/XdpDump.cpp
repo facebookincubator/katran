@@ -23,7 +23,7 @@
 
 #include <bcc/libbpf.h>
 #include <bcc/table_storage.h>
-#include <folly/Format.h>
+#include <fmt/core.h>
 #include <folly/io/async/EventBaseManager.h>
 #include <glog/logging.h>
 
@@ -122,45 +122,45 @@ void XdpDump::compile() {
 void XdpDump::prepareCflags() {
   if (filter_.ipv6) {
     if ((filter_.flags & kSrcSet) > 0) {
-      cflags_.push_back(folly::sformat("-DSRCV6_0={}", filter_.srcv6[0]));
-      cflags_.push_back(folly::sformat("-DSRCV6_1={}", filter_.srcv6[1]));
-      cflags_.push_back(folly::sformat("-DSRCV6_2={}", filter_.srcv6[2]));
-      cflags_.push_back(folly::sformat("-DSRCV6_3={}", filter_.srcv6[3]));
+      cflags_.push_back(fmt::format("-DSRCV6_0={}", filter_.srcv6[0]));
+      cflags_.push_back(fmt::format("-DSRCV6_1={}", filter_.srcv6[1]));
+      cflags_.push_back(fmt::format("-DSRCV6_2={}", filter_.srcv6[2]));
+      cflags_.push_back(fmt::format("-DSRCV6_3={}", filter_.srcv6[3]));
     }
     if ((filter_.flags & kDstSet) > 0) {
-      cflags_.push_back(folly::sformat("-DDSTV6_0={}", filter_.dstv6[0]));
-      cflags_.push_back(folly::sformat("-DDSTV6_1={}", filter_.dstv6[1]));
-      cflags_.push_back(folly::sformat("-DDSTV6_2={}", filter_.dstv6[2]));
-      cflags_.push_back(folly::sformat("-DDSTV6_3={}", filter_.dstv6[3]));
+      cflags_.push_back(fmt::format("-DDSTV6_0={}", filter_.dstv6[0]));
+      cflags_.push_back(fmt::format("-DDSTV6_1={}", filter_.dstv6[1]));
+      cflags_.push_back(fmt::format("-DDSTV6_2={}", filter_.dstv6[2]));
+      cflags_.push_back(fmt::format("-DDSTV6_3={}", filter_.dstv6[3]));
     }
   } else {
     if ((filter_.flags & kSrcSet) > 0) {
-      cflags_.push_back(folly::sformat("-DSRCV4={}", filter_.src));
+      cflags_.push_back(fmt::format("-DSRCV4={}", filter_.src));
     }
     if ((filter_.flags & kDstSet) > 0) {
-      cflags_.push_back(folly::sformat("-DDSTV4={}", filter_.dst));
+      cflags_.push_back(fmt::format("-DDSTV4={}", filter_.dst));
     }
   }
   if ((filter_.flags & kSportSet) > 0) {
-    cflags_.push_back(folly::sformat("-DSPORT={}", htons(filter_.sport)));
+    cflags_.push_back(fmt::format("-DSPORT={}", htons(filter_.sport)));
   }
   if ((filter_.flags & kDportSet) > 0) {
-    cflags_.push_back(folly::sformat("-DDPORT={}", htons(filter_.dport)));
+    cflags_.push_back(fmt::format("-DDPORT={}", htons(filter_.dport)));
   }
   if ((filter_.flags & kProtoSet) > 0) {
-    cflags_.push_back(folly::sformat("-DPROTO={}", filter_.proto));
+    cflags_.push_back(fmt::format("-DPROTO={}", filter_.proto));
   }
   if (filter_.offset_len > 0) {
-    cflags_.push_back(folly::sformat("-DOFFSET={}", filter_.offset));
-    cflags_.push_back(folly::sformat("-DO_LEN={}", filter_.offset_len));
-    cflags_.push_back(folly::sformat("-DO_PATTERN={}", filter_.pattern));
+    cflags_.push_back(fmt::format("-DOFFSET={}", filter_.offset));
+    cflags_.push_back(fmt::format("-DO_LEN={}", filter_.offset_len));
+    cflags_.push_back(fmt::format("-DO_PATTERN={}", filter_.pattern));
   }
   if (filter_.count > 0) {
     // not yet used
-    cflags_.push_back(folly::sformat("-DCOUNT={}", filter_.count));
+    cflags_.push_back(fmt::format("-DCOUNT={}", filter_.count));
   }
   if (filter_.cpu >= 0) {
-    cflags_.push_back(folly::sformat("-DCPU_NUMBER={}", filter_.cpu));
+    cflags_.push_back(fmt::format("-DCPU_NUMBER={}", filter_.cpu));
   }
 }
 

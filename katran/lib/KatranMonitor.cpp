@@ -17,7 +17,6 @@
 #include "katran/lib/KatranMonitor.h"
 
 #include <folly/Conv.h>
-#include <folly/Format.h>
 #include <folly/Utility.h>
 #include <folly/io/async/ScopedEventBaseThread.h>
 

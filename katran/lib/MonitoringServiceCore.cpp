@@ -1,7 +1,7 @@
 // Copyright 2004-present Facebook. All Rights Reserved.
 #include "katran/lib/MonitoringServiceCore.h"
 #include <fcntl.h>
-#include <folly/Format.h>
+#include <fmt/core.h>
 #include <folly/Utility.h>
 
 namespace katran {
@@ -27,7 +27,7 @@ bool MonitoringServiceCore::initialize(std::shared_ptr<KatranMonitor> monitor) {
     int pipeFds[2];
     int rc = pipe2(pipeFds, O_NONBLOCK);
     if (rc != 0) {
-      LOG(ERROR) << folly::format(
+      LOG(ERROR) << fmt::format(
           "Creating pipes for event {} failed: {}", toString(eventId), rc);
       continue;
     }
@@ -193,7 +193,7 @@ void MonitoringServiceCore::cancelSubscription(ClientId cid) {
   CHECK(initialized_);
   auto clientAndEventIds = client_to_event_ids_.find(cid);
   if (clientAndEventIds == client_to_event_ids_.end()) {
-    LOG(ERROR) << folly::format("client {} has no associated events", cid);
+    LOG(ERROR) << fmt::format("client {} has no associated events", cid);
     // Best effor to clean up associated data
     for (auto& eventAndCallback : event_pipe_cbs_) {
       eventAndCallback.second->removeClientSubscription(cid);

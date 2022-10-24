@@ -17,9 +17,9 @@
 #include "BaseBpfAdapter.h"
 #include "Netlink.h"
 
+#include <fmt/core.h>
 #include <folly/CppAttributes.h>
 #include <folly/FileUtil.h>
-#include <folly/Format.h>
 #include <folly/ScopeGuard.h>
 #include <folly/String.h>
 #include <glog/logging.h>
@@ -573,7 +573,7 @@ int BaseBpfAdapter::detachCgroupProgByPrefix(
   };
   auto progs_ids = getCgroupProgsIds(cgroup, type);
   if (progs_ids.empty()) {
-    LOG(ERROR) << folly::format(
+    LOG(ERROR) << fmt::format(
         "No bpf program found in cgroup {} of given type ", cgroup);
     return -1;
   }
@@ -590,7 +590,7 @@ int BaseBpfAdapter::detachCgroupProgByPrefix(
     auto bpfProgInfo = getBpfProgInfo(fd);
     folly::StringPiece progName = bpfProgInfo.name;
     if (progName.startsWith(progPrefix)) {
-      VLOG(2) << folly::format(
+      VLOG(2) << fmt::format(
           "Detaching bpf-prog {} with id {} by prefix match; given prefix: {}",
           progName,
           id,
@@ -651,12 +651,10 @@ int BaseBpfAdapter::getBpfProgInfo(int progFd, ::bpf_prog_info& info) {
 bpf_prog_info BaseBpfAdapter::getBpfProgInfo(int progFd) {
   ::bpf_prog_info info = {};
   if (getBpfProgInfo(progFd, info)) {
-    throw std::runtime_error(
-        folly::format(
-            "error while looking up info on bpf program: {}, error: {}",
-            progFd,
-            folly::errnoStr(errno))
-            .str());
+    throw std::runtime_error(fmt::format(
+        "error while looking up info on bpf program: {}, error: {}",
+        progFd,
+        folly::errnoStr(errno)));
   }
   return info;
 }
