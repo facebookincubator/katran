@@ -18,7 +18,6 @@
 
 #include <glog/logging.h>
 
-#include <folly/Format.h>
 #include <folly/MacAddress.h>
 
 namespace katran {
@@ -50,7 +49,7 @@ std::string convertMacToString(std::vector<uint8_t> mac) {
   std::string mac_string;
   for (auto m : mac) {
     mac_part = m;
-    mac_part_string = folly::sformat("{0:02x}:", mac_part);
+    mac_part_string = fmt::format("{0:02x}:", mac_part);
     mac_string += mac_part_string;
   }
   return mac_string;

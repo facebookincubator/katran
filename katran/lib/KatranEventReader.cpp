@@ -15,7 +15,6 @@
  */
 #include "katran/lib/KatranEventReader.h"
 
-#include <folly/Format.h>
 #include <folly/Utility.h>
 #include <unistd.h>
 

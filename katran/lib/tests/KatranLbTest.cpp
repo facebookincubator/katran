@@ -14,7 +14,7 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#include <folly/Format.h>
+#include <fmt/core.h>
 #include <gtest/gtest.h>
 
 #include "katran/lib/KatranLb.h"
@@ -83,12 +83,12 @@ class KatranLbTest : public ::testing::Test {
       for (int j = 0; j < 256; j++) {
         k = (i * 256 + j);
         if (k < kMaxNumOfReals) {
-          real1.address = folly::sformat("10.0.{}.{}", i, j);
+          real1.address = fmt::format("10.0.{}.{}", i, j);
           newReals1.push_back(real1);
           qreal1.address = real1.address;
           qreal1.id = k;
           qReals1.push_back(qreal1);
-          real2.address = folly::sformat("10.1.{}.{}", i, j);
+          real2.address = fmt::format("10.1.{}.{}", i, j);
           newReals2.push_back(real2);
           qreal2.address = real2.address;
           qreal2.id = k;
@@ -394,7 +394,7 @@ TEST_F(KatranLbTest, addValidSrcRoutingRuleV6) {
 TEST_F(KatranLbTest, addMaxSrcRules) {
   std::vector<std::string> srcs;
   for (int i = 0; i < 20; i++) {
-    auto prefix = folly::sformat("10.0.{}.0/24", i);
+    auto prefix = fmt::format("10.0.{}.0/24", i);
     srcs.push_back(prefix);
   }
   auto res = lb->addSrcRoutingRule(srcs, "fc00::1");
@@ -412,7 +412,7 @@ TEST_F(KatranLbTest, addMaxSrcRules) {
 TEST_F(KatranLbTest, delSrcRules) {
   std::vector<std::string> srcs;
   for (int i = 0; i < 10; i++) {
-    auto prefix = folly::sformat("10.0.{}.0/24", i);
+    auto prefix = fmt::format("10.0.{}.0/24", i);
     srcs.push_back(prefix);
   }
   ASSERT_EQ(lb->addSrcRoutingRule(srcs, "fc00::1"), 0);
@@ -424,7 +424,7 @@ TEST_F(KatranLbTest, delSrcRules) {
 TEST_F(KatranLbTest, clearSrcRules) {
   std::vector<std::string> srcs;
   for (int i = 0; i < 10; i++) {
-    auto prefix = folly::sformat("10.0.{}.0/24", i);
+    auto prefix = fmt::format("10.0.{}.0/24", i);
     srcs.push_back(prefix);
   }
   ASSERT_EQ(lb->addSrcRoutingRule(srcs, "fc00::1"), 0);
@@ -436,7 +436,7 @@ TEST_F(KatranLbTest, clearSrcRules) {
 TEST_F(KatranLbTest, addFewInvalidNets) {
   std::vector<std::string> srcs;
   for (int i = 0; i < 7; i++) {
-    auto prefix = folly::sformat("10.0.{}.0/24", i);
+    auto prefix = fmt::format("10.0.{}.0/24", i);
     srcs.push_back(prefix);
   }
   srcs.push_back("aaa");

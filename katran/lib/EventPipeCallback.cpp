@@ -1,7 +1,7 @@
 // Copyright 2004-present Facebook. All Rights Reserved.
 
 #include "katran/lib/EventPipeCallback.h"
-#include <folly/Format.h>
+#include <fmt/core.h>
 #include <folly/Utility.h>
 #include <stdint.h>
 #include "katran/lib/PcapStructs.h"
@@ -48,7 +48,7 @@ void EventPipeCallback::readBuffer(
           rec_hdr_sz + rec_hdr.incl_len);
       rcursor.skip(rec_hdr_sz + rec_hdr.incl_len);
     } else {
-      VLOG(2) << folly::format(
+      VLOG(2) << fmt::format(
           "incomplete pcap message, expecting {} bytes of data, got {}",
           rec_hdr.incl_len,
           rcursor.length());
@@ -60,7 +60,7 @@ void EventPipeCallback::readBuffer(
     if (enabled()) {
       auto subsmap = cb_subsmap_.rlock();
       for (auto& it : *subsmap) {
-        VLOG(4) << folly::sformat(
+        VLOG(4) << fmt::format(
             "sending event {} to client", toString(event_id_));
         it.second->sendEvent(msg);
       }
@@ -78,11 +78,11 @@ void EventPipeCallback::readBuffer(
 void EventPipeCallback::addClientSubscription(
     std::pair<ClientId, std::shared_ptr<ClientSubscriptionIf>>&& newSub) {
   ClientId cid = newSub.first;
-  VLOG(4) << __func__ << folly::sformat(" Adding client {}", cid);
+  VLOG(4) << __func__ << fmt::format(" Adding client {}", cid);
   auto cb_subsmap = cb_subsmap_.wlock();
   auto result = cb_subsmap->insert(std::move(newSub));
   if (!result.second) {
-    LOG(ERROR) << folly::format("duplicate client id: {}", cid);
+    LOG(ERROR) << fmt::format("duplicate client id: {}", cid);
   }
 }
 
@@ -90,7 +90,7 @@ void EventPipeCallback::removeClientSubscription(ClientId cid) {
   auto cb_subsmap = cb_subsmap_.wlock();
   size_t cnt = cb_subsmap->erase(cid);
   if (cnt != 1) {
-    LOG(ERROR) << folly::format(
+    LOG(ERROR) << fmt::format(
         "no client subscription associated with id: {}", cid);
   }
 }

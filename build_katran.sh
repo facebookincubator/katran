@@ -123,7 +123,8 @@ get_required_libs() {
             xz-devel \
             re2-devel \
             libatomic-static \
-            libsodium-static
+            libsodium-static \
+            fmt-devel
     else
         sudo apt-get install -y    \
             libgoogle-glog-dev     \
@@ -131,8 +132,9 @@ get_required_libs() {
             libelf-dev             \
             libmnl-dev             \
             liblzma-dev            \
-            libre2-dev
-        sudo apt-get install -y libsodium-dev
+            libre2-dev             \
+            libsodium-dev          \
+            libfmt-dev
     fi
 }
 
