@@ -30,27 +30,6 @@
 namespace katran {
 
 namespace {
-constexpr uint8_t V6DADDR = 1;
-constexpr int kDeleteXdpProg = -1;
-constexpr int kMacBytes = 6;
-constexpr int kCtlMapSize = 16;
-constexpr int kLruPrototypePos = 0;
-constexpr int kMaxForwardingCores = 128;
-constexpr int kFirstElem = 0;
-constexpr int kError = -1;
-constexpr uint32_t kMaxQuicId = 0x00fffffe; // 2^24-2
-constexpr uint32_t kDefaultStatsIndex = 0;
-constexpr folly::StringPiece kEmptyString = "";
-constexpr uint32_t kSrcV4Pos = 0;
-constexpr uint32_t kSrcV6Pos = 1;
-constexpr uint32_t kRecirculationIndex = 0;
-constexpr uint32_t kHcSrcMacPos = 0;
-constexpr uint32_t kHcDstMacPos = 1;
-constexpr folly::StringPiece kFlowDebugParentMapName = "flow_debug_maps";
-constexpr folly::StringPiece kFlowDebugCpuLruName = "flow_debug_lru";
-constexpr folly::StringPiece kGlobalLruMapName = "global_lru_maps";
-constexpr folly::StringPiece kGlobalLruPerCpuName = "global_lru";
-
 using EventId = monitoring::EventId;
 } // namespace
 
