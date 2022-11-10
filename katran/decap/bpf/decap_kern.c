@@ -59,6 +59,9 @@ __attribute__((__always_inline__)) static inline int process_l3_headers(
       // we drop fragmented packets
       return XDP_DROP;
     }
+#ifdef DECAP_STRICT_DESTINATION
+    memcpy(pckt->flow.dstv6, ip6h->daddr.s6_addr32, 16);
+#endif // DECAP_STRICT_DESTINATION
   } else {
     iph = data + off;
     if (iph + 1 > data_end) {
@@ -80,9 +83,51 @@ __attribute__((__always_inline__)) static inline int process_l3_headers(
       // we drop fragmented packets.
       return XDP_DROP;
     }
+#ifdef DECAP_STRICT_DESTINATION
+    pckt->flow.dst = iph->daddr;
+#endif // DECAP_STRICT_DESTINATION
   }
   return FURTHER_PROCESSING;
 }
+
+#ifdef DECAP_STRICT_DESTINATION
+__attribute__((__always_inline__)) static inline int check_decap_dst(
+    struct packet_description* pckt,
+    bool is_ipv6) {
+  struct real_definition* host_primary_addrs;
+  __u32 addr_index;
+
+  if (is_ipv6) {
+    addr_index = V6_SRC_INDEX;
+    host_primary_addrs = bpf_map_lookup_elem(&pckt_srcs, &addr_index);
+    if (host_primary_addrs) {
+      // a workaround for eBPF's `__builtin_memcmp` bug
+      if (host_primary_addrs->dstv6[0] != pckt->flow.dstv6[0] ||
+          host_primary_addrs->dstv6[1] != pckt->flow.dstv6[1] ||
+          host_primary_addrs->dstv6[2] != pckt->flow.dstv6[2] ||
+          host_primary_addrs->dstv6[3] != pckt->flow.dstv6[3]) {
+        // Since the outer packet destination does not match host IPv6,
+        // do not decapsulate. It would allow to deliver the packet
+        // to the correct network namespace.
+        return XDP_PASS;
+      }
+    }
+  } else {
+    addr_index = V4_SRC_INDEX;
+    host_primary_addrs = bpf_map_lookup_elem(&pckt_srcs, &addr_index);
+    if (host_primary_addrs) {
+      if (host_primary_addrs->dst != pckt->flow.dst) {
+        // Since the outer packet destination does not match host IPv4,
+        // do not decapsulate. It would allow to deliver the packet
+        // to the correct network namespace.
+        return XDP_PASS;
+      }
+    }
+  }
+
+  return FURTHER_PROCESSING;
+}
+#endif // DECAP_STRICT_DESTINATION
 
 __attribute__((__always_inline__)) static inline int process_encaped_ipip_pckt(
     void** data,
@@ -188,13 +233,22 @@ __attribute__((__always_inline__)) static inline int process_packet(
     return XDP_PASS;
   }
 
-  data_stats->total += 1;
+  // data_stats->total += 1;
   if (protocol == IPPROTO_IPIP || protocol == IPPROTO_IPV6) {
+#ifdef DECAP_STRICT_DESTINATION
+    action = check_decap_dst(&pckt, is_ipv6);
+    if (action >= 0) {
+      return action;
+    }
+#endif // DECAP_STRICT_DESTINATION
+
     if (is_ipv6) {
       data_stats->decap_v6 += 1;
     } else {
       data_stats->decap_v4 += 1;
     }
+    data_stats->total += 1;
+
     action = process_encaped_ipip_pckt(
         &data, &data_end, xdp, &is_ipv6, &pckt, &protocol, off, &pkt_bytes);
     if (action >= 0) {
@@ -207,11 +261,20 @@ __attribute__((__always_inline__)) static inline int process_packet(
       return XDP_PASS;
     }
     if (pckt.flow.port16[1] == bpf_htons(GUE_DPORT)) {
+#ifdef DECAP_STRICT_DESTINATION
+      action = check_decap_dst(&pckt, is_ipv6);
+      if (action >= 0) {
+        return action;
+      }
+#endif // DECAP_STRICT_DESTINATION
+
       if (is_ipv6) {
         data_stats->decap_v6 += 1;
       } else {
         data_stats->decap_v4 += 1;
       }
+      data_stats->total += 1;
+
       action = process_encaped_gue_pckt(&data, &data_end, xdp, is_ipv6);
       if (action >= 0) {
         return action;
