@@ -22,14 +22,14 @@
 
 namespace katran {
 
-std::vector<uint8_t> convertMacToUint(std::string macAddress) {
+std::vector<uint8_t> convertMacToUint(const std::string& macAddress) {
   std::vector<uint8_t> mac(6);
 
   folly::MacAddress default_mac;
   try {
     default_mac.parse(macAddress);
   } catch (const std::exception& e) {
-    LOG(INFO) << "Exception: " << e.what() << std::endl;
+    LOG(ERROR) << "Exception: " << e.what() << std::endl;
     return mac;
   }
 

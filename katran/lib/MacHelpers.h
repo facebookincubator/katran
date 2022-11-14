@@ -21,6 +21,6 @@
 #include <vector>
 
 namespace katran {
-std::vector<uint8_t> convertMacToUint(std::string macAddress);
+std::vector<uint8_t> convertMacToUint(const std::string& macAddress);
 std::string convertMacToString(std::vector<uint8_t> mac);
 } // namespace katran
