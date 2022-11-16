@@ -233,7 +233,6 @@ __attribute__((__always_inline__)) static inline int process_packet(
     return XDP_PASS;
   }
 
-  // data_stats->total += 1;
   if (protocol == IPPROTO_IPIP || protocol == IPPROTO_IPV6) {
 #ifdef DECAP_STRICT_DESTINATION
     action = check_decap_dst(&pckt, is_ipv6);
