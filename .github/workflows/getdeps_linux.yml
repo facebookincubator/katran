@@ -23,12 +23,12 @@ jobs:
       run: python3 build/fbcode_builder/getdeps.py fetch --no-tests zlib
     - name: Fetch zstd
       run: python3 build/fbcode_builder/getdeps.py fetch --no-tests zstd
+    - name: Fetch fmt
+      run: python3 build/fbcode_builder/getdeps.py fetch --no-tests fmt
     - name: Fetch boost
       run: python3 build/fbcode_builder/getdeps.py fetch --no-tests boost
     - name: Fetch double-conversion
       run: python3 build/fbcode_builder/getdeps.py fetch --no-tests double-conversion
-    - name: Fetch fmt
-      run: python3 build/fbcode_builder/getdeps.py fetch --no-tests fmt
     - name: Fetch gflags
       run: python3 build/fbcode_builder/getdeps.py fetch --no-tests gflags
     - name: Fetch glog
@@ -69,12 +69,12 @@ jobs:
       run: python3 build/fbcode_builder/getdeps.py build --no-tests zlib
     - name: Build zstd
       run: python3 build/fbcode_builder/getdeps.py build --no-tests zstd
+    - name: Build fmt
+      run: python3 build/fbcode_builder/getdeps.py build --no-tests fmt
     - name: Build boost
       run: python3 build/fbcode_builder/getdeps.py build --no-tests boost
     - name: Build double-conversion
       run: python3 build/fbcode_builder/getdeps.py build --no-tests double-conversion
-    - name: Build fmt
-      run: python3 build/fbcode_builder/getdeps.py build --no-tests fmt
     - name: Build gflags
       run: python3 build/fbcode_builder/getdeps.py build --no-tests gflags
     - name: Build glog
