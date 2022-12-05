@@ -545,6 +545,9 @@ void KatranLb::setupGueEnvironment() {
         bpfAdapter_->getMapFdByName("pckt_srcs"), &key, &srcv4);
     if (res < 0) {
       throw std::runtime_error("can not update src v4 address for GUE packet");
+    } else {
+      LOG(INFO) << "update src v4 address " << config_.katranSrcV4
+                << " for GUE packet";
     }
   } else {
     LOG(ERROR) << "Empty IPV4 address provided to use as source in GUE encap";
@@ -557,6 +560,9 @@ void KatranLb::setupGueEnvironment() {
         bpfAdapter_->getMapFdByName("pckt_srcs"), &key, &srcv6);
     if (res < 0) {
       throw std::runtime_error("can not update src v6 address for GUE packet");
+    } else {
+      LOG(INFO) << "update src v6 address " << config_.katranSrcV6
+                << " for GUE packet";
     }
   } else {
     LOG(ERROR) << "Empty IPV6 address provided to use as source in GUE encap";
@@ -577,6 +583,9 @@ void KatranLb::setupHcEnvironment() {
     if (res < 0) {
       throw std::runtime_error(
           "can not update src v4 address for direct healthchecking");
+    } else {
+      LOG(INFO) << "update src v4 address " << config_.katranSrcV4
+                << " for direct healthchecking";
     }
   } else {
     LOG(ERROR) << "Empty IPV4 address provided to use as source in healthcheck";
@@ -589,6 +598,9 @@ void KatranLb::setupHcEnvironment() {
     if (res < 0) {
       throw std::runtime_error(
           "can not update src v6 address for direct healthchecking");
+    } else {
+      LOG(INFO) << "update src v6 address " << config_.katranSrcV6
+                << " for direct healthchecking";
     }
   } else {
     LOG(ERROR) << "Empty IPV6 address provided to use as source in healthcheck";

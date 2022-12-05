@@ -781,6 +781,14 @@ class KatranLb {
    */
   std::vector<int> getGlobalLruMapsFds();
 
+  /**
+   * @return int fd of the katran's bpf map
+   * helper function to get fd of katran bpf map
+   */
+  int getBpfMapFdByName(const std::string& mapName) {
+    return bpfAdapter_->getMapFdByName(mapName);
+  }
+
  private:
   /**
    * update vipmap(add or remove vip) in forwarding plane
