@@ -49,7 +49,7 @@ constexpr unsigned int kBpfMapTypeHashOfMaps = 13;
 
 class BaseBpfAdapter {
  public:
-  BaseBpfAdapter(bool set_limits);
+  BaseBpfAdapter(bool set_limits, bool enableBatchOpsIfSupported);
 
   virtual ~BaseBpfAdapter() {}
 
@@ -308,6 +308,18 @@ class BaseBpfAdapter {
       void* key,
       void* value,
       unsigned long long flags = 0);
+
+  /**
+   * @param int map_fd file descriptor of map to update
+   * @param void* keys array of keys. Must have size count.
+   * @param void* values array of values. Must have size count.
+   * @param uint32_t count number of entries being updated.
+   * @return int 0 on success, other val otherwise
+   *
+   * helper function to update (and/or create; depends on container)
+   * values inside a bpf map
+   */
+  int bpfUpdateMapBatch(int map_fd, void* keys, void* values, uint32_t count);
 
   /**
    * @param int map_fd file descriptor of map to update
@@ -686,6 +698,18 @@ class BaseBpfAdapter {
    * helper function to mmap pages for bpf_perf_event
    */
   static struct perf_event_mmap_page* perfEventMmap(int event_fd, int pages);
+
+  /**
+   * attempts to ascertain whether batch bpf ops are supported by
+   * creating a dummy map and performing a batch read on it.
+   */
+  bool batchOpsAreSupported();
+
+  /**
+   * this is set to true in the constructor if batch ops are both
+   * enabled and supported.
+   */
+  bool batchOpsEnabled_{false};
 };
 
 } // namespace katran

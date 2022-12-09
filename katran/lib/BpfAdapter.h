@@ -32,7 +32,9 @@ namespace katran {
 
 class BpfAdapter : public BaseBpfAdapter {
  public:
-  explicit BpfAdapter(bool set_limits = true);
+  explicit BpfAdapter(
+      bool set_limits = true,
+      bool enableBatchOpsIfSupported = false);
 
   // BpfAdapter is not thread safe.  Discourage unsafe use by disabling copy
   // construction/assignment.

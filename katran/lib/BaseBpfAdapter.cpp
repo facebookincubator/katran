@@ -165,7 +165,9 @@ static int NetlinkRoundtrip(const NetlinkMessage& msg) {
   return ret;
 }
 
-BaseBpfAdapter::BaseBpfAdapter(bool set_limits) {
+BaseBpfAdapter::BaseBpfAdapter(
+    bool set_limits,
+    bool enableBatchOpsIfSupported) {
   if (set_limits) {
     struct rlimit lck_mem = {};
     lck_mem.rlim_cur = RLIM_INFINITY;
@@ -175,6 +177,12 @@ BaseBpfAdapter::BaseBpfAdapter(bool set_limits) {
       throw std::runtime_error("error while setting limit for locked memory");
     }
   }
+
+  if (enableBatchOpsIfSupported) {
+    batchOpsEnabled_ = batchOpsAreSupported();
+  }
+
+  VLOG(1) << "Batch ops are " << (batchOpsEnabled_ ? "enabled" : "disabled");
 }
 
 int BaseBpfAdapter::createBpfMap(
@@ -222,6 +230,51 @@ int BaseBpfAdapter::bpfUpdateMap(
     VLOG(4) << "Error while updating value in map: " << folly::errnoStr(errno);
   }
   return bpfError;
+}
+
+int BaseBpfAdapter::bpfUpdateMapBatch(
+    int map_fd,
+    void* keys,
+    void* values,
+    uint32_t count) {
+  if (batchOpsEnabled_) {
+    uint32_t numUpdated = count;
+    DECLARE_LIBBPF_OPTS(
+        bpf_map_batch_opts, opts, .elem_flags = 0, .flags = 0, );
+    if (auto bpfError =
+            bpf_map_update_batch(map_fd, keys, values, &numUpdated, &opts)) {
+      LOG(ERROR) << "Failed to perform batch update, errno = " << errno;
+      return -1;
+    }
+    if (count != numUpdated) {
+      LOG(ERROR) << "Batch update only updated " << numUpdated
+                 << " elements out of " << count;
+      return -1;
+    }
+  } else {
+    struct bpf_map_info mapInfo;
+    auto err = getBpfMapInfo(map_fd, &mapInfo);
+
+    if (err) {
+      LOG(ERROR) << "Error while retrieving map metadata for fd " << map_fd
+                 << " : " << folly::errnoStr(errno);
+      return -1;
+    }
+
+    for (uint32_t i = 0; i < count; i++) {
+      auto res = bpfUpdateMap(
+          map_fd,
+          (char*)keys + (i * mapInfo.key_size),
+          (char*)values + (i * mapInfo.value_size));
+      if (res != 0) {
+        LOG(ERROR) << "Failed to perform update, errno = "
+                   << folly::errnoStr(errno);
+        return -1;
+      }
+    }
+  }
+
+  return 0;
 }
 
 int BaseBpfAdapter::bpfMapLookupElement(
@@ -788,6 +841,32 @@ bool BaseBpfAdapter::isMapInBpfObject(
     }
   }
   return false;
+}
+
+bool BaseBpfAdapter::batchOpsAreSupported() {
+  int tempMap = createBpfMap(
+      BPF_MAP_TYPE_ARRAY, sizeof(uint32_t), sizeof(uint32_t), 5, 0);
+
+  SCOPE_EXIT {
+    close(tempMap);
+  };
+
+  // try a batch lookup operation to see if batch ops are supported
+  auto size = 2;
+
+  uint32_t* next_batch_key;
+  uint32_t count = size;
+  uint32_t keys[size];
+  uint32_t values[size];
+  memset(keys, 0, sizeof(keys));
+  DECLARE_LIBBPF_OPTS(bpf_map_batch_opts, opts, .elem_flags = 0, .flags = 0, );
+  if (bpf_map_lookup_batch(
+          tempMap, NULL, &next_batch_key, keys, values, &count, &opts)) {
+    if (errno != 0) {
+      return false;
+    }
+  }
+  return true;
 }
 
 } // namespace katran

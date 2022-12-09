@@ -18,8 +18,8 @@
 
 namespace katran {
 
-BpfAdapter::BpfAdapter(bool set_limits)
-    : BaseBpfAdapter(set_limits), loader_() {}
+BpfAdapter::BpfAdapter(bool set_limits, bool enableBatchOpsIfSupported)
+    : BaseBpfAdapter(set_limits, enableBatchOpsIfSupported), loader_() {}
 
 int BpfAdapter::loadBpfProg(
     const std::string& bpf_prog,
