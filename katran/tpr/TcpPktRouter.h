@@ -70,11 +70,12 @@ class TcpPktRouter {
       folly::EventBase* evb,
       int statsMapFd);
 
+  RunningMode mode_;
+
  private:
   folly::Expected<folly::Unit, std::system_error> updateServerInfo() noexcept;
 
   bool isInitialized_{false};
-  RunningMode mode_;
   uint32_t v6Id_;
   std::string cgroupPath_;
   TprBpfAdapter adapter_;
