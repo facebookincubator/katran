@@ -253,6 +253,7 @@ int BaseBpfAdapter::bpfUpdateMapBatch(
     }
   } else {
     struct bpf_map_info mapInfo;
+    memset(&mapInfo, 0, sizeof(mapInfo));
     auto err = getBpfMapInfo(map_fd, &mapInfo);
 
     if (err) {

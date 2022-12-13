@@ -1280,18 +1280,26 @@ bool KatranLb::modifyRealsForVip(
 void KatranLb::programHashRing(
     const std::vector<RealPos>& chPositions,
     const uint32_t vipNum) {
+  if (chPositions.empty()) {
+    return;
+  }
+
   if (!config_.testing) {
+    uint32_t updateSize = chPositions.size();
+    uint32_t keys[updateSize];
+    uint32_t values[updateSize];
+
     auto ch_fd = bpfAdapter_->getMapFdByName("ch_rings");
-    uint32_t key;
-    int res;
-    for (auto pos : chPositions) {
-      key = vipNum * config_.chRingSize + pos.pos;
-      res = bpfAdapter_->bpfUpdateMap(ch_fd, &key, &pos.real);
-      if (res != 0) {
-        lbStats_.bpfFailedCalls++;
-        LOG(INFO) << "can't update ch ring"
-                  << ", error: " << folly::errnoStr(errno);
-      }
+    for (uint32_t i = 0; i < updateSize; i++) {
+      keys[i] = vipNum * config_.chRingSize + chPositions[i].pos;
+      values[i] = chPositions[i].real;
+    }
+
+    auto res = bpfAdapter_->bpfUpdateMapBatch(ch_fd, keys, values, updateSize);
+    if (res != 0) {
+      lbStats_.bpfFailedCalls++;
+      LOG(INFO) << "can't update ch ring"
+                << ", error: " << folly::errnoStr(errno);
     }
   }
 }
