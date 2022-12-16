@@ -63,7 +63,7 @@ constexpr uint32_t kQuicCidVersionOffset = 8;
 constexpr uint32_t kQuicCidDropOffset = 9;
 constexpr uint32_t kTcpServerIdRoutingOffset = 10;
 constexpr uint32_t kGlobalLruOffset = 11;
-constexpr uint32_t kGlobalLruMismatchOffset = 12;
+// 12 is unused
 constexpr uint32_t kDecapCounterOffset = 13;
 
 /**
@@ -566,15 +566,6 @@ class KatranLb {
    * (v2)
    */
   lb_stats getGlobalLruStats();
-
-  /**
-   * @return struct lb_stats w/ src global lru mismatch statistics
-   *
-   * helper function which returns how many times the global lru destination
-   * matched the destination from the consistent hash function (v1) and how
-   * many times it didn't match (v2)
-   */
-  lb_stats getGlobalLruMismatchStats();
 
   /**
    * @return struct lb_stats w/ statistic of decap packets

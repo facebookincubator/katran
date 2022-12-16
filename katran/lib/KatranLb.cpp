@@ -1949,10 +1949,6 @@ lb_stats KatranLb::getGlobalLruStats() {
   return getLbStats(config_.maxVips + kGlobalLruOffset);
 }
 
-lb_stats KatranLb::getGlobalLruMismatchStats() {
-  return getLbStats(config_.maxVips + kGlobalLruMismatchOffset);
-}
-
 lb_stats KatranLb::getDecapStats() {
   return getLbStats(config_.maxVips + kDecapCounterOffset);
 }
