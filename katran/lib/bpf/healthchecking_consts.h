@@ -28,7 +28,7 @@
 // when set to 0, the healthchecker_kern would not perform skb length check,
 // relying on GSO to segment packets exceeding MSS on transmit path
 #ifndef HC_MAX_PACKET_SIZE
-#define HC_MAX_PACKET_SIZE 1474
+#define HC_MAX_PACKET_SIZE 0
 #endif
 
 // position in stats map where we are storing generic counters.
