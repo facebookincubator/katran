@@ -253,7 +253,6 @@ int BaseBpfAdapter::bpfUpdateMapBatch(
     }
   } else {
     struct bpf_map_info mapInfo;
-    memset(&mapInfo, 0, sizeof(mapInfo));
     auto err = getBpfMapInfo(map_fd, &mapInfo);
 
     if (err) {
@@ -332,13 +331,14 @@ int BaseBpfAdapter::getPinnedBpfObject(const std::string& path) {
   return bpf_obj_get(path.c_str());
 }
 
-int BaseBpfAdapter::getBpfMapInfo(const int& fd, struct bpf_map_info* info) {
+int BaseBpfAdapter::getBpfMapInfo(int fd, struct bpf_map_info* info) {
   uint32_t info_size = sizeof(struct bpf_map_info);
+  memset(info, 0, info_size);
   return bpf_obj_get_info_by_fd(fd, info, &info_size);
 }
 
 int BaseBpfAdapter::getBpfMapMaxSize(const std::string& name) {
-  struct bpf_map_info info = {0};
+  struct bpf_map_info info;
   int fd = getMapFdByName(name);
   if (fd < 0) {
     LOG(ERROR) << "Error while retrieving fd for " << name << "=" << fd;
@@ -357,7 +357,6 @@ int BaseBpfAdapter::getBpfMapUsedSize(const std::string& name) {
   int num_entries = 0, err = 0;
   void* prev_key = nullptr;
   struct bpf_map_info info;
-  memset(&info, 0, sizeof(info));
   int fd = getMapFdByName(name);
   if (fd < 0) {
     LOG(ERROR) << "Error while retrieving fd for " << name << ": " << fd;

@@ -212,11 +212,14 @@ class BaseBpfAdapter {
   /**
    * @param int fd of the object (e.g. map)
    * @param bpf_map_info* pointer of pre-allocated bpf map info to populate
+   * @param init_bpf_map_info should be true if the function is called for a map
+   * for the first time. Use this explicit param to make sure the correct
+   * initialization of bpf_map_info
    * @return int 0 on success; non-zero otherwise
    *
    * helper function to get the metadata of a bpf map
    */
-  static int getBpfMapInfo(const int& fd, struct bpf_map_info* info);
+  static int getBpfMapInfo(int fd, struct bpf_map_info* info);
 
   /**
    * @param string name of the bpf map
