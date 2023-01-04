@@ -63,7 +63,7 @@ constexpr uint32_t kQuicCidVersionOffset = 8;
 constexpr uint32_t kQuicCidDropOffset = 9;
 constexpr uint32_t kTcpServerIdRoutingOffset = 10;
 constexpr uint32_t kGlobalLruOffset = 11;
-// 12 is unused
+constexpr uint32_t kChDropOffset = 12;
 constexpr uint32_t kDecapCounterOffset = 13;
 
 /**
@@ -525,12 +525,19 @@ class KatranLb {
    * @return struct lb_stats w/ statistic of QUIC packet drop stats
    *
    * helper function which returns how many QUIC packets were dropped:
-   * v1 - packets routed to real #0, because bpf array map defaults to 0,
-   * unknown server ID result in routing to real #0, we don't currently
-   * have way to distinguish between expected and unexpected cases.
-   * v2 - packets dropped because server ID map pointed to unknown real ID.
+   * v1 - packets dropped because server ID map pointed to unknown real ID.
+   * v2 - packets routed to real #0, which we don't map any real to
    */
   lb_stats getQuicCidDropStats();
+
+  /**
+   * @return struct lb_stats w/ statistic of packets dropped during consistent
+   * hashing.
+   *
+   * v1 - packets dropped because the real id is out of bounds in the reals map
+   * v2 - packets routed to real #0, which we don't map any real to
+   */
+  lb_stats getChDropStats();
 
   /**
    * @return struct lb_stats w/ statistic of server_id based routing of
