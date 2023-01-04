@@ -224,7 +224,8 @@
 #define TCP_SERVER_ID_ROUTE_STATS 10
 // offset of stats for global LRU
 #define GLOBAL_LRU_CNTR 11
-// 12 is unused
+// offset of stats for packets dropped during consistent hashing
+#define CH_DROP_STATS 12
 // offset of stats for decap packets
 #define DECAP_CNTR 13
 

@@ -62,6 +62,28 @@ __attribute__((__always_inline__)) static inline bool is_under_flood(
   return false;
 }
 
+__attribute__((__always_inline__)) static inline void
+increment_ch_drop_no_real() {
+  __u32 ch_drop_stats_key = MAX_VIPS + CH_DROP_STATS;
+  struct lb_stats* ch_drop_stats =
+      bpf_map_lookup_elem(&stats, &ch_drop_stats_key);
+  if (!ch_drop_stats) {
+    return;
+  }
+  ch_drop_stats->v1 += 1;
+}
+
+__attribute__((__always_inline__)) static inline void
+increment_ch_drop_real_0() {
+  __u32 ch_drop_stats_key = MAX_VIPS + CH_DROP_STATS;
+  struct lb_stats* ch_drop_stats =
+      bpf_map_lookup_elem(&stats, &ch_drop_stats_key);
+  if (!ch_drop_stats) {
+    return;
+  }
+  ch_drop_stats->v2 += 1;
+}
+
 __attribute__((__always_inline__)) static inline bool get_packet_dst(
     struct real_definition** real,
     struct packet_description* pckt,
@@ -126,10 +148,18 @@ __attribute__((__always_inline__)) static inline bool get_packet_dst(
       return false;
     }
     key = *real_pos;
+    if (key == 0) {
+      // Real ids start from 1, so we don't map the id 0 to any real. This
+      // is likely to happen if the ch ring for a vip is uninitialized.
+      increment_ch_drop_real_0();
+    }
   }
   pckt->real_index = key;
   *real = bpf_map_lookup_elem(&reals, &key);
   if (!(*real)) {
+    // The id we retrieved from the hash ring is out of bounds in the reals
+    // array.
+    increment_ch_drop_no_real();
     return false;
   }
   if (lru_map && !(vip_info->flags & F_LRU_BYPASS) && !under_flood) {
