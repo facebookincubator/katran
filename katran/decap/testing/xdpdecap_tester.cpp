@@ -18,7 +18,6 @@
 #include <string>
 #include <vector>
 
-#include <folly/Range.h>
 #include <gflags/gflags.h>
 
 #include "katran/decap/XdpDecap.h"
