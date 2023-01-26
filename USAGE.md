@@ -122,8 +122,8 @@ therefore doesn't require root privileges. It is used only for unittesting)
 
 15. `forwardingCores` - ID of cpu cores which are responsible for the packet
 forwarding. When you have multi-queue NIC it could have less RX queues configured
-for [RSS](https://github.com/torvalds/linux/blob/master/Documentation/networking/scaling.txt) than CPUs on the server.
-In this case [best practice is to "pin"/map IRQs of the NIC to the certain CPUs.](https://github.com/torvalds/linux/blob/master/Documentation/IRQ-affinity.txt)
+for [RSS](https://github.com/torvalds/linux/blob/master/Documentation/networking/scaling.rst) than CPUs on the server.
+In this case [best practice is to "pin"/map IRQs of the NIC to the certain CPUs.](https://github.com/torvalds/linux/blob/master/Documentation/core-api/irq/irq-affinity.rst)
 we store this mapping in this vector.
 
 16. If server has multiple CPU sockets/NUMA domains - you can provide hints
@@ -312,4 +312,3 @@ be in sync w/ the same params in userspace (e.g. max reals, max vips,
 consistent hash ring size). bpf related configurations are defined and described
 in `lib/bpf/balancer_consts.h`. You can change them by providing `-D` flag during
 BPF compilation time (e.g. by adding it in lib/Makefile-bpf)
-
