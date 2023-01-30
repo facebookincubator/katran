@@ -1,3 +1,5 @@
+// Copyright (c) Meta Platforms, Inc. and affiliates.
+
 #pragma once
 
 #include <bpf/libbpf.h>
