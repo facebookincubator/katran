@@ -26,8 +26,8 @@
 
 #include "katran/lib/bpf/balancer_consts.h"
 
-#ifndef STATS_MAP_SIZE
-#define STATS_MAP_SIZE 1
+#ifndef DECAP_STATS_MAP_SIZE
+#define DECAP_STATS_MAP_SIZE 1
 #endif
 
 struct decap_stats {
@@ -41,7 +41,7 @@ struct {
   __uint(type, BPF_MAP_TYPE_PERCPU_ARRAY);
   __type(key, __u32);
   __type(value, struct decap_stats);
-  __uint(max_entries, STATS_MAP_SIZE);
+  __uint(max_entries, DECAP_STATS_MAP_SIZE);
   __uint(map_flags, NO_FLAGS);
 } decap_counters SEC(".maps");
 
