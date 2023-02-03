@@ -1989,6 +1989,35 @@ lb_stats KatranLb::getLbStats(uint32_t position, const std::string& map) {
   return sum_stat;
 }
 
+std::vector<int64_t> KatranLb::getPerCorePacketsStats() {
+  if (config_.disableForwarding || config_.testing) {
+    return {};
+  }
+  unsigned int nr_cpus = BpfAdapter::getPossibleCpus();
+  if (nr_cpus < 0) {
+    LOG(ERROR) << "Error while getting number of possible cpus";
+    return {};
+  }
+  std::vector<int64_t> corePackets(nr_cpus, 0);
+  lb_stats stats[nr_cpus];
+  lb_stats sum_stat = {};
+
+  auto fd = bpfAdapter_->getMapFdByName("stats");
+
+  for (const auto& [_, vip] : vips_) {
+    uint32_t num = vip.getVipNum();
+    auto res = bpfAdapter_->bpfMapLookupElement(fd, &num, stats);
+    if (!res) {
+      for (int i = 0; i < nr_cpus; i++) {
+        corePackets[i] += stats[i].v1;
+      }
+    } else {
+      LOG(ERROR) << "Error while querying stats for vip num " << num;
+    }
+  }
+  return corePackets;
+}
+
 vip_definition KatranLb::vipKeyToVipDefinition(const VipKey& vipKey) {
   auto vip_addr = IpHelpers::parseAddrToBe(vipKey.address);
   vip_definition vip_def = {};

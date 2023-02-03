@@ -69,15 +69,15 @@ class Vip {
   /**
    * getters
    */
-  uint32_t getVipNum() {
+  uint32_t getVipNum() const {
     return vipNum_;
   }
 
-  uint32_t getVipFlags() {
+  uint32_t getVipFlags() const {
     return vipFlags_;
   }
 
-  uint32_t getChRingSize() {
+  uint32_t getChRingSize() const {
     return chRingSize_;
   }
 

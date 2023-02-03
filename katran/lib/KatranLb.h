@@ -594,6 +594,11 @@ class KatranLb {
   lb_stats getRealStats(uint32_t index);
 
   /**
+   * Returns count of packets processed on each core (corresponding to index)
+   */
+  std::vector<int64_t> getPerCorePacketsStats();
+
+  /**
    * @param uint32_t somark of the packet
    * @param std::string dst for a packed w/ specified so_mark
    * @return bool true on success
