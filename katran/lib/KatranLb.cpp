@@ -1861,7 +1861,11 @@ std::vector<QuicReal> KatranLb::getQuicRealsMapping() {
 lb_stats KatranLb::getStatsForVip(const VipKey& vip) {
   auto vip_iter = vips_.find(vip);
   if (vip_iter == vips_.end()) {
-    LOG(INFO) << "trying to get stats for non-existing vip";
+    LOG(INFO) << fmt::format(
+        "trying to get stats for non-existing vip  {}:{}:{}",
+        vip.address,
+        vip.port,
+        vip.proto);
     return lb_stats{};
   }
   auto num = vip_iter->second.getVipNum();

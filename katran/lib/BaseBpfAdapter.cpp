@@ -387,7 +387,7 @@ int BaseBpfAdapter::getBpfMapUsedSize(const std::string& name) {
     VLOG(3) << "Found " << num_entries << " entries for map " << name;
     return num_entries;
   } else {
-    LOG(ERROR) << "Error determining size of " << name << "err=" << err
+    LOG(ERROR) << "Error determining size of " << name << " err=" << err
                << " errno=" << folly::errnoStr(errno);
     return -errno;
   }
