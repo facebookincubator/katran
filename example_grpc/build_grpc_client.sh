@@ -20,7 +20,7 @@ set -xeo pipefail
 create_grpc_template () {
 rm -rf goclient/src/katranc/lb_katran
 mkdir -p goclient/src/katranc/lb_katran
-protoc -I protos katran.proto --go_out=plugins=grpc:goclient/src/katranc/lb_katran
+protoc -I protos katran.proto --go_out=goclient/src/katranc/lb_katran --go_grpc_out=goclient/src/katranc/lb_katran
 }
 
 get_goclient_deps() {
@@ -40,15 +40,30 @@ build_goclient() {
 echo """
 Please make sure that go and grpc dependencies are installed
 (
-follow instructions @ https://grpc.io/docs/tutorials/basic/go.html
-but TL;DR
-go get -u google.golang.org/grpc
-go get -u github.com/golang/protobuf/protoc-gen-go
+https://grpc.io/docs/protoc-installation/ for installing protoc
+ but TL;DR
+   apt install -y protobuf-compiler
+   protoc --version  # Ensure compiler version is 3+
+https://grpc.io/docs/languages/go/quickstart/ for installing grpc
+ but TL;DR
+   go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.28
+   go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.2
+   export PATH="$PATH:$(go env GOPATH)/bin"
 )
 This script will fail if go is not present
+
+IMPORTANT:
+If you get the following error:
+protoc-gen-go_grpc: program not found or is not executable
+Please specify a program using absolute path or make sure the program is available in your PATH system variable
+
+And ls $(go env GOPATH)/bin/protoc-gen-go-grpc exists please do:
+cp $(go env GOPATH)/bin/protoc-gen-go-grpc $(go env GOPATH)/bin/protoc-gen-go_grpc
 """
-# fail hard if go is not installed
+# fail hard if go or protoc is not installed
 go version 1>/dev/null
+protoc --version 1>dev/null
+# adding export paths
 export GOPATH=$(pwd)/goclient
 create_grpc_template
 get_goclient_deps
