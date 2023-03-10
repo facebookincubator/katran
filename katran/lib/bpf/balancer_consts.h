@@ -228,6 +228,12 @@
 #define CH_DROP_STATS 12
 // offset of stats for decap packets
 #define DECAP_CNTR 13
+// offset of stats for quic icmp messages
+#define QUIC_ICMP_STATS 14
+// indice for all stats maps defined above correspond to entries in the map
+// stats starting from the index MAX_VIPS. The max_entries of stats is
+// STATS_MAP_SIZE defined as (MAX_VIPS * 2). So the index above should be always
+// less than MAX_VIPS. Otherwise, STATS_MAP_SIZE shall be updated.
 
 // max ammount of new connections per seconda per core for lru update
 // if we go beyond this value - we will bypass lru update.

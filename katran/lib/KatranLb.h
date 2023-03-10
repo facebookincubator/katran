@@ -65,6 +65,7 @@ constexpr uint32_t kTcpServerIdRoutingOffset = 10;
 constexpr uint32_t kGlobalLruOffset = 11;
 constexpr uint32_t kChDropOffset = 12;
 constexpr uint32_t kDecapCounterOffset = 13;
+constexpr uint32_t kQuicIcmpOffset = 14;
 
 /**
  * LRU map related constants
@@ -583,6 +584,12 @@ class KatranLb {
   lb_stats getDecapStats();
 
   /**
+   * @return struct lb_stats w/ statistic of quic icmp messages
+   *
+   * helper function which returns how many quic icmp messages
+   * and how many of them are dropped by Shiv
+   */
+  lb_stats getQuicIcmpStats();
 
   /**
    * @param uint32_t index of the real

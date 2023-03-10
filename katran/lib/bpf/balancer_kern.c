@@ -679,39 +679,61 @@ process_packet(struct xdp_md* xdp, __u64 off, bool is_ipv6) {
 
   // Lookup dst based on id in packet
   if ((vip_info->flags & F_QUIC_VIP)) {
-    __u32 quic_stats_key = MAX_VIPS + QUIC_ROUTE_STATS;
-    struct lb_stats* quic_stats = bpf_map_lookup_elem(&stats, &quic_stats_key);
-    if (!quic_stats) {
-      return XDP_DROP;
-    }
-    int real_index;
-    real_index = parse_quic(data, data_end, is_ipv6, &pckt);
-    if (real_index > 0) {
-      increment_quic_cid_version_stats(real_index);
-      __u32 key = real_index;
-      __u32* real_pos = bpf_map_lookup_elem(&server_id_map, &key);
-      if (real_pos) {
-        key = *real_pos;
-        if (key == 0) {
-          increment_quic_cid_drop_real_0();
-          // increment counter for the CH based routing
-          quic_stats->v1 += 1;
-        } else {
-          pckt.real_index = key;
-          dst = bpf_map_lookup_elem(&reals, &key);
-          if (!dst) {
-            increment_quic_cid_drop_no_real();
-            REPORT_QUIC_PACKET_DROP_NO_REAL(xdp, data, data_end - data, false);
-            return XDP_DROP;
-          }
-          quic_stats->v2 += 1;
-        }
-      } else {
-        // increment counter for the CH based routing
-        quic_stats->v1 += 1;
+    bool is_icmp = (pckt.flags & F_ICMP);
+    if (is_icmp) {
+      // as per rfc792, the "Destination Unreachable Message" has the internet
+      // header plus the first 64 bits of the original datagram's data. So it is
+      // not guaranteed to have a complete quic header in icmp messages. also if
+      // the quic header from the original datagram is a short header, it has no
+      // server generated connection id which can be used for routing.
+      // fallback to CH to route quic icmp messages.
+      __u32 stats_key = MAX_VIPS + QUIC_ICMP_STATS;
+      struct lb_stats* data_stats = bpf_map_lookup_elem(&stats, &stats_key);
+      if (!data_stats) {
+        return XDP_DROP;
+      }
+      data_stats->v1 += 1;
+      // collect the number of quic icmp messages server would ignore
+      if (ignorable_quic_icmp_code(data, data_end, is_ipv6)) {
+        data_stats->v2 += 1;
       }
     } else {
-      quic_stats->v1 += 1;
+      __u32 quic_stats_key = MAX_VIPS + QUIC_ROUTE_STATS;
+      struct lb_stats* quic_stats =
+          bpf_map_lookup_elem(&stats, &quic_stats_key);
+      if (!quic_stats) {
+        return XDP_DROP;
+      }
+      int real_index;
+      real_index = parse_quic(data, data_end, is_ipv6, &pckt);
+      if (real_index > 0) {
+        increment_quic_cid_version_stats(real_index);
+        __u32 key = real_index;
+        __u32* real_pos = bpf_map_lookup_elem(&server_id_map, &key);
+        if (real_pos) {
+          key = *real_pos;
+          if (key == 0) {
+            increment_quic_cid_drop_real_0();
+            // increment counter for the CH based routing
+            quic_stats->v1 += 1;
+          } else {
+            pckt.real_index = key;
+            dst = bpf_map_lookup_elem(&reals, &key);
+            if (!dst) {
+              increment_quic_cid_drop_no_real();
+              REPORT_QUIC_PACKET_DROP_NO_REAL(
+                  xdp, data, data_end - data, false);
+              return XDP_DROP;
+            }
+            quic_stats->v2 += 1;
+          }
+        } else {
+          // increment counter for the CH based routing
+          quic_stats->v1 += 1;
+        }
+      } else {
+        quic_stats->v1 += 1;
+      }
     }
   }
 

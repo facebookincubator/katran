@@ -1961,6 +1961,10 @@ lb_stats KatranLb::getDecapStats() {
   return getLbStats(config_.maxVips + kDecapCounterOffset);
 }
 
+lb_stats KatranLb::getQuicIcmpStats() {
+  return getLbStats(config_.maxVips + kQuicIcmpOffset);
+}
+
 lb_stats KatranLb::getRealStats(uint32_t index) {
   return getLbStats(index, "reals_stats");
 }

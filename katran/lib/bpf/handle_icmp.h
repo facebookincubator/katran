@@ -284,4 +284,22 @@ __attribute__((__always_inline__)) static inline int parse_icmp(
   pckt->flow.dst = iph->saddr;
   return FURTHER_PROCESSING;
 }
+
+// icmp messages with code that quic server would ignore
+__attribute__((__always_inline__)) static inline bool
+ignorable_quic_icmp_code(void* data, void* data_end, bool is_ipv6) {
+  __u64 off = sizeof(struct ethhdr);
+  if (is_ipv6) {
+    struct icmp6hdr* icmp_hdr = data + off + sizeof(struct ipv6hdr);
+    return (
+        (icmp_hdr->icmp6_code == ICMPV6_ADDR_UNREACH) ||
+        (icmp_hdr->icmp6_code == ICMPV6_PORT_UNREACH));
+  } else {
+    struct icmphdr* icmp_hdr = data + off + sizeof(struct iphdr);
+    return (
+        (icmp_hdr->code == ICMP_PORT_UNREACH) ||
+        (icmp_hdr->code == ICMP_HOST_UNREACH));
+  }
+}
+
 #endif // of __HANDLE_ICMP_H
