@@ -22,9 +22,16 @@
 #include <glog/logging.h>
 #include <algorithm>
 #include <array>
+#include <cstdint>
+#include <cstring>
 #include <iterator>
+#include <memory>
 #include <stdexcept>
+#include <string>
+#include <vector>
 
+#include "katran/lib/BalancerStructs.h"
+#include "katran/lib/KatranLbStructs.h"
 #include "katran/lib/KatranMonitor.h"
 
 namespace katran {
@@ -226,6 +233,8 @@ void KatranLb::initialSanityChecking(bool flowDebug, bool globalLru) {
     maps.push_back("stats");
     maps.push_back("lru_mapping");
     maps.push_back("server_id_map");
+    maps.push_back("lru_miss_stats");
+    maps.push_back("lru_miss_stats_vip");
 
     if (flowDebug) {
       maps.push_back(kFlowDebugParentMapName.data());
@@ -802,6 +811,16 @@ void KatranLb::loadBpfProgs() {
 
   if (!config_.disableForwarding) {
     attachLrus(flowDebugInProg, globalLruInProg);
+  }
+
+  vip_definition vip_def;
+  memset(&vip_def, 0, sizeof(vip_definition));
+  uint32_t key = 0;
+  res = bpfAdapter_->bpfUpdateMap(
+      bpfAdapter_->getMapFdByName("lru_miss_stats_vip"), &key, &vip_def);
+  if (res) {
+    LOG(ERROR) << "can't update lru miss stat vip, error: "
+               << folly::errnoStr(errno);
   }
 }
 
@@ -1907,6 +1926,94 @@ uint64_t KatranLb::getPacketsProcessedForHcKey(const VipKey& hcKey) {
     }
   }
   return sum_stat;
+}
+
+bool KatranLb::logVipLruMissStats(VipKey& vip) {
+  if (validateAddress(vip.address) == AddressType::INVALID) {
+    LOG(ERROR) << "Invalid Vip address: " << vip.address;
+    return false;
+  }
+  vip.address = folly::IPAddress(vip.address).str();
+  lruMissStatsVip_ = vip;
+  vip_definition vip_def = vipKeyToVipDefinition(vip);
+  uint32_t vip_key = 0;
+  auto res = bpfAdapter_->bpfUpdateMap(
+      bpfAdapter_->getMapFdByName("lru_miss_stats_vip"), &vip_key, &vip_def);
+  if (res != 0) {
+    LOG(ERROR) << "can't update lru miss stat vip, error: "
+               << folly::errnoStr(errno);
+    lbStats_.bpfFailedCalls++;
+    return false;
+  }
+
+  int fd = bpfAdapter_->getMapFdByName("lru_miss_stats");
+  if (fd < 0) {
+    LOG(ERROR) << "Unable to get fd for lru_miss_stats";
+    return false;
+  }
+  unsigned int nr_cpus = BpfAdapter::getPossibleCpus();
+  if (nr_cpus < 0) {
+    LOG(ERROR) << "Error while getting number of possible cpus";
+    return false;
+  }
+
+  uint64_t value[nr_cpus];
+  memset(value, 0, sizeof(value));
+  for (uint32_t key = 0; key < config_.maxReals; key++) {
+    res = bpfAdapter_->bpfUpdateMap(fd, &key, value);
+    if (res != 0) {
+      LOG(ERROR) << "Unable to reset lru_miss_stats";
+      return false;
+    }
+  }
+
+  return true;
+}
+
+std::unordered_map<std::string, int32_t> KatranLb::getVipLruMissStats(
+    VipKey& vip) {
+  if (validateAddress(vip.address) == AddressType::INVALID) {
+    LOG(ERROR) << "Invalid Vip address: " << vip.address;
+    return std::unordered_map<std::string, int32_t>{};
+  }
+  vip.address = folly::IPAddress(vip.address).str();
+  if (!lruMissStatsVip_.has_value() || !(lruMissStatsVip_.value() == vip)) {
+    return std::unordered_map<std::string, int32_t>{};
+  }
+
+  auto vip_iter = vips_.find(vip);
+  if (vip_iter == vips_.end()) {
+    LOG(ERROR) << "trying to get stats for non-existing vip";
+    return std::unordered_map<std::string, int32_t>{};
+  }
+
+  auto reals_ids = vip_iter->second.getReals();
+
+  std::unordered_map<std::string, int32_t> stats;
+  unsigned int nr_cpus = libbpf_num_possible_cpus();
+  if (nr_cpus < 0) {
+    LOG(ERROR) << "Error while getting number of possible cpus";
+    return stats;
+  }
+
+  uint64_t value[nr_cpus];
+  for (uint32_t i = 0; i < reals_ids.size(); i++) {
+    uint32_t key = reals_ids[i];
+    int fd = bpfAdapter_->getMapFdByName("lru_miss_stats");
+    auto res = bpfAdapter_->bpfMapLookupElement(fd, &key, value);
+    if (res) {
+      lbStats_.bpfFailedCalls++;
+      LOG(ERROR) << "Unable to get lru_miss_stats";
+      return std::unordered_map<std::string, int32_t>{};
+    }
+    int sum = 0;
+    for (int j = 0; j < nr_cpus; j++) {
+      sum += value[j];
+    }
+    auto real_info = numToReals_[reals_ids[i]].str();
+    stats[real_info] = sum;
+  }
+  return stats;
 }
 
 lb_stats KatranLb::getLruStats() {

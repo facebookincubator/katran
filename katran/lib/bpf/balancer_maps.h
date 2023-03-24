@@ -82,6 +82,23 @@ struct {
   __uint(map_flags, NO_FLAGS);
 } reals_stats SEC(".maps");
 
+// map with per real lru miss statistic
+struct {
+  __uint(type, BPF_MAP_TYPE_PERCPU_ARRAY);
+  __type(key, __u32); // key is backend index
+  __type(value, __u32); // value is lru miss count of the backend
+  __uint(max_entries, MAX_REALS);
+  __uint(map_flags, NO_FLAGS);
+} lru_miss_stats SEC(".maps");
+
+struct {
+  __uint(type, BPF_MAP_TYPE_ARRAY);
+  __type(key, __u32);
+  __type(value, struct vip_definition);
+  __uint(max_entries, 1);
+  __uint(map_flags, NO_FLAGS);
+} lru_miss_stats_vip SEC(".maps");
+
 // map w/ per vip statistics
 struct {
   __uint(type, BPF_MAP_TYPE_PERCPU_ARRAY);

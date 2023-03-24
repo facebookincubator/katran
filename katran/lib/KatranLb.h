@@ -18,6 +18,7 @@
 
 #include <cstdint>
 #include <deque>
+#include <memory>
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
@@ -488,6 +489,18 @@ class KatranLb {
    * the tcp syns (v1) or non-syns (v2)
    */
   lb_stats getLruMissStats();
+
+  /*
+    @ return true if vip lru miss logging succeed else return false
+    helper fucntion to start logging of VipLruMissStats
+  */
+  bool logVipLruMissStats(VipKey& vip);
+
+  /*
+    @return lru miss stats for the vip logged via logVipLruMissStats
+    key - real IP address, value - packet count
+  */
+  std::unordered_map<std::string, int32_t> getVipLruMissStats(VipKey& vip);
 
   /**
    * @return struct lb_stats w/ statistic of fallback lru hits
@@ -1054,6 +1067,8 @@ class KatranLb {
   std::unordered_map<uint32_t, folly::IPAddress> numToReals_;
 
   std::unordered_map<VipKey, Vip, VipKeyHasher> vips_;
+
+  folly::Optional<VipKey> lruMissStatsVip_;
 
   /**
    * Maps an HcKey to its id

@@ -533,6 +533,38 @@ increment_quic_cid_drop_real_0() {
   quic_drop->v2 += 1;
 }
 
+__attribute__((__always_inline__)) static inline int update_vip_lru_miss_stats(
+    struct vip_definition* vip,
+    struct packet_description* pckt,
+    struct vip_meta* vip_info,
+    bool is_ipv6) {
+  // track the lru miss counter of vip in lru_miss_stats_vip
+  __u32 lru_miss_stats_vip_key = 0;
+  struct vip_definition* lru_miss_stat_vip =
+      bpf_map_lookup_elem(&lru_miss_stats_vip, &lru_miss_stats_vip_key);
+  if (!lru_miss_stat_vip) {
+    return XDP_DROP;
+  }
+  bool address_match = (is_ipv6 &&
+                        (lru_miss_stat_vip->vipv6[0] == vip->vipv6[0] &&
+                         lru_miss_stat_vip->vipv6[1] == vip->vipv6[1] &&
+                         lru_miss_stat_vip->vipv6[2] == vip->vipv6[2] &&
+                         lru_miss_stat_vip->vipv6[3] == vip->vipv6[3])) ||
+      (!is_ipv6 && lru_miss_stat_vip->vip == vip->vip);
+  bool port_match = lru_miss_stat_vip->port == vip->port;
+  bool proto_match = lru_miss_stat_vip->proto = vip->proto;
+  bool vip_match = address_match && port_match && proto_match;
+  if (vip_match) {
+    __u32 lru_stats_key = pckt->real_index;
+    __u32* lru_miss_stat = bpf_map_lookup_elem(&lru_miss_stats, &lru_stats_key);
+    if (!lru_miss_stat) {
+      return XDP_DROP;
+    }
+    *lru_miss_stat += 1;
+  }
+  return FURTHER_PROCESSING;
+}
+
 __attribute__((__always_inline__)) static inline int
 process_packet(struct xdp_md* xdp, __u64 off, bool is_ipv6) {
   void* data = (void*)(long)xdp->data;
@@ -813,9 +845,9 @@ process_packet(struct xdp_md* xdp, __u64 off, bool is_ipv6) {
           // miss because of new tcp session
           lru_stats->v1 += 1;
         } else {
-          // miss of non-syn tcp packet. could be either because of LRU trashing
-          // or because another katran is restarting and all the sessions
-          // have been reshuffled
+          // miss of non-syn tcp packet. could be either because of LRU
+          // trashing or because another katran is restarting and all the
+          // sessions have been reshuffled
           REPORT_TCP_NONSYN_LRUMISS(xdp, data, data_end - data, false);
           lru_stats->v2 += 1;
         }
@@ -823,6 +855,12 @@ process_packet(struct xdp_md* xdp, __u64 off, bool is_ipv6) {
       if (!get_packet_dst(&dst, &pckt, vip_info, is_ipv6, lru_map)) {
         return XDP_DROP;
       }
+
+      // track the lru miss counter of vip in lru_miss_stats_vip
+      if (update_vip_lru_miss_stats(&vip, &pckt, vip_info, is_ipv6) >= 0) {
+        return XDP_DROP;
+      }
+
       // lru misses (either new connection or lru is full and starts to trash)
       data_stats->v2 += 1;
     }
