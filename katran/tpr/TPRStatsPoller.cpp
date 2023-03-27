@@ -162,7 +162,7 @@ folly::Expected<int, std::system_error> TPRStatsPoller::getCpuCount() {
   // "0": This means that there is 1 cpu
   // "0-24": This means that there are 25 cpus
   std::vector<uint32_t> range;
-  folly::split("-", cpus, range);
+  folly::split('-', cpus, range);
   if (range.size() == 2) {
     return range[kMinIndex] == 0 ? range[kMaxIndex] + 1 : kError;
   } else if (range.size() == 1) {
