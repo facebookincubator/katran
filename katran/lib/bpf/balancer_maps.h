@@ -37,15 +37,6 @@ struct {
   __uint(map_flags, NO_FLAGS);
 } vip_map SEC(".maps");
 
-// map which contains cpu core to lru mapping
-struct {
-  __uint(type, BPF_MAP_TYPE_ARRAY_OF_MAPS);
-  __uint(key_size, sizeof(__u32));
-  __uint(value_size, sizeof(__u32));
-  __uint(max_entries, MAX_SUPPORTED_CPUS);
-  __uint(map_flags, NO_FLAGS);
-} lru_mapping SEC(".maps");
-
 // fallback lru. we should never hit this one outside of unittests
 struct {
   __uint(type, BPF_MAP_TYPE_LRU_HASH);
@@ -54,6 +45,23 @@ struct {
   __uint(max_entries, DEFAULT_LRU_SIZE);
   __uint(map_flags, NO_FLAGS);
 } fallback_cache SEC(".maps");
+
+// map which contains cpu core to lru mapping
+struct {
+  __uint(type, BPF_MAP_TYPE_ARRAY_OF_MAPS);
+  __type(key, __u32);
+  __type(value, __u32);
+  __uint(max_entries, MAX_SUPPORTED_CPUS);
+  __uint(map_flags, NO_FLAGS);
+  __array(
+      values,
+      struct {
+        __uint(type, BPF_MAP_TYPE_LRU_HASH);
+        __type(key, struct flow_key);
+        __type(value, struct real_pos_lru);
+        __uint(max_entries, DEFAULT_LRU_SIZE);
+      });
+} lru_mapping SEC(".maps");
 
 // map which contains all vip to real mappings
 struct {
@@ -141,10 +149,18 @@ struct {
 
 struct {
   __uint(type, BPF_MAP_TYPE_ARRAY_OF_MAPS);
-  __uint(key_size, sizeof(__u32));
-  __uint(value_size, sizeof(__u32));
+  __type(key, __u32);
+  __type(value, __u32);
   __uint(max_entries, MAX_SUPPORTED_CPUS);
   __uint(map_flags, NO_FLAGS);
+  __array(
+      values,
+      struct {
+        __uint(type, BPF_MAP_TYPE_LRU_PERCPU_HASH);
+        __type(key, struct flow_key);
+        __type(value, __u32);
+        __uint(max_entries, DEFAULT_LRU_SIZE);
+      });
 } global_lru_maps SEC(".maps");
 
 struct {
