@@ -34,6 +34,7 @@
 
 #include "katran/lib/bpf/balancer_consts.h"
 #include "katran/lib/bpf/balancer_helpers.h"
+#include "katran/lib/bpf/balancer_maps.h"
 #include "katran/lib/bpf/balancer_structs.h"
 
 __attribute__((__always_inline__)) static inline int swap_mac_and_send(
@@ -239,6 +240,21 @@ __attribute__((__always_inline__)) static inline int parse_icmpv6(
       (icmp_hdr->icmp6_type != ICMPV6_DEST_UNREACH)) {
     return XDP_PASS;
   }
+
+  if (icmp_hdr->icmp6_type == ICMPV6_PKT_TOOBIG) {
+    __u32 stats_key = MAX_VIPS + ICMP_PTB_V6_STATS;
+    struct lb_stats* icmp_ptb_v6_stats =
+        bpf_map_lookup_elem(&stats, &stats_key);
+    if (!icmp_ptb_v6_stats) {
+      return XDP_DROP;
+    }
+    icmp_ptb_v6_stats->v1 += 1;
+    __u32 mtu = bpf_ntohl(icmp_hdr->icmp6_mtu);
+    if (mtu < MAX_MTU_IN_PTB_TO_DROP) {
+      icmp_ptb_v6_stats->v2 += 1;
+    }
+  }
+
   off += sizeof(struct icmp6hdr);
   // data partition of icmp 'pkt too big' contains header (and as much data as
   // as possible) of the packet, which has trigered this icmp.
@@ -270,6 +286,21 @@ __attribute__((__always_inline__)) static inline int parse_icmp(
   if (icmp_hdr->type != ICMP_DEST_UNREACH) {
     return XDP_PASS;
   }
+
+  if (icmp_hdr->code == ICMP_FRAG_NEEDED) {
+    __u32 stats_key = MAX_VIPS + ICMP_PTB_V4_STATS;
+    struct lb_stats* icmp_ptb_v4_stats =
+        bpf_map_lookup_elem(&stats, &stats_key);
+    if (!icmp_ptb_v4_stats) {
+      return XDP_DROP;
+    }
+    icmp_ptb_v4_stats->v1 += 1;
+    __u16 mtu = bpf_ntohs(icmp_hdr->un.frag.mtu);
+    if (mtu < MAX_MTU_IN_PTB_TO_DROP) {
+      icmp_ptb_v4_stats->v2 += 1;
+    }
+  }
+
   off += sizeof(struct icmphdr);
   iph = data + off;
   if (iph + 1 > data_end) {

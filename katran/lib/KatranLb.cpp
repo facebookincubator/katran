@@ -2072,6 +2072,14 @@ lb_stats KatranLb::getQuicIcmpStats() {
   return getLbStats(config_.maxVips + kQuicIcmpOffset);
 }
 
+lb_stats KatranLb::getIcmpPtbV6Stats() {
+  return getLbStats(config_.maxVips + kIcmpPtbV6Offset);
+}
+
+lb_stats KatranLb::getIcmpPtbV4Stats() {
+  return getLbStats(config_.maxVips + kIcmpPtbV4Offset);
+}
+
 lb_stats KatranLb::getRealStats(uint32_t index) {
   return getLbStats(index, "reals_stats");
 }

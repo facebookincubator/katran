@@ -201,6 +201,20 @@
 #define ICMP6_TOOBIG_PAYLOAD_SIZE (ICMP6_TOOBIG_SIZE - 6)
 #define ICMP_TOOBIG_PAYLOAD_SIZE (ICMP_TOOBIG_SIZE - 6)
 
+// drop icmp ptb/fragmentation needed messages if requested mtu
+// is less than this number. if the requested mtu is greater than
+// it, they will be delivered to backend server via CH.
+// it is possible especially for quic icmp messages that some messages can be
+// misrouted due to the change of 5 tuple after the connection gets established.
+// the impact should be temporarily after get recovered automatically
+// after some timeout.
+// the icmp messages with small requested MTUs are preferred to be dropped
+// due to a known attacks is to request smaller MTU to force fragmentation
+// and to increase overhead.
+// For now, we are only collecting the data in katran stats but not
+// dropping them.
+#define MAX_MTU_IN_PTB_TO_DROP 1280
+
 #define NO_FLAGS 0
 
 // offset of the lru cache hit related counters
@@ -230,6 +244,11 @@
 #define DECAP_CNTR 13
 // offset of stats for quic icmp messages
 #define QUIC_ICMP_STATS 14
+// offset of stats for icmp PTB messages
+#define ICMP_PTB_V6_STATS 15
+// offset of stats for icmp Fragment needed messages
+#define ICMP_PTB_V4_STATS 16
+
 // indice for all stats maps defined above correspond to entries in the map
 // stats starting from the index MAX_VIPS. The max_entries of stats is
 // STATS_MAP_SIZE defined as (MAX_VIPS * 2). So the index above should be always

@@ -67,6 +67,8 @@ constexpr uint32_t kGlobalLruOffset = 11;
 constexpr uint32_t kChDropOffset = 12;
 constexpr uint32_t kDecapCounterOffset = 13;
 constexpr uint32_t kQuicIcmpOffset = 14;
+constexpr uint32_t kIcmpPtbV6Offset = 15;
+constexpr uint32_t kIcmpPtbV4Offset = 16;
 
 /**
  * LRU map related constants
@@ -603,6 +605,22 @@ class KatranLb {
    * and how many of them are dropped by Shiv
    */
   lb_stats getQuicIcmpStats();
+
+  /**
+   * @return struct lb_stats w/ statistic of icmp PTB messages
+   *
+   * helper function which returns how many icmp PTB messages
+   * and how many of them have MTU less than 1280
+   */
+  lb_stats getIcmpPtbV6Stats();
+
+  /**
+   * @return struct lb_stats w/ statistic of icmp Fragment Needed messages
+   *
+   * helper function which returns how many icmp Fragment Needed messages
+   * and how many of them have MTU less than 1280
+   */
+  lb_stats getIcmpPtbV4Stats();
 
   /**
    * @param uint32_t index of the real
