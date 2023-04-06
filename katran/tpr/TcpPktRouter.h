@@ -65,6 +65,11 @@ class TcpPktRouter {
    */
   folly::Expected<tcp_router_stats, std::system_error> collectTPRStats();
 
+  /**
+   * Returns the fd of the sockops Bpf program (if loaded)
+   */
+  folly::Expected<int, std::system_error> getBpfProgramFd() noexcept;
+
  protected:
   virtual std::unique_ptr<TPRStatsPoller> createStatsPoller(
       folly::EventBase* evb,
