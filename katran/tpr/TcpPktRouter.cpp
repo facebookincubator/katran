@@ -168,4 +168,9 @@ std::unique_ptr<TPRStatsPoller> TcpPktRouter::createStatsPoller(
   return std::make_unique<TPRStatsPoller>(evb, statsMapFd);
 }
 
+folly::Expected<int, std::system_error>
+TcpPktRouter::getBpfProgramFd() noexcept {
+  return adapter_.getBpfProgramFd();
+}
+
 } // namespace katran_tpr
