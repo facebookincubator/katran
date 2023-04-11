@@ -80,4 +80,15 @@ inline std::ostream& operator<<(std::ostream& os, const RunningMode& mode) {
   return os;
 }
 
+inline std::ostream& operator<<(std::ostream& os, const tcp_router_stats& s) {
+  os << "server_id_read=" << s.server_id_read
+     << " server_id_set=" << s.server_id_set
+     << " conns_skipped=" << s.conns_skipped
+     << " no_tcp_opt_hdr=" << s.no_tcp_opt_hdr
+     << " error_bad_id=" << s.error_bad_id
+     << " error_write_opt=" << s.error_write_opt
+     << " error_sys_calls=" << s.error_sys_calls;
+  return os;
+}
+
 } // namespace katran_tpr
