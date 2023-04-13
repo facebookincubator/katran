@@ -19,6 +19,8 @@ cpp_include "<unordered_map>"
 namespace cpp2 lb.katran
 namespace py lb.katran
 
+include "thrift/annotation/cpp.thrift"
+
 enum Action {
   ADD = 0,
   DEL = 1,
@@ -73,7 +75,8 @@ struct Healthcheck {
   2: string address;
 }
 
-typedef map<i32, string> (cpp.template = "std::unordered_map") hcMap
+@cpp.Type{template = "std::unordered_map"}
+typedef map<i32, string> hcMap
 
 typedef list<Real> Reals
 typedef list<QuicReal> QuicReals
