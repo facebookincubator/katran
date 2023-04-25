@@ -708,6 +708,9 @@ class BaseBpfAdapter {
    */
   bool batchOpsAreSupported();
 
+  // enable/disable the print of dbg messages from libbpf
+  void setPrintBpfDbgFlag(bool flag);
+
   /**
    * this is set to true in the constructor if batch ops are both
    * enabled and supported.

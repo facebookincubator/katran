@@ -25,7 +25,10 @@ int BpfAdapter::loadBpfProg(
     const std::string& bpf_prog,
     const bpf_prog_type type,
     bool use_names) {
-  return loader_.loadBpfFile(bpf_prog, type, use_names);
+  setPrintBpfDbgFlag(true);
+  int res = loader_.loadBpfFile(bpf_prog, type, use_names);
+  setPrintBpfDbgFlag(false);
+  return res;
 }
 
 int BpfAdapter::reloadBpfProg(

@@ -42,20 +42,6 @@ void checkBpfProgType(::bpf_object* obj, ::bpf_prog_type type) {
   }
 }
 
-static bool fPrintBpfDbg = false;
-
-// custom libbpf print function so we would be able to control
-// debug output from libbpf w/ -v flags
-int libbpf_print(
-    enum libbpf_print_level level,
-    const char* format,
-    va_list args) {
-  if (level == LIBBPF_DEBUG && !VLOG_IS_ON(6) && !fPrintBpfDbg) {
-    return 0;
-  }
-  return vfprintf(stderr, format, args);
-}
-
 std::string libBpfErrMsg(int err) {
   std::array<char, 128> buf{};
   libbpf_strerror(err, buf.data(), buf.size());
@@ -65,7 +51,6 @@ std::string libBpfErrMsg(int err) {
 } // namespace
 
 BpfLoader::BpfLoader() {
-  libbpf_set_print(libbpf_print);
   VLOG(1) << "Enabled libbpf strict mode";
   libbpf_set_strict_mode(LIBBPF_STRICT_ALL);
 }
@@ -296,7 +281,6 @@ int BpfLoader::loadBpfObject(
   std::set<std::string> loadedProgNames;
   std::set<std::string> loadedMapNames;
 
-  fPrintBpfDbg = true;
   bpf_object__for_each_program(prog, obj) {
     bpf_program__set_log_level(prog, 4);
     if (progs_.find(::bpf_program__name(prog)) != progs_.end()) {
@@ -344,7 +328,6 @@ int BpfLoader::loadBpfObject(
     LOG(ERROR) << "error while trying to load bpf object: " << objName;
     return closeBpfObject(obj);
   }
-  fPrintBpfDbg = false;
 
   checkBpfProgType(obj, type);
 

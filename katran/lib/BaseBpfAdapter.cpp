@@ -120,6 +120,20 @@ struct perf_event_mmap_page* FOLLY_NULLABLE mmap_perf_event(int fd, int pages) {
 
 namespace katran {
 
+static bool flagPrintBpfDbg = false;
+
+// custom libbpf print function so we would be able to control
+// debug output from libbpf w/ -v flags
+int libbpf_print(
+    enum libbpf_print_level level,
+    const char* format,
+    va_list args) {
+  if (level == LIBBPF_DEBUG && !VLOG_IS_ON(6) && !flagPrintBpfDbg) {
+    return 0;
+  }
+  return vfprintf(stderr, format, args);
+}
+
 static int NetlinkRoundtrip(const NetlinkMessage& msg) {
   const struct nlmsghdr* nlh =
       reinterpret_cast<const struct nlmsghdr*>(msg.data());
@@ -168,6 +182,7 @@ static int NetlinkRoundtrip(const NetlinkMessage& msg) {
 BaseBpfAdapter::BaseBpfAdapter(
     bool set_limits,
     bool enableBatchOpsIfSupported) {
+  libbpf_set_print(libbpf_print);
   if (set_limits) {
     struct rlimit lck_mem = {};
     lck_mem.rlim_cur = RLIM_INFINITY;
@@ -867,6 +882,10 @@ bool BaseBpfAdapter::batchOpsAreSupported() {
     }
   }
   return true;
+}
+
+void BaseBpfAdapter::setPrintBpfDbgFlag(bool flag) {
+  flagPrintBpfDbg = flag;
 }
 
 } // namespace katran
