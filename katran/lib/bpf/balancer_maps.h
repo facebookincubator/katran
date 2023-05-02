@@ -118,6 +118,15 @@ struct {
 
 // map for server-id to real's id mapping. The ids can be embedded in header of
 // QUIC or TCP (if enabled) packets for routing of packets for existing flows
+#ifdef SERVER_ID_HASH_MAP
+struct {
+  __uint(type, BPF_MAP_TYPE_HASH);
+  __type(key, __u32);
+  __type(value, __u32);
+  __uint(max_entries, MAX_NUM_SERVER_IDS);
+  __uint(map_flags, NO_FLAGS);
+} server_id_map SEC(".maps");
+#else
 struct {
   __uint(type, BPF_MAP_TYPE_ARRAY);
   __type(key, __u32);
@@ -125,6 +134,7 @@ struct {
   __uint(max_entries, MAX_QUIC_REALS);
   __uint(map_flags, NO_FLAGS);
 } server_id_map SEC(".maps");
+#endif
 
 #ifdef LPM_SRC_LOOKUP
 struct {

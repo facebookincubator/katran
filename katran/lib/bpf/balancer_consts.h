@@ -66,9 +66,19 @@
 #define MAX_DECAP_DST 6
 #endif
 
+#ifdef SERVER_ID_HASH_MAP
+
+#ifndef MAX_NUM_SERVER_IDS
+// maximum number of server ids supported for server id based routing
+#define MAX_NUM_SERVER_IDS (1 << 24)
+#endif
+
+#else
 #ifndef MAX_QUIC_REALS
 // use 24 bits in quic's connection id to store real's index
 #define MAX_QUIC_REALS 0x00fffffe // 2^24-2
+#endif
+
 #endif
 
 #define CTL_MAP_SIZE 16
