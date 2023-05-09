@@ -30,6 +30,10 @@
 /* Server info map has only 1 item */
 #define SERVER_INFO_MAP_SIZE 1
 
+#define TCPHDR_SYN 0x02
+#define TCPHDR_ACK 0x10
+#define TCPHDR_SYNACK (TCPHDR_SYN | TCPHDR_ACK)
+
 #define NO_FLAGS 0
 #define SUCCESS 0
 #define PASS -1

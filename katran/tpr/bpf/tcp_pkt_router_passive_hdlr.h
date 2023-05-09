@@ -52,6 +52,7 @@ static inline int handle_passive_write_hdr_opt(
     struct bpf_sock_ops* skops,
     struct stats* stat,
     const struct server_info* s_info) {
+
   int err;
   struct tcp_opt hdr_opt = {};
 
