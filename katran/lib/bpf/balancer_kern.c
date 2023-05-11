@@ -736,11 +736,10 @@ process_packet(struct xdp_md* xdp, __u64 off, bool is_ipv6) {
       if (!quic_stats) {
         return XDP_DROP;
       }
-      int real_index;
-      real_index = parse_quic(data, data_end, is_ipv6, &pckt);
-      if (real_index > 0) {
-        increment_quic_cid_version_stats(real_index);
-        __u32 key = real_index;
+      struct quic_parse_result qpr = parse_quic(data, data_end, is_ipv6, &pckt);
+      if (qpr.server_id > 0) {
+        increment_quic_cid_version_stats(qpr.server_id);
+        __u32 key = qpr.server_id;
         __u32* real_pos = bpf_map_lookup_elem(&server_id_map, &key);
         if (real_pos) {
           key = *real_pos;
@@ -763,7 +762,7 @@ process_packet(struct xdp_md* xdp, __u64 off, bool is_ipv6) {
           // increment counter for the CH based routing
           quic_stats->v1 += 1;
         }
-      } else {
+      } else if (!qpr.is_initial) {
         quic_stats->v1 += 1;
       }
     }

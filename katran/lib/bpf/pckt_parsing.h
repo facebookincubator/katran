@@ -56,6 +56,11 @@ struct quic_short_header {
   __u8 connection_id[QUIC_MIN_CONNID_LEN];
 } __attribute__((__packed__));
 
+struct quic_parse_result {
+  int server_id;
+  bool is_initial;
+};
+
 __attribute__((__always_inline__)) static inline __u64 calc_offset(
     bool is_ipv6,
     bool is_icmp) {
@@ -274,17 +279,21 @@ __attribute__((__always_inline__)) static inline int tcp_hdr_opt_lookup(
 }
 #endif // TCP_SERVER_ID_ROUTING
 
-__attribute__((__always_inline__)) static inline int parse_quic(
+__attribute__((__always_inline__)) static inline struct quic_parse_result
+parse_quic(
     void* data,
     void* data_end,
     bool is_ipv6,
     struct packet_description* pckt) {
+  struct quic_parse_result result = {
+      .server_id = FURTHER_PROCESSING, .is_initial = false};
+
   bool is_icmp = (pckt->flags & F_ICMP);
   __u64 off = calc_offset(is_ipv6, is_icmp);
   // offset points to the beginning of transport header (udp) of quic's packet
   /*                                      |QUIC PKT TYPE|           */
   if ((data + off + sizeof(struct udphdr) + sizeof(__u8)) > data_end) {
-    return FURTHER_PROCESSING;
+    return result;
   }
 
   __u8* quic_data = data + off + sizeof(struct udphdr);
@@ -298,41 +307,44 @@ __attribute__((__always_inline__)) static inline int parse_quic(
   if ((*pkt_type & QUIC_LONG_HEADER) == QUIC_LONG_HEADER) {
     // packet with long header
     if (quic_data + sizeof(struct quic_long_header) > data_end) {
-      return FURTHER_PROCESSING;
+      return result;
     }
     if ((*pkt_type & QUIC_PACKET_TYPE_MASK) < QUIC_HANDSHAKE) {
       // for client initial and 0rtt packet - fall back to use c. hash, since
       // the connection-id is not the server-chosen one.
-      return FURTHER_PROCESSING;
+      result.is_initial = true;
+      return result;
     }
 
     struct quic_long_header* long_header = (struct quic_long_header*)quic_data;
     // Post draft version 22, this byte is the conn id length of dest conn id
     if (long_header->conn_id_lens < QUIC_MIN_CONNID_LEN) {
-      return FURTHER_PROCESSING;
+      return result;
     }
     connId = long_header->dst_connection_id;
   } else {
     // short header: just read the connId
     if (quic_data + sizeof(struct quic_short_header) > data_end) {
-      return FURTHER_PROCESSING;
+      return result;
     }
     connId = ((struct quic_short_header*)quic_data)->connection_id;
   }
   if (!connId) {
-    return FURTHER_PROCESSING;
+    return result;
   }
   // connId schema: if first two bits contain the right version info
   __u8 connIdVersion = (connId[0] >> 6);
   if (connIdVersion == QUIC_CONNID_VERSION_V1) {
     // extract last 16 bits from the first 18 bits:
     //            last 6 bits         +    8 bits        +   first 2 bits
-    return ((connId[0] & 0x3F) << 10) | (connId[1] << 2) | (connId[2] >> 6);
+    result.server_id =
+        ((connId[0] & 0x3F) << 10) | (connId[1] << 2) | (connId[2] >> 6);
+    return result;
   } else if (connIdVersion == QUIC_CONNID_VERSION_V2) {
-    __u32 cid = (connId[1] << 16) | (connId[2] << 8) | (connId[3]);
-    return cid;
+    result.server_id = (connId[1] << 16) | (connId[2] << 8) | (connId[3]);
+    return result;
   }
-  return FURTHER_PROCESSING;
+  return result;
 }
 
 #endif // of  __PCKT_PARSING_H
