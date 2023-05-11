@@ -69,7 +69,9 @@ folly::Expected<folly::Unit, std::system_error> TcpPktRouter::init(
                  << statsRes.error().what();
     }
   }
-  LOG(INFO) << "TcpPktRouter is initilized";
+  LOG(INFO) << "TcpPktRouter is initilized successfully in "
+            << (mode_ == RunningMode::SERVER ? "server" : "client") << " mode";
+
   // TODO once the attach is successful, look for already attached instances
   // of tcp_pkt_router sockops (e.g. from Proxygen that crashed) and
   // delete the ones not belonging to this process.
@@ -165,7 +167,7 @@ TcpPktRouter::collectTPRStats() {
 std::unique_ptr<TPRStatsPoller> TcpPktRouter::createStatsPoller(
     folly::EventBase* evb,
     int statsMapFd) {
-  return std::make_unique<TPRStatsPoller>(evb, statsMapFd);
+  return std::make_unique<TPRStatsPoller>(mode_, evb, statsMapFd);
 }
 
 folly::Expected<int, std::system_error>

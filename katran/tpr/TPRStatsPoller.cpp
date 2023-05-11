@@ -30,8 +30,11 @@ void TPRStatsPoller::setCounter(const std::string& name, int64_t val) {
   VLOG(5) << "Set counter " << name << " to " << val;
 }
 
-TPRStatsPoller::TPRStatsPoller(folly::EventBase* evb, int statsMapFd)
-    : AsyncTimeout(evb), evb_(evb), statsMapFd_(statsMapFd) {}
+TPRStatsPoller::TPRStatsPoller(
+    RunningMode mode,
+    folly::EventBase* evb,
+    int statsMapFd)
+    : AsyncTimeout(evb), mode_(mode), evb_(evb), statsMapFd_(statsMapFd) {}
 
 TPRStatsPoller::~TPRStatsPoller() {
   shutdown();
@@ -75,6 +78,9 @@ void TPRStatsPoller::updateStatsPeriodically() {
   if (shutdown_) {
     return;
   }
+  std::string modeStr = (mode_ == RunningMode::SERVER ? "server" : "client");
+  setCounter("mode." + modeStr, 1);
+
   incrementCounter("periodic_stats_update");
   auto stats = collectTPRStats(numCpus_);
   if (stats.hasError()) {
