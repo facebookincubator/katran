@@ -137,4 +137,18 @@ struct flow_debug_info {
   };
 };
 #endif // of RECORD_FLOW_INFO
+
+// struct for quic packets statistics counters
+struct lb_quic_packets_stats {
+  __u64 ch_routed;
+  __u64 cid_initial;
+  __u64 cid_invalid_server_id;
+  __u64 cid_routed;
+  __u64 cid_unknown_real_dropped;
+  __u64 cid_v0;
+  __u64 cid_v1;
+  __u64 cid_v2;
+  __u64 cid_v3;
+};
+
 #endif // of _BALANCER_STRUCTS

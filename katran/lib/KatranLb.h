@@ -59,16 +59,13 @@ constexpr uint32_t kLruFallbackOffset = 3;
 constexpr uint32_t kIcmpTooBigOffset = 4;
 constexpr uint32_t kLpmSrcOffset = 5;
 constexpr uint32_t kInlineDecapOffset = 6;
-constexpr uint32_t kQuicRoutingOffset = 7;
-constexpr uint32_t kQuicCidVersionOffset = 8;
-constexpr uint32_t kQuicCidDropOffset = 9;
-constexpr uint32_t kTcpServerIdRoutingOffset = 10;
-constexpr uint32_t kGlobalLruOffset = 11;
-constexpr uint32_t kChDropOffset = 12;
-constexpr uint32_t kDecapCounterOffset = 13;
-constexpr uint32_t kQuicIcmpOffset = 14;
-constexpr uint32_t kIcmpPtbV6Offset = 15;
-constexpr uint32_t kIcmpPtbV4Offset = 16;
+constexpr uint32_t kTcpServerIdRoutingOffset = 7;
+constexpr uint32_t kGlobalLruOffset = 8;
+constexpr uint32_t kChDropOffset = 9;
+constexpr uint32_t kDecapCounterOffset = 10;
+constexpr uint32_t kQuicIcmpOffset = 11;
+constexpr uint32_t kIcmpPtbV6Offset = 12;
+constexpr uint32_t kIcmpPtbV4Offset = 13;
 
 /**
  * LRU map related constants
@@ -522,31 +519,6 @@ class KatranLb {
   lb_stats getIcmpTooBigStats();
 
   /**
-   * @return struct lb_stats w/ statistic of QUIC routing stats
-   *
-   * helper function which returns how many QUIC packets were routed
-   * using the default 5-tuple hash vs using the connection-id
-   */
-  lb_stats getQuicRoutingStats();
-
-  /**
-   * @return struct lb_stats w/ statistic of QUIC CID versions stats
-   *
-   * helper function which returns how many QUIC packets were routed
-   * using CIDv1 vs CIDv2
-   */
-  lb_stats getQuicCidVersionStats();
-
-  /**
-   * @return struct lb_stats w/ statistic of QUIC packet drop stats
-   *
-   * helper function which returns how many QUIC packets were dropped:
-   * v1 - packets dropped because server ID map pointed to unknown real ID.
-   * v2 - packets routed to real #0, which we don't map any real to
-   */
-  lb_stats getQuicCidDropStats();
-
-  /**
    * @return struct lb_stats w/ statistic of packets dropped during consistent
    * hashing.
    *
@@ -829,6 +801,11 @@ class KatranLb {
   int getBpfMapFdByName(const std::string& mapName) {
     return bpfAdapter_->getMapFdByName(mapName);
   }
+
+  /**
+   * helper function to get quic packets stats
+   */
+  lb_quic_packets_stats getLbQuicPacketsStats();
 
  private:
   /**

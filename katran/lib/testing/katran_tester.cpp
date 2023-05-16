@@ -215,33 +215,34 @@ void testLbCounters(katran::KatranLb& lb, KatranTestParam& testParam) {
     VLOG(2) << "FallbackLRU hits: " << stats.v1;
     LOG(ERROR) << "LRU fallback counter is incorrect";
   }
-  stats = lb.getQuicRoutingStats();
-  if (stats.v1 != testParam.expectedQuicRoutingWithCh() ||
-      stats.v2 != testParam.expectedQuicRoutingWithCid()) {
-    LOG(ERROR) << "Counters for QUIC packets routed with CH: " << stats.v1
-               << ",  with connection-id: " << stats.v2;
-    LOG(ERROR) << "Counters for routing of QUIC packets is wrong.";
-  }
-  stats = lb.getQuicCidVersionStats();
-  if (stats.v1 != testParam.expectedQuicCidV1Counts() ||
-      stats.v2 != testParam.expectedQuicCidV2Counts()) {
-    LOG(ERROR) << "QUIC CID version counters v1 " << stats.v1 << " v2 "
-               << stats.v2;
-    LOG(ERROR) << "Counters for QUIC versions are wrong";
-  }
-  stats = lb.getQuicCidDropStats();
-  if (stats.v1 != testParam.expectedQuicCidDropsReal0Counts() ||
-      stats.v2 != testParam.expectedQuicCidDropsNoRealCounts()) {
-    LOG(ERROR) << "QUIC CID drop counters v1 " << stats.v1 << " v2 "
-               << stats.v2;
-    LOG(ERROR) << "Counters for QUIC drops are wrong";
-  }
   stats = lb.getTcpServerIdRoutingStats();
   if (stats.v2 != testParam.expectedTcpServerIdRoutingCounts() ||
       stats.v1 != testParam.expectedTcpServerIdRoutingFallbackCounts()) {
     LOG(ERROR) << "Counters for TCP server-id routing with CH (v1): "
                << stats.v1 << ", with server-id (v2): " << stats.v2;
     LOG(ERROR) << "Counters for TCP server-id based routing are wrong";
+  }
+  auto quicStats = lb.getLbQuicPacketsStats();
+  if (quicStats.ch_routed != testParam.expectedQuicRoutingWithCh() ||
+      quicStats.cid_routed != testParam.expectedQuicRoutingWithCid()) {
+    LOG(ERROR) << "Counters for QUIC packets routed with CH: "
+               << quicStats.ch_routed
+               << ",  with connection-id: " << quicStats.cid_routed;
+    LOG(ERROR) << "Counters for routing of QUIC packets is wrong.";
+  }
+  if (quicStats.cid_v1 != testParam.expectedQuicCidV1Counts() ||
+      quicStats.cid_v2 != testParam.expectedQuicCidV2Counts()) {
+    LOG(ERROR) << "QUIC CID version counters v1 " << stats.v1 << " v2 "
+               << stats.v2;
+    LOG(ERROR) << "Counters for QUIC versions are wrong";
+  }
+  if (quicStats.cid_invalid_server_id !=
+          testParam.expectedQuicCidDropsReal0Counts() ||
+      quicStats.cid_unknown_real_dropped !=
+          testParam.expectedQuicCidDropsNoRealCounts()) {
+    LOG(ERROR) << "QUIC CID drop counters v1 " << stats.v1 << " v2 "
+               << stats.v2;
+    LOG(ERROR) << "Counters for QUIC drops are wrong";
   }
   auto realStats = testParam.expectedRealStats();
   for (int i = 0; i < kReals.size(); i++) {

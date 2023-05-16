@@ -497,40 +497,14 @@ __attribute__((__always_inline__)) static inline int process_encaped_gue_pckt(
 #endif // of INLINE_DECAP_GUE
 
 __attribute__((__always_inline__)) static inline void
-increment_quic_cid_version_stats(int host_id) {
-  __u32 quic_version_stats_key = MAX_VIPS + QUIC_CID_VERSION_STATS;
-  struct lb_stats* quic_version =
-      bpf_map_lookup_elem(&stats, &quic_version_stats_key);
-  if (!quic_version) {
-    return;
-  }
+increment_quic_cid_version_stats(
+    struct lb_quic_packets_stats* quic_packets_stats,
+    int host_id) {
   if (host_id > QUIC_CONNID_VERSION_V1_MAX_VAL) {
-    quic_version->v2 += 1;
+    quic_packets_stats->cid_v2 += 1;
   } else {
-    quic_version->v1 += 1;
+    quic_packets_stats->cid_v1 += 1;
   }
-}
-
-__attribute__((__always_inline__)) static inline void
-increment_quic_cid_drop_no_real() {
-  __u32 quic_drop_stats_key = MAX_VIPS + QUIC_CID_DROP_STATS;
-  struct lb_stats* quic_drop =
-      bpf_map_lookup_elem(&stats, &quic_drop_stats_key);
-  if (!quic_drop) {
-    return;
-  }
-  quic_drop->v1 += 1;
-}
-
-__attribute__((__always_inline__)) static inline void
-increment_quic_cid_drop_real_0() {
-  __u32 quic_drop_stats_key = MAX_VIPS + QUIC_CID_DROP_STATS;
-  struct lb_stats* quic_drop =
-      bpf_map_lookup_elem(&stats, &quic_drop_stats_key);
-  if (!quic_drop) {
-    return;
-  }
-  quic_drop->v2 += 1;
 }
 
 __attribute__((__always_inline__)) static inline int update_vip_lru_miss_stats(
@@ -730,40 +704,46 @@ process_packet(struct xdp_md* xdp, __u64 off, bool is_ipv6) {
         data_stats->v2 += 1;
       }
     } else {
-      __u32 quic_stats_key = MAX_VIPS + QUIC_ROUTE_STATS;
-      struct lb_stats* quic_stats =
-          bpf_map_lookup_elem(&stats, &quic_stats_key);
-      if (!quic_stats) {
+      __u32 quic_packets_stats_key = 0;
+      struct lb_quic_packets_stats* quic_packets_stats =
+          bpf_map_lookup_elem(&quic_packets_stats_map, &quic_packets_stats_key);
+      if (!quic_packets_stats) {
         return XDP_DROP;
       }
       struct quic_parse_result qpr = parse_quic(data, data_end, is_ipv6, &pckt);
       if (qpr.server_id > 0) {
-        increment_quic_cid_version_stats(qpr.server_id);
+        // server_id is expected to always be positive. get a server id from
+        // quic packet
+        increment_quic_cid_version_stats(quic_packets_stats, qpr.server_id);
         __u32 key = qpr.server_id;
         __u32* real_pos = bpf_map_lookup_elem(&server_id_map, &key);
         if (real_pos) {
+          // get a real position for the server id
           key = *real_pos;
           if (key == 0) {
-            increment_quic_cid_drop_real_0();
-            // increment counter for the CH based routing
-            quic_stats->v1 += 1;
+            // pos 0 means the entry for the server id is not initialized.
+            // fallback to ch
+            quic_packets_stats->cid_invalid_server_id += 1;
+            quic_packets_stats->ch_routed += 1;
           } else {
             pckt.real_index = key;
             dst = bpf_map_lookup_elem(&reals, &key);
             if (!dst) {
-              increment_quic_cid_drop_no_real();
+              // fail to find a real server with the real pos, drop the packet
+              quic_packets_stats->cid_unknown_real_dropped += 1;
               REPORT_QUIC_PACKET_DROP_NO_REAL(
                   xdp, data, data_end - data, false);
               return XDP_DROP;
             }
-            quic_stats->v2 += 1;
+            quic_packets_stats->cid_routed += 1;
           }
         } else {
-          // increment counter for the CH based routing
-          quic_stats->v1 += 1;
+          // cannot get a real pos with the server id, fallback to ch
+          quic_packets_stats->ch_routed += 1;
         }
       } else if (!qpr.is_initial) {
-        quic_stats->v1 += 1;
+        // cannot get a server id from quic packet, fallback to ch
+        quic_packets_stats->ch_routed += 1;
       }
     }
   }

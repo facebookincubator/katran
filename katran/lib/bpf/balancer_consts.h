@@ -92,6 +92,8 @@
 #define CH_RINGS_SIZE (MAX_VIPS * RING_SIZE)
 #define STATS_MAP_SIZE (MAX_VIPS * 2)
 
+#define QUIC_STATS_MAP_SIZE 1
+
 // for LRU's map in map we will support up to this number of cpus
 #ifndef MAX_SUPPORTED_CPUS
 #define MAX_SUPPORTED_CPUS 128
@@ -238,26 +240,20 @@
 #define LPM_SRC_CNTRS 5
 // offset of remote encaped packets counters
 #define REMOTE_ENCAP_CNTRS 6
-// offset of QUIC routing related stats
-#define QUIC_ROUTE_STATS 7
-// QUIC CID versions
-#define QUIC_CID_VERSION_STATS 8
-// QUIC CID drops stats
-#define QUIC_CID_DROP_STATS 9
 // offset of stats for server_id based routing of TCP packets (TPR)
-#define TCP_SERVER_ID_ROUTE_STATS 10
+#define TCP_SERVER_ID_ROUTE_STATS 7
 // offset of stats for global LRU
-#define GLOBAL_LRU_CNTR 11
+#define GLOBAL_LRU_CNTR 8
 // offset of stats for packets dropped during consistent hashing
-#define CH_DROP_STATS 12
+#define CH_DROP_STATS 9
 // offset of stats for decap packets
-#define DECAP_CNTR 13
+#define DECAP_CNTR 10
 // offset of stats for quic icmp messages
-#define QUIC_ICMP_STATS 14
+#define QUIC_ICMP_STATS 11
 // offset of stats for icmp PTB messages
-#define ICMP_PTB_V6_STATS 15
+#define ICMP_PTB_V6_STATS 12
 // offset of stats for icmp Fragment needed messages
-#define ICMP_PTB_V4_STATS 16
+#define ICMP_PTB_V4_STATS 13
 
 // indice for all stats maps defined above correspond to entries in the map
 // stats starting from the index MAX_VIPS. The max_entries of stats is
