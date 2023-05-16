@@ -39,8 +39,9 @@ static inline int handle_passive_parse_hdr(
     stat->error_bad_id++;
     return PASS;
   } else {
-    // no need to keep writing this once peer sends the right server_id.
     stat->server_id_read++;
+    TPR_PRINT(skops, "passive received server-id option");
+    // no need to keep writing this once peer sends the right server_id.
     err = unset_parse_hdr_cb_flags(skops, stat);
     err |= unset_write_hdr_cb_flags(skops, stat);
     return err;
@@ -64,6 +65,7 @@ static inline int handle_passive_write_hdr_opt(
     return err;
   }
   stat->server_id_set++;
+  TPR_PRINT(skops, "passive wrote option");
   return SUCCESS;
 }
 

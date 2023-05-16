@@ -19,6 +19,7 @@ static inline int handle_passive_cb(
     struct bpf_sock_ops* skops,
     struct stats* stat,
     const struct server_info* s_info) {
+  TPR_PRINT(skops, "passive cb", skops->op);
   int err;
 
   switch (skops->op) {
@@ -60,6 +61,7 @@ static inline int handle_passive_cb(
 static inline int handle_active_cb(
     struct bpf_sock_ops* skops,
     struct stats* stat) {
+  TPR_PRINT(skops, "active cb", skops->op);
   switch (skops->op) {
     case BPF_SOCK_OPS_TCP_CONNECT_CB:
       /* Called before SYN is sent on active side: nth to do */
@@ -117,6 +119,6 @@ int tcp_pkt_router(struct bpf_sock_ops* skops) {
   return CG_OK;
 }
 
-// It requires GPL to run bpf_printk
+// bpf_printk requires GPL license
 char _license[] SEC("license") = "Facebook";
 int _version SEC("version") = 1;
