@@ -1798,7 +1798,9 @@ void KatranLb::modifyQuicRealsMapping(
       LOG(ERROR) << "Invalid quic real's address: " << real.address;
       continue;
     }
-    if (real.id > kMaxQuicId) {
+    // kMaxQuicIdV2 was defined for cid v2 which is 24-bit.
+    // cid v3 supports 32 bit server id.
+    if (!config_.enableCidV3 && (real.id > kMaxQuicIdV2)) {
       LOG(ERROR) << "trying to add mapping for id out of assigned space";
       continue;
     }

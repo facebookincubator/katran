@@ -213,6 +213,7 @@ struct KatranConfig {
   bool flowDebug = false;
   uint32_t globalLruSize = kDefaultGlobalLruSize;
   bool useRootMap = true;
+  bool enableCidV3 = false;
 };
 
 /**
