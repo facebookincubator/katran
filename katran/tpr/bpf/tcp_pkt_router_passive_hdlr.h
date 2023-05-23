@@ -26,17 +26,24 @@ static inline int handle_passive_parse_hdr(
   err = bpf_load_hdr_opt(skops, &hdr_opt, sizeof(hdr_opt), NO_FLAGS);
   if (err < 0) {
     // peer didn't write anything.
+    TPR_PRINT(skops, "passive parsed hdr found no option");
     stat->no_tcp_opt_hdr++;
     return err;
   }
   if (!hdr_opt.server_id) {
     // no server_id received from peer.
     stat->error_bad_id++;
+    TPR_PRINT(skops, "passive received 0 server id");
     return PASS;
   }
   if (s_info->server_id != hdr_opt.server_id) {
     // read the server_id. But not itself. Packet is misrouted.
     stat->error_bad_id++;
+    TPR_PRINT(
+        skops,
+        "passive received wrong server id: option=%d, server=%d",
+        hdr_opt.server_id,
+        s_info->server_id);
     return PASS;
   } else {
     stat->server_id_read++;
@@ -81,6 +88,7 @@ static inline int handle_passive_estab(
   err = bpf_load_hdr_opt(skops, &hdr_opt, sizeof(struct tcp_opt), NO_FLAGS);
   if (err < 0) {
     stat->no_tcp_opt_hdr++;
+    TPR_PRINT(skops, "passive estab found no option");
     // since the peer didn't send any header, likely it doesn't support it.
     unset_write_hdr_cb_flags(skops, stat);
     unset_parse_hdr_cb_flags(skops, stat);
@@ -90,6 +98,11 @@ static inline int handle_passive_estab(
     stat->error_bad_id++;
     // the peer sent the server_id but it is wrong.
     // keep on sending the server_id and reading peer's tcp-hdr
+    TPR_PRINT(
+        skops,
+        "passive estab received wrong server id: option=%d, server=%d",
+        hdr_opt.server_id,
+        s_info->server_id);
     return set_parse_hdr_cb_flags(skops, stat);
   } else {
     stat->server_id_read++;

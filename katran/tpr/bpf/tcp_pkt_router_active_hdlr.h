@@ -32,6 +32,7 @@ static inline int handle_active_parse_hdr(
   }
   if (!hdr_opt.server_id) {
     stat->error_bad_id++;
+    TPR_PRINT(skops, "active parsed empty server id from the option");
     return PASS;
   }
 
@@ -51,6 +52,11 @@ static inline int handle_active_parse_hdr(
     unset_parse_hdr_cb_flags(skops, stat);
   } else {
     if (*id) {
+      TPR_PRINT(
+          skops,
+          "active parse diffrent id than in storage: header=%d, storage=%d",
+          hdr_opt.server_id,
+          *id);
       stat->error_bad_id++;
     }
     *id = hdr_opt.server_id;
@@ -81,6 +87,7 @@ static int handle_active_write_hdr_opt(
     // side can try sending back proper id in the next round.
     hdr_opt.server_id = 0;
     stat->error_bad_id++;
+    TPR_PRINT(skops, "active failed to read server id from storage");
   } else {
     hdr_opt.server_id = *existing_id;
   }
