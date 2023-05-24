@@ -397,9 +397,9 @@ int BaseBpfAdapter::getBpfMapUsedSize(const std::string& name) {
     prev_key = &key;
   }
 
-  // Normal case: we reached the last element; err is -1, errno is ENOENT
-  if (err == -1 && errno == ENOENT) {
-    VLOG(3) << "Found " << num_entries << " entries for map " << name;
+  // reached the last element
+  if (errno == ENOENT) {
+    VLOG(1) << "Found " << num_entries << " entries for map " << name;
     return num_entries;
   } else {
     LOG(ERROR) << "Error determining size of " << name << " err=" << err
