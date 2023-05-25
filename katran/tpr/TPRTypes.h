@@ -35,13 +35,13 @@ struct server_info {
 
 // Tentative stats for different transport events
 struct tcp_router_stats {
-  uint64_t server_id_read;
-  uint64_t server_id_set;
-  uint64_t conns_skipped;
-  uint64_t no_tcp_opt_hdr;
-  uint64_t error_bad_id;
-  uint64_t error_write_opt;
-  uint64_t error_sys_calls;
+  uint64_t server_id_read{0};
+  uint64_t server_id_set{0};
+  uint64_t conns_skipped{0};
+  uint64_t no_tcp_opt_hdr{0};
+  uint64_t error_bad_id{0};
+  uint64_t error_write_opt{0};
+  uint64_t error_sys_calls{0};
 };
 
 // helper methods to constructs useful error message without boiler plate code.

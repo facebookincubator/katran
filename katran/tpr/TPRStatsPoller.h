@@ -52,6 +52,7 @@ class TPRStatsPoller : public folly::AsyncTimeout {
  protected:
   virtual void incrementCounter(const std::string& name);
   virtual void setCounter(const std::string& name, int64_t val);
+  virtual void setStatsCounters(const tcp_router_stats& stats);
 
  private:
   /**

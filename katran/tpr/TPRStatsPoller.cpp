@@ -30,6 +30,16 @@ void TPRStatsPoller::setCounter(const std::string& name, int64_t val) {
   VLOG(5) << "Set counter " << name << " to " << val;
 }
 
+void TPRStatsPoller::setStatsCounters(const tcp_router_stats& stats) {
+  setCounter("server_id_read", stats.server_id_read);
+  setCounter("server_id_set", stats.server_id_set);
+  setCounter("conns_skipped", stats.conns_skipped);
+  setCounter("no_tcp_opt_hdr", stats.no_tcp_opt_hdr);
+  setCounter("error_bad_id", stats.error_bad_id);
+  setCounter("error_write_opt", stats.error_write_opt);
+  setCounter("error_sys_calls", stats.error_sys_calls);
+}
+
 TPRStatsPoller::TPRStatsPoller(
     RunningMode mode,
     folly::EventBase* evb,
@@ -88,13 +98,7 @@ void TPRStatsPoller::updateStatsPeriodically() {
                << stats.error().what();
     return;
   }
-  setCounter("server_id_read", stats->server_id_read);
-  setCounter("server_id_set", stats->server_id_set);
-  setCounter("conns_skipped", stats->conns_skipped);
-  setCounter("no_tcp_opt_hdr", stats->no_tcp_opt_hdr);
-  setCounter("error_bad_id", stats->error_bad_id);
-  setCounter("error_write_opt", stats->error_write_opt);
-  setCounter("error_sys_calls", stats->error_sys_calls);
+  setStatsCounters(*stats);
 }
 
 void TPRStatsPoller::timeoutExpired() noexcept {
