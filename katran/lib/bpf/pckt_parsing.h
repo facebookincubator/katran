@@ -58,6 +58,7 @@ struct quic_short_header {
 
 struct quic_parse_result {
   int server_id;
+  __u8 cid_version;
   bool is_initial;
 };
 
@@ -286,7 +287,11 @@ parse_quic(
     bool is_ipv6,
     struct packet_description* pckt) {
   struct quic_parse_result result = {
-      .server_id = FURTHER_PROCESSING, .is_initial = false};
+      .server_id = FURTHER_PROCESSING,
+      // initialize cid_version to 0xFF instead of 0 cause 0 is also a possible
+      // version.
+      .cid_version = 0xFF,
+      .is_initial = false};
 
   bool is_icmp = (pckt->flags & F_ICMP);
   __u64 off = calc_offset(is_ipv6, is_icmp);
@@ -334,6 +339,7 @@ parse_quic(
   }
   // connId schema: if first two bits contain the right version info
   __u8 connIdVersion = (connId[0] >> 6);
+  result.cid_version = connIdVersion;
   if (connIdVersion == QUIC_CONNID_VERSION_V1) {
     // extract last 16 bits from the first 18 bits:
     //            last 6 bits         +    8 bits        +   first 2 bits
@@ -343,6 +349,9 @@ parse_quic(
   } else if (connIdVersion == QUIC_CONNID_VERSION_V2) {
     result.server_id = (connId[1] << 16) | (connId[2] << 8) | (connId[3]);
     return result;
+  } else if (connIdVersion == QUIC_CONNID_VERSION_V3) {
+    result.server_id =
+        (connId[1] << 24) | (connId[2] << 16) | (connId[3] << 8) | (connId[6]);
   }
   return result;
 }

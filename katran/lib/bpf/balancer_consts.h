@@ -178,6 +178,9 @@
 #ifndef QUIC_CONNID_VERSION_V2
 #define QUIC_CONNID_VERSION_V2 0x2
 #endif
+#ifndef QUIC_CONNID_VERSION_V3
+#define QUIC_CONNID_VERSION_V3 0x3
+#endif
 #define QUIC_CONNID_VERSION_V1_MAX_VAL 0xFFFF
 
 // Constants related to the feature for routing of TCP packets

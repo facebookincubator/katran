@@ -499,11 +499,15 @@ __attribute__((__always_inline__)) static inline int process_encaped_gue_pckt(
 __attribute__((__always_inline__)) static inline void
 increment_quic_cid_version_stats(
     struct lb_quic_packets_stats* quic_packets_stats,
-    int host_id) {
-  if (host_id > QUIC_CONNID_VERSION_V1_MAX_VAL) {
-    quic_packets_stats->cid_v2 += 1;
-  } else {
+    __u8 cid_version) {
+  if (cid_version == QUIC_CONNID_VERSION_V1) {
     quic_packets_stats->cid_v1 += 1;
+  } else if (cid_version == QUIC_CONNID_VERSION_V2) {
+    quic_packets_stats->cid_v2 += 1;
+  } else if (cid_version == QUIC_CONNID_VERSION_V3) {
+    quic_packets_stats->cid_v3 += 1;
+  } else {
+    quic_packets_stats->cid_v0 += 1;
   }
 }
 
@@ -714,7 +718,7 @@ process_packet(struct xdp_md* xdp, __u64 off, bool is_ipv6) {
       if (qpr.server_id > 0) {
         // server_id is expected to always be positive. get a server id from
         // quic packet
-        increment_quic_cid_version_stats(quic_packets_stats, qpr.server_id);
+        increment_quic_cid_version_stats(quic_packets_stats, qpr.cid_version);
         __u32 key = qpr.server_id;
         __u32* real_pos = bpf_map_lookup_elem(&server_id_map, &key);
         if (real_pos) {
@@ -744,6 +748,8 @@ process_packet(struct xdp_md* xdp, __u64 off, bool is_ipv6) {
       } else if (!qpr.is_initial) {
         // cannot get a server id from quic packet, fallback to ch
         quic_packets_stats->ch_routed += 1;
+      } else {
+        quic_packets_stats->cid_initial += 1;
       }
     }
   }
