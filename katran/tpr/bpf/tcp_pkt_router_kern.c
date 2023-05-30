@@ -67,15 +67,32 @@ static inline int handle_active_cb(
       /* Called before SYN is sent on active side: nth to do */
       break;
     case BPF_SOCK_OPS_PARSE_HDR_OPT_CB:
-      /* Read hdr-opt sent by the passive side */
-      return handle_active_parse_hdr(skops, stat);
+      /* Read hdr-opt sent by the passive side
+       * Only parse the SYNACK because server TPR only sends OPT with SYNACK */
+      if ((skops->skb_tcp_flags & TCPHDR_SYNACK) == TCPHDR_SYNACK) {
+        return handle_active_parse_hdr(skops, stat);
+      } else {
+        return SUCCESS;
+      }
     case BPF_SOCK_OPS_HDR_OPT_LEN_CB:
       /* Reserve space for writing the header option later in
-       * BPF_SOCK_OPS_WRITE_HDR_OPT_CB. */
-      return handle_hdr_opt_len(skops, stat);
+       * BPF_SOCK_OPS_WRITE_HDR_OPT_CB.
+       * Don't attempt to do this for the SYN packet because we only
+       * get the OPT in the SYNACK */
+      if ((skops->skb_tcp_flags & TCPHDR_SYN) != TCPHDR_SYN) {
+        return handle_hdr_opt_len(skops, stat);
+      } else {
+        return SUCCESS;
+      }
     case BPF_SOCK_OPS_WRITE_HDR_OPT_CB:
-      /* Echo back the server-id as hdr-opt */
-      return handle_active_write_hdr_opt(skops, stat);
+      /* Echo back the server-id as hdr-opt
+       * Don't attempt to do this for the SYN packet because we only
+       * get the OPT in the SYNACK */
+      if ((skops->skb_tcp_flags & TCPHDR_SYN) != TCPHDR_SYN) {
+        return handle_active_write_hdr_opt(skops, stat);
+      } else {
+        return SUCCESS;
+      }
     case BPF_SOCK_OPS_ACTIVE_ESTABLISHED_CB:
       /* Connection estd: check for server_id */
       return handle_active_estab(skops, stat);
