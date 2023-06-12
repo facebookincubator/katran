@@ -351,7 +351,7 @@ parse_quic(
     return result;
   } else if (connIdVersion == QUIC_CONNID_VERSION_V3) {
     result.server_id =
-        (connId[1] << 24) | (connId[2] << 16) | (connId[3] << 8) | (connId[6]);
+        (connId[1] << 24) | (connId[2] << 16) | (connId[3] << 8) | (connId[4]);
   }
   return result;
 }
