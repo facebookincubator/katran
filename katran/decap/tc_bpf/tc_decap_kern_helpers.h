@@ -103,7 +103,7 @@ gue_tc_decap_v4(struct __sk_buff* skb, void** data, void** data_end) {
   new_eth->h_proto = BE_ETH_P_IP;
 
   flags |= BPF_F_ADJ_ROOM_FIXED_GSO;
-  adjust_len = (int)(sizeof(struct ipv6hdr) + sizeof(struct udphdr));
+  adjust_len = (int)(sizeof(struct iphdr) + sizeof(struct udphdr));
 
   if (bpf_skb_adjust_room(skb, -adjust_len, BPF_ADJ_ROOM_MAC, flags)) {
     return false;
@@ -129,14 +129,17 @@ __attribute__((__always_inline__)) static inline bool gue_tc_decap_v6(
   RECORD_GUE_ROUTE(old_eth, new_eth, *data_end, false, inner_v4);
   memcpy(new_eth->h_source, old_eth->h_source, 6);
   memcpy(new_eth->h_dest, old_eth->h_dest, 6);
+
   if (inner_v4) {
     new_eth->h_proto = BE_ETH_P_IP;
+    bpf_skb_change_proto(skb, bpf_htons(ETH_P_IP), 0);
+    adjust_len = (int)(sizeof(struct iphdr) + sizeof(struct udphdr));
   } else {
     new_eth->h_proto = BE_ETH_P_IPV6;
+    adjust_len = (int)(sizeof(struct ipv6hdr) + sizeof(struct udphdr));
   }
 
   flags |= BPF_F_ADJ_ROOM_FIXED_GSO;
-  adjust_len = (int)(sizeof(struct ipv6hdr) + sizeof(struct udphdr));
 
   if (bpf_skb_adjust_room(skb, -adjust_len, BPF_ADJ_ROOM_MAC, flags)) {
     return false;
