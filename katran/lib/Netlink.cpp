@@ -54,7 +54,8 @@ NetlinkMessage NetlinkMessage::TC(
     int prog_fd,
     unsigned ifindex,
     const std::string& bpf_name,
-    int direction) {
+    int direction,
+    const uint32_t handle) {
   /**
     format of netlink msg:
     +-------------------------------+
@@ -152,6 +153,7 @@ NetlinkMessage NetlinkMessage::TC(
   tc->tcm_family = AF_UNSPEC;
   tc->tcm_ifindex = ifindex;
   tc->tcm_parent = direction;
+  tc->tcm_handle = TC_H_MAKE(0, handle);
 
   if (cmd == RTM_NEWTFILTER && flags & NLM_F_CREATE) {
     protocol = htons(ETH_P_ALL);

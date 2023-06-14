@@ -36,6 +36,7 @@ class NetlinkMessage {
    * @param ifindex      Network interface index
    * @param bpf_name     Name of bpf program (for identification purposes)
    * @param direction    Ingress or egress
+   * @param handle       tc-bpf filter handle
    */
   static NetlinkMessage TC(
       unsigned seq,
@@ -45,7 +46,8 @@ class NetlinkMessage {
       int prog_fd,
       unsigned ifindex,
       const std::string& bpf_name,
-      int direction);
+      int direction,
+      const uint32_t handle = 0);
 
   /**
    * Constructs a netlink message used to attach clsact qdisk

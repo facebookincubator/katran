@@ -411,8 +411,9 @@ class BaseBpfAdapter {
       const int prog_fd,
       const unsigned int ifindex,
       const std::string& bpf_name,
-      uint32_t priority,
-      const int direction = TC_INGRESS);
+      const uint32_t priority,
+      const int direction = TC_INGRESS,
+      const uint32_t handle = 0);
 
   /**
    *  @param int prog_fd descriptor of the program
@@ -444,7 +445,8 @@ class BaseBpfAdapter {
       const unsigned int ifindex,
       const std::string& bpf_name,
       const uint32_t priority,
-      const int direction = TC_INGRESS);
+      const int direction = TC_INGRESS,
+      const uint32_t handle = 0);
 
   /**
    * @param int prog_fd descriptor of bpf program
@@ -461,7 +463,8 @@ class BaseBpfAdapter {
       const unsigned int ifindex,
       const std::string& bpf_name,
       const uint32_t priority,
-      const int direction = TC_INGRESS);
+      const int direction = TC_INGRESS,
+      const uint32_t handle = 0);
 
   /**
    * @param int prog_fd descriptor of bpf program
@@ -673,7 +676,8 @@ class BaseBpfAdapter {
       const int prog_fd,
       const unsigned int ifindex,
       const std::string& bpf_name,
-      const int direction = TC_INGRESS);
+      const int direction = TC_INGRESS,
+      const uint32_t handle = 0);
 
   /**
    * helper function to add clsact qdisk to interface for healthchecking
@@ -688,7 +692,8 @@ class BaseBpfAdapter {
       const unsigned int ifindex,
       const std::string& bpf_name,
       uint32_t priority,
-      const int direction = TC_INGRESS);
+      const int direction = TC_INGRESS,
+      const uint32_t handle = 0);
 
   /**
    * helper function which open specified dir and returns it's fd.

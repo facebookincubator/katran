@@ -464,10 +464,11 @@ int BaseBpfAdapter::addTcBpfFilter(
     const unsigned int ifindex,
     const std::string& bpf_name,
     const uint32_t priority,
-    const int direction) {
+    const int direction,
+    const uint32_t handle) {
   addClsActQD(ifindex);
   return genericAttachBpfProgToTc(
-      prog_fd, ifindex, bpf_name, priority, direction);
+      prog_fd, ifindex, bpf_name, priority, direction, handle);
 }
 
 int BaseBpfAdapter::replaceTcBpfFilter(
@@ -475,11 +476,12 @@ int BaseBpfAdapter::replaceTcBpfFilter(
     const unsigned int ifindex,
     const std::string& bpf_name,
     const uint32_t priority,
-    const int direction) {
+    const int direction,
+    const uint32_t handle) {
   int cmd = RTM_NEWTFILTER;
-  unsigned int flags = NLM_F_CREATE;
+  unsigned int flags = NLM_F_CREATE | NLM_F_REPLACE;
   return modifyTcBpfFilter(
-      cmd, flags, priority, prog_fd, ifindex, bpf_name, direction);
+      cmd, flags, priority, prog_fd, ifindex, bpf_name, direction, handle);
 }
 
 int BaseBpfAdapter::deleteTcBpfFilter(
@@ -487,11 +489,12 @@ int BaseBpfAdapter::deleteTcBpfFilter(
     const unsigned int ifindex,
     const std::string& bpf_name,
     const uint32_t priority,
-    const int direction) {
+    const int direction,
+    const uint32_t handle) {
   int cmd = RTM_DELTFILTER;
   unsigned int flags = 0;
   return modifyTcBpfFilter(
-      cmd, flags, priority, prog_fd, ifindex, bpf_name, direction);
+      cmd, flags, priority, prog_fd, ifindex, bpf_name, direction, handle);
 }
 
 int BaseBpfAdapter::genericAttachBpfProgToTc(
@@ -499,12 +502,13 @@ int BaseBpfAdapter::genericAttachBpfProgToTc(
     const unsigned int ifindex,
     const std::string& bpf_name,
     const uint32_t priority,
-    const int direction) {
+    const int direction,
+    const uint32_t handle) {
   int cmd = RTM_NEWTFILTER;
   unsigned int flags = NLM_F_EXCL | NLM_F_CREATE;
 
   auto rc = modifyTcBpfFilter(
-      cmd, flags, priority, prog_fd, ifindex, bpf_name, direction);
+      cmd, flags, priority, prog_fd, ifindex, bpf_name, direction, handle);
   return rc;
 }
 
@@ -564,10 +568,11 @@ int BaseBpfAdapter::modifyTcBpfFilter(
     const int prog_fd,
     const unsigned int ifindex,
     const std::string& bpf_name,
-    const int direction) {
+    const int direction,
+    const uint32_t handle) {
   unsigned int seq = static_cast<unsigned int>(std::time(nullptr));
   auto msg = NetlinkMessage::TC(
-      seq, cmd, flags, priority, prog_fd, ifindex, bpf_name, direction);
+      seq, cmd, flags, priority, prog_fd, ifindex, bpf_name, direction, handle);
   return NetlinkRoundtrip(msg);
 }
 
