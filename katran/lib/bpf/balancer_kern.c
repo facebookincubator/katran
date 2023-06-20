@@ -543,6 +543,23 @@ __attribute__((__always_inline__)) static inline int update_vip_lru_miss_stats(
   return FURTHER_PROCESSING;
 }
 
+// compare the real index stored in the pckt(from server id based routing)
+// with the real index in lru_map
+// update the existing value if they don't match and check_only is false
+__attribute__((__always_inline__)) static inline void
+check_and_update_real_index_in_lru(
+    struct packet_description* pckt,
+    void* lru_map) {
+  struct real_pos_lru* dst_lru = bpf_map_lookup_elem(lru_map, &pckt->flow);
+  if (dst_lru) {
+    dst_lru->pos = pckt->real_index;
+    return;
+  }
+  struct real_pos_lru new_dst_lru = {};
+  new_dst_lru.pos = pckt->real_index;
+  bpf_map_update_elem(lru_map, &pckt->flow, &new_dst_lru, BPF_ANY);
+}
+
 __attribute__((__always_inline__)) static inline int
 process_packet(struct xdp_md* xdp, __u64 off, bool is_ipv6) {
   void* data = (void*)(long)xdp->data;
@@ -787,15 +804,13 @@ process_packet(struct xdp_md* xdp, __u64 off, bool is_ipv6) {
       if (!routing_stats) {
         return XDP_DROP;
       }
-      if (tcp_hdr_opt_lookup(
-              xdp,
-              is_ipv6,
-              &dst,
-              &pckt,
-              vip_info->flags & F_LRU_BYPASS,
-              lru_map) == FURTHER_PROCESSING) {
+      if (tcp_hdr_opt_lookup(xdp, is_ipv6, &dst, &pckt) == FURTHER_PROCESSING) {
         routing_stats->v1 += 1;
       } else {
+        // update this routing decision in the lru_map as well
+        if (lru_map && !(vip_info->flags & F_LRU_BYPASS)) {
+          check_and_update_real_index_in_lru(&pckt, lru_map);
+        }
         routing_stats->v2 += 1;
       }
     }

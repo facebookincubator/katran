@@ -207,9 +207,7 @@ __attribute__((__always_inline__)) static inline int tcp_hdr_opt_lookup(
     const struct xdp_md* xdp,
     bool is_ipv6,
     struct real_definition** real,
-    struct packet_description* pckt,
-    bool bypass_lru,
-    void* lru_map) {
+    struct packet_description* pckt) {
   const void* data = (void*)(long)xdp->data;
   const void* data_end = (void*)(long)xdp->data_end;
   struct real_pos_lru* dst_lru;
@@ -264,17 +262,6 @@ __attribute__((__always_inline__)) static inline int tcp_hdr_opt_lookup(
   *real = bpf_map_lookup_elem(&reals, &key);
   if (!(*real)) {
     return FURTHER_PROCESSING;
-  }
-  // update this routing decision in the lru_map as well
-  if (!bypass_lru) {
-    struct real_pos_lru* dst_lru = bpf_map_lookup_elem(lru_map, &pckt->flow);
-    if (dst_lru) {
-      dst_lru->pos = key;
-      return 0;
-    }
-    struct real_pos_lru new_dst_lru = {};
-    new_dst_lru.pos = key;
-    bpf_map_update_elem(lru_map, &pckt->flow, &new_dst_lru, BPF_ANY);
   }
   return 0;
 }
