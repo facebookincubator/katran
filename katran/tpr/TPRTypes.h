@@ -42,6 +42,7 @@ struct tcp_router_stats {
   uint64_t error_bad_id{0};
   uint64_t error_write_opt{0};
   uint64_t error_sys_calls{0};
+  uint64_t ignoring_due_to_kde{0};
 };
 
 // helper methods to constructs useful error message without boiler plate code.

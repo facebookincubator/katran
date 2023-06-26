@@ -56,10 +56,21 @@ static inline int handle_passive_parse_hdr(
   return SUCCESS;
 }
 
+static inline bool has_kde_opt(struct bpf_sock_ops* skops) {
+  struct kde_srv_tcp_opt hdr_opt = {};
+  hdr_opt.kind = KDE_SRV_TCP_HDR_OPT_KIND;
+  return bpf_load_hdr_opt(skops, &hdr_opt, sizeof(hdr_opt), NO_FLAGS) >= 0;
+}
+
 static inline int handle_passive_write_hdr_opt(
     struct bpf_sock_ops* skops,
     struct stats* stat,
     const struct server_info* s_info) {
+  if (has_kde_opt(skops)) {
+    stat->ignoring_due_to_kde++;
+    return SUCCESS;
+  }
+
   int err;
   struct tcp_opt hdr_opt = {};
 

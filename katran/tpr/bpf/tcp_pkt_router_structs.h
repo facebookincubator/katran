@@ -15,6 +15,14 @@ struct tcp_opt {
   __u32 server_id;
 } __attribute__((packed));
 
+// Represent a header opt that indicates that we should
+// skip writing the tcp_opt.
+struct kde_srv_tcp_opt {
+  __u8 kind;
+  __u8 len;
+  __u32 v6addr[4];
+} __attribute__((packed));
+
 // stats for different packet events
 struct stats {
   // TODO: these are tentative fields for now
@@ -25,4 +33,5 @@ struct stats {
   __u64 error_bad_id;
   __u64 error_write_opt;
   __u64 error_sys_calls;
+  __u64 ignoring_due_to_kde;
 };

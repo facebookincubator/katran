@@ -38,6 +38,7 @@ void TPRStatsPoller::setStatsCounters(const tcp_router_stats& stats) {
   setCounter("error_bad_id", stats.error_bad_id);
   setCounter("error_write_opt", stats.error_write_opt);
   setCounter("error_sys_calls", stats.error_sys_calls);
+  setCounter("ignoring_due_to_kde", stats.ignoring_due_to_kde);
 }
 
 TPRStatsPoller::TPRStatsPoller(
@@ -153,6 +154,7 @@ TPRStatsPoller::collectTPRStats(int numCpus) {
     aggregateStats.error_bad_id += stat.error_bad_id;
     aggregateStats.error_write_opt += stat.error_write_opt;
     aggregateStats.error_sys_calls += stat.error_sys_calls;
+    aggregateStats.ignoring_due_to_kde += stat.ignoring_due_to_kde;
   }
   return aggregateStats;
 }
