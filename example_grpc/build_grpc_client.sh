@@ -62,7 +62,7 @@ cp $(go env GOPATH)/bin/protoc-gen-go-grpc $(go env GOPATH)/bin/protoc-gen-go_gr
 """
 # fail hard if go or protoc is not installed
 go version 1>/dev/null
-protoc --version 1>dev/null
+protoc --version 1>/dev/null
 # adding export paths
 export GOPATH=$(pwd)/goclient
 create_grpc_template
