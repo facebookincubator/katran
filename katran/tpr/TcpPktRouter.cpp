@@ -20,8 +20,12 @@ constexpr uint32_t kMaxServerId = (1 << 24) - 1;
 constexpr uint32_t kServerInfoIndex = 0;
 const std::string kServerInfoMap = "server_infos";
 
-TcpPktRouter::TcpPktRouter(RunningMode mode, const std::string& cgroupPath)
-    : mode_(mode), cgroupPath_(cgroupPath) {}
+TcpPktRouter::TcpPktRouter(
+    RunningMode mode,
+    const std::string& cgroupPath,
+    bool kdeEnabled)
+
+    : mode_(mode), cgroupPath_(cgroupPath), kdeEnabled_(kdeEnabled) {}
 
 TcpPktRouter::~TcpPktRouter() {
   shutdown();
@@ -126,6 +130,7 @@ TcpPktRouter::updateServerInfo() noexcept {
   struct server_info info = {};
   if (mode_ == RunningMode::SERVER) {
     info.running_mode = RunningMode::SERVER;
+    info.kde_enabled = kdeEnabled_;
     info.server_id = v6Id_;
     if (info.server_id == 0) {
       LOG(ERROR) << "TCP Pkt router is set but server_id is 0. Please check "

@@ -16,7 +16,10 @@ namespace katran_tpr {
 
 class TcpPktRouter {
  public:
-  explicit TcpPktRouter(RunningMode mode, const std::string& cgroupPath);
+  explicit TcpPktRouter(
+      RunningMode mode,
+      const std::string& cgroupPath,
+      bool kdeEnabled);
 
   virtual ~TcpPktRouter();
 
@@ -83,6 +86,7 @@ class TcpPktRouter {
   bool isInitialized_{false};
   uint32_t v6Id_;
   std::string cgroupPath_;
+  bool kdeEnabled_;
   TprBpfAdapter adapter_;
   /**
    * Polls stats for packet level events periodically, and
