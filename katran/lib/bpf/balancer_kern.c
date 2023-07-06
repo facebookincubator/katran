@@ -546,18 +546,28 @@ __attribute__((__always_inline__)) static inline int update_vip_lru_miss_stats(
 // compare the real index stored in the pckt(from server id based routing)
 // with the real index in lru_map
 // update the existing value if they don't match and check_only is false
-__attribute__((__always_inline__)) static inline void
+__attribute__((__always_inline__)) static inline int
 check_and_update_real_index_in_lru(
     struct packet_description* pckt,
-    void* lru_map) {
+    void* lru_map,
+    bool update_lru) {
   struct real_pos_lru* dst_lru = bpf_map_lookup_elem(lru_map, &pckt->flow);
   if (dst_lru) {
-    dst_lru->pos = pckt->real_index;
-    return;
+    if (dst_lru->pos == pckt->real_index) {
+      return DST_MATCH_IN_LRU;
+    } else {
+      if (update_lru) {
+        dst_lru->pos = pckt->real_index;
+      }
+      return DST_MISMATCH_IN_LRU;
+    }
   }
-  struct real_pos_lru new_dst_lru = {};
-  new_dst_lru.pos = pckt->real_index;
-  bpf_map_update_elem(lru_map, &pckt->flow, &new_dst_lru, BPF_ANY);
+  if (update_lru) {
+    struct real_pos_lru new_dst_lru = {};
+    new_dst_lru.pos = pckt->real_index;
+    bpf_map_update_elem(lru_map, &pckt->flow, &new_dst_lru, BPF_ANY);
+  }
+  return DST_NOT_FOUND_IN_LRU;
 }
 
 __attribute__((__always_inline__)) static inline int
@@ -704,6 +714,27 @@ process_packet(struct xdp_md* xdp, __u64 off, bool is_ipv6) {
   // total packets
   data_stats->v1 += 1;
 
+  if ((vip_info->flags & F_HASH_NO_SRC_PORT)) {
+    // service, where diff src port, but same ip must go to the same real,
+    // e.g. gfs
+    pckt.flow.port16[0] = 0;
+  }
+
+  __u32 cpu_num = bpf_get_smp_processor_id();
+  void* lru_map = bpf_map_lookup_elem(&lru_mapping, &cpu_num);
+  if (!lru_map) {
+    lru_map = &fallback_cache;
+    __u32 lru_stats_key = MAX_VIPS + FALLBACK_LRU_CNTR;
+    struct lb_stats* lru_stats = bpf_map_lookup_elem(&stats, &lru_stats_key);
+    if (!lru_stats) {
+      return XDP_DROP;
+    }
+    // We were not able to retrieve per cpu/core lru and falling back to
+    // default one. This counter should never be anything except 0 in prod.
+    // We are going to use it for monitoring.
+    lru_stats->v1 += 1;
+  }
+
   // Lookup dst based on id in packet
   if ((vip_info->flags & F_QUIC_VIP)) {
     bool is_icmp = (pckt.flags & F_ICMP);
@@ -756,6 +787,13 @@ process_packet(struct xdp_md* xdp, __u64 off, bool is_ipv6) {
                   xdp, data, data_end - data, false);
               return XDP_DROP;
             }
+            int res = check_and_update_real_index_in_lru(
+                &pckt, lru_map, /* update_lru */ false);
+            if (res == DST_MATCH_IN_LRU) {
+              quic_packets_stats->dst_match_in_lru += 1;
+            } else if (res == DST_MISMATCH_IN_LRU) {
+              quic_packets_stats->dst_mismatch_in_lru += 1;
+            }
             quic_packets_stats->cid_routed += 1;
           }
         } else {
@@ -776,25 +814,6 @@ process_packet(struct xdp_md* xdp, __u64 off, bool is_ipv6) {
   original_sport = pckt.flow.port16[0];
 
   if (!dst) {
-    if ((vip_info->flags & F_HASH_NO_SRC_PORT)) {
-      // service, where diff src port, but same ip must go to the same real,
-      // e.g. gfs
-      pckt.flow.port16[0] = 0;
-    }
-    __u32 cpu_num = bpf_get_smp_processor_id();
-    void* lru_map = bpf_map_lookup_elem(&lru_mapping, &cpu_num);
-    if (!lru_map) {
-      lru_map = &fallback_cache;
-      __u32 lru_stats_key = MAX_VIPS + FALLBACK_LRU_CNTR;
-      struct lb_stats* lru_stats = bpf_map_lookup_elem(&stats, &lru_stats_key);
-      if (!lru_stats) {
-        return XDP_DROP;
-      }
-      // We were not able to retrieve per cpu/core lru and falling back to
-      // default one. This counter should never be anything except 0 in prod.
-      // We are going to use it for monitoring.
-      lru_stats->v1 += 1;
-    }
 #ifdef TCP_SERVER_ID_ROUTING
     // First try to lookup dst in the tcp_hdr_opt (if enabled)
     if (pckt.flow.proto == IPPROTO_TCP && !(pckt.flags & F_SYN_SET)) {
@@ -809,7 +828,8 @@ process_packet(struct xdp_md* xdp, __u64 off, bool is_ipv6) {
       } else {
         // update this routing decision in the lru_map as well
         if (lru_map && !(vip_info->flags & F_LRU_BYPASS)) {
-          check_and_update_real_index_in_lru(&pckt, lru_map);
+          check_and_update_real_index_in_lru(
+              &pckt, lru_map, /* update_lru */ true);
         }
         routing_stats->v2 += 1;
       }
