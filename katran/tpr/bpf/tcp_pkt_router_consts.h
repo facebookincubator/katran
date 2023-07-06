@@ -18,8 +18,9 @@
 
 /*
  * We don't insert the TPR opt on the server side if this opt is present
+ * in the client's SYN
  */
-#define KDE_SRV_TCP_HDR_OPT_KIND 0xB9
+#define KDE_CLT_TCP_HDR_OPT_KIND 0xB8
 
 /* 4 bytes len for the server-id in TCP_HDR_OPT + KIND and LEN */
 #define TCP_HDR_OPT_LEN 6

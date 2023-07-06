@@ -5,6 +5,8 @@
 struct server_info {
   // 1 == server, 2 == client
   __u8 running_mode;
+  // 0 = no, otherwise yes
+  __u8 kde_enabled;
   __u32 server_id;
 };
 
@@ -15,12 +17,11 @@ struct tcp_opt {
   __u32 server_id;
 } __attribute__((packed));
 
-// Represent a header opt that indicates that we should
-// skip writing the tcp_opt.
-struct kde_srv_tcp_opt {
+// struct that represents an option that, if present in the incoming
+// syn from the client, indicates that we shouldn't use TPR.
+struct kde_clt_tcp_opt {
   __u8 kind;
   __u8 len;
-  __u32 v6addr[4];
 } __attribute__((packed));
 
 // stats for different packet events

@@ -98,8 +98,6 @@ gue_tc_decap_v4(struct __sk_buff* skb, void** data, void** data_end) {
   old_eth = *data;
   new_eth = *data + sizeof(struct iphdr) + sizeof(struct udphdr);
   RECORD_GUE_ROUTE(old_eth, new_eth, *data_end, true, true);
-  memcpy(new_eth->h_source, old_eth->h_source, 6);
-  memcpy(new_eth->h_dest, old_eth->h_dest, 6);
   new_eth->h_proto = BE_ETH_P_IP;
 
   flags |= BPF_F_ADJ_ROOM_FIXED_GSO;
@@ -127,8 +125,6 @@ __attribute__((__always_inline__)) static inline bool gue_tc_decap_v6(
   old_eth = *data;
   new_eth = *data + sizeof(struct ipv6hdr) + sizeof(struct udphdr);
   RECORD_GUE_ROUTE(old_eth, new_eth, *data_end, false, inner_v4);
-  memcpy(new_eth->h_source, old_eth->h_source, 6);
-  memcpy(new_eth->h_dest, old_eth->h_dest, 6);
 
   if (inner_v4) {
     new_eth->h_proto = BE_ETH_P_IP;

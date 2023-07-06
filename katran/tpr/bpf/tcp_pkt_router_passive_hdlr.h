@@ -15,6 +15,24 @@
 #include "tcp_pkt_router_maps.h"
 #include "tcp_pkt_router_structs.h"
 
+static inline bool kde_enabled() {
+  __u32 sinfo_key = SERVER_INFO_INDEX;
+  struct server_info* s_info = bpf_map_lookup_elem(&server_infos, &sinfo_key);
+  return (s_info && s_info->kde_enabled != 0);
+}
+
+static inline bool has_syn_with_kde_opt(struct bpf_sock_ops* skops) {
+  __u64 load_flags = BPF_LOAD_HDR_OPT_TCP_SYN;
+  struct kde_clt_tcp_opt kde_opt = {};
+  kde_opt.kind = KDE_CLT_TCP_HDR_OPT_KIND;
+  int ret = bpf_load_hdr_opt(skops, &kde_opt, sizeof(kde_opt), load_flags);
+  return (ret == sizeof(kde_opt));
+}
+
+static inline bool should_ignore_due_to_kde(struct bpf_sock_ops* skops) {
+  return kde_enabled() && has_syn_with_kde_opt(skops);
+}
+
 static inline int handle_passive_parse_hdr(
     struct bpf_sock_ops* skops,
     struct stats* stat,
@@ -56,17 +74,11 @@ static inline int handle_passive_parse_hdr(
   return SUCCESS;
 }
 
-static inline bool has_kde_opt(struct bpf_sock_ops* skops) {
-  struct kde_srv_tcp_opt hdr_opt = {};
-  hdr_opt.kind = KDE_SRV_TCP_HDR_OPT_KIND;
-  return bpf_load_hdr_opt(skops, &hdr_opt, sizeof(hdr_opt), NO_FLAGS) >= 0;
-}
-
 static inline int handle_passive_write_hdr_opt(
     struct bpf_sock_ops* skops,
     struct stats* stat,
     const struct server_info* s_info) {
-  if (has_kde_opt(skops)) {
+  if (should_ignore_due_to_kde(skops)) {
     stat->ignoring_due_to_kde++;
     return SUCCESS;
   }

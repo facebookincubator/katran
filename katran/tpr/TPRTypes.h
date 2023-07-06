@@ -29,6 +29,7 @@ struct tcp_opt {
 // information about the running mode to pass to the bpf program.
 struct server_info {
   RunningMode running_mode;
+  uint8_t kde_enabled;
   // only ipv6 is supported
   uint32_t server_id;
 };

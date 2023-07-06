@@ -391,4 +391,11 @@
 #define V4_SRC_INDEX 0
 #define V6_SRC_INDEX 1
 
+/**
+ * return value from check_and_update_real_index_in_lru
+ */
+#define DST_MATCH_IN_LRU 0
+#define DST_MISMATCH_IN_LRU 1
+#define DST_NOT_FOUND_IN_LRU 2
+
 #endif // of __BALANCER_CONSTS_H
