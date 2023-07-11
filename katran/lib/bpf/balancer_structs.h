@@ -151,6 +151,7 @@ struct lb_quic_packets_stats {
   __u64 cid_v3;
   __u64 dst_match_in_lru;
   __u64 dst_mismatch_in_lru;
+  __u64 dst_not_found_in_lru;
 };
 
 #endif // of _BALANCER_STRUCTS

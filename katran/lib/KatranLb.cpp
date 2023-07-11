@@ -2066,6 +2066,7 @@ lb_quic_packets_stats KatranLb::getLbQuicPacketsStats() {
         sum_stat.cid_v3 += stat.cid_v3;
         sum_stat.dst_match_in_lru += stat.dst_match_in_lru;
         sum_stat.dst_mismatch_in_lru += stat.dst_mismatch_in_lru;
+        sum_stat.dst_not_found_in_lru += stat.dst_not_found_in_lru;
       }
     } else {
       lbStats_.bpfFailedCalls++;

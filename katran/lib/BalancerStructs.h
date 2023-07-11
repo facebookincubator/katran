@@ -125,6 +125,7 @@ struct lb_quic_packets_stats {
   uint64_t cid_v3;
   uint64_t dst_match_in_lru;
   uint64_t dst_mismatch_in_lru;
+  uint64_t dst_not_found_in_lru;
 };
 
 } // namespace katran

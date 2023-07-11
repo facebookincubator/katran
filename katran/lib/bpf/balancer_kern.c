@@ -793,6 +793,9 @@ process_packet(struct xdp_md* xdp, __u64 off, bool is_ipv6) {
               quic_packets_stats->dst_match_in_lru += 1;
             } else if (res == DST_MISMATCH_IN_LRU) {
               quic_packets_stats->dst_mismatch_in_lru += 1;
+            } else {
+              /* DST_NOT_FOUND_IN_LRU */
+              quic_packets_stats->dst_not_found_in_lru += 1;
             }
             quic_packets_stats->cid_routed += 1;
           }
