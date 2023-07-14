@@ -5,6 +5,8 @@ find_package(Glog REQUIRED)
 find_package(folly CONFIG REQUIRED)
 find_package(Threads)
 
+add_subdirectory(bpf_util)
+
 set(LIBBPF_INCLUDE_DIRS "${LIB_BPF_PREFIX}/include")
 set(LIBBPF_LIBRARIES "${LIB_BPF_PREFIX}/lib")
 set(BPFOBJECT_VMLINUX_H "bpf/vmlinux/vmlinux.h")
