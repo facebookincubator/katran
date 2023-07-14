@@ -10,7 +10,13 @@
 
 #include <katran/tpr/TPRStatsPoller.h>
 #include <katran/tpr/TPRTypes.h>
-#include <katran/tpr/TprBpfAdapter.h>
+#include <katran/tpr/bpf_util/BpfSkeleton.h>
+
+#ifdef KATRAN_CMAKE_BUILD
+#include "tpr_bpf.skel.h" // @manual
+#else
+#include <katran/tpr/bpf/tpr_bpf.skel.h>
+#endif
 
 namespace katran_tpr {
 
@@ -87,12 +93,13 @@ class TcpPktRouter {
   uint32_t v6Id_;
   std::string cgroupPath_;
   bool kdeEnabled_;
-  TprBpfAdapter adapter_;
   /**
    * Polls stats for packet level events periodically, and
    * publishes fb303 counters
    */
   std::unique_ptr<TPRStatsPoller> statsPoller_;
+  BpfSkeleton<tpr_bpf> skel_;
+  int progFd_{-1};
 };
 
 } // namespace katran_tpr

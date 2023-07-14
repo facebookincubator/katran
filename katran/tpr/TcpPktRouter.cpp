@@ -5,13 +5,7 @@
 
 #include <katran/tpr/TPRTypes.h>
 #include <katran/tpr/TcpPktRouter.h>
-#include <katran/tpr/bpf_util/BpfSkeleton.h>
-
-#ifdef KATRAN_CMAKE_BUILD
-#include "tpr_bpf.skel.h" // @manual
-#else
-#include <katran/tpr/bpf/tpr_bpf.skel.h>
-#endif
+#include <katran/tpr/bpf_util/BpfUtil.h>
 
 namespace katran_tpr {
 
@@ -24,8 +18,10 @@ TcpPktRouter::TcpPktRouter(
     RunningMode mode,
     const std::string& cgroupPath,
     bool kdeEnabled)
-
-    : mode_(mode), cgroupPath_(cgroupPath), kdeEnabled_(kdeEnabled) {}
+    : mode_(mode),
+      cgroupPath_(cgroupPath),
+      kdeEnabled_(kdeEnabled),
+      skel_(BpfSkeleton<tpr_bpf>::make()) {}
 
 TcpPktRouter::~TcpPktRouter() {
   shutdown();
@@ -34,21 +30,26 @@ TcpPktRouter::~TcpPktRouter() {
 folly::Expected<folly::Unit, std::system_error> TcpPktRouter::init(
     bool pollStats) {
   CHECK(!isInitialized_);
-  auto res = adapter_.setRLimit();
+  auto res = BpfUtil::init();
   if (res.hasError()) {
     return makeError(res.error(), __func__);
   }
-  auto buf = BpfSkeleton<tpr_bpf>::elfBytes();
-  res = adapter_.loadFromBuffer((char*)buf.data(), buf.size());
-  if (res.hasError()) {
+  res = skel_.open();
+  if (!res) {
+    LOG(ERROR) << "Failed to open Katran TPR prog: " << res.error().what();
     return makeError(res.error(), __func__);
   }
-  auto mayBeFd = adapter_.getBpfProgramFd();
-  if (mayBeFd.hasError()) {
-    return makeError(mayBeFd.error(), __func__);
+  res = skel_.load();
+  if (!res) {
+    LOG(ERROR) << "Failed to load Katran TPR prog: " << res.error().what();
+    return makeError(res.error(), __func__);
   }
-  res = adapter_.attachCgroupProg(
-      mayBeFd.value(), cgroupPath_, BPF_F_ALLOW_MULTI);
+  progFd_ = bpf_program__fd(skel_->progs.tcp_pkt_router);
+  if (progFd_ < 0) {
+    return makeError(
+        std::system_error(std::error_code(), "Invalid prog FD"), __func__);
+  }
+  res = BpfUtil::attachCgroupProg(progFd_, cgroupPath_, BPF_F_ALLOW_MULTI);
   if (res.hasError()) {
     return makeError(res.error(), __func__);
   }
@@ -58,15 +59,14 @@ folly::Expected<folly::Unit, std::system_error> TcpPktRouter::init(
   }
   isInitialized_ = true;
   if (pollStats) {
-    auto mayBeStatsFd = adapter_.getMapFdByName("tpr_stats");
-    if (mayBeStatsFd.hasError()) {
-      LOG(ERROR) << "Cannot find bpf map tpr_stats; shutting downn TPR, error="
-                 << mayBeStatsFd.error().what();
+    int statsMapFd = bpf_map__fd(skel_->maps.tpr_stats);
+    if (statsMapFd < 0) {
+      LOG(ERROR) << "Cannot find bpf map tpr_stats; shutting downn TPR";
       // Try to be graceful even if it can't find that stats map
       return shutdown();
     }
     statsPoller_ = createStatsPoller(
-        folly::EventBaseManager::get()->getEventBase(), mayBeStatsFd.value());
+        folly::EventBaseManager::get()->getEventBase(), statsMapFd);
     auto statsRes = statsPoller_->runStatsPoller();
     if (statsRes.hasError()) {
       LOG(ERROR) << "Error while initializing statsPoller; error="
@@ -86,24 +86,10 @@ folly::Expected<folly::Unit, std::system_error> TcpPktRouter::shutdown() {
   if (!isInitialized_) {
     return folly::Unit();
   }
-  if (adapter_.getBpfState() == TprBpfAdapter::BpfState::INIT) {
-    // there's nth to cleanup since the bpf prog isn't loaded
-    isInitialized_ = false;
-    return folly::Unit();
-  }
   if (statsPoller_) {
     statsPoller_->shutdown();
   }
-  auto mayBeProgFd = adapter_.getBpfProgramFd();
-  if (mayBeProgFd.hasError()) {
-    return makeError(mayBeProgFd.error(), __func__);
-  }
-  auto res = adapter_.detachCgroupProg(mayBeProgFd.value(), cgroupPath_);
-  if (res.hasError()) {
-    LOG(ERROR) << res.error().what();
-    return makeError(res.error(), __func__);
-  }
-  res = adapter_.unload();
+  auto res = BpfUtil::detachCgroupProg(progFd_, cgroupPath_);
   if (res.hasError()) {
     LOG(ERROR) << res.error().what();
     return makeError(res.error(), __func__);
@@ -140,12 +126,8 @@ TcpPktRouter::updateServerInfo() noexcept {
     info.running_mode = RunningMode::CLIENT;
     info.server_id = 0;
   }
-  auto mayBeMapFd = adapter_.getMapFdByName(kServerInfoMap);
-  if (mayBeMapFd.hasError()) {
-    return makeError(mayBeMapFd.error(), __func__);
-  }
-  auto updateRes =
-      adapter_.updateMapElement(mayBeMapFd.value(), kServerInfoIndex, info);
+  int mapFd = bpf_map__fd(skel_->maps.server_infos);
+  auto updateRes = BpfUtil::updateMapElement(mapFd, kServerInfoIndex, info);
   if (updateRes.hasError()) {
     return makeError(updateRes.error(), __func__);
   }
@@ -177,7 +159,10 @@ std::unique_ptr<TPRStatsPoller> TcpPktRouter::createStatsPoller(
 
 folly::Expected<int, std::system_error>
 TcpPktRouter::getBpfProgramFd() noexcept {
-  return adapter_.getBpfProgramFd();
+  if (!isInitialized_) {
+    return makeError(EINVAL, __func__, "BPF program is not yet loaded.");
+  }
+  return progFd_;
 }
 
 } // namespace katran_tpr
