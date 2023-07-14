@@ -22,7 +22,6 @@ bpf_object(tpr_bpf
 add_library(katran_tpr STATIC
     TPRStatsPoller.cpp
     TcpPktRouter.cpp
-    TprBpfAdapter.cpp
 )
 
 target_compile_definitions(katran_tpr PUBLIC KATRAN_CMAKE_BUILD=1)
