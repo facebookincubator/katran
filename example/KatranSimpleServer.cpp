@@ -47,7 +47,7 @@ DEFINE_string(
 DEFINE_string(
     default_mac,
     "00:00:00:00:00:01",
-    "mac address of default router. must be in fomrat: xx:xx:xx:xx:xx:xx");
+    "mac address of default router. must be in format: xx:xx:xx:xx:xx:xx");
 DEFINE_int32(priority, 2307, "tc's priority for bpf progs");
 DEFINE_string(
     map_path,
