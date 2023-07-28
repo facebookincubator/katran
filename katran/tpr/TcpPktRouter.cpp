@@ -165,4 +165,15 @@ TcpPktRouter::getBpfProgramFd() noexcept {
   return progFd_;
 }
 
+folly::Expected<uint32_t, std::system_error>
+TcpPktRouter::getServerIdFromSkSidStoreMap(int socketFd) noexcept {
+  int skSidStoreMapFd = bpf_map__fd(skel_->maps.sk_sid_store);
+  uint32_t serverId = 0;
+  auto lookRes = BpfUtil::lookupMapElement(skSidStoreMapFd, socketFd, serverId);
+  if (lookRes.hasError()) {
+    return makeError(lookRes.error(), __func__);
+  }
+  return serverId;
+}
+
 } // namespace katran_tpr

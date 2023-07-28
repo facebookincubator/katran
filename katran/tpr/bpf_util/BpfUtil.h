@@ -45,4 +45,22 @@ updateMapElement(int mapFd, const K& key, const V& value) noexcept {
   return noSystemError();
 };
 
+template <class K, class V>
+SystemMaybe<folly::Unit>
+lookupMapElement(int mapFd, const K& key, V& value) noexcept {
+  if (mapFd < 0) {
+    return SYSTEM_ERROR(EINVAL, fmt::format("Invalid map-fd given: {}", mapFd));
+  }
+  if (::bpf_map_lookup_elem(mapFd, &key, &value)) {
+    int savedErrno = errno;
+    return SYSTEM_ERROR(
+        savedErrno,
+        fmt::format(
+            "Error while looking up in bpf map: {}, error: {}",
+            mapFd,
+            folly::errnoStr(savedErrno)));
+  }
+  return noSystemError();
+}
+
 } // namespace katran_tpr::BpfUtil
