@@ -38,6 +38,7 @@ namespace katran {
 
 namespace {
 using EventId = monitoring::EventId;
+constexpr int kMaxInvalidServerIds = 10000;
 } // namespace
 
 KatranLb::KatranLb(
@@ -2058,6 +2059,17 @@ lb_quic_packets_stats KatranLb::getLbQuicPacketsStats() {
         sum_stat.ch_routed += stat.ch_routed;
         sum_stat.cid_initial += stat.cid_initial;
         sum_stat.cid_invalid_server_id += stat.cid_invalid_server_id;
+        if (stat.cid_invalid_server_id_sample &&
+            (invalidServerIds_.find(stat.cid_invalid_server_id_sample) ==
+             invalidServerIds_.end()) &&
+            invalidServerIds_.size() < kMaxInvalidServerIds) {
+          LOG(ERROR) << "Invalid server id "
+                     << stat.cid_invalid_server_id_sample << " in quic packet";
+          invalidServerIds_.insert(stat.cid_invalid_server_id_sample);
+          if (invalidServerIds_.size() == kMaxInvalidServerIds) {
+            LOG(ERROR) << "Too many invalid server ids, will skip logging";
+          }
+        }
         sum_stat.cid_routed += stat.cid_routed;
         sum_stat.cid_unknown_real_dropped += stat.cid_unknown_real_dropped;
         sum_stat.cid_v0 += stat.cid_v0;

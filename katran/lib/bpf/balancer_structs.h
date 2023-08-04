@@ -143,6 +143,7 @@ struct lb_quic_packets_stats {
   __u64 ch_routed;
   __u64 cid_initial;
   __u64 cid_invalid_server_id;
+  __u64 cid_invalid_server_id_sample;
   __u64 cid_routed;
   __u64 cid_unknown_real_dropped;
   __u64 cid_v0;

@@ -1156,6 +1156,12 @@ class KatranLb {
    * Callback to be notified when a real is added or deleted
    */
   RealsIdCallback* realsIdCallback_{nullptr};
+
+  /**
+   * set of invalid server ids sampled from katran
+   */
+
+  std::unordered_set<uint64_t> invalidServerIds_;
 };
 
 } // namespace katran

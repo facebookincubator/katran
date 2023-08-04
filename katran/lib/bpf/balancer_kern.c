@@ -776,6 +776,7 @@ process_packet(struct xdp_md* xdp, __u64 off, bool is_ipv6) {
             // pos 0 means the entry for the server id is not initialized.
             // fallback to ch
             quic_packets_stats->cid_invalid_server_id += 1;
+            quic_packets_stats->cid_invalid_server_id_sample = qpr.server_id;
             quic_packets_stats->ch_routed += 1;
           } else {
             pckt.real_index = key;
