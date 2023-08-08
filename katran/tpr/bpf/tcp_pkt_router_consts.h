@@ -11,6 +11,13 @@
 /* position in stats map where we store server_info */
 #define SERVER_INFO_INDEX 0
 
+/*
+ * Currently, servers use TCP_HDR_OPT_KIND, but we'll be migrating them
+ * to use TCP_SRV_HDR_OPT_KIND because we want the server and client to
+ * use different OPTs.
+ */
+#define TCP_SRV_HDR_OPT_KIND 0xB6
+
 /* Reserved hdr-opt-value for this case.
  * Picked random unused value from IANA TCP Option Kind Numbers
  */

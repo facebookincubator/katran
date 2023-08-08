@@ -44,6 +44,8 @@ struct tcp_router_stats {
   uint64_t error_write_opt{0};
   uint64_t error_sys_calls{0};
   uint64_t ignoring_due_to_kde{0};
+  uint64_t legacy_server_opt{0};
+  uint64_t new_server_opt{0};
 };
 
 // helper methods to constructs useful error message without boiler plate code.
@@ -89,7 +91,9 @@ inline std::ostream& operator<<(std::ostream& os, const tcp_router_stats& s) {
      << " no_tcp_opt_hdr=" << s.no_tcp_opt_hdr
      << " error_bad_id=" << s.error_bad_id
      << " error_write_opt=" << s.error_write_opt
-     << " error_sys_calls=" << s.error_sys_calls;
+     << " error_sys_calls=" << s.error_sys_calls
+     << " legacy_server_opt=" << s.legacy_server_opt
+     << " new_server_opt=" << s.new_server_opt;
   return os;
 }
 
