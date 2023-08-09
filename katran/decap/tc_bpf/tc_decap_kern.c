@@ -42,6 +42,7 @@ __attribute__((__always_inline__)) static inline int process_l3_headers(
   __u64 iph_len;
   struct iphdr* iph;
   struct ipv6hdr* ip6h;
+
   if (is_ipv6) {
     ip6h = data + off;
     if (ip6h + 1 > data_end) {
@@ -82,44 +83,6 @@ __attribute__((__always_inline__)) static inline int process_l3_headers(
   return FURTHER_PROCESSING;
 }
 
-__attribute__((__always_inline__)) static inline int process_encaped_ipip_pckt(
-    void** data,
-    void** data_end,
-    struct __sk_buff* skb,
-    bool* is_ipv6,
-    struct packet_description* pckt,
-    __u8* protocol,
-    __u64 off,
-    __u16* pkt_bytes) {
-  if (*protocol == IPPROTO_IPIP) {
-    if (*is_ipv6) {
-      if ((*data + sizeof(struct ipv6hdr) + sizeof(struct ethhdr)) >
-          *data_end) {
-        return TC_ACT_SHOT;
-      }
-      if (!tc_decap_v6(skb, data, data_end, true)) {
-        return TC_ACT_SHOT;
-      }
-    } else {
-      if ((*data + sizeof(struct iphdr) + sizeof(struct ethhdr)) > *data_end) {
-        return TC_ACT_SHOT;
-      }
-      if (!tc_decap_v4(skb, data, data_end)) {
-        return TC_ACT_SHOT;
-      }
-    }
-  } else if (*protocol == IPPROTO_IPV6) {
-    if ((*data + sizeof(struct ipv6hdr) + sizeof(struct ethhdr)) > *data_end) {
-      return TC_ACT_SHOT;
-    }
-    if (!tc_decap_v6(skb, data, data_end, false)) {
-      return TC_ACT_SHOT;
-    }
-  }
-  return FURTHER_PROCESSING;
-}
-
-#ifdef INLINE_DECAP_GUE
 __attribute__((__always_inline__)) static inline int process_encaped_gue_pckt(
     void** data,
     void** data_end,
@@ -159,7 +122,6 @@ __attribute__((__always_inline__)) static inline int process_encaped_gue_pckt(
   }
   return FURTHER_PROCESSING;
 }
-#endif // INLINE_DECAP_GUE
 
 __attribute__((__always_inline__)) static inline int process_packet(
     void* data,
@@ -187,20 +149,7 @@ __attribute__((__always_inline__)) static inline int process_packet(
   }
 
   data_stats->total += 1;
-  if (protocol == IPPROTO_IPIP || protocol == IPPROTO_IPV6) {
-    if (is_ipv6) {
-      data_stats->decap_v6 += 1;
-    } else {
-      data_stats->decap_v4 += 1;
-    }
-    action = process_encaped_ipip_pckt(
-        &data, &data_end, skb, &is_ipv6, &pckt, &protocol, off, &pkt_bytes);
-    if (action >= 0) {
-      return action;
-    }
-  }
-#ifdef INLINE_DECAP_GUE
-  else if (protocol == IPPROTO_UDP) {
+  if (protocol == IPPROTO_UDP) {
     if (!parse_udp(data, data_end, is_ipv6, &pckt)) {
       return TC_ACT_UNSPEC;
     }
@@ -216,7 +165,6 @@ __attribute__((__always_inline__)) static inline int process_packet(
       }
     }
   }
-#endif // INLINE_DECAP_GUE
   return TC_ACT_UNSPEC;
 }
 
@@ -227,6 +175,7 @@ int tcdecap(struct __sk_buff* skb) {
   struct ethhdr* eth = data;
   __u32 eth_proto;
   __u32 nh_off;
+  __u32 hdr_len;
   nh_off = sizeof(struct ethhdr);
 
   if (data + nh_off > data_end) {
@@ -237,8 +186,34 @@ int tcdecap(struct __sk_buff* skb) {
   eth_proto = eth->h_proto;
 
   if (eth_proto == BE_ETH_P_IP) {
+    struct iphdr* iph = data + nh_off;
+    hdr_len = sizeof(struct ethhdr) + sizeof(struct iphdr) +
+        sizeof(struct udphdr) + 1;
+    if (data + hdr_len > data_end) {
+      int err = bpf_skb_pull_data(skb, hdr_len);
+      if (err) {
+        // it is not an encapsulated packet
+        return TC_ACT_UNSPEC;
+      }
+      data = (void*)(long)skb->data;
+      data_end = (void*)(long)skb->data_end;
+    }
     return process_packet(data, nh_off, data_end, false, skb);
   } else if (eth_proto == BE_ETH_P_IPV6) {
+    struct ipv6hdr* ip6h = data + nh_off;
+    // we need extra 1 byte because first four byte of the udp payload encodes
+    // gue variant
+    hdr_len = sizeof(struct ethhdr) + sizeof(struct ipv6hdr) +
+        sizeof(struct udphdr) + 1;
+    if (data + hdr_len > data_end) {
+      int err = bpf_skb_pull_data(skb, hdr_len);
+      if (err) {
+        // it is not an encapsulated packet
+        return TC_ACT_UNSPEC;
+      }
+      data = (void*)(long)skb->data;
+      data_end = (void*)(long)skb->data_end;
+    }
     return process_packet(data, nh_off, data_end, true, skb);
   } else {
     // pass to tcp/ip stack
