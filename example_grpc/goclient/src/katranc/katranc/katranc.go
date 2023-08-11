@@ -364,7 +364,7 @@ func (kc *KatranClient) ClearAll() {
 	fmt.Println("Deleting Healthchecks")
 	hcs := kc.GetAllHcs()
 	var Somark lb_katran.Somark
-	for somark, _ := range hcs.Healthchecks {
+	for somark := range hcs.Healthchecks {
 		Somark.Somark = uint32(somark)
 		ok, err := kc.client.DelHealthcheckerDst(context.Background(), &Somark)
 		if err != nil || !ok.Success {

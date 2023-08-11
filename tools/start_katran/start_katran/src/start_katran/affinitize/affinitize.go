@@ -55,7 +55,7 @@ func searchSlice(i int, s []int) bool {
 
 func writeAffinityToFile(irq int, cpu uint64, ncpus int) {
 	mask := make([]string, ncpus/32+1, ncpus/32+1)
-	for i, _ := range mask {
+	for i := range mask {
 		mask[i] = "00000000"
 	}
 	mask[cpu/32] = fmt.Sprintf("%08x", 1<<(cpu%32))
