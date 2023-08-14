@@ -98,7 +98,6 @@ gue_tc_decap_v4(struct __sk_buff* skb, void** data, void** data_end) {
   old_eth = *data;
   new_eth = *data + sizeof(struct iphdr) + sizeof(struct udphdr);
   RECORD_GUE_ROUTE(old_eth, new_eth, *data_end, true, true);
-  new_eth->h_proto = BE_ETH_P_IP;
 
   flags |= BPF_F_ADJ_ROOM_FIXED_GSO;
   adjust_len = (int)(sizeof(struct iphdr) + sizeof(struct udphdr));
@@ -127,11 +126,18 @@ __attribute__((__always_inline__)) static inline bool gue_tc_decap_v6(
   RECORD_GUE_ROUTE(old_eth, new_eth, *data_end, false, inner_v4);
 
   if (inner_v4) {
-    new_eth->h_proto = BE_ETH_P_IP;
+    // We need to first change the encap packet protocol to ETH_P_IP.
+    // We do this by calling bpf_skb_change_proto(skb, bpf_htons(ETH_P_IP), 0)
+    // This will pop the "sizeof(struct ipv6hdr) - sizeof(struct iphdr)"
+    // from the outer ipv6 header and it will also set
+    // skb->protocol = htons(ETH_P_IP);
     bpf_skb_change_proto(skb, bpf_htons(ETH_P_IP), 0);
+    // We adjust the remaining length:
+    // len = sizeof(struct ipv6hdr) + sizeof(struct udphdr) +
+    // sizeof(struct ipv6hdr) - sizeof(struct iphdr),
+    // That makes len = sizeof(struct iphdr) + sizeof(struct iphdr)
     adjust_len = (int)(sizeof(struct iphdr) + sizeof(struct udphdr));
   } else {
-    new_eth->h_proto = BE_ETH_P_IPV6;
     adjust_len = (int)(sizeof(struct ipv6hdr) + sizeof(struct udphdr));
   }
 
