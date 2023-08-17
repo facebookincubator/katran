@@ -50,7 +50,9 @@ constexpr uint32_t kNanosecInSec = 1000000000;
 } // namespace
 
 BpfTester::BpfTester(const TesterConfig& config)
-    : config_(config), parser_(config.inputFileName, config.outputFileName) {}
+    : config_(config),
+      parser_(config.inputFileName, config.outputFileName),
+      adapter_(false /* set_limits */) {}
 
 void BpfTester::printPcktBase64() {
   if (config_.inputFileName.empty()) {
