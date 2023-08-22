@@ -129,6 +129,12 @@ we store this mapping in this vector.
 16. If server has multiple CPU sockets/NUMA domains - you can provide hints
 of forwarding cores to NUMA node mappings
 
+17. `mainInterfaceIndex` - index of the main interface; if not specified (0) then
+we'll attempt to resolve mainInterface name to the interface index.
+
+18. `hcInterfaceIndex` - index of the healthcheck interface; if not specified (0) then
+we'll attempt to resolve hcInterface name to the interface index.
+
 After populating this KatranConfig structure, next step is to
 create an instance of KatranLb:
 ```c

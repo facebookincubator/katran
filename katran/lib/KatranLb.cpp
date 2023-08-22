@@ -121,7 +121,7 @@ KatranLb::KatranLb(
 
   if (!config_.testing) {
     ctl_value ctl;
-    int res;
+    uint32_t res;
 
     // populating ctl vector
     if (config_.defaultMac.size() != 6) {
@@ -133,11 +133,15 @@ KatranLb::KatranLb(
     ctlValues_[kMacAddrPos] = ctl;
 
     if (config_.enableHc) {
-      res = bpfAdapter_->getInterfaceIndex(config_.hcInterface);
+      res = config_.hcInterfaceIndex;
       if (res == 0) {
-        throw std::invalid_argument(fmt::format(
-            "can't resolve ifindex for healthcheck interface, error: {}",
-            folly::errnoStr(errno)));
+        res = bpfAdapter_->getInterfaceIndex(config_.hcInterface);
+        if (res == 0) {
+          throw std::invalid_argument(fmt::format(
+              "can't resolve ifindex for healthcheck interface {}, error: {}",
+              config_.hcInterface,
+              folly::errnoStr(errno)));
+        }
       }
       ctl.ifindex = res;
       ctlValues_[kHcIntfPos] = ctl;
@@ -162,11 +166,16 @@ KatranLb::KatranLb(
       }
     }
 
-    res = bpfAdapter_->getInterfaceIndex(config_.mainInterface);
-    if (!res) {
-      throw std::invalid_argument(fmt::format(
-          "can't resolve ifindex for main intf, error: {}",
-          folly::errnoStr(errno)));
+    res = config_.mainInterfaceIndex;
+    if (res == 0) {
+      // attempt to resolve interface name to the interface index
+      res = bpfAdapter_->getInterfaceIndex(config_.mainInterface);
+      if (res == 0) {
+        throw std::invalid_argument(fmt::format(
+            "can't resolve ifindex for main intf {}, error: {}",
+            config_.mainInterface,
+            folly::errnoStr(errno)));
+      }
     }
     ctl.ifindex = res;
     ctlValues_[kMainIntfPos] = ctl;

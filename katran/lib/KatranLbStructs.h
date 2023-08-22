@@ -41,6 +41,7 @@ constexpr uint32_t kDefaultMonitorSnapLen = 128;
 constexpr unsigned int kDefaultLruSize = 8000000;
 constexpr uint32_t kDefaultGlobalLruSize = 100000;
 constexpr uint32_t kNoFlags = 0;
+constexpr uint32_t kUnspecifiedInterfaceIndex = 0;
 std::string kNoExternalMap = "";
 std::string kDefaultHcInterface = "";
 std::string kAddressNotSpecified = "";
@@ -161,6 +162,10 @@ struct KatranMonitorConfig {
  * @param HashFunction hashFunction to create hash ring
  * @param flowDebug if set, creates and populates extra debugging maps
  * @param globalLruSize sets the size of the per-cpu global lru maps
+ * @param uint32_t mainInterfaceIndex, if not specified (0) then
+ * we'll attempt to resolve mainInterface name to the interface index
+ * @param uint32_t hcInterfaceIndex, if not specified (0) then
+ * we'll attempt to resolve hcInterface name to the interface index
  *
  * note about rootMapPath and rootMapPos:
  * katran has two modes of operation.
@@ -214,6 +219,8 @@ struct KatranConfig {
   uint32_t globalLruSize = kDefaultGlobalLruSize;
   bool useRootMap = true;
   bool enableCidV3 = false;
+  uint32_t mainInterfaceIndex = kUnspecifiedInterfaceIndex;
+  uint32_t hcInterfaceIndex = kUnspecifiedInterfaceIndex;
 };
 
 /**
