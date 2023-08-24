@@ -86,7 +86,7 @@ static inline int handle_passive_write_hdr_opt(
   int err;
   struct tcp_opt hdr_opt = {};
 
-  hdr_opt.kind = TCP_HDR_OPT_KIND;
+  hdr_opt.kind = TCP_SRV_HDR_OPT_KIND;
   hdr_opt.len = TCP_HDR_OPT_LEN;
   hdr_opt.server_id = s_info->server_id;
   err = bpf_store_hdr_opt(skops, &hdr_opt, sizeof(hdr_opt), NO_FLAGS);
