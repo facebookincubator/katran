@@ -181,7 +181,7 @@ def parse_args():
     return args
 
 
-class FplaneTester(object):
+class FplaneTester:
     def __init__(self, args, queue):
         self._verbose = args.verbose
         self._katran_mac = args.katran_mac
