@@ -25,6 +25,7 @@
 #include <vector>
 
 #include <folly/IPAddress.h>
+#include <folly/container/F14Map.h>
 
 #include "katran/lib/BalancerStructs.h"
 #include "katran/lib/BaseBpfAdapter.h"
@@ -1049,7 +1050,7 @@ class KatranLb {
    */
   std::unordered_map<uint32_t, folly::IPAddress> hcReals_;
 
-  std::unordered_map<folly::IPAddress, RealMeta> reals_;
+  folly::F14FastMap<folly::IPAddress, RealMeta> reals_;
 
   /**
    * key: QUIC host id (from CID); value: real IP
@@ -1059,7 +1060,7 @@ class KatranLb {
    * for reverse real's lookup. get real by num.
    * used when we are going to delete vip and coresponding reals.
    */
-  std::unordered_map<uint32_t, folly::IPAddress> numToReals_;
+  folly::F14FastMap<uint32_t, folly::IPAddress> numToReals_;
 
   std::unordered_map<VipKey, Vip, VipKeyHasher> vips_;
 
