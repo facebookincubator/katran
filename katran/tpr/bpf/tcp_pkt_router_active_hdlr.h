@@ -21,7 +21,6 @@ static inline int load_tpr_opt(
     struct stats* stat) {
   int err = 0;
 
-  // We first try to read the new server header option
   hdr_opt->kind = TCP_SRV_HDR_OPT_KIND;
   err = bpf_load_hdr_opt(skops, hdr_opt, sizeof(*hdr_opt), NO_FLAGS);
   if (err >= 0) {
@@ -30,13 +29,6 @@ static inline int load_tpr_opt(
     return err;
   }
 
-  // If we fail to read the new server header option, let's try the legacy
-  hdr_opt->kind = TCP_HDR_OPT_KIND;
-  err = bpf_load_hdr_opt(skops, hdr_opt, sizeof(*hdr_opt), NO_FLAGS);
-
-  if (err >= 0) {
-    stat->legacy_server_opt++;
-  }
   return err;
 }
 
