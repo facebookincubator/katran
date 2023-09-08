@@ -13,9 +13,9 @@
 #include <katran/tpr/bpf_util/BpfSkeleton.h>
 
 #ifdef KATRAN_CMAKE_BUILD
-#include "tpr_bpf.skel.h" // @manual
+#include "tpr.skel.h" // @manual
 #else
-#include <katran/tpr/bpf/tpr_bpf.skel.h>
+#include <katran/tpr/bpf/tpr.skel.h>
 #endif
 
 namespace katran_tpr {

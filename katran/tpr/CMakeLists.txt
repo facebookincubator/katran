@@ -15,7 +15,7 @@ set(BPFOBJECT_EXTRA_DEFINES "-DKATRAN_CMAKE_BUILD")
 find_package(BpfObject REQUIRED)
 
 bpf_object(tpr_bpf
-    bpf/tcp_pkt_router_kern.c
+    bpf/tcp_pkt_router.bpf.c
 
 )
 
