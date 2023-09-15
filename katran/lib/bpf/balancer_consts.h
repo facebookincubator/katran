@@ -185,7 +185,7 @@
 
 // Constants related to the feature for routing of TCP packets
 // using server_id (also referred as TPR: TCP Packet Routing).
-#ifdef TCP_SERVER_ID_ROUTING
+#if defined(TCP_SERVER_ID_ROUTING) || defined(DECAP_TPR_STATS)
 // the structure of the header-option used to embed server_id is:
 //  __u8 kind | __u8 len | __u32 server_id
 // Arbitrarily picked unused value from IANA TCP Option Kind Numbers

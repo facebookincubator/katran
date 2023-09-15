@@ -208,6 +208,45 @@ __attribute__((__always_inline__)) static inline int process_encaped_gue_pckt(
 }
 #endif // INLINE_DECAP_GUE
 
+__attribute__((__always_inline__)) static inline void validate_tpr_server_id(
+    void* data,
+    __u64 off,
+    void* data_end,
+    bool is_ipv6,
+    struct xdp_md* xdp,
+    struct decap_stats* data_stats) {
+  __u16 inner_pkt_bytes;
+  struct packet_description inner_pckt = {};
+  __u8 inner_protocol;
+  if (process_l3_headers(
+          &inner_pckt,
+          &inner_protocol,
+          off,
+          &inner_pkt_bytes,
+          data,
+          data_end,
+          is_ipv6) >= 0) {
+    return;
+  }
+  // only check for TCP non SYN packets
+  if (inner_protocol == IPPROTO_TCP && !(inner_pckt.flags & F_SYN_SET)) {
+    // lookup server id from tpr header option and compare against server_id on
+    // this host (if available)
+    __u32 s_key = 0;
+    __u32* server_id_host = bpf_map_lookup_elem(&tpr_server_id, &s_key);
+    if (server_id_host && *server_id_host > 0) {
+      __u32 server_id = 0;
+      tcp_hdr_opt_lookup_server_id(xdp, is_ipv6, &server_id);
+      if (server_id > 0) {
+        data_stats->tpr_total += 1;
+        if (*server_id_host != server_id) {
+          data_stats->tpr_misrouted += 1;
+        }
+      }
+    }
+  }
+}
+
 __attribute__((__always_inline__)) static inline int process_packet(
     void* data,
     __u64 off,
@@ -278,6 +317,8 @@ __attribute__((__always_inline__)) static inline int process_packet(
       if (action >= 0) {
         return action;
       }
+      // For inner packet - check TPR server id and capture stats
+      validate_tpr_server_id(data, off, data_end, is_ipv6, xdp, data_stats);
     }
   }
 #endif // INLINE_DECAP_GUE

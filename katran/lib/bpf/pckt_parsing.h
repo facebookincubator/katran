@@ -142,7 +142,7 @@ struct hdr_opt_state {
   __u8 hdr_bytes_remaining;
 };
 
-#ifdef TCP_SERVER_ID_ROUTING
+#if defined(TCP_SERVER_ID_ROUTING) || defined(DECAP_TPR_STATS)
 #ifdef TCP_HDR_OPT_SKIP_UNROLL_LOOP
 __attribute__ ((noinline))
 #else
@@ -203,14 +203,13 @@ int parse_hdr_opt(const struct xdp_md *xdp, struct hdr_opt_state *state)
   return 0;
 }
 
-__attribute__((__always_inline__)) static inline int tcp_hdr_opt_lookup(
+__attribute__((__always_inline__)) static inline int
+tcp_hdr_opt_lookup_server_id(
     const struct xdp_md* xdp,
     bool is_ipv6,
-    struct real_definition** real,
-    struct packet_description* pckt) {
+    __u32* server_id) {
   const void* data = (void*)(long)xdp->data;
   const void* data_end = (void*)(long)xdp->data_end;
-  struct real_pos_lru* dst_lru;
   struct tcphdr* tcp_hdr;
   __u8 tcp_hdr_opt_len = 0;
   __u64 tcp_offset = 0;
@@ -241,12 +240,27 @@ __attribute__((__always_inline__)) static inline int tcp_hdr_opt_lookup(
       break;
     }
   }
-
   if (!opt_state.server_id) {
     return FURTHER_PROCESSING;
   }
+  *server_id = opt_state.server_id;
+  return 0;
+}
+#endif // TCP_SERVER_ID_ROUTING) || DECAP_TPR_STATS
 
-  __u32 key = opt_state.server_id;
+#ifdef TCP_SERVER_ID_ROUTING
+__attribute__((__always_inline__)) static inline int tcp_hdr_opt_lookup(
+    const struct xdp_md* xdp,
+    bool is_ipv6,
+    struct real_definition** real,
+    struct packet_description* pckt) {
+  __u32 server_id = 0;
+  int err = 0;
+  if (tcp_hdr_opt_lookup_server_id(xdp, is_ipv6, &server_id) ==
+      FURTHER_PROCESSING) {
+    return FURTHER_PROCESSING;
+  }
+  __u32 key = server_id;
   __u32* real_pos = bpf_map_lookup_elem(&server_id_map, &key);
   if (!real_pos) {
     return FURTHER_PROCESSING;

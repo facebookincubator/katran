@@ -36,6 +36,8 @@ struct decap_stats {
   uint64_t decap_v4;
   uint64_t decap_v6;
   uint64_t total;
+  uint64_t tpr_misrouted;
+  uint64_t tpr_total;
 };
 
 /**

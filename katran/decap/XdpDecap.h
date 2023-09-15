@@ -59,6 +59,10 @@ class XdpDecap {
     return bpfAdapter_.getProgFdByName("xdpdecap");
   }
 
+  // Used only for unit testing
+  // Updates server-id in bpf sever-id-map
+  void setSeverId(int id);
+
  private:
   /**
    * main configuration

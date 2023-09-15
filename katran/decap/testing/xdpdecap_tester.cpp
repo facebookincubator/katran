@@ -40,17 +40,25 @@ void testXdpDecapCounters(katran::XdpDecap& decap) {
   LOG(INFO) << "Testing counter's sanity";
   auto stats = decap.getXdpDecapStats();
   int expectedV4DecapPkts = 1;
-  int expectedV6DecapPkts = FLAGS_gue ? 3 : 2;
-  int expectedTotalPkts = FLAGS_gue ? 9 : 7;
+  int expectedV6DecapPkts = FLAGS_gue ? 5 : 2;
+  int expectedTotalPkts = FLAGS_gue ? 6 : 7;
+  int expectedTotalTPRPkts = 2;
+  int expectedMisroutedTPRPkts = 1;
   if (stats.decap_v4 != expectedV4DecapPkts ||
       stats.decap_v6 != expectedV6DecapPkts ||
-      stats.total != expectedTotalPkts) {
+      stats.total != expectedTotalPkts ||
+      stats.tpr_total != expectedTotalTPRPkts ||
+      stats.tpr_misrouted != expectedMisroutedTPRPkts) {
     LOG(ERROR) << "decap_v4 pkts: " << stats.decap_v4
                << ", expected decap_v4 pkts: " << expectedV4DecapPkts
                << ", decap_v6: " << stats.decap_v6
                << ", expected decap_v6 pkts: " << expectedV6DecapPkts
                << " total: " << stats.total
-               << ", expected total_pkts: " << expectedTotalPkts;
+               << ", expected total_pkts: " << expectedTotalPkts
+               << " tpr total: " << stats.tpr_total
+               << ", expected tpr total pkts: " << expectedTotalTPRPkts
+               << " tpr misrouted: " << stats.tpr_misrouted
+               << ", expected tpr misrouted: " << expectedMisroutedTPRPkts;
     LOG(ERROR) << "[FAIL] Incorrect decap counters";
     return;
   }
@@ -79,6 +87,8 @@ int main(int argc, char** argv) {
   decap.loadXdpDecap();
   auto decap_prog_fd = decap.getXdpDecapFd();
   tester.setBpfProgFd(decap_prog_fd);
+  decap.setSeverId(100);
+
   if (!FLAGS_pcap_input.empty()) {
     tester.testPcktsFromPcap();
     return 0;

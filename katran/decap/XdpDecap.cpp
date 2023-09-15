@@ -15,6 +15,7 @@
  */
 
 #include <glog/logging.h>
+#include <cstdint>
 
 #include "katran/decap/XdpDecap.h"
 
@@ -137,11 +138,24 @@ decap_stats XdpDecap::getXdpDecapStats() {
       stats.decap_v4 += stat.decap_v4;
       stats.decap_v6 += stat.decap_v6;
       stats.total += stat.total;
+      stats.tpr_misrouted += stat.tpr_misrouted;
+      stats.tpr_total += stat.tpr_total;
     }
   } else {
     LOG(ERROR) << "Error while trying to get decap stats";
   }
   return stats;
+}
+
+void XdpDecap::setSeverId(int id) {
+  auto map_fd = bpfAdapter_.getMapFdByName("tpr_server_id");
+  uint32_t key = 0;
+  uint32_t value = id;
+  if (bpfAdapter_.bpfUpdateMap(map_fd, &key, &value)) {
+    LOG(FATAL) << "Was not able to update pinned bpf map " << config_.mapPath
+               << " with elem on position " << config_.progPos;
+    return;
+  }
 }
 
 } // namespace katran

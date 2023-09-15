@@ -128,6 +128,22 @@ const std::vector<PacketAttributes> gueTestFixtures = {
     .expectedReturnValue = "XDP_PASS",
     .expectedOutputPacket = "AgAAAAAAAQAAAAAAht1gAAAAAAg6QPwAAAIAAAAAAAAAAAAAAAH8AAABAAAAAAAAAAAAAAABgACHtgAAAAA="
   },
+  // 12
+  { // data_value = int(100).to_bytes(4, byteorder='little')
+    // Ether(src="0x1", dst="0x2")/IPv6(src="100::1", dst="100::2")/UDP(sport=1337, dport=9886)/IPv6(src="fc00:2::1", dst="fc00:1::1")/TCP(sport=31337, dport=80,flags="A", options=[(0xB7, data_value)])/"katran test pkt"
+    .inputPacket = "AgAAAAAAAQAAAAAAht1gAAAAAFsRQAEAAAAAAAAAAAAAAAAAAAEBAAAAAAAAAAAAAAAAAAACBTkmngBbayRgAAAAACsGQPwAAAIAAAAAAAAAAAAAAAH8AAABAAAAAAAAAAAAAAABemkAUAAAAAAAAAAAcBAgAMJAAAC3BmQAAAAAAGthdHJhbiB0ZXN0IHBrdA==",
+    .description = "ipv6 gue ipv6 innner with TPR option set with server id 100",
+    .expectedReturnValue = "XDP_PASS",
+    .expectedOutputPacket = "AgAAAAAAAQAAAAAAht1gAAAAACsGQPwAAAIAAAAAAAAAAAAAAAH8AAABAAAAAAAAAAAAAAABemkAUAAAAAAAAAAAcBAgAMJAAAC3BmQAAAAAAGthdHJhbiB0ZXN0IHBrdA=="
+  },
+  // 13
+  { // data_value = int(200).to_bytes(4, byteorder='little')
+    // Ether(src="0x1", dst="0x2")/IPv6(src="100::1", dst="100::2")/UDP(sport=1337, dport=9886)/IPv6(src="fc00:2::1", dst="fc00:1::1")/TCP(sport=31337, dport=80,flags="A", options=[(0xB7, data_value)])/"katran test pkt"
+    .inputPacket = "AgAAAAAAAQAAAAAAht1gAAAAAFsRQAEAAAAAAAAAAAAAAAAAAAEBAAAAAAAAAAAAAAAAAAACBTkmngBbayRgAAAAACsGQPwAAAIAAAAAAAAAAAAAAAH8AAABAAAAAAAAAAAAAAABemkAUAAAAAAAAAAAcBAgAF5AAAC3BsgAAAAAAGthdHJhbiB0ZXN0IHBrdA==",
+    .description = "ipv6 gue ipv6 innner with TPR option set with server id 200",
+    .expectedReturnValue = "XDP_PASS",
+    .expectedOutputPacket = "AgAAAAAAAQAAAAAAht1gAAAAACsGQPwAAAIAAAAAAAAAAAAAAAH8AAABAAAAAAAAAAAAAAABemkAUAAAAAAAAAAAcBAgAF5AAAC3BsgAAAAAAGthdHJhbiB0ZXN0IHBrdA=="
+  },
 };
 
 } // namespace testing
