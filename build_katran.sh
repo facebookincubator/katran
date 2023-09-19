@@ -96,11 +96,11 @@ if [ -n "$BUILD_KATRAN_TPR" ]; then
 fi
 
 get_dev_tools() {
-    if [ -f /etc/redhat-release ]; then
-        sudo yum install -y epel-release
-        sudo yum-config-manager --enable PowerTools
-        sudo yum groupinstall -y "Development Tools"
-        sudo yum install -y cmake
+    if [ -f /etc/mariner-release ]; then
+        #sudo tdnf install -y epel-release
+        #sudo tdnf-config-manager --enable PowerTools
+        #sudo tdnf groupinstall -y "Development Tools"
+        sudo tdnf install -y cmake
     else
         sudo apt-get update
         sudo apt-get install -y   \
@@ -115,16 +115,16 @@ get_dev_tools() {
 }
 
 get_required_libs() {
-    if [ -f /etc/redhat-release ]; then
-        sudo yum install -y \
+    if [ -f /etc/mariner-release ]; then
+        sudo tdnf install -y \
             git \
             elfutils-libelf-devel \
-            libmnl-devel \
+            libmnl \
             xz-devel \
             re2-devel \
-            libatomic-static \
-            libsodium-static \
-            fmt-devel
+            libatomic \
+            libsodium \
+            fmt
     else
         sudo apt-get install -y    \
             libgoogle-glog-dev     \
@@ -140,7 +140,7 @@ get_required_libs() {
 
 
 get_libevent() {
-    if [ ! -f /etc/redhat-release ]; then
+    if [ ! -f /etc/mariner-release ]; then
         # not needed on ubuntu as it is available as a package
         return
     fi
@@ -173,7 +173,7 @@ get_libevent() {
 }
 
 get_gflags() {
-    if [ ! -f /etc/redhat-release ]; then
+    if [ ! -f /etc/mariner-release ]; then
         # not needed on ubuntu as it is available as a package
         return
     fi
@@ -212,8 +212,8 @@ get_folly() {
     FOLLY_BUILD_DIR=$DEPS_DIR/folly/build
 
     rm -rf "$FOLLY_DIR"
-    if [ -f /etc/redhat-release ]; then
-        sudo yum install -y \
+    if [ -f /etc/mariner-release ]; then
+        sudo tdnf install -y \
             boost-devel \
             boost-static \
             lz4-devel \
@@ -221,11 +221,9 @@ get_folly() {
             snappy-devel \
             zlib-devel \
             zlib-static \
-            glog-devel \
-            python3-scons \
-            double-conversion-devel \
+            glog \
+            python3 \
             openssl-devel \
-            libdwarf-devel \
             elfutils-devel elfutils-devel-static \
             libunwind-devel \
             bzip2-devel \
@@ -280,8 +278,8 @@ get_clang() {
         return
     fi
 
-    if [ -f /etc/redhat-release ]; then
-        sudo yum install -y clang llvm
+    if [ -f /etc/mariner-release ]; then
+        sudo tdnf install -y clang llvm
     else
         CLANG_DIR=$DEPS_DIR/clang
         rm -rf "$CLANG_DIR"
@@ -504,8 +502,8 @@ get_grpc() {
     fi
     GO_INSTALLED=$(which go || true)
     if [ -z "$GO_INSTALLED" ]; then
-        if [ -f /etc/centos-release ]; then
-            sudo yum install -y golang
+        if [ -f /etc/mariner-release ]; then
+            sudo tdnf install -y golang
         else
             sudo apt-get install -y golang
         fi
@@ -558,7 +556,7 @@ get_libbpf() {
     cd "${LIBBPF_DIR}"/src
     make
     #on centos the cp -fpR used was throwing an error, so just use a regular cp -R
-    if [ -f /etc/redhat-release ]; then
+    if [ -f /etc/mariner-release ]; then
         sed -i 's/cp -fpR/cp -R/g' Makefile
     fi
     DESTDIR="$INSTALL_DIR" make install

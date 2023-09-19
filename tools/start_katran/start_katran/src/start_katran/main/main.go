@@ -63,7 +63,7 @@ var (
 		affinitize.ALL_NODES,
 		"how to affinitize NIC. 0 - sequentaly, 1 - same node, 2 - all nodes")
 	intf = flag.String(
-		"intf", "enp0s3", "interface where to attach XDP program")
+		"intf", "eth0", "interface where to attach XDP program")
 )
 
 func prepareKatranArgs() string {

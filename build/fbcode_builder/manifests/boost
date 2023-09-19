@@ -56,8 +56,7 @@ boost169-serialization
 boost169-program-options
 
 [rpms.not(all(distro=centos_stream,distro_vers=8))]
-boost-devel
-boost-static
+boost
 
 [build]
 builder = boost

@@ -13,7 +13,6 @@ libdouble-conversion-dev
 
 [rpms]
 double-conversion
-double-conversion-devel
 
 [build]
 builder = cmake

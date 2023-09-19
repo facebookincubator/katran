@@ -67,7 +67,7 @@ fi
 
 # Use the clang version based on the one fetched in 'build_katran.sh'
 CLANG_PATH="${BUILD_DIR}/deps/clang/clang+llvm-12.0.0-x86_64-linux-gnu-ubuntu-20.04"
-if [ -f /etc/redhat-release ]; then
+if [ -f /etc/mariner-release ]; then
   CLANG_PATH=/usr
 fi
 

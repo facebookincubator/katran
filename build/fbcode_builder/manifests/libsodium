@@ -9,7 +9,7 @@ libsodium
 
 [rpms]
 libsodium-devel
-libsodium-static
+libsodium
 
 [download.not(os=windows)]
 url = https://github.com/jedisct1/libsodium/releases/download/1.0.17/libsodium-1.0.17.tar.gz

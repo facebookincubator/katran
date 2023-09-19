@@ -406,25 +406,25 @@ class InstallSysDepsCmd(ProjectCmdBase):
                 all_packages[k] = merged
 
         cmd_args = None
-        if manager == "rpm":
-            packages = sorted(set(all_packages["rpm"]))
-            if packages:
-                cmd_args = ["sudo", "dnf", "install", "-y"] + packages
-        elif manager == "deb":
-            packages = sorted(set(all_packages["deb"]))
-            if packages:
-                cmd_args = ["sudo", "apt", "install", "-y"] + packages
-        elif manager == "homebrew":
-            packages = sorted(set(all_packages["homebrew"]))
-            if packages:
-                cmd_args = ["brew", "install"] + packages
-
-        else:
-            host_tuple = loader.build_opts.host_type.as_tuple_string()
-            print(
-                f"I don't know how to install any packages on this system {host_tuple}"
-            )
-            return
+        #if manager == "rpm":
+        packages = sorted(set(all_packages["rpm"]))
+        if packages:
+            cmd_args = ["sudo", "tdnf", "install", "-y"] + packages
+        #elif manager == "deb":
+        #    packages = sorted(set(all_packages["deb"]))
+        #    if packages:
+        #        cmd_args = ["sudo", "apt", "install", "-y"] + packages
+        #elif manager == "homebrew":
+        #    packages = sorted(set(all_packages["homebrew"]))
+        #    if packages:
+        #        cmd_args = ["brew", "install"] + packages
+        #
+        #else:
+        #    host_tuple = loader.build_opts.host_type.as_tuple_string()
+        #    print(
+        #        f"I don't know how to install any packages on this system {host_tuple}"
+        #    )
+        #    return
 
         if cmd_args:
             if args.dry_run:

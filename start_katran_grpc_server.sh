@@ -20,7 +20,7 @@ set -xeo pipefail
 
 if [ -z "${KATRAN_INTERFACE}" ]
 then
-    KATRAN_INTERFACE=enp0s3
+    KATRAN_INTERFACE=eth0
 fi
 
 # By default this script assumes to be invoked from the root dir.
@@ -35,4 +35,4 @@ then
 fi
 
 ./install_xdproot.sh -b "${KATRAN_BUILD_DIR}" -d "${DEPS_DIR}"
-sudo sh -c "${KATRAN_BUILD_DIR}/example_grpc/katran_server_grpc -balancer_prog=${DEPS_DIR}/bpfprog/bpf/balancer_kern.o -intf=${KATRAN_INTERFACE} -hc_forwarding=false -map_path=/sys/fs/bpf/jmp_${KATRAN_INTERFACE} -prog_pos=2"
+sudo sh -c "${KATRAN_BUILD_DIR}/example_grpc/katran_server_grpc -balancer_prog=${DEPS_DIR}/bpfprog/bpf/balancer.bpf.o -intf=${KATRAN_INTERFACE} -hc_forwarding=false -map_path=/sys/fs/bpf/jmp_${KATRAN_INTERFACE} -prog_pos=2"

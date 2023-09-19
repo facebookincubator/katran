@@ -25,4 +25,4 @@ HAVE_TR1_UNORDERED_SET=OFF
 libgoogle-glog-dev
 
 [rpms]
-glog-devel
+glog
