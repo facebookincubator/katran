@@ -20,7 +20,7 @@ set -xeo pipefail
 
 if [ -z "${KATRAN_INTERFACE}" ]
 then
-    KATRAN_INTERFACE=enp0s3
+    KATRAN_INTERFACE=eth0
 fi
 
 # By default this script assumes to be invoked from the root dir.

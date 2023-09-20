@@ -49,6 +49,7 @@ DEFINE_string(
     "00:00:00:00:00:01",
     "mac address of default router. must be in fomrat: xx:xx:xx:xx:xx:xx");
 DEFINE_int32(priority, 2307, "tc's priority for bpf progs");
+DEFINE_string(ipv4, "0.0.0.0", "ipv4 address to run katran on");
 DEFINE_string(
     map_path,
     "",
@@ -99,6 +100,7 @@ int main(int argc, char** argv) {
       .rootMapPath = FLAGS_map_path,
       .rootMapPos = static_cast<uint32_t>(FLAGS_prog_pos),
       .enableHc = FLAGS_hc_forwarding,
+      .katranSrcV4 = FLAGS_ipv4,
   };
   config.LruSize = static_cast<uint64_t>(FLAGS_lru_size);
   config.forwardingCores = forwardingCores;
