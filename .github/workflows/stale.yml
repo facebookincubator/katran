@@ -1,0 +1,30 @@
+name: 'Close stale issues and PRs'
+on:
+  schedule:
+    - cron: '0 12 * * 1-5' # every weekday at noon
+
+jobs:
+  stale:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/stale@v8
+        with:
+          stale-issue-message: >
+            This issue has been automatically marked as stale because it has not had
+            recent activity. If you'd still having this issue please make a comment,
+            make sure you've addressed any follow ups!
+          stale-pr-message: >
+            This pull request has been automatically marked as stale because it has not had
+            recent activity. If you'd still like this PR merged, please comment on the PR,
+            make sure you've addressed reviewer comments, and rebase on the latest main.
+            Thank you for your contributions!
+          close-issue-message: >
+            This issue has been closed because it has not had recent activity. If you are
+            still having this issue please feel free to create a new one.
+          close-pr-message: >
+            This pull request has been automatically closed it has not had
+            recent activity. If you'd still like this PR merged, please feel free to reopen it,
+            make sure you've addressed reviewer comments, and rebase on the latest main.
+            Thank you for your contributions!
+          days-before-stale: 90 # ~ 3 months
+          days-before-close: 14
