@@ -820,22 +820,31 @@ process_packet(struct xdp_md* xdp, __u64 off, bool is_ipv6) {
   if (!dst) {
 #ifdef TCP_SERVER_ID_ROUTING
     // First try to lookup dst in the tcp_hdr_opt (if enabled)
-    if (pckt.flow.proto == IPPROTO_TCP && !(pckt.flags & F_SYN_SET)) {
-      __u32 routing_stats_key = MAX_VIPS + TCP_SERVER_ID_ROUTE_STATS;
-      struct lb_stats* routing_stats =
-          bpf_map_lookup_elem(&stats, &routing_stats_key);
-      if (!routing_stats) {
+    if (pckt.flow.proto == IPPROTO_TCP) {
+      __u32 tpr_packets_stats_key = 0;
+      struct lb_tpr_packets_stats* tpr_packets_stats =
+          bpf_map_lookup_elem(&tpr_packets_stats_map, &tpr_packets_stats_key);
+      if (!tpr_packets_stats) {
         return XDP_DROP;
       }
-      if (tcp_hdr_opt_lookup(xdp, is_ipv6, &dst, &pckt) == FURTHER_PROCESSING) {
-        routing_stats->v1 += 1;
+
+      if (pckt.flags & F_SYN_SET) {
+        tpr_packets_stats->tcp_syn += 1;
       } else {
-        // update this routing decision in the lru_map as well
-        if (lru_map && !(vip_info->flags & F_LRU_BYPASS)) {
-          check_and_update_real_index_in_lru(
-              &pckt, lru_map, /* update_lru */ true);
+        if (tcp_hdr_opt_lookup(xdp, is_ipv6, &dst, &pckt) ==
+            FURTHER_PROCESSING) {
+          tpr_packets_stats->ch_routed += 1;
+        } else {
+          // update this routing decision in the lru_map as well
+          if (lru_map && !(vip_info->flags & F_LRU_BYPASS)) {
+            int res = check_and_update_real_index_in_lru(
+                &pckt, lru_map, /* update_lru */ true);
+            if (res == DST_MISMATCH_IN_LRU) {
+              tpr_packets_stats->dst_mismatch_in_lru += 1;
+            }
+          }
+          tpr_packets_stats->sid_routed += 1;
         }
-        routing_stats->v2 += 1;
       }
     }
 #endif // TCP_SERVER_ID_ROUTING

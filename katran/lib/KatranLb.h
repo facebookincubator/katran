@@ -60,7 +60,6 @@ constexpr uint32_t kLruFallbackOffset = 3;
 constexpr uint32_t kIcmpTooBigOffset = 4;
 constexpr uint32_t kLpmSrcOffset = 5;
 constexpr uint32_t kInlineDecapOffset = 6;
-constexpr uint32_t kTcpServerIdRoutingOffset = 7;
 constexpr uint32_t kGlobalLruOffset = 8;
 constexpr uint32_t kChDropOffset = 9;
 constexpr uint32_t kDecapCounterOffset = 10;
@@ -529,13 +528,13 @@ class KatranLb {
   lb_stats getChDropStats();
 
   /**
-   * @return struct lb_stats w/ statistic of server_id based routing of
-   * TCP packets (if enabled)
+   * @return struct lb_tpr_packets_stats w/ statistic of server_id based routing
+   * of TCP packets (if enabled)
    *
    * helper function which returns how many TCP packets were routed
    * using the default 5-tuple hash vs using the connection-id
    */
-  lb_stats getTcpServerIdRoutingStats();
+  lb_tpr_packets_stats getTcpServerIdRoutingStats();
 
   /**
    * @return struct lb_stats w/ src routing related statistics
@@ -807,6 +806,11 @@ class KatranLb {
    * helper function to get quic packets stats
    */
   lb_quic_packets_stats getLbQuicPacketsStats();
+
+  /**
+   * helper function to get tpr packets stats
+   */
+  lb_tpr_packets_stats getLbTprPacketsStats();
 
  private:
   /**

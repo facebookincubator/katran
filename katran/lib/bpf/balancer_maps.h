@@ -192,4 +192,13 @@ struct {
 
 #endif // of GLOBAL_LRU_LOOKUP
 
+// map for tpr stats
+struct {
+  __uint(type, BPF_MAP_TYPE_PERCPU_ARRAY);
+  __type(key, __u32);
+  __type(value, struct lb_tpr_packets_stats);
+  __uint(max_entries, TPR_STATS_MAP_SIZE);
+  __uint(map_flags, NO_FLAGS);
+} tpr_packets_stats_map SEC(".maps");
+
 #endif // of _BALANCER_MAPS

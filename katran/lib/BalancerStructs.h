@@ -129,4 +129,12 @@ struct lb_quic_packets_stats {
   uint64_t dst_not_found_in_lru;
 };
 
+// struct for tpr packets statistics counters
+struct lb_tpr_packets_stats {
+  uint64_t ch_routed;
+  uint64_t dst_mismatch_in_lru;
+  uint64_t sid_routed;
+  uint64_t tcp_syn;
+};
+
 } // namespace katran

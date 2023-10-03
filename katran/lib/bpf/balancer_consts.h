@@ -94,6 +94,8 @@
 
 #define QUIC_STATS_MAP_SIZE 1
 
+#define TPR_STATS_MAP_SIZE 1
+
 // for LRU's map in map we will support up to this number of cpus
 #ifndef MAX_SUPPORTED_CPUS
 #define MAX_SUPPORTED_CPUS 128
@@ -243,8 +245,7 @@
 #define LPM_SRC_CNTRS 5
 // offset of remote encaped packets counters
 #define REMOTE_ENCAP_CNTRS 6
-// offset of stats for server_id based routing of TCP packets (TPR)
-#define TCP_SERVER_ID_ROUTE_STATS 7
+// 7 is free for future use
 // offset of stats for global LRU
 #define GLOBAL_LRU_CNTR 8
 // offset of stats for packets dropped during consistent hashing

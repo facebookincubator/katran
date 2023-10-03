@@ -215,11 +215,13 @@ void testLbCounters(katran::KatranLb& lb, KatranTestParam& testParam) {
     VLOG(2) << "FallbackLRU hits: " << stats.v1;
     LOG(ERROR) << "LRU fallback counter is incorrect";
   }
-  stats = lb.getTcpServerIdRoutingStats();
-  if (stats.v2 != testParam.expectedTcpServerIdRoutingCounts() ||
-      stats.v1 != testParam.expectedTcpServerIdRoutingFallbackCounts()) {
+  auto tprStats = lb.getTcpServerIdRoutingStats();
+  if (tprStats.sid_routed != testParam.expectedTcpServerIdRoutingCounts() ||
+      tprStats.ch_routed !=
+          testParam.expectedTcpServerIdRoutingFallbackCounts()) {
     LOG(ERROR) << "Counters for TCP server-id routing with CH (v1): "
-               << stats.v1 << ", with server-id (v2): " << stats.v2;
+               << tprStats.ch_routed
+               << ", with server-id (v2): " << tprStats.sid_routed;
     LOG(ERROR) << "Counters for TCP server-id based routing are wrong";
   }
   auto quicStats = lb.getLbQuicPacketsStats();

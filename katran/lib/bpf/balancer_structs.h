@@ -155,4 +155,12 @@ struct lb_quic_packets_stats {
   __u64 dst_not_found_in_lru;
 };
 
+// struct for tpr packets statistics counters
+struct lb_tpr_packets_stats {
+  __u64 ch_routed;
+  __u64 dst_mismatch_in_lru;
+  __u64 sid_routed;
+  __u64 tcp_syn;
+};
+
 #endif // of _BALANCER_STRUCTS

@@ -2046,7 +2046,7 @@ lb_stats KatranLb::getIcmpTooBigStats() {
 
 lb_quic_packets_stats KatranLb::getLbQuicPacketsStats() {
   if (config_.disableForwarding) {
-    LOG(ERROR) << "getLbStats called on non-forwarding instance";
+    LOG(ERROR) << "getLbQuicPacketsStats called on non-forwarding instance";
     return lb_quic_packets_stats{};
   }
   unsigned int nr_cpus = BpfAdapter::getPossibleCpus();
@@ -2096,12 +2096,39 @@ lb_quic_packets_stats KatranLb::getLbQuicPacketsStats() {
   return sum_stat;
 }
 
-lb_stats KatranLb::getChDropStats() {
-  return getLbStats(config_.maxVips + kChDropOffset);
+lb_tpr_packets_stats KatranLb::getTcpServerIdRoutingStats() {
+  if (config_.disableForwarding) {
+    LOG(ERROR) << "getLbTprPacketsStats called on non-forwarding instance";
+    return lb_tpr_packets_stats{};
+  }
+  unsigned int nr_cpus = BpfAdapter::getPossibleCpus();
+  if (nr_cpus < 0) {
+    LOG(ERROR) << "Error while getting number of possible cpus";
+    return lb_tpr_packets_stats{};
+  }
+  lb_tpr_packets_stats stats[nr_cpus];
+  lb_tpr_packets_stats sum_stat = {};
+
+  if (!config_.testing) {
+    int position = 0;
+    auto res = bpfAdapter_->bpfMapLookupElement(
+        bpfAdapter_->getMapFdByName("tpr_packets_stats_map"), &position, stats);
+    if (!res) {
+      for (auto& stat : stats) {
+        sum_stat.ch_routed += stat.ch_routed;
+        sum_stat.dst_mismatch_in_lru += stat.dst_mismatch_in_lru;
+        sum_stat.sid_routed += stat.sid_routed;
+        sum_stat.tcp_syn += stat.tcp_syn;
+      }
+    } else {
+      lbStats_.bpfFailedCalls++;
+    }
+  }
+  return sum_stat;
 }
 
-lb_stats KatranLb::getTcpServerIdRoutingStats() {
-  return getLbStats(config_.maxVips + kTcpServerIdRoutingOffset);
+lb_stats KatranLb::getChDropStats() {
+  return getLbStats(config_.maxVips + kChDropOffset);
 }
 
 lb_stats KatranLb::getSrcRoutingStats() {
