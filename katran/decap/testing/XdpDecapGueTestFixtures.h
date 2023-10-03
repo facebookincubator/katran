@@ -144,6 +144,14 @@ const std::vector<PacketAttributes> gueTestFixtures = {
     .expectedReturnValue = "XDP_PASS",
     .expectedOutputPacket = "AgAAAAAAAQAAAAAAht1gAAAAACsGQPwAAAIAAAAAAAAAAAAAAAH8AAABAAAAAAAAAAAAAAABemkAUAAAAAAAAAAAcBAgAF5AAAC3BsgAAAAAAGthdHJhbiB0ZXN0IHBrdA=="
   },
+  // 14
+  { // data_value = int(200).to_bytes(4, byteorder='little')
+    // Ether(src="0x1", dst="0x2")/IPv6(src="100::1", dst="100::2")/UDP(sport=1337, dport=9886)/IP(src="192.168.1.1", dst="10.200.1.1")/TCP(sport=31337, dport=80,flags="A", options=[(0xB7, data_value)])/"katran test pkt"
+    .inputPacket = "AgAAAAAAAQAAAAAAht1gAAAAAEcRQAEAAAAAAAAAAAAAAAAAAAEBAAAAAAAAAAAAAAAAAAACBTkmngBHnypFAAA/AAEAAEAGrUbAqAEBCsgBAXppAFAAAAAAAAAAAHAQIACI1AAAtwbIAAAAAABrYXRyYW4gdGVzdCBwa3Q=",
+    .description = "ipv6 gue ipv4 innner with TPR option set with server id 200",
+    .expectedReturnValue = "XDP_PASS",
+    .expectedOutputPacket = "AgAAAAAAAQAAAAAACABFAAA/AAEAAEAGrUbAqAEBCsgBAXppAFAAAAAAAAAAAHAQIACI1AAAtwbIAAAAAABrYXRyYW4gdGVzdCBwa3Q="
+  },
 };
 
 } // namespace testing

@@ -171,7 +171,8 @@ __attribute__((__always_inline__)) static inline int process_encaped_gue_pckt(
     void** data,
     void** data_end,
     struct xdp_md* xdp,
-    bool is_ipv6) {
+    bool is_ipv6,
+    bool* inner_ipv6) {
   int offset = 0;
   if (is_ipv6) {
     __u8 v6 = 0;
@@ -183,6 +184,7 @@ __attribute__((__always_inline__)) static inline int process_encaped_gue_pckt(
     }
     v6 = ((__u8*)(*data))[offset];
     v6 &= GUEV1_IPV6MASK;
+    *inner_ipv6 = v6 ? true : false;
     if (v6) {
       // inner packet is ipv6 as well
       if (!gue_decap_v6(xdp, data, data_end, false)) {
@@ -312,13 +314,14 @@ __attribute__((__always_inline__)) static inline int process_packet(
         data_stats->decap_v4 += 1;
       }
       data_stats->total += 1;
-
-      action = process_encaped_gue_pckt(&data, &data_end, xdp, is_ipv6);
+      bool inner_ipv6 = false;
+      action =
+          process_encaped_gue_pckt(&data, &data_end, xdp, is_ipv6, &inner_ipv6);
       if (action >= 0) {
         return action;
       }
       // For inner packet - check TPR server id and capture stats
-      validate_tpr_server_id(data, off, data_end, is_ipv6, xdp, data_stats);
+      validate_tpr_server_id(data, off, data_end, inner_ipv6, xdp, data_stats);
     }
   }
 #endif // INLINE_DECAP_GUE
