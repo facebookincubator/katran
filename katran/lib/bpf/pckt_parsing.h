@@ -143,15 +143,10 @@ struct hdr_opt_state {
 };
 
 #if defined(TCP_SERVER_ID_ROUTING) || defined(DECAP_TPR_STATS)
-#ifdef TCP_HDR_OPT_SKIP_UNROLL_LOOP
-__attribute__ ((noinline))
-#else
-__attribute__ ((__always_inline__))
-#endif
-int parse_hdr_opt(const struct xdp_md *xdp, struct hdr_opt_state *state)
-{
-  const void* data = (void*)(long)xdp->data;
-  const void* data_end = (void*)(long)xdp->data_end;
+__attribute__((__always_inline__)) int parse_hdr_opt_raw(
+    const void* data,
+    const void* data_end,
+    struct hdr_opt_state* state) {
   __u8 *tcp_opt, kind, hdr_len;
 
   // Need this check to satisify the verifier
@@ -201,6 +196,19 @@ int parse_hdr_opt(const struct xdp_md *xdp, struct hdr_opt_state *state)
   state->hdr_bytes_remaining -= hdr_len;
   state->byte_offset += hdr_len;
   return 0;
+}
+#ifdef TCP_HDR_OPT_SKIP_UNROLL_LOOP
+__attribute__ ((noinline))
+#else
+__attribute__ ((__always_inline__))
+#endif
+int parse_hdr_opt(const struct xdp_md *xdp, struct hdr_opt_state *state)
+{
+  __u8 *tcp_opt, kind, hdr_len;
+
+  const void* data = (void*)(long)xdp->data;
+  const void* data_end = (void*)(long)xdp->data_end;
+  return parse_hdr_opt_raw(data, data_end, state);
 }
 
 __attribute__((__always_inline__)) static inline int
