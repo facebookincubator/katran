@@ -812,6 +812,15 @@ class KatranLb {
    */
   lb_tpr_packets_stats getLbTprPacketsStats();
 
+  /**
+   * @param VipKey vip
+   * @return struct lb_stats w/ statistic for specified vip
+   *
+   * helper function which return total ammount of initial/sync packets and
+   * server id routed packets which has been sent to specified vip.
+   */
+  lb_stats getSidRoutingStatsForVip(const VipKey& vip);
+
  private:
   /**
    * update vipmap(add or remove vip) in forwarding plane

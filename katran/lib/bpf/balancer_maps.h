@@ -201,4 +201,12 @@ struct {
   __uint(map_flags, NO_FLAGS);
 } tpr_packets_stats_map SEC(".maps");
 
+struct {
+  __uint(type, BPF_MAP_TYPE_PERCPU_ARRAY);
+  __type(key, __u32);
+  __type(value, struct lb_stats);
+  __uint(max_entries, MAX_VIPS);
+  __uint(map_flags, NO_FLAGS);
+} server_id_routing_stats SEC(".maps");
+
 #endif // of _BALANCER_MAPS

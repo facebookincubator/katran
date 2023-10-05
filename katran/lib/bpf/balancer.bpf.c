@@ -570,6 +570,21 @@ check_and_update_real_index_in_lru(
   return DST_NOT_FOUND_IN_LRU;
 }
 
+__attribute__((__always_inline__)) static inline void
+incr_server_id_routing_stats(__u32 vip_num, bool newConn, bool misMatchInLRU) {
+  struct lb_stats* per_vip_stats =
+      bpf_map_lookup_elem(&server_id_routing_stats, &vip_num);
+  if (!per_vip_stats) {
+    return;
+  }
+  if (newConn) {
+    per_vip_stats->v1 += 1;
+  }
+  if (misMatchInLRU) {
+    per_vip_stats->v2 += 1;
+  }
+}
+
 __attribute__((__always_inline__)) static inline int
 process_packet(struct xdp_md* xdp, __u64 off, bool is_ipv6) {
   void* data = (void*)(long)xdp->data;
@@ -720,6 +735,7 @@ process_packet(struct xdp_md* xdp, __u64 off, bool is_ipv6) {
     pckt.flow.port16[0] = 0;
   }
 
+  vip_num = vip_info->vip_num;
   __u32 cpu_num = bpf_get_smp_processor_id();
   void* lru_map = bpf_map_lookup_elem(&lru_mapping, &cpu_num);
   if (!lru_map) {
@@ -794,6 +810,8 @@ process_packet(struct xdp_md* xdp, __u64 off, bool is_ipv6) {
               quic_packets_stats->dst_match_in_lru += 1;
             } else if (res == DST_MISMATCH_IN_LRU) {
               quic_packets_stats->dst_mismatch_in_lru += 1;
+              incr_server_id_routing_stats(
+                  vip_num, /* new conn */ false, /* mismatch in lru */ true);
             } else {
               /* DST_NOT_FOUND_IN_LRU */
               quic_packets_stats->dst_not_found_in_lru += 1;
@@ -809,6 +827,8 @@ process_packet(struct xdp_md* xdp, __u64 off, bool is_ipv6) {
         quic_packets_stats->ch_routed += 1;
       } else {
         quic_packets_stats->cid_initial += 1;
+        incr_server_id_routing_stats(
+            vip_num, /* new conn */ true, /* mismatch in lru */ false);
       }
     }
   }
@@ -830,6 +850,8 @@ process_packet(struct xdp_md* xdp, __u64 off, bool is_ipv6) {
 
       if (pckt.flags & F_SYN_SET) {
         tpr_packets_stats->tcp_syn += 1;
+        incr_server_id_routing_stats(
+            vip_num, /* new conn */ true, /* mismatch in lru */ false);
       } else {
         if (tcp_hdr_opt_lookup(xdp, is_ipv6, &dst, &pckt) ==
             FURTHER_PROCESSING) {
@@ -841,6 +863,8 @@ process_packet(struct xdp_md* xdp, __u64 off, bool is_ipv6) {
                 &pckt, lru_map, /* update_lru */ true);
             if (res == DST_MISMATCH_IN_LRU) {
               tpr_packets_stats->dst_mismatch_in_lru += 1;
+              incr_server_id_routing_stats(
+                  vip_num, /* new conn */ false, /* mismatch in lru */ true);
             }
           }
           tpr_packets_stats->sid_routed += 1;
@@ -905,7 +929,6 @@ process_packet(struct xdp_md* xdp, __u64 off, bool is_ipv6) {
     return XDP_DROP;
   }
 
-  vip_num = vip_info->vip_num;
   data_stats = bpf_map_lookup_elem(&stats, &vip_num);
   if (!data_stats) {
     return XDP_DROP;

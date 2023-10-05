@@ -2584,4 +2584,18 @@ std::vector<int> KatranLb::getGlobalLruMapsFds() {
   return result;
 }
 
+lb_stats KatranLb::getSidRoutingStatsForVip(const VipKey& vip) {
+  auto vip_iter = vips_.find(vip);
+  if (vip_iter == vips_.end()) {
+    LOG(INFO) << fmt::format(
+        "trying to get sid routing stats for non-existing vip  {}:{}:{}",
+        vip.address,
+        vip.port,
+        vip.proto);
+    return lb_stats{};
+  }
+  auto vipNum = vip_iter->second.getVipNum();
+  return getLbStats(vipNum, "server_id_routing_stats");
+}
+
 } // namespace katran
