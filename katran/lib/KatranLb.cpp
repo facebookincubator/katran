@@ -244,7 +244,7 @@ void KatranLb::initialSanityChecking(bool flowDebug, bool globalLru) {
     maps.push_back("lru_mapping");
     maps.push_back("server_id_map");
     maps.push_back("lru_miss_stats");
-    maps.push_back("lru_miss_stats_vip");
+    maps.push_back("vip_miss_stats");
 
     if (flowDebug) {
       maps.push_back(kFlowDebugParentMapName.data());
@@ -827,7 +827,7 @@ void KatranLb::loadBpfProgs() {
   memset(&vip_def, 0, sizeof(vip_definition));
   uint32_t key = 0;
   res = bpfAdapter_->bpfUpdateMap(
-      bpfAdapter_->getMapFdByName("lru_miss_stats_vip"), &key, &vip_def);
+      bpfAdapter_->getMapFdByName("vip_miss_stats"), &key, &vip_def);
   if (res) {
     LOG(ERROR) << "can't update lru miss stat vip, error: "
                << folly::errnoStr(errno);
@@ -1950,7 +1950,7 @@ bool KatranLb::logVipLruMissStats(VipKey& vip) {
   vip_definition vip_def = vipKeyToVipDefinition(vip);
   uint32_t vip_key = 0;
   auto res = bpfAdapter_->bpfUpdateMap(
-      bpfAdapter_->getMapFdByName("lru_miss_stats_vip"), &vip_key, &vip_def);
+      bpfAdapter_->getMapFdByName("vip_miss_stats"), &vip_key, &vip_def);
   if (res != 0) {
     LOG(ERROR) << "can't update lru miss stat vip, error: "
                << folly::errnoStr(errno);

@@ -105,7 +105,7 @@ struct {
   __type(value, struct vip_definition);
   __uint(max_entries, 1);
   __uint(map_flags, NO_FLAGS);
-} lru_miss_stats_vip SEC(".maps");
+} vip_miss_stats SEC(".maps");
 
 // map w/ per vip statistics
 struct {

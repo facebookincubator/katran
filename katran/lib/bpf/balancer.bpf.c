@@ -516,10 +516,10 @@ __attribute__((__always_inline__)) static inline int update_vip_lru_miss_stats(
     struct packet_description* pckt,
     struct vip_meta* vip_info,
     bool is_ipv6) {
-  // track the lru miss counter of vip in lru_miss_stats_vip
-  __u32 lru_miss_stats_vip_key = 0;
+  // track the lru miss counter of vip in vip_miss_stats
+  __u32 vip_miss_stats_key = 0;
   struct vip_definition* lru_miss_stat_vip =
-      bpf_map_lookup_elem(&lru_miss_stats_vip, &lru_miss_stats_vip_key);
+      bpf_map_lookup_elem(&vip_miss_stats, &vip_miss_stats_key);
   if (!lru_miss_stat_vip) {
     return XDP_DROP;
   }
@@ -913,7 +913,7 @@ process_packet(struct xdp_md* xdp, __u64 off, bool is_ipv6) {
         return XDP_DROP;
       }
 
-      // track the lru miss counter of vip in lru_miss_stats_vip
+      // track the lru miss counter of vip in vip_miss_stats
       if (update_vip_lru_miss_stats(&vip, &pckt, vip_info, is_ipv6) >= 0) {
         return XDP_DROP;
       }
