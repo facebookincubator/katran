@@ -123,7 +123,7 @@ struct {
   __type(value, struct lb_quic_packets_stats);
   __uint(max_entries, QUIC_STATS_MAP_SIZE);
   __uint(map_flags, NO_FLAGS);
-} quic_packets_stats_map SEC(".maps");
+} quic_stats_map SEC(".maps");
 
 // map for server-id to real's id mapping. The ids can be embedded in header of
 // QUIC or TCP (if enabled) packets for routing of packets for existing flows
@@ -199,7 +199,7 @@ struct {
   __type(value, struct lb_tpr_packets_stats);
   __uint(max_entries, TPR_STATS_MAP_SIZE);
   __uint(map_flags, NO_FLAGS);
-} tpr_packets_stats_map SEC(".maps");
+} tpr_stats_map SEC(".maps");
 
 struct {
   __uint(type, BPF_MAP_TYPE_PERCPU_ARRAY);
@@ -207,6 +207,6 @@ struct {
   __type(value, struct lb_stats);
   __uint(max_entries, MAX_VIPS);
   __uint(map_flags, NO_FLAGS);
-} server_id_routing_stats SEC(".maps");
+} server_id_stats SEC(".maps");
 
 #endif // of _BALANCER_MAPS

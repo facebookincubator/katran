@@ -573,7 +573,7 @@ check_and_update_real_index_in_lru(
 __attribute__((__always_inline__)) static inline void
 incr_server_id_routing_stats(__u32 vip_num, bool newConn, bool misMatchInLRU) {
   struct lb_stats* per_vip_stats =
-      bpf_map_lookup_elem(&server_id_routing_stats, &vip_num);
+      bpf_map_lookup_elem(&server_id_stats, &vip_num);
   if (!per_vip_stats) {
     return;
   }
@@ -774,7 +774,7 @@ process_packet(struct xdp_md* xdp, __u64 off, bool is_ipv6) {
     } else {
       __u32 quic_packets_stats_key = 0;
       struct lb_quic_packets_stats* quic_packets_stats =
-          bpf_map_lookup_elem(&quic_packets_stats_map, &quic_packets_stats_key);
+          bpf_map_lookup_elem(&quic_stats_map, &quic_packets_stats_key);
       if (!quic_packets_stats) {
         return XDP_DROP;
       }
@@ -843,7 +843,7 @@ process_packet(struct xdp_md* xdp, __u64 off, bool is_ipv6) {
     if (pckt.flow.proto == IPPROTO_TCP) {
       __u32 tpr_packets_stats_key = 0;
       struct lb_tpr_packets_stats* tpr_packets_stats =
-          bpf_map_lookup_elem(&tpr_packets_stats_map, &tpr_packets_stats_key);
+          bpf_map_lookup_elem(&tpr_stats_map, &tpr_packets_stats_key);
       if (!tpr_packets_stats) {
         return XDP_DROP;
       }

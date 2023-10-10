@@ -2060,7 +2060,7 @@ lb_quic_packets_stats KatranLb::getLbQuicPacketsStats() {
   if (!config_.testing) {
     int position = 0;
     auto res = bpfAdapter_->bpfMapLookupElement(
-        bpfAdapter_->getMapFdByName("quic_packets_stats_map"),
+        bpfAdapter_->getMapFdByName("quic_stats_map"),
         &position,
         stats);
     if (!res) {
@@ -2112,7 +2112,7 @@ lb_tpr_packets_stats KatranLb::getTcpServerIdRoutingStats() {
   if (!config_.testing) {
     int position = 0;
     auto res = bpfAdapter_->bpfMapLookupElement(
-        bpfAdapter_->getMapFdByName("tpr_packets_stats_map"), &position, stats);
+        bpfAdapter_->getMapFdByName("tpr_stats_map"), &position, stats);
     if (!res) {
       for (auto& stat : stats) {
         sum_stat.ch_routed += stat.ch_routed;
@@ -2595,7 +2595,7 @@ lb_stats KatranLb::getSidRoutingStatsForVip(const VipKey& vip) {
     return lb_stats{};
   }
   auto vipNum = vip_iter->second.getVipNum();
-  return getLbStats(vipNum, "server_id_routing_stats");
+  return getLbStats(vipNum, "server_id_stats");
 }
 
 } // namespace katran
