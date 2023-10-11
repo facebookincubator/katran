@@ -751,6 +751,7 @@ void KatranLb::loadBpfProgs() {
     if (res) {
       throw std::invalid_argument("can't load main bpf program");
     }
+    updateSvrIdRoutingFlags();
   }
 
   if (config_.enableHc) {
@@ -2596,6 +2597,18 @@ lb_stats KatranLb::getSidRoutingStatsForVip(const VipKey& vip) {
   }
   auto vipNum = vip_iter->second.getVipNum();
   return getLbStats(vipNum, "server_id_routing_stats");
+}
+
+void KatranLb::updateSvrIdRoutingFlags() {
+  uint32_t key = 0;
+  lb_sid_routing_flags flags;
+  flags.update_quic_sid_based_dst_in_lru = config_.updateLRUForQuic;
+  int res = bpfAdapter_->bpfUpdateMap(
+      bpfAdapter_->getMapFdByName("server_id_flags"), &key, &flags);
+  if (res) {
+    LOG(ERROR) << "can't update svr_id_routing_flags map, error: "
+               << folly::errnoStr(errno);
+  }
 }
 
 } // namespace katran

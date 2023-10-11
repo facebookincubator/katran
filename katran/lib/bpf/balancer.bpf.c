@@ -804,8 +804,13 @@ process_packet(struct xdp_md* xdp, __u64 off, bool is_ipv6) {
                   xdp, data, data_end - data, false);
               return XDP_DROP;
             }
-            int res = check_and_update_real_index_in_lru(
-                &pckt, lru_map, /* update_lru */ false);
+            __u32 flags_key = 0;
+            struct lb_sid_routing_flags* flags_value =
+                bpf_map_lookup_elem(&server_id_flags, &flags_key);
+            bool update_lru =
+                flags_value && flags_value->update_quic_sid_based_dst_in_lru;
+            int res =
+                check_and_update_real_index_in_lru(&pckt, lru_map, update_lru);
             if (res == DST_MATCH_IN_LRU) {
               quic_packets_stats->dst_match_in_lru += 1;
             } else if (res == DST_MISMATCH_IN_LRU) {

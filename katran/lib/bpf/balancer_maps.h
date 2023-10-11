@@ -209,4 +209,12 @@ struct {
   __uint(map_flags, NO_FLAGS);
 } server_id_routing_stats SEC(".maps");
 
+struct {
+  __uint(type, BPF_MAP_TYPE_ARRAY);
+  __type(key, __u32);
+  __type(value, struct lb_sid_routing_flags);
+  __uint(max_entries, 1);
+  __uint(map_flags, NO_FLAGS);
+} server_id_flags SEC(".maps");
+
 #endif // of _BALANCER_MAPS

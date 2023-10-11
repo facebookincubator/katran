@@ -163,4 +163,9 @@ struct lb_tpr_packets_stats {
   __u64 tcp_syn;
 };
 
+// struct for quic routing flags
+struct lb_sid_routing_flags {
+  bool update_quic_sid_based_dst_in_lru;
+};
+
 #endif // of _BALANCER_STRUCTS

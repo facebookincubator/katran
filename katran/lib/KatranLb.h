@@ -821,6 +821,11 @@ class KatranLb {
    */
   lb_stats getSidRoutingStatsForVip(const VipKey& vip);
 
+  /**
+   * initialize the server id based routing flags map
+   */
+  void updateSvrIdRoutingFlags();
+
  private:
   /**
    * update vipmap(add or remove vip) in forwarding plane
