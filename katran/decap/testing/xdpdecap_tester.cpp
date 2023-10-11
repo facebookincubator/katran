@@ -40,10 +40,10 @@ void testXdpDecapCounters(katran::XdpDecap& decap) {
   LOG(INFO) << "Testing counter's sanity";
   auto stats = decap.getXdpDecapStats();
   int expectedV4DecapPkts = 1;
-  int expectedV6DecapPkts = FLAGS_gue ? 6 : 2;
-  int expectedTotalPkts = FLAGS_gue ? 7 : 7;
-  int expectedTotalTPRPkts = 3;
-  int expectedMisroutedTPRPkts = 2;
+  int expectedV6DecapPkts = FLAGS_gue ? 9 : 2;
+  int expectedTotalPkts = FLAGS_gue ? 10 : 7;
+  int expectedTotalTPRPkts = 4;
+  int expectedMisroutedTPRPkts = 3;
   if (stats.decap_v4 != expectedV4DecapPkts ||
       stats.decap_v6 != expectedV6DecapPkts ||
       stats.total != expectedTotalPkts ||

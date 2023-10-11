@@ -230,8 +230,16 @@ __attribute__((__always_inline__)) static inline void validate_tpr_server_id(
           is_ipv6) >= 0) {
     return;
   }
-  // only check for TCP non SYN packets
-  if (inner_protocol == IPPROTO_TCP && !(inner_pckt.flags & F_SYN_SET)) {
+  // only check for TCP
+  if (inner_protocol != IPPROTO_TCP) {
+    return;
+  }
+  // parse tcp header for flags
+  if (!parse_tcp(data, data_end, is_ipv6, &inner_pckt)) {
+    return;
+  }
+  // check for TCP non SYN packets
+  if (!(inner_pckt.flags & F_SYN_SET)) {
     // lookup server id from tpr header option and compare against server_id on
     // this host (if available)
     __u32 s_key = 0;

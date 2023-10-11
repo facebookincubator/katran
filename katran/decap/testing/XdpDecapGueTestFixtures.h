@@ -152,6 +152,30 @@ const std::vector<PacketAttributes> gueTestFixtures = {
     .expectedReturnValue = "XDP_PASS",
     .expectedOutputPacket = "AgAAAAAAAQAAAAAACABFAAA/AAEAAEAGrUbAqAEBCsgBAXppAFAAAAAAAAAAAHAQIACI1AAAtwbIAAAAAABrYXRyYW4gdGVzdCBwa3Q="
   },
+  // 15
+  { // data_value = int(200).to_bytes(4, byteorder='little')
+    // Ether(src="0x1", dst="0x2")/IPv6(src="100::1", dst="100::2")/UDP(sport=1337, dport=9886)/IP(src="192.168.1.1", dst="10.200.1.1")/TCP(sport=31337, dport=80,flags="S", options=[(0xB7, data_value)])/"katran test pkt"
+    .inputPacket = "AgAAAAAAAQAAAAAAht1gAAAAAEcRQAEAAAAAAAAAAAAAAAAAAAEBAAAAAAAAAAAAAAAAAAACBTkmngBHnypFAAA/AAEAAEAGrUbAqAEBCsgBAXppAFAAAAAAAAAAAHACIACI4gAAtwbIAAAAAABrYXRyYW4gdGVzdCBwa3Q=",
+    .description = "ipv6 gue ipv4 innner with TPR option set on SYN packet. We decap the packet but it should't be checked for TPR option",
+    .expectedReturnValue = "XDP_PASS",
+    .expectedOutputPacket = "AgAAAAAAAQAAAAAACABFAAA/AAEAAEAGrUbAqAEBCsgBAXppAFAAAAAAAAAAAHACIACI4gAAtwbIAAAAAABrYXRyYW4gdGVzdCBwa3Q="
+  },
+  // 16
+  { // data_value = int(200).to_bytes(4, byteorder='little')
+    // Ether(src="0x1", dst="0x2")/IPv6(src="100::1", dst="100::2")/UDP(sport=1337, dport=9886)/IP(src="192.168.1.1", dst="10.200.1.1")/TCP(sport=31337, dport=80,flags="S", options=[(0xB7, data_value)])/"katran test pkt"
+    .inputPacket = "AgAAAAAAAQAAAAAAht1gAAAAAFsRQAEAAAAAAAAAAAAAAAAAAAEBAAAAAAAAAAAAAAAAAAACBTkmngBbayRgAAAAACsGQPwAAAIAAAAAAAAAAAAAAAH8AAABAAAAAAAAAAAAAAABemkAUAAAAAAAAAAAcAIgAF5OAAC3BsgAAAAAAGthdHJhbiB0ZXN0IHBrdA==",
+    .description = "ipv6 gue ipv6 innner with TPR option set on SYN packet. We decap the packet but it should't be checked for TPR option",
+    .expectedReturnValue = "XDP_PASS",
+    .expectedOutputPacket = "AgAAAAAAAQAAAAAAht1gAAAAACsGQPwAAAIAAAAAAAAAAAAAAAH8AAABAAAAAAAAAAAAAAABemkAUAAAAAAAAAAAcAIgAF5OAAC3BsgAAAAAAGthdHJhbiB0ZXN0IHBrdA=="
+  },
+  // 17
+  { // data_value = int(100).to_bytes(4, byteorder='little')
+    // Ether(src="0x1", dst="0x2")/IPv6(src="100::1", dst="100::2")/UDP(sport=1337, dport=9886)/IP(src="192.168.1.1", dst="10.200.1.1")/TCP(sport=31337, dport=80,flags="S", options=[(0xB7, data_value)])/"katran test pkt"
+    .inputPacket = "AgAAAAAAAQAAAAAAht1gAAAAAFsRQAEAAAAAAAAAAAAAAAAAAAEBAAAAAAAAAAAAAAAAAAACBTkmngBbayRgAAAAACsGQPwAAAIAAAAAAAAAAAAAAAH8AAABAAAAAAAAAAAAAAABemkAUAAAAAAAAAAAcAggAF5IAAC3BsgAAAAAAGthdHJhbiB0ZXN0IHBrdA==",
+    .description = "ipv6 gue ipv6 innner with TPR option set on Push packet, TPR misrouted",
+    .expectedReturnValue = "XDP_PASS",
+    .expectedOutputPacket = "AgAAAAAAAQAAAAAAht1gAAAAACsGQPwAAAIAAAAAAAAAAAAAAAH8AAABAAAAAAAAAAAAAAABemkAUAAAAAAAAAAAcAggAF5IAAC3BsgAAAAAAGthdHJhbiB0ZXN0IHBrdA=="
+  }
 };
 
 } // namespace testing
