@@ -29,62 +29,12 @@
 #include "katran/lib/bpf/pckt_encap.h"
 #include "katran/lib/bpf/pckt_parsing.h"
 
+#include "pckt_helpers.h"
 #include "tc_decap_info_maps.h"
 #include "tc_decap_kern_helpers.h"
 
 #define DST_PORT_443 443
 #define DST_PORT_8080 8080
-#define DECAP_FURTHER_PROCESSING -2
-
-__attribute__((__always_inline__)) static inline int process_l3_headers(
-    void* data,
-    void* data_end,
-    __u64 off,
-    bool is_ipv6,
-    struct flow_key* flow) {
-  __u64 iph_len;
-  struct iphdr* iph;
-  struct ipv6hdr* ip6h;
-
-  if (is_ipv6) {
-    ip6h = data + off;
-    if (ip6h + 1 > data_end) {
-      return TC_ACT_SHOT;
-    }
-
-    iph_len = sizeof(struct ipv6hdr);
-    flow->proto = ip6h->nexthdr;
-    off += iph_len;
-    if (flow->proto == IPPROTO_FRAGMENT) {
-      // we drop fragmented packets
-      return TC_ACT_SHOT;
-    }
-    memcpy(flow->srcv6, ip6h->saddr.s6_addr32, 16);
-    memcpy(flow->dstv6, ip6h->daddr.s6_addr32, 16);
-  } else {
-    iph = data + off;
-    if (iph + 1 > data_end) {
-      return TC_ACT_SHOT;
-    }
-    // ihl contains len of ipv4 header in 32bit words
-    if (iph->ihl != 5) {
-      // if len of ipv4 hdr is not equal to 20bytes that means that header
-      // contains ip options, and we dont support em
-      return TC_ACT_SHOT;
-    }
-
-    flow->proto = iph->protocol;
-    off += IPV4_HDR_LEN_NO_OPT;
-
-    if (iph->frag_off & PCKT_FRAGMENTED) {
-      // we drop fragmented packets.
-      return TC_ACT_SHOT;
-    }
-    flow->src = iph->saddr;
-    flow->dst = iph->daddr;
-  }
-  return DECAP_FURTHER_PROCESSING;
-}
 
 __attribute__((__always_inline__)) static inline bool parse_inner_udp(
     void* data,

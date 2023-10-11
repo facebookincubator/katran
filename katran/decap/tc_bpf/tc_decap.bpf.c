@@ -28,60 +28,9 @@
 #include "katran/lib/bpf/pckt_encap.h"
 #include "katran/lib/bpf/pckt_parsing.h"
 
+#include "pckt_helpers.h"
 #include "tc_decap_kern_helpers.h"
 #include "tc_decap_maps.h"
-
-__attribute__((__always_inline__)) static inline int process_l3_headers(
-    struct packet_description* pckt,
-    __u8* protocol,
-    __u64 off,
-    __u16* pkt_bytes,
-    void* data,
-    void* data_end,
-    bool is_ipv6) {
-  __u64 iph_len;
-  struct iphdr* iph;
-  struct ipv6hdr* ip6h;
-
-  if (is_ipv6) {
-    ip6h = data + off;
-    if (ip6h + 1 > data_end) {
-      return TC_ACT_SHOT;
-    }
-
-    iph_len = sizeof(struct ipv6hdr);
-    *protocol = ip6h->nexthdr;
-    pckt->flow.proto = *protocol;
-    *pkt_bytes = bpf_ntohs(ip6h->payload_len);
-    off += iph_len;
-    if (*protocol == IPPROTO_FRAGMENT) {
-      // we drop fragmented packets
-      return TC_ACT_SHOT;
-    }
-  } else {
-    iph = data + off;
-    if (iph + 1 > data_end) {
-      return TC_ACT_SHOT;
-    }
-    // ihl contains len of ipv4 header in 32bit words
-    if (iph->ihl != 5) {
-      // if len of ipv4 hdr is not equal to 20bytes that means that header
-      // contains ip options, and we dont support em
-      return TC_ACT_SHOT;
-    }
-
-    *protocol = iph->protocol;
-    pckt->flow.proto = *protocol;
-    *pkt_bytes = bpf_ntohs(iph->tot_len);
-    off += IPV4_HDR_LEN_NO_OPT;
-
-    if (iph->frag_off & PCKT_FRAGMENTED) {
-      // we drop fragmented packets.
-      return TC_ACT_SHOT;
-    }
-  }
-  return FURTHER_PROCESSING;
-}
 
 __attribute__((__always_inline__)) static inline int process_encaped_gue_pckt(
     void** data,
@@ -136,8 +85,7 @@ __attribute__((__always_inline__)) static inline int process_packet(
 
   int action;
   __u16 pkt_bytes;
-  action = process_l3_headers(
-      &pckt, &protocol, off, &pkt_bytes, data, data_end, is_ipv6);
+  action = process_l3_headers(data, data_end, off, is_ipv6, &pckt.flow);
   if (action >= 0) {
     return action;
   }
