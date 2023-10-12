@@ -211,6 +211,16 @@ int parse_hdr_opt(const struct xdp_md *xdp, struct hdr_opt_state *state)
   return parse_hdr_opt_raw(data, data_end, state);
 }
 
+int parse_hdr_opt_skb(
+    const struct __sk_buff* skb,
+    struct hdr_opt_state* state) {
+  __u8 *tcp_opt, kind, hdr_len;
+
+  const void* data = (void*)(long)skb->data;
+  const void* data_end = (void*)(long)skb->data_end;
+  return parse_hdr_opt_raw(data, data_end, state);
+}
+
 __attribute__((__always_inline__)) static inline int
 tcp_hdr_opt_lookup_server_id(
     const struct xdp_md* xdp,
@@ -244,6 +254,49 @@ tcp_hdr_opt_lookup_server_id(
 #endif
   for (int i = 0; i < TCP_HDR_OPT_MAX_OPT_CHECKS; i++) {
     err = parse_hdr_opt(xdp, &opt_state);
+    if (err || !opt_state.hdr_bytes_remaining) {
+      break;
+    }
+  }
+  if (!opt_state.server_id) {
+    return FURTHER_PROCESSING;
+  }
+  *server_id = opt_state.server_id;
+  return 0;
+}
+__attribute__((__always_inline__)) static inline int
+tcp_hdr_opt_lookup_server_id_skb(
+    const struct __sk_buff* skb,
+    bool is_ipv6,
+    __u32* server_id) {
+  const void* data = (void*)(long)skb->data;
+  const void* data_end = (void*)(long)skb->data_end;
+  struct tcphdr* tcp_hdr;
+  __u8 tcp_hdr_opt_len = 0;
+  __u64 tcp_offset = 0;
+  struct hdr_opt_state opt_state = {};
+  int err = 0;
+
+  tcp_offset = calc_offset(is_ipv6, false /* is_icmp */);
+  tcp_hdr = (struct tcphdr*)(data + tcp_offset);
+  if (tcp_hdr + 1 > data_end) {
+    return FURTHER_PROCESSING;
+  }
+  tcp_hdr_opt_len = (tcp_hdr->doff * 4) - sizeof(struct tcphdr);
+  if (tcp_hdr_opt_len < TCP_HDR_OPT_LEN_TPR) {
+    return FURTHER_PROCESSING;
+  }
+
+  opt_state.hdr_bytes_remaining = tcp_hdr_opt_len;
+  opt_state.byte_offset = sizeof(struct tcphdr) + tcp_offset;
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 3, 0) || \
+    !defined TCP_HDR_OPT_SKIP_UNROLL_LOOP
+  // For linux kernel version < 5.3, there isn't support in the bpf verifier
+  // for validating bounded loops, so we need to unroll the loop
+#pragma clang loop unroll(full)
+#endif
+  for (int i = 0; i < TCP_HDR_OPT_MAX_OPT_CHECKS; i++) {
+    err = parse_hdr_opt_skb(skb, &opt_state);
     if (err || !opt_state.hdr_bytes_remaining) {
       break;
     }
