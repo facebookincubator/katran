@@ -38,7 +38,7 @@ struct {
   __type(value, struct decap_tpr_stats);
   __uint(max_entries, DECAP_STATS_MAP_SIZE);
   __uint(map_flags, NO_FLAGS);
-} decap_tpr_counters SEC(".maps");
+} tc_tpr_stats SEC(".maps");
 
 // map, which contains server_id info
 struct {

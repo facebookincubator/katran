@@ -79,7 +79,7 @@ __attribute__((__always_inline__)) static inline int process_packet(
   struct packet_description pckt = {};
   struct decap_tpr_stats* data_stats;
   __u32 key = 0;
-  data_stats = bpf_map_lookup_elem(&decap_tpr_counters, &key);
+  data_stats = bpf_map_lookup_elem(&tc_tpr_stats, &key);
   if (!data_stats) {
     return XDP_PASS;
   }
