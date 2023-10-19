@@ -244,7 +244,7 @@ void KatranLb::initialSanityChecking(bool flowDebug, bool globalLru) {
     maps.push_back("lru_mapping");
     maps.push_back("server_id_map");
     maps.push_back("lru_miss_stats");
-    maps.push_back("lru_miss_stats_vip");
+    maps.push_back("vip_miss_stats");
 
     if (flowDebug) {
       maps.push_back(kFlowDebugParentMapName.data());
@@ -828,7 +828,7 @@ void KatranLb::loadBpfProgs() {
   memset(&vip_def, 0, sizeof(vip_definition));
   uint32_t key = 0;
   res = bpfAdapter_->bpfUpdateMap(
-      bpfAdapter_->getMapFdByName("lru_miss_stats_vip"), &key, &vip_def);
+      bpfAdapter_->getMapFdByName("vip_miss_stats"), &key, &vip_def);
   if (res) {
     LOG(ERROR) << "can't update lru miss stat vip, error: "
                << folly::errnoStr(errno);
@@ -1951,7 +1951,7 @@ bool KatranLb::logVipLruMissStats(VipKey& vip) {
   vip_definition vip_def = vipKeyToVipDefinition(vip);
   uint32_t vip_key = 0;
   auto res = bpfAdapter_->bpfUpdateMap(
-      bpfAdapter_->getMapFdByName("lru_miss_stats_vip"), &vip_key, &vip_def);
+      bpfAdapter_->getMapFdByName("vip_miss_stats"), &vip_key, &vip_def);
   if (res != 0) {
     LOG(ERROR) << "can't update lru miss stat vip, error: "
                << folly::errnoStr(errno);
@@ -2061,9 +2061,8 @@ lb_quic_packets_stats KatranLb::getLbQuicPacketsStats() {
   if (!config_.testing) {
     int position = 0;
     auto res = bpfAdapter_->bpfMapLookupElement(
-        bpfAdapter_->getMapFdByName("quic_packets_stats_map"),
-        &position,
-        stats);
+        bpfAdapter_->getMapFdByName("quic_stats_map"), &position, stats);
+
     if (!res) {
       for (auto& stat : stats) {
         sum_stat.ch_routed += stat.ch_routed;
@@ -2113,7 +2112,7 @@ lb_tpr_packets_stats KatranLb::getTcpServerIdRoutingStats() {
   if (!config_.testing) {
     int position = 0;
     auto res = bpfAdapter_->bpfMapLookupElement(
-        bpfAdapter_->getMapFdByName("tpr_packets_stats_map"), &position, stats);
+        bpfAdapter_->getMapFdByName("tpr_stats_map"), &position, stats);
     if (!res) {
       for (auto& stat : stats) {
         sum_stat.ch_routed += stat.ch_routed;
@@ -2596,7 +2595,7 @@ lb_stats KatranLb::getSidRoutingStatsForVip(const VipKey& vip) {
     return lb_stats{};
   }
   auto vipNum = vip_iter->second.getVipNum();
-  return getLbStats(vipNum, "server_id_routing_stats");
+  return getLbStats(vipNum, "server_id_stats");
 }
 
 void KatranLb::updateSvrIdRoutingFlags() {
