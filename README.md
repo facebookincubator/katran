@@ -47,7 +47,7 @@ Requirements:
 ### build.sh
 
 This script is a simple wrapper around `getdeps.py` ([see next section](https://github.com/facebookincubator/katran#getdeps.py)).
-It requiers python3.6 or later in your PATH.
+It requires Python 3.6 or later in your PATH.
 
 To install dependencies run:
 `./build.sh install`
