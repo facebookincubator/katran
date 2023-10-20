@@ -465,6 +465,15 @@ class KatranLb {
 
   /**
    * @param VipKey vip
+   * @return struct lb_stats w/ decap statistic for specified vip
+   *
+   * helper function which return total ammount of pkts which
+   * has been decapped to specified vip.
+   */
+  lb_stats getDecapStatsForVip(const VipKey& vip);
+
+  /**
+   * @param VipKey vip
    *
    * function which return total number of packets that the
    * healthchecking BPF program has encapsulated for the given

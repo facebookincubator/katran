@@ -125,6 +125,15 @@ struct {
   __uint(map_flags, NO_FLAGS);
 } quic_stats_map SEC(".maps");
 
+// map w/ per vip decap statistics
+struct {
+  __uint(type, BPF_MAP_TYPE_PERCPU_ARRAY);
+  __type(key, __u32);
+  __type(value, struct lb_stats);
+  __uint(max_entries, MAX_VIPS);
+  __uint(map_flags, NO_FLAGS);
+} decap_vip_stats SEC(".maps");
+
 // map for server-id to real's id mapping. The ids can be embedded in header of
 // QUIC or TCP (if enabled) packets for routing of packets for existing flows
 #ifdef SERVER_ID_HASH_MAP

@@ -431,17 +431,67 @@ __attribute__((__always_inline__)) static inline int process_encaped_ipip_pckt(
 #endif // of INLINE_DECAP_IPIP
 
 #ifdef INLINE_DECAP_GUE
+__attribute__((__always_inline__)) static inline void
+incr_decap_vip_stats(void* data, __u64 off, void* data_end, bool is_ipv6) {
+  struct packet_description inner_pckt = {};
+  struct vip_definition vip = {};
+  struct vip_meta* vip_info;
+  __u8 inner_protocol;
+  __u16 inner_pkt_bytes;
+  if (process_l3_headers(
+          &inner_pckt,
+          &inner_protocol,
+          off,
+          &inner_pkt_bytes,
+          data,
+          data_end,
+          is_ipv6) >= 0) {
+    return;
+  }
+  if (is_ipv6) {
+    memcpy(vip.vipv6, inner_pckt.flow.dstv6, 16);
+  } else {
+    vip.vip = inner_pckt.flow.dst;
+  }
+  vip.proto = inner_pckt.flow.proto;
+
+  // Get dst port from inner packet
+  if (inner_protocol == IPPROTO_TCP) {
+    if (!parse_tcp(data, data_end, is_ipv6, &inner_pckt)) {
+      return;
+    }
+  }
+  if (inner_protocol == IPPROTO_UDP) {
+    if (!parse_udp(data, data_end, is_ipv6, &inner_pckt)) {
+      return;
+    }
+  }
+  vip.port = inner_pckt.flow.port16[1];
+  // for inline_decap, use vip_info map to get vip_num for stats
+  vip_info = bpf_map_lookup_elem(&vip_map, &vip);
+  if (vip_info) {
+    __u32 vip_num = vip_info->vip_num;
+    // increment stats for vip_num
+    struct lb_stats* decap_stats =
+        bpf_map_lookup_elem(&decap_vip_stats, &vip_num);
+    if (decap_stats) {
+      decap_stats->v1 += 1;
+    }
+  }
+}
+
 __attribute__((__always_inline__)) static inline int process_encaped_gue_pckt(
     void** data,
     void** data_end,
     struct xdp_md* xdp,
+    __u64 off,
     bool is_ipv6,
     bool pass) {
   int offset = 0;
   int action;
+  bool inner_ipv6 = false;
   if (is_ipv6) {
     __u8 v6 = 0;
-
     offset =
         sizeof(struct ipv6hdr) + sizeof(struct ethhdr) + sizeof(struct udphdr);
     // 1 byte for gue v1 marker to figure out what is internal protocol
@@ -450,6 +500,7 @@ __attribute__((__always_inline__)) static inline int process_encaped_gue_pckt(
     }
     v6 = ((__u8*)(*data))[offset];
     v6 &= GUEV1_IPV6MASK;
+    inner_ipv6 = v6 ? true : false;
     if (v6) {
       // inner packet is ipv6 as well
       action = decrement_ttl(*data, *data_end, offset, true);
@@ -490,6 +541,9 @@ __attribute__((__always_inline__)) static inline int process_encaped_gue_pckt(
     return action;
   }
   if (pass) {
+    // pass packet to kernel after decapsulation
+    // increment stats after decapsulation
+    incr_decap_vip_stats(*data, off, *data_end, inner_ipv6);
     return XDP_PASS;
   }
   return recirculate(xdp);
@@ -670,7 +724,8 @@ process_packet(struct xdp_md* xdp, __u64 off, bool is_ipv6) {
       if (action >= 0) {
         return action;
       }
-      return process_encaped_gue_pckt(&data, &data_end, xdp, is_ipv6, pass);
+      return process_encaped_gue_pckt(
+          &data, &data_end, xdp, off, is_ipv6, pass);
     }
 #endif // of INLINE_DECAP_GUE
   } else {

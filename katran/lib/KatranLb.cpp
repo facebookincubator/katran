@@ -1904,6 +1904,20 @@ lb_stats KatranLb::getStatsForVip(const VipKey& vip) {
   return getLbStats(num);
 }
 
+lb_stats KatranLb::getDecapStatsForVip(const VipKey& vip) {
+  auto vip_iter = vips_.find(vip);
+  if (vip_iter == vips_.end()) {
+    LOG(INFO) << fmt::format(
+        "trying to get stats for non-existing vip  {}:{}:{}",
+        vip.address,
+        vip.port,
+        vip.proto);
+    return lb_stats{};
+  }
+  auto num = vip_iter->second.getVipNum();
+  return getLbStats(num, "decap_vip_stats");
+}
+
 uint64_t KatranLb::getPacketsProcessedForHcKey(const VipKey& hcKey) {
   auto hc_key_iter = hckeys_.find(hcKey);
   if (hc_key_iter == hckeys_.end()) {
