@@ -57,7 +57,7 @@ const std::map<std::string, uint64_t> vipFlagTranslationTable = {
 const std::map<std::string, uint32_t> realFlagTranslationTable = {
     {"LOCAL_REAL", LOCAL_REAL},
 };
-} // namespace
+}; // namespace
 
 namespace lb {
 namespace katran {
