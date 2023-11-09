@@ -27,7 +27,7 @@ is located at `deps/linux/` (__Note:__ It is automatically installed there with 
 The result of this script will be object files w/ BPF programs, which are going
 to be located in `deps/linux/bpfprog/bpf/`. These files are:
 
-1. __`balancer_kern.o`__ - object file w/ main BPF program for forwarding
+1. __`balancer.bpf.o`__ - object file w/ main BPF program for forwarding
 2. __`healthchecking_ipip.o`__ - object file w/ BPF program for the forwarding of
 healthchecks
 
@@ -78,9 +78,9 @@ you just need to run `./os_run_tester.sh` script (this script requires root priv
 $ ./os_run_tester.sh
 ++ pwd
 ++ pwd
-+ sudo sh -c '/home/username/katran_oss/build/katran/lib/testing/katran_tester -balancer_prog /home/username/katran_oss/deps/linux/bpfprog/bpf/balancer_kern.o -test_from_fixtures=true '
++ sudo sh -c '/home/username/katran_oss/build/katran/lib/testing/katran_tester -balancer_prog /home/username/katran_oss/deps/linux/bpfprog/bpf/balancer.bpf.o -test_from_fixtures=true '
 E0318 15:21:07.659436 28440 BpfLoader.cpp:144] Can't read section size for index: 2
-I0318 15:21:07.659950 28440 BpfLoader.cpp:419] Skipping section: 2 of file: /home/username/katran_oss/deps/linux/bpfprog/bpf/balancer_kern.o
+I0318 15:21:07.659950 28440 BpfLoader.cpp:419] Skipping section: 2 of file: /home/username/katran_oss/deps/linux/bpfprog/bpf/balancer.bpf.o
 I0318 15:21:07.692260 28440 BpfLoader.cpp:338] relocation for non existing prog w/ idx 10
 I0318 15:21:07.692790 28440 BpfLoader.cpp:338] relocation for non existing prog w/ idx 14
 I0318 15:21:07.693243 28440 BpfLoader.cpp:338] relocation for non existing prog w/ idx 16

@@ -40,7 +40,7 @@ DEFINE_string(intf, "eth0", "main interface");
 DEFINE_string(hc_intf, "", "interface for healthchecking");
 DEFINE_string(ipip_intf, "ipip0", "ipip (v4) encap interface");
 DEFINE_string(ipip6_intf, "ipip60", "ip(6)ip6 (v6) encap interface");
-DEFINE_string(balancer_prog, "./balancer_kern.o", "path to balancer bpf prog");
+DEFINE_string(balancer_prog, "./balancer.bpf.o", "path to balancer bpf prog");
 DEFINE_string(
     healthchecker_prog,
     "./healthchecking_ipip.o",

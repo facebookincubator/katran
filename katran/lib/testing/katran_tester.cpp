@@ -45,7 +45,7 @@ DEFINE_string(
     monitor_output,
     "/tmp/katran_pcap",
     "output file for katran monitoring");
-DEFINE_string(balancer_prog, "./balancer_kern.o", "path to balancer bpf prog");
+DEFINE_string(balancer_prog, "./balancer.bpf.o", "path to balancer bpf prog");
 DEFINE_string(
     reloaded_balancer_prog,
     "",

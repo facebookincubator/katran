@@ -64,16 +64,16 @@ few exceptions are:
 
 ### example of output on start:
 ```
-sudo ./start_katran -affinitize -balancer_bpf ~/katran/deps/bpfprog/bpf/balancer_kern.o -binary ~/katran/build/example_grpc/katran_server_grpc -map_path /sys/fs/bpf/jmp_enp0s3 -lru_size 1000 -run
+sudo ./start_katran -affinitize -balancer_bpf ~/katran/deps/bpfprog/bpf/balancer.bpf.o -binary ~/katran/build/example_grpc/katran_server_grpc -map_path /sys/fs/bpf/jmp_enp0s3 -lru_size 1000 -run
 number of CPUs  3
 2019/01/28 14:19:51 affinitizing irq 19 to cpu 0 mask 00000001
 number of CPUs  3
 number of CPUs  3
--balancer_prog=/home/tehnerd/katran/deps/bpfprog/bpf/balancer_kern.o -intf=enp0s3 -hc_forwarding=false -map_path=/sys/fs/bpf/jmp_enp0s3 -prog_pos=2 -ipip_intf=ipip0 -ipip6_intf=ipip60 -priority=2307 -lru_size=1000 -shutdown_delay=1000 -forwarding_cores=0 -numa_nodes=0
+-balancer_prog=/home/tehnerd/katran/deps/bpfprog/bpf/balancer.bpf.o -intf=enp0s3 -hc_forwarding=false -map_path=/sys/fs/bpf/jmp_enp0s3 -prog_pos=2 -ipip_intf=ipip0 -ipip6_intf=ipip60 -priority=2307 -lru_size=1000 -shutdown_delay=1000 -forwarding_cores=0 -numa_nodes=0
 2019/01/28 14:19:51 cannot reach katran server. retrying in one second
 I0128 14:19:51.431486   391 KatranGrpcService.cpp:67] Starting Katran
 E0128 14:19:51.431856   391 BpfLoader.cpp:166] Can't read section size for index: 2
-I0128 14:19:51.431871   391 BpfLoader.cpp:448] Skipping section: 2 of file: /home/tehnerd/katran/deps/bpfprog/bpf/balancer_kern.o
+I0128 14:19:51.431871   391 BpfLoader.cpp:448] Skipping section: 2 of file: /home/tehnerd/katran/deps/bpfprog/bpf/balancer.bpf.o
 I0128 14:19:51.485374   391 BpfLoader.cpp:367] relocation for non existing prog w/ idx 10
 I0128 14:19:51.485419   391 BpfLoader.cpp:367] relocation for non existing prog w/ idx 14
 I0128 14:19:51.485424   391 BpfLoader.cpp:367] relocation for non existing prog w/ idx 16

@@ -154,7 +154,7 @@ standalone mode is when katran is attached to the interface directly (and you wo
 be able to run any other XDP program on this interface)
 
 ```
-$ sudo ./build/example_grpc/katran_server_grpc -balancer_prog ./deps/bpfprog/bpf/balancer_kern.o -default_mac 52:54:00:12:35:02 -forwarding_cores=0 -healthchecker_prog ./deps/bpfprog/bpf/healthchecking_ipip.o -intf=enp0s3 -ipip_intf=ipip0 -ipip6_intf=ipip60 -lru_size=10000
+$ sudo ./build/example_grpc/katran_server_grpc -balancer_prog ./deps/bpfprog/bpf/balancer.bpf.o -default_mac 52:54:00:12:35:02 -forwarding_cores=0 -healthchecker_prog ./deps/bpfprog/bpf/healthchecking_ipip.o -intf=enp0s3 -ipip_intf=ipip0 -ipip6_intf=ipip60 -lru_size=10000
 ```
 
 In this example:
@@ -207,7 +207,7 @@ if needed, in front of load balancer.
 
 
 ```
-$ sudo ./build/example_grpc/katran_server_grpc -balancer_prog ./deps/bpfprog/bpf/balancer_kern.o -default_mac 52:54:00:12:35:02 -forwarding_cores=0 -healthchecker_prog ./deps/bpfprog/bpf/healthchecking_ipip.o -intf=enp0s3 -ipip_intf=ipip0 -ipip6_intf=ipip60 -lru_size=10000 -map_path /sys/fs/bpf/jmp_eth0 -prog_pos=2
+$ sudo ./build/example_grpc/katran_server_grpc -balancer_prog ./deps/bpfprog/bpf/balancer.bpf.o -default_mac 52:54:00:12:35:02 -forwarding_cores=0 -healthchecker_prog ./deps/bpfprog/bpf/healthchecking_ipip.o -intf=enp0s3 -ipip_intf=ipip0 -ipip6_intf=ipip60 -lru_size=10000 -map_path /sys/fs/bpf/jmp_eth0 -prog_pos=2
 ```
 
 ### Configuring healthchecks forwarding
