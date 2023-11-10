@@ -12,9 +12,9 @@ INCLUDEFLAGS = -I$(obj)/usr/include \
 
 
 
-always = bpf/balancer_kern.o
+always = bpf/balancer.bpf.o
 always += bpf/healthchecking_ipip.o
-always += bpf/healthchecking_kern.o
+always += bpf/healthchecking.bpf.o
 always += bpf/xdp_pktcntr.o
 always += bpf/xdp_root.o
 
