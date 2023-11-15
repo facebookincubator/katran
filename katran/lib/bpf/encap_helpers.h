@@ -48,6 +48,7 @@ __attribute__((__always_inline__)) static inline void create_v4_hdr(
   iph->tos = DEFAULT_TOS;
 #endif
   iph->tot_len = bpf_htons(pkt_bytes + sizeof(struct iphdr));
+  iph->id = 0;
   iph->daddr = daddr;
   iph->saddr = saddr;
   iph->ttl = DEFAULT_TTL;

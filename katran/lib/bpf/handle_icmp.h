@@ -145,6 +145,7 @@ __attribute__((__always_inline__)) static inline int send_icmp4_too_big(
   icmp_hdr->type = ICMP_DEST_UNREACH;
   icmp_hdr->code = ICMP_FRAG_NEEDED;
   icmp_hdr->un.frag.mtu = bpf_htons(MAX_PCKT_SIZE - sizeof(struct ethhdr));
+  icmp_hdr->un.frag.__unused = 0;
   icmp_hdr->checksum = 0;
   ipv4_csum(icmp_hdr, ICMP_TOOBIG_PAYLOAD_SIZE, &csum);
   icmp_hdr->checksum = csum;
@@ -157,6 +158,7 @@ __attribute__((__always_inline__)) static inline int send_icmp4_too_big(
   iph->protocol = IPPROTO_ICMP;
   iph->tos = 0;
   iph->tot_len = bpf_htons(ICMP_TOOBIG_SIZE + headroom - sizeof(struct ethhdr));
+  iph->id = 0;
   iph->check = 0;
   csum = 0;
   ipv4_csum(iph, sizeof(struct iphdr), &csum);
