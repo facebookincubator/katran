@@ -151,6 +151,7 @@ __attribute__((__always_inline__)) static inline int send_icmp4_too_big(
   iph->ttl = DEFAULT_TTL;
   iph->daddr = orig_iph->saddr;
   iph->saddr = orig_iph->daddr;
+  iph->frag_off = 0;
   iph->version = 4;
   iph->ihl = 5;
   iph->protocol = IPPROTO_ICMP;
