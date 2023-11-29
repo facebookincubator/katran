@@ -835,6 +835,17 @@ class KatranLb {
    */
   void updateSvrIdRoutingFlags();
 
+  /**
+   * helper function to invalidate server ids from the server id map
+   */
+  void invalidateServerIds(const std::vector<int32_t>& serverIds);
+
+  /**
+   * helper function to add entries for server ids which were invalidated
+   * in the server id map
+   */
+  void revalidateServerIds(const std::vector<QuicReal>& quicReals);
+
  private:
   /**
    * update vipmap(add or remove vip) in forwarding plane

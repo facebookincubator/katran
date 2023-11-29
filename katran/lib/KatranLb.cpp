@@ -2624,4 +2624,47 @@ void KatranLb::updateSvrIdRoutingFlags() {
   }
 }
 
+void KatranLb::invalidateServerIds(const std::vector<int32_t>& serverIds) {
+  auto server_id_map_fd = bpfAdapter_->getMapFdByName("server_id_map");
+  for (auto serverId : serverIds) {
+    LOG(ERROR) << "Invalidate the server id " << serverId
+               << " in server_id_map";
+    int res;
+    if (config_.enableCidV3) {
+      // server_id_map is of BPF_MAP_TYPE_HASH when cidv3 is enabled
+      res = bpfAdapter_->bpfMapDeleteElement(server_id_map_fd, &serverId);
+    } else {
+      // server_id_map is of BPF_MAP_TYPE_ARRAY when cidv3 is NOT enabled
+      int valueZero = 0;
+      res = bpfAdapter_->bpfUpdateMap(server_id_map_fd, &serverId, &valueZero);
+    }
+    if (res != 0) {
+      LOG(ERROR) << "can't invalidate the entry for the server id " << serverId
+                 << " from the server_id_map, error: "
+                 << folly::errnoStr(errno);
+      lbStats_.bpfFailedCalls++;
+    }
+  }
+}
+
+void KatranLb::revalidateServerIds(const std::vector<QuicReal>& quicReals) {
+  auto server_id_map_fd = bpfAdapter_->getMapFdByName("server_id_map");
+  for (auto [real, serverId] : quicReals) {
+    int realIndex = getIndexForReal(real);
+    if (realIndex == kError) {
+      LOG(ERROR) << "Can't find real " << real << " in the reals map";
+      continue;
+    }
+    LOG(WARNING) << "Updating server id map with server id " << serverId
+                 << ", real index " << realIndex;
+    auto res =
+        bpfAdapter_->bpfUpdateMap(server_id_map_fd, &serverId, &realIndex);
+    if (res != 0) {
+      LOG(ERROR) << "can't revalidate the entry for the server id " << serverId
+                 << " to the real " << real
+                 << " in server_id_map, error: " << folly::errnoStr(errno);
+      lbStats_.bpfFailedCalls++;
+    }
+  }
+}
 } // namespace katran
