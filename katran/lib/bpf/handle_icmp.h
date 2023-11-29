@@ -121,7 +121,7 @@ __attribute__((__always_inline__)) static inline int send_icmp6_reply(
 __attribute__((__always_inline__)) static inline int send_icmp4_too_big(
     struct xdp_md* xdp) {
   int headroom = (int)sizeof(struct iphdr) + (int)sizeof(struct icmphdr);
-  if (bpf_xdp_adjust_head(xdp, 0 - headroom)) {
+  if (XDP_ADJUST_HEAD_FUNC(xdp, 0 - headroom)) {
     return XDP_DROP;
   }
   void* data = (void*)(long)xdp->data;
@@ -169,7 +169,7 @@ __attribute__((__always_inline__)) static inline int send_icmp4_too_big(
 __attribute__((__always_inline__)) static inline int send_icmp6_too_big(
     struct xdp_md* xdp) {
   int headroom = (int)sizeof(struct ipv6hdr) + (int)sizeof(struct icmp6hdr);
-  if (bpf_xdp_adjust_head(xdp, 0 - headroom)) {
+  if (XDP_ADJUST_HEAD_FUNC(xdp, 0 - headroom)) {
     return XDP_DROP;
   }
   void* data = (void*)(long)xdp->data;

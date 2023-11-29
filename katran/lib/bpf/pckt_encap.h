@@ -56,7 +56,7 @@ __attribute__((__always_inline__)) static inline bool encap_v6(
   __u32 saddr[4];
   __u8 proto;
   // ip(6)ip6 encap
-  if (bpf_xdp_adjust_head(xdp, 0 - (int)sizeof(struct ipv6hdr))) {
+  if (XDP_ADJUST_HEAD_FUNC(xdp, 0 - (int)sizeof(struct ipv6hdr))) {
     return false;
   }
   data = (void*)(long)xdp->data;
@@ -107,7 +107,7 @@ __attribute__((__always_inline__)) static inline bool encap_v4(
   ip_suffix ^= pckt->flow.src;
   __u64 csum = 0;
   // ipip encap
-  if (bpf_xdp_adjust_head(xdp, 0 - (int)sizeof(struct iphdr))) {
+  if (XDP_ADJUST_HEAD_FUNC(xdp, 0 - (int)sizeof(struct iphdr))) {
     return false;
   }
   data = (void*)(long)xdp->data;
@@ -148,7 +148,7 @@ decap_v6(struct xdp_md* xdp, void** data, void** data_end, bool inner_v4) {
   } else {
     new_eth->h_proto = BE_ETH_P_IPV6;
   }
-  if (bpf_xdp_adjust_head(xdp, (int)sizeof(struct ipv6hdr))) {
+  if (XDP_ADJUST_HEAD_FUNC(xdp, (int)sizeof(struct ipv6hdr))) {
     return false;
   }
   *data = (void*)(long)xdp->data;
@@ -165,7 +165,7 @@ decap_v4(struct xdp_md* xdp, void** data, void** data_end) {
   memcpy(new_eth->h_source, old_eth->h_source, 6);
   memcpy(new_eth->h_dest, old_eth->h_dest, 6);
   new_eth->h_proto = BE_ETH_P_IP;
-  if (bpf_xdp_adjust_head(xdp, (int)sizeof(struct iphdr))) {
+  if (XDP_ADJUST_HEAD_FUNC(xdp, (int)sizeof(struct iphdr))) {
     return false;
   }
   *data = (void*)(long)xdp->data;
@@ -274,7 +274,7 @@ __attribute__((__always_inline__)) static inline bool gue_encap_v4(
 
   sport ^= ((pckt->flow.src >> 16) & 0xFFFF);
 
-  if (bpf_xdp_adjust_head(
+  if (XDP_ADJUST_HEAD_FUNC(
           xdp, 0 - ((int)sizeof(struct iphdr) + (int)sizeof(struct udphdr)))) {
     return false;
   }
@@ -330,7 +330,7 @@ __attribute__((__always_inline__)) static inline bool gue_encap_v6(
     return false;
   }
 
-  if (bpf_xdp_adjust_head(
+  if (XDP_ADJUST_HEAD_FUNC(
           xdp,
           0 - ((int)sizeof(struct ipv6hdr) + (int)sizeof(struct udphdr)))) {
     return false;
@@ -380,7 +380,7 @@ gue_decap_v4(struct xdp_md* xdp, void** data, void** data_end) {
   memcpy(new_eth->h_source, old_eth->h_source, 6);
   memcpy(new_eth->h_dest, old_eth->h_dest, 6);
   new_eth->h_proto = BE_ETH_P_IP;
-  if (bpf_xdp_adjust_head(
+  if (XDP_ADJUST_HEAD_FUNC(
           xdp, (int)(sizeof(struct iphdr) + sizeof(struct udphdr)))) {
     return false;
   }
@@ -403,7 +403,7 @@ gue_decap_v6(struct xdp_md* xdp, void** data, void** data_end, bool inner_v4) {
   } else {
     new_eth->h_proto = BE_ETH_P_IPV6;
   }
-  if (bpf_xdp_adjust_head(
+  if (XDP_ADJUST_HEAD_FUNC(
           xdp, (int)(sizeof(struct ipv6hdr) + sizeof(struct udphdr)))) {
     return false;
   }

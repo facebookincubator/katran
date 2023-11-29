@@ -111,4 +111,35 @@ decrement_ttl(void* data, void* data_end, int offset, bool is_ipv6) {
   return FURTHER_PROCESSING;
 }
 
+__attribute__((__always_inline__)) static inline long test_bpf_xdp_adjust_head(
+    struct xdp_md* xdp_md,
+    int delta) {
+  long ret = bpf_xdp_adjust_head(xdp_md, delta);
+  if (ret) {
+    return ret;
+  }
+  if (delta >= 0) {
+    return ret;
+  }
+  // we've prepended "new" memory, initialize it
+
+  void* data = (void*)(long)xdp_md->data;
+  void* data_end = (void*)(long)xdp_md->data_end;
+  int offset = 0 - delta;
+  // extra check to make bpf verifier happy
+  if (data + offset > data_end) {
+    return -1;
+  }
+  // intentionally set all bits 1, as bpf tester zeros allocated memory, unlike
+  // xdp stack
+  memset(data, 0xFF, offset);
+  return ret;
+}
+
+#ifdef KATRAN_TEST_MODE
+#define XDP_ADJUST_HEAD_FUNC test_bpf_xdp_adjust_head
+#else
+#define XDP_ADJUST_HEAD_FUNC bpf_xdp_adjust_head
 #endif
+
+#endif // __BALANCER_HELPERS
