@@ -142,6 +142,9 @@
 #define F_LOCAL_VIP (1 << 5)
 // do a global lru lookup if we were unable to find the flow in the main lru map
 #define F_GLOBAL_LRU (1 << 6)
+// use both src and dst port for the hash calculation for vips which normally
+// wouldn't
+#define F_HASH_SRC_DST_PORT (1 << 7)
 // packet_description flags:
 // the description has been created from icmp msg
 #define F_ICMP (1 << 0)

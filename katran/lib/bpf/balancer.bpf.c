@@ -749,7 +749,8 @@ process_packet(struct xdp_md* xdp, __u64 off, bool is_ipv6) {
       return XDP_PASS;
     }
 
-    if (!(vip_info->flags & F_HASH_DPORT_ONLY)) {
+    if (!(vip_info->flags & F_HASH_DPORT_ONLY) &&
+        !(vip_info->flags & F_HASH_SRC_DST_PORT)) {
       // VIP, which doesnt care about dst port (all packets to this VIP w/ diff
       // dst port but from the same src port/ip must go to the same real
       pckt.flow.port16[1] = 0;
