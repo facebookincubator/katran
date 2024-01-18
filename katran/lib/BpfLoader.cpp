@@ -24,8 +24,6 @@ namespace katran {
 namespace {
 constexpr int kError = 1;
 constexpr int kNotExists = -1;
-constexpr int kPrefixLen = 3;
-constexpr int kStart = 0;
 constexpr int kSuccess = 0;
 constexpr int kMaxSharedMapNameSize = 15;
 } // namespace
