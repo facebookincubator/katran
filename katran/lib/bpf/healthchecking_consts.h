@@ -42,6 +42,10 @@
 
 #define NO_FLAGS 0
 
+// for ip-in-ip encap 
+// source address of the healthcheck would be crafted the same way as data packet
+//#define MANGLE_HC_SRC 1
+
 #define V6DADDR (1 << 0)
 
 #define HC_SRC_MAC_POS 0

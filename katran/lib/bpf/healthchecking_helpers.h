@@ -113,8 +113,14 @@ __attribute__((__always_inline__)) static inline bool hc_encap_ipip(
     if (!is_ipv6) {
       proto = IPPROTO_IPIP;
     }
+    __u32 saddr[4];
+    #ifdef MANGLE_HC_SRC
+    create_encap_ipv6_src(31337, src->v6daddr[3], saddr);
+    #else
+    memcpy(saddr, src->v6daddr, 16);
+    #endif
     create_v6_hdr(
-        ip6h, DEFAULT_TOS, src->v6daddr, real->v6daddr, pkt_len, proto);
+        ip6h, DEFAULT_TOS, saddr, real->v6daddr, pkt_len, proto);
   } else {
     key = V4_SRC_INDEX;
     src = bpf_map_lookup_elem(&hc_pckt_srcs_map, &key);
@@ -132,8 +138,14 @@ __attribute__((__always_inline__)) static inline bool hc_encap_ipip(
       return false;
     }
     struct iphdr* iph = (void*)(long)skb->data + sizeof(struct ethhdr);
+    #ifdef MANGLE_HC_SRC
+    __u32 ip_src = create_encap_ipv4_src(31337, src->daddr);
+    #else
+    __u32 ip_src = src->daddr;
+    #endif
+
     create_v4_hdr(
-        iph, DEFAULT_TOS, src->daddr, real->daddr, pkt_len, IPPROTO_IPIP);
+        iph, DEFAULT_TOS, ip_src, real->daddr, pkt_len, IPPROTO_IPIP);
   }
   return true;
 }

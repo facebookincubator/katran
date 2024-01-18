@@ -29,6 +29,26 @@
 #include "katran/lib/bpf/balancer_consts.h"
 #include "katran/lib/bpf/csum_helpers.h"
 
+__attribute__ ((__always_inline__)) static inline void create_encap_ipv6_src(
+  __u16 port, 
+  __be32 src,
+  __u32 *saddr) {
+ 
+  saddr[0] = IPIP_V6_PREFIX1;
+  saddr[1] = IPIP_V6_PREFIX2;
+  saddr[2] = IPIP_V6_PREFIX3;
+  saddr[3] = src ^ port;
+}
+
+__attribute__ ((__always_inline__)) static inline __u32 create_encap_ipv4_src(
+  __u16 port, 
+  __be32 src) {
+  __u32 ip_suffix = bpf_htons(port);
+  ip_suffix <<= 16;
+  ip_suffix ^= src;
+  return ((0xFFFF0000 & ip_suffix) | IPIP_V4_PREFIX);
+}
+
 __attribute__((__always_inline__)) static inline void create_v4_hdr(
     struct iphdr* iph,
     __u8 tos,
