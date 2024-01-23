@@ -56,14 +56,14 @@ struct beaddr IpHelpers::parseAddrToBe(
     translated_addr.flags = V6DADDR;
   }
   return translated_addr;
-};
+}
 
 struct beaddr IpHelpers::parseAddrToInt(const std::string& addr) {
   return parseAddrToBe(addr, false);
-};
+}
 
 struct beaddr IpHelpers::parseAddrToInt(const folly::IPAddress& addr) {
   return parseAddrToBe(addr, false);
-};
+}
 
 } // namespace katran
