@@ -142,7 +142,7 @@ std::string PcapParser::getPacketFromPcapBase64() {
 std::string PcapParser::convertPacketToBase64(
     std::unique_ptr<folly::IOBuf> pckt) {
   return Base64Helpers::base64Encode(pckt.get());
-};
+}
 
 std::unique_ptr<folly::IOBuf> PcapParser::getPacketFromBase64(
     const std::string& encodedPacket) {
