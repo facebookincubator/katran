@@ -22,7 +22,7 @@ namespace katran {
 
 bool compareEndpoints(const Endpoint& a, const Endpoint& b) {
   return a.hash < b.hash;
-};
+}
 
 Vip::Vip(
     uint32_t vipNum,
@@ -34,7 +34,7 @@ Vip::Vip(
       chRingSize_(ringSize),
       chRing_(ringSize, -1) {
   chash = CHFactory::make(func);
-};
+}
 
 void Vip::setHashFunction(HashFunction func) {
   chash = CHFactory::make(func);
@@ -76,7 +76,7 @@ std::vector<RealPos> Vip::addReal(Endpoint real) {
   ureal.updatedReal = real;
   reals.push_back(ureal);
   return batchRealsUpdate(reals);
-};
+}
 
 std::vector<RealPos> Vip::delReal(uint32_t realNum) {
   std::vector<UpdateReal> reals;
@@ -85,7 +85,7 @@ std::vector<RealPos> Vip::delReal(uint32_t realNum) {
   ureal.updatedReal.num = realNum;
   reals.push_back(ureal);
   return batchRealsUpdate(reals);
-};
+}
 
 std::vector<uint32_t> Vip::getReals() {
   std::vector<uint32_t> realNums(reals_.size());
@@ -142,6 +142,6 @@ std::vector<Endpoint> Vip::getEndpoints(std::vector<UpdateReal>& ureals) {
     std::sort(endpoints.begin(), endpoints.end(), compareEndpoints);
   }
   return endpoints;
-};
+}
 
 } // namespace katran
