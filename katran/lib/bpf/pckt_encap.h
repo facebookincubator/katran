@@ -52,7 +52,6 @@ __attribute__((__always_inline__)) static inline bool encap_v6(
   struct ethhdr* new_eth;
   struct ethhdr* old_eth;
   __u16 payload_len;
-  __u32 ip_suffix;
   __u32 saddr[4];
   __u8 proto;
   // ip(6)ip6 encap
@@ -73,18 +72,13 @@ __attribute__((__always_inline__)) static inline bool encap_v6(
 
   if (is_ipv6) {
     proto = IPPROTO_IPV6;
-    ip_suffix = pckt->flow.srcv6[3] ^ pckt->flow.port16[0];
+    create_encap_ipv6_src(pckt->flow.port16[0], pckt->flow.srcv6[3], saddr);
     payload_len = pkt_bytes + sizeof(struct ipv6hdr);
   } else {
     proto = IPPROTO_IPIP;
-    ip_suffix = pckt->flow.src ^ pckt->flow.port16[0];
+    create_encap_ipv6_src(pckt->flow.port16[0], pckt->flow.src, saddr);
     payload_len = pkt_bytes;
   }
-
-  saddr[0] = IPIP_V6_PREFIX1;
-  saddr[1] = IPIP_V6_PREFIX2;
-  saddr[2] = IPIP_V6_PREFIX3;
-  saddr[3] = ip_suffix;
 
   create_v6_hdr(ip6h, pckt->tos, saddr, dst->dstv6, payload_len, proto);
 
@@ -102,9 +96,7 @@ __attribute__((__always_inline__)) static inline bool encap_v4(
   struct iphdr* iph;
   struct ethhdr* new_eth;
   struct ethhdr* old_eth;
-  __u32 ip_suffix = bpf_htons(pckt->flow.port16[0]);
-  ip_suffix <<= 16;
-  ip_suffix ^= pckt->flow.src;
+  __u32 ip_src = create_encap_ipv4_src(pckt->flow.port16[0], pckt->flow.src);
   __u64 csum = 0;
   // ipip encap
   if (XDP_ADJUST_HEAD_FUNC(xdp, 0 - (int)sizeof(struct iphdr))) {
@@ -122,13 +114,7 @@ __attribute__((__always_inline__)) static inline bool encap_v4(
   memcpy(new_eth->h_source, old_eth->h_dest, 6);
   new_eth->h_proto = BE_ETH_P_IP;
 
-  create_v4_hdr(
-      iph,
-      pckt->tos,
-      ((0xFFFF0000 & ip_suffix) | IPIP_V4_PREFIX),
-      dst->dst,
-      pkt_bytes,
-      IPPROTO_IPIP);
+  create_v4_hdr(iph, pckt->tos, ip_src, dst->dst, pkt_bytes, IPPROTO_IPIP);
 
   return true;
 }
