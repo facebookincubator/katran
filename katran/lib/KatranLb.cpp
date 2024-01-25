@@ -1816,7 +1816,7 @@ void KatranLb::modifyQuicRealsMapping(
       continue;
     }
     VLOG(4) << fmt::format(
-        "modifying quic's real {} id {:x}", real.address, real.id);
+        "modifying quic's real {} id 0x{:x}", real.address, real.id);
     auto raddr = folly::IPAddress(real.address);
     auto real_iter = quicMapping_.find(real.id);
     if (action == ModifyAction::DEL) {
