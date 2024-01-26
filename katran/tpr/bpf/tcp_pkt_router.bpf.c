@@ -15,6 +15,8 @@
 #include "tcp_pkt_router_passive_hdlr.h"
 #include "tcp_pkt_router_structs.h"
 
+const volatile __u32 g_server_exclusive_port = 0;
+
 static inline int handle_passive_cb(
     struct bpf_sock_ops* skops,
     struct stats* stat,
@@ -123,6 +125,15 @@ int tcp_pkt_router(struct bpf_sock_ops* skops) {
     prog_stats->conns_skipped++;
     return CG_OK;
   }
+
+  if (s_info->running_mode == SERVER_MODE && g_server_exclusive_port != 0) {
+    // when server_port is set we restrict TPR to sepecified port only
+    if (skops->local_port != g_server_exclusive_port) {
+      prog_stats->conns_skipped++;
+      return CG_OK;
+    }
+  }
+
   if (s_info->running_mode == SERVER_MODE) {
     if (handle_passive_cb(skops, prog_stats, s_info)) {
       prog_stats->conns_skipped++;

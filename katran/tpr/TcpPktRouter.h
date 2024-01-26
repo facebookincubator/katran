@@ -4,6 +4,7 @@
 
 #include <folly/Expected.h>
 #include <glog/logging.h>
+#include <cstdint>
 #include <memory>
 #include <string>
 #include <vector>
@@ -25,7 +26,8 @@ class TcpPktRouter {
   explicit TcpPktRouter(
       RunningMode mode,
       const std::string& cgroupPath,
-      bool kdeEnabled);
+      bool kdeEnabled,
+      std::optional<uint32_t> serverPort = std::nullopt);
 
   virtual ~TcpPktRouter();
 
@@ -96,6 +98,7 @@ class TcpPktRouter {
   uint32_t v6Id_;
   std::string cgroupPath_;
   bool kdeEnabled_;
+  std::optional<uint32_t> serverPort_;
   /**
    * Polls stats for packet level events periodically, and
    * publishes fb303 counters

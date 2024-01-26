@@ -17,10 +17,12 @@ const std::string kServerInfoMap = "server_infos";
 TcpPktRouter::TcpPktRouter(
     RunningMode mode,
     const std::string& cgroupPath,
-    bool kdeEnabled)
+    bool kdeEnabled,
+    std::optional<uint32_t> serverPort)
     : mode_(mode),
       cgroupPath_(cgroupPath),
       kdeEnabled_(kdeEnabled),
+      serverPort_(serverPort),
       skel_(BpfSkeleton<tpr_bpf>::make()) {}
 
 TcpPktRouter::~TcpPktRouter() {
@@ -39,6 +41,12 @@ folly::Expected<folly::Unit, std::system_error> TcpPktRouter::init(
     LOG(ERROR) << "Failed to open Katran TPR prog: " << res.error().what();
     return makeError(res.error(), __func__);
   }
+
+  if (serverPort_.has_value()) {
+    skel_->rodata->g_server_exclusive_port = serverPort_.value();
+    LOG(INFO) << "TPR restricted to port " << serverPort_.value();
+  }
+
   res = skel_.load();
   if (!res) {
     LOG(ERROR) << "Failed to load Katran TPR prog: " << res.error().what();
