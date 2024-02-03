@@ -87,7 +87,7 @@ TEST_F(VipTestF, testBatchUpdateRealsWeight) {
   ASSERT_EQ(delta.size(), 17);
   ASSERT_EQ(delta2.size(), 0);
 
-  reals[0] = UpdateReal{ModifyAction::ADD, 0, 26, 0};
+  reals[0] = UpdateReal{ModifyAction::ADD, {0, 26, 0}};
   delta = vip1.batchRealsUpdate(reals);
   delta2 = vip2.batchRealsUpdate(reals);
   ASSERT_EQ(delta.size(), 109);
