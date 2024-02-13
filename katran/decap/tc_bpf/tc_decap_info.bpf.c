@@ -35,6 +35,7 @@
 
 #define DST_PORT_443 443
 #define DST_PORT_8080 8080
+#define DST_PORT_7123 7123
 
 __attribute__((__always_inline__)) static inline bool parse_inner_udp(
     void* data,
@@ -131,7 +132,8 @@ __attribute__((__always_inline__)) static inline int process_packet(
     }
     if ((pckt.flow.port16[1] == bpf_htons(GUE_DPORT)) &&
         ((inner_pckt.flow.port16[1] == bpf_htons(DST_PORT_443)) ||
-         (inner_pckt.flow.port16[1] == bpf_htons(DST_PORT_8080)))) {
+         (inner_pckt.flow.port16[1] == bpf_htons(DST_PORT_8080)) ||
+         (inner_pckt.flow.port16[1] == bpf_htons(DST_PORT_7123)))) {
       int ret = bpf_map_update_elem(
           &pkt_encap_info, &inner_pckt.flow, &pckt.flow, BPF_ANY);
       if (ret) {
