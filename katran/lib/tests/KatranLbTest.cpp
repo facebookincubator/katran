@@ -41,7 +41,6 @@ class KatranLbTest : public ::testing::Test {
         1, // rootMapPos
         true, // enableHc
         false, // tunnelBasedEncap
-        false, // disableForwarding
         512, // maxVips
         kMaxRealTest, // maxReals
         65537, // chRingSize

@@ -142,7 +142,6 @@ struct KatranMonitorConfig {
  * @param bool tunnelBasedHCEncap flag, if set - katran will redirect packets to
  * v4TunInterface and v6TunInterface to encap v4 and v6 packets respectively
  * using the bpf prog to healthcheck backend reals.
- * @param bool disableForwarding flag - if set, we don't load the forwarding
  * (xdp) bpf program
  * @param uint32_t maxVips maximum allowed vips to configure
  * @param uint32_t maxReals maximum allowed reals to configure
@@ -197,7 +196,6 @@ struct KatranConfig {
   uint32_t rootMapPos = kDefaultKatranPos;
   bool enableHc = true;
   bool tunnelBasedHCEncap = true;
-  bool disableForwarding = false;
   uint32_t maxVips = kDefaultMaxVips;
   uint32_t maxReals = kDefaultMaxReals;
   uint32_t chRingSize = kLbDefaultChRingSize;
