@@ -38,7 +38,7 @@ std::vector<uint8_t> convertMacToUint(const std::string& macAddress) {
     mac[i] = mac_bytes[i];
   }
   return mac;
-};
+}
 
 std::string convertMacToString(std::vector<uint8_t> mac) {
   if (mac.size() != 6) {
@@ -53,6 +53,6 @@ std::string convertMacToString(std::vector<uint8_t> mac) {
     mac_string += mac_part_string;
   }
   return mac_string;
-};
+}
 
 } // namespace katran
