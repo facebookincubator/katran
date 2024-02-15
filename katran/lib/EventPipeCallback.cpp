@@ -9,10 +9,6 @@
 namespace katran {
 namespace monitoring {
 
-namespace {
-constexpr uint32_t kTempBufSize = 4096;
-} // namespace
-
 void EventPipeCallback::readBuffer(
     std::unique_ptr<folly::IOBuf>&& buf) noexcept {
   VLOG(4) << __func__ << " ready to send data";
