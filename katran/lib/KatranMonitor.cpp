@@ -28,10 +28,7 @@
 
 namespace katran {
 
-namespace {
-constexpr uint32_t kNoSample = 1;
 using monitoring::EventId;
-} // namespace
 
 KatranMonitor::KatranMonitor(const KatranMonitorConfig& config)
     : config_(config) {
