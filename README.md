@@ -44,48 +44,7 @@ Requirements:
   - Recent version of clang compiler (6.0+)
       For ubuntu if unsure run `sudo apt install build-essential`
 
-### build.sh
-
-This script is a simple wrapper around `getdeps.py` ([see next section](https://github.com/facebookincubator/katran#getdeps.py)).
-It requiers python3.6 or later in your PATH.
-
-To install dependencies run:
-`./build.sh install`
-
-To build:
-`./build.sh <params>`
-
-If no flags are added then a default build is executed using the `--allow-system-packages` flag:
-`./build.sh`
-
-To do more complex stuff or understand how everything is build you can read the getdeps.py section and script.
-
-### getdeps.py
-
-This script is used by many of Meta's OSS tools.  It will download and build all of the necessary dependencies first, and will then invoke cmake etc to build katran.  This will help ensure that you build with relevant versions of all of the dependent libraries, taking into account what versions are installed locally on your system.
-
-It's written in python so you'll need python3.6 or later on your PATH.  It works on Linux, macOS and Windows.
-
-The settings for katran's cmake build are held in its getdeps manifest `build/fbcode_builder/manifests/katran`, which you can edit locally if desired.
-
-This script will download and build all of the necessary dependencies first, and will then invoke cmake etc to build katran.  This will help ensure that you build with relevant versions of all of the dependent libraries, taking into account what versions are installed locally on your system.
-
-Currently requires python 3.6+ to be on your path.
-
-`python3 ./build/fbcode_builder/getdeps.py --allow-system-packages build katran`
-
-It puts output in its scratch area:
-
-  * `installed/katran/lib/`
-
-You can also specify a `--scratch-path` argument to control the location of the scratch directory used for the build. You can find the default scratch install location from logs or with `python3 ./build/fbcode_builder/getdeps.py show-inst-dir`
-
-There are also
-`--install-dir` and `--install-prefix` arguments to provide some more fine-grained control of the installation directories. However, given that katran provides no compatibility guarantees between commits we generally recommend building and installing the libraries to a temporary location, and then pointing your project's build at this temporary location, rather than installing katran in the traditional system installation directories.  e.g., if you are building with CMake you can use the `CMAKE_PREFIX_PATH` variable to allow CMake to find katran in this temporary installation directory when building your project.
-
-If you want to invoke `cmake` again to iterate, there is a helpful `run_cmake.py` script output in the scratch build directory.  You can find the scratch build directory from logs or with `python3 ./build/fbcode_builder/getdeps.py show-build-dir`
-
-### build_katran.sh (to be deprecated)
+### build_katran.sh
 
 To build and install katran library and thrift/gRPC examples - you need to run `build_katran.sh` script.
 
