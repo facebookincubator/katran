@@ -881,7 +881,7 @@ bool BaseBpfAdapter::batchOpsAreSupported() {
   memset(keys, 0, sizeof(keys));
   DECLARE_LIBBPF_OPTS(bpf_map_batch_opts, opts, .elem_flags = 0, .flags = 0, );
   if (bpf_map_lookup_batch(
-          tempMap, NULL, &next_batch_key, keys, values, &count, &opts)) {
+          tempMap, nullptr, &next_batch_key, keys, values, &count, &opts)) {
     if (errno != 0) {
       return false;
     }
