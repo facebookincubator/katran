@@ -1193,12 +1193,13 @@ bool KatranLb::modifyRealsForVip(
     }
     folly::IPAddress raddr(real.address);
     VLOG(4) << fmt::format(
-        "modifying real: {} with weight {} for vip {}:{}:{}",
+        "modifying real: {} with weight {} for vip {}:{}:{}. action is {}",
         real.address,
         real.weight,
         vip.address,
         vip.port,
-        vip.proto);
+        vip.proto,
+        (int)action);
 
     if (action == ModifyAction::DEL) {
       auto real_iter = reals_.find(raddr);
@@ -1697,7 +1698,10 @@ void KatranLb::modifyQuicRealsMapping(
       continue;
     }
     VLOG(4) << fmt::format(
-        "modifying quic's real {} id 0x{:x}", real.address, real.id);
+        "modifying quic's real {} id 0x{:x}. action: {}",
+        real.address,
+        real.id,
+        (int)action);
     auto raddr = folly::IPAddress(real.address);
     auto real_iter = quicMapping_.find(real.id);
     if (action == ModifyAction::DEL) {

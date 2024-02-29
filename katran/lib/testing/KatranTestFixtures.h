@@ -272,9 +272,9 @@ const std::vector<katran::PacketAttributes> testFixtures = {
   {
     // Ether(src="0x1", dst="0x2")/IP(src="192.168.1.42", dst="10.200.1.5")/UDP(sport=31337, dport=443)/'\x00'
     .inputPacket = "AgAAAAAAAQAAAAAACABFAAAdAAEAAEARrTDAqAEqCsgBBXppAbsACbYYAA==",
-    .description = "QUIC: short header. No connection id. CH. LRU hit",
+    .description = "QUIC: short header. No connection id. LRU hit",
     .expectedReturnValue = "XDP_TX",
-    .expectedOutputPacket = "AADerb6vAgAAAAAACABFAAAxAAAAAEAEXGesEGhQCgAAAkUAAB0AAQAAQBGtMMCoASoKyAEFemkBuwAJthgA"
+    .expectedOutputPacket = "AADerb6vAgAAAAAAht1gAAAAAB0EQAEAAAAAAAAAAAAAALrBASr8AAAAAAAAAAAAAAAAAAABRQAAHQABAABAEa0wwKgBKgrIAQV6aQG7AAm2GAA="
   },
   //30
   {
@@ -288,17 +288,17 @@ const std::vector<katran::PacketAttributes> testFixtures = {
   {
     // Ether(src="0x1", dst="0x2")/IP(src="192.168.1.42", dst="10.200.1.5")/UDP(sport=31337, dport=443)/'\x00\x41\x11\x00\x00\x00\x00\x00\x00@'
     .inputPacket = "AgAAAAAAAQAAAAAACABFAAAmAAEAAEARrSfAqAEqCsgBBXppAbsAEqSFAEERAAAAAAAAQA==",
-    .description = "QUIC: short header w/ connection id 1092 but non-existing mapping. CH. LRU hit",
+    .description = "QUIC: short header w/ connection id 1092 but non-existing mapping. LRU hit",
     .expectedReturnValue = "XDP_TX",
-    .expectedOutputPacket = "AADerb6vAgAAAAAACABFAAA6AAAAAEAEXF6sEGhQCgAAAkUAACYAAQAAQBGtJ8CoASoKyAEFemkBuwASpIUAQREAAAAAAABA"
+    .expectedOutputPacket = "AADerb6vAgAAAAAAht1gAAAAACYEQAEAAAAAAAAAAAAAALrBASr8AAAAAAAAAAAAAAAAAAACRQAAJgABAABAEa0nwKgBKgrIAQV6aQG7ABKkhQBBEQAAAAAAAEA="
   },
   //32
   {
     // Ether(src="0x1", dst="0x2")/IP(src="192.168.1.42", dst="10.200.1.5")/UDP(sport=31337, dport=443)/'\x00\x40\x00\x03\x04\x05\x06\x07\x00@'
     .inputPacket = "AgAAAAAAAQAAAAAACABFAAAmAAEAAEARrSfAqAEqCsgBBXppAbsAEqt3AEAAAwQFBgcAQA==",
-    .description = "QUIC: short header w/ conn id. host id = 0. CH. LRU hit",
+    .description = "QUIC: short header w/ conn id. host id = 0. LRU hit",
     .expectedReturnValue = "XDP_TX",
-    .expectedOutputPacket = "AADerb6vAgAAAAAACABFAAA6AAAAAEAEXF6sEGhQCgAAAkUAACYAAQAAQBGtJ8CoASoKyAEFemkBuwASq3cAQAADBAUGBwBA"
+    .expectedOutputPacket = "AADerb6vAgAAAAAAht1gAAAAACYEQAEAAAAAAAAAAAAAALrBASr8AAAAAAAAAAAAAAAAAAACRQAAJgABAABAEa0nwKgBKgrIAQV6aQG7ABKrdwBAAAMEBQYHAEA="
   },
   //33
   {
@@ -322,7 +322,7 @@ const std::vector<katran::PacketAttributes> testFixtures = {
     .inputPacket = "AgAAAAAAAQAAAAAACABFAAAmAAEAAEARrSfAqAEqCsgBBXppAbsAEm5CAIADBEQAAAAAQA==",
     .description = "QUIC: short header w/ connection id 197700 but non-existing mapping. CIDv2. LRU hit.",
     .expectedReturnValue = "XDP_TX",
-    .expectedOutputPacket = "AADerb6vAgAAAAAACABFAAA6AAAAAEAEXF6sEGhQCgAAAkUAACYAAQAAQBGtJ8CoASoKyAEFemkBuwASbkIAgAMERAAAAABA"
+    .expectedOutputPacket = "AADerb6vAgAAAAAAht1gAAAAACYEQAEAAAAAAAAAAAAAALrBASr8AAAAAAAAAAAAAAAAAAACRQAAJgABAABAEa0nwKgBKgrIAQV6aQG7ABJuQgCAAwREAAAAAEA="
   },
 };
 
