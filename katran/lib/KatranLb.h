@@ -831,11 +831,6 @@ class KatranLb {
   lb_stats getSidRoutingStatsForVip(const VipKey& vip);
 
   /**
-   * initialize the server id based routing flags map
-   */
-  void updateSvrIdRoutingFlags();
-
-  /**
    * helper function to invalidate server ids from the server id map
    */
   void invalidateServerIds(const std::vector<int32_t>& serverIds);

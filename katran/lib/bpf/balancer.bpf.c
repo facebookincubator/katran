@@ -603,24 +603,19 @@ __attribute__((__always_inline__)) static inline int update_vip_lru_miss_stats(
 __attribute__((__always_inline__)) static inline int
 check_and_update_real_index_in_lru(
     struct packet_description* pckt,
-    void* lru_map,
-    bool update_lru) {
+    void* lru_map) {
   struct real_pos_lru* dst_lru = bpf_map_lookup_elem(lru_map, &pckt->flow);
   if (dst_lru) {
     if (dst_lru->pos == pckt->real_index) {
       return DST_MATCH_IN_LRU;
     } else {
-      if (update_lru) {
-        dst_lru->pos = pckt->real_index;
-      }
+      dst_lru->pos = pckt->real_index;
       return DST_MISMATCH_IN_LRU;
     }
   }
-  if (update_lru) {
-    struct real_pos_lru new_dst_lru = {};
-    new_dst_lru.pos = pckt->real_index;
-    bpf_map_update_elem(lru_map, &pckt->flow, &new_dst_lru, BPF_ANY);
-  }
+  struct real_pos_lru new_dst_lru = {};
+  new_dst_lru.pos = pckt->real_index;
+  bpf_map_update_elem(lru_map, &pckt->flow, &new_dst_lru, BPF_ANY);
   return DST_NOT_FOUND_IN_LRU;
 }
 
@@ -860,13 +855,7 @@ process_packet(struct xdp_md* xdp, __u64 off, bool is_ipv6) {
                   xdp, data, data_end - data, false);
               return XDP_DROP;
             }
-            __u32 flags_key = 0;
-            struct lb_sid_routing_flags* flags_value =
-                bpf_map_lookup_elem(&server_id_flags, &flags_key);
-            bool update_lru =
-                flags_value && flags_value->update_quic_sid_based_dst_in_lru;
-            int res =
-                check_and_update_real_index_in_lru(&pckt, lru_map, update_lru);
+            int res = check_and_update_real_index_in_lru(&pckt, lru_map);
             if (res == DST_MATCH_IN_LRU) {
               quic_packets_stats->dst_match_in_lru += 1;
             } else if (res == DST_MISMATCH_IN_LRU) {
@@ -920,8 +909,7 @@ process_packet(struct xdp_md* xdp, __u64 off, bool is_ipv6) {
         } else {
           // update this routing decision in the lru_map as well
           if (lru_map && !(vip_info->flags & F_LRU_BYPASS)) {
-            int res = check_and_update_real_index_in_lru(
-                &pckt, lru_map, /* update_lru */ true);
+            int res = check_and_update_real_index_in_lru(&pckt, lru_map);
             if (res == DST_MISMATCH_IN_LRU) {
               tpr_packets_stats->dst_mismatch_in_lru += 1;
               incr_server_id_routing_stats(

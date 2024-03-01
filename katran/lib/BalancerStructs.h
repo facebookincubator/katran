@@ -137,9 +137,4 @@ struct lb_tpr_packets_stats {
   uint64_t tcp_syn;
 };
 
-// struct for quic routing flags
-struct lb_sid_routing_flags {
-  bool update_quic_sid_based_dst_in_lru;
-};
-
 } // namespace katran
