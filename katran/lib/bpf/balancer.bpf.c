@@ -613,6 +613,10 @@ check_and_update_real_index_in_lru(
       return DST_MISMATCH_IN_LRU;
     }
   }
+  __u64 cur_time;
+  if (is_under_flood(&cur_time)) {
+    return DST_NOT_FOUND_IN_LRU;
+  }
   struct real_pos_lru new_dst_lru = {};
   new_dst_lru.pos = pckt->real_index;
   bpf_map_update_elem(lru_map, &pckt->flow, &new_dst_lru, BPF_ANY);
