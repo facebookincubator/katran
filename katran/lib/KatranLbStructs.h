@@ -326,7 +326,7 @@ class VipKey {
   bool operator==(const VipKey& other) const {
     return (
         address == other.address && port == other.port && proto == other.proto);
-  };
+  }
 };
 
 struct VipKeyHasher {
@@ -335,7 +335,7 @@ struct VipKeyHasher {
              (std::hash<uint16_t>()(k.port) << 1)) >>
             1) ^
         (std::hash<uint8_t>()(k.proto) << 1);
-  };
+  }
 };
 
 } // namespace katran

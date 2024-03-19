@@ -137,7 +137,7 @@ std::vector<Endpoint> Vip::getEndpoints(std::vector<UpdateReal>& ureals) {
         endpoint.weight = real.second.weight;
         endpoint.hash = real.second.hash;
         endpoints.push_back(endpoint);
-      };
+      }
     }
     std::sort(endpoints.begin(), endpoints.end(), compareEndpoints);
   }
