@@ -25,14 +25,14 @@ TEST(IpHelpersTests, testV4ParsingBe) {
   // check that flags are cleared
   ASSERT_EQ(addr.flags, 0);
   ASSERT_EQ(addr.daddr, 33620225);
-};
+}
 
 TEST(IpHelpersTests, testV4ParsingInt) {
   auto addr = IpHelpers::parseAddrToInt("1.1.1.2");
   // check that flags are cleared
   ASSERT_EQ(addr.flags, 0);
   ASSERT_EQ(addr.daddr, 16843010);
-};
+}
 
 TEST(IpHelpersTests, testV6ParsingBe) {
   auto addr = IpHelpers::parseAddrToBe("2401:db00:f01c:2002:face:0:d:0");
@@ -42,7 +42,7 @@ TEST(IpHelpersTests, testV6ParsingBe) {
   ASSERT_EQ(addr.v6daddr[1], 35658992);
   ASSERT_EQ(addr.v6daddr[2], 52986);
   ASSERT_EQ(addr.v6daddr[3], 3328);
-};
+}
 
 TEST(IpHelpersTests, testV6ParsingInt) {
   auto addr = IpHelpers::parseAddrToInt("2401:db00:f01c:2002:face:0:d:0");
@@ -52,7 +52,7 @@ TEST(IpHelpersTests, testV6ParsingInt) {
   ASSERT_EQ(addr.v6daddr[1], 4028375042);
   ASSERT_EQ(addr.v6daddr[2], 4207804416);
   ASSERT_EQ(addr.v6daddr[3], 851968);
-};
+}
 
 TEST(IpHelpersTests, testIncorrectAddr) {
   // we are testing that our parserAddrToBe throws on
@@ -63,8 +63,8 @@ TEST(IpHelpersTests, testIncorrectAddr) {
     i = 2;
   } catch (...) {
     i = 1;
-  };
+  }
   ASSERT_EQ(i, 1);
-};
+}
 
 } // namespace katran

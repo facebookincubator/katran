@@ -43,7 +43,7 @@ updateMapElement(int mapFd, const K& key, const V& value) noexcept {
             folly::errnoStr(savedErrno)));
   }
   return noSystemError();
-};
+}
 
 template <class K, class V>
 SystemMaybe<folly::Unit>

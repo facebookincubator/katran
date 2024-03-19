@@ -27,7 +27,7 @@ class VipTestF : public ::testing::Test {
   VipTestF()
       : vip1(1),
         vip2(2, 0, kDefaultChRingSize, HashFunction::MaglevV2),
-        reals(100){};
+        reals(100) {}
 
   void SetUp() override {
     UpdateReal ureal;
@@ -39,7 +39,7 @@ class VipTestF : public ::testing::Test {
       ureal.updatedReal.hash = i;
       reals[i] = ureal;
     }
-  };
+  }
 
   Vip vip1;
   Vip vip2;
