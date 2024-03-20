@@ -1,5 +1,5 @@
 project (katranserver-proj)
-set (CMAKE_CXX_STANDARD 14)
+set (CMAKE_CXX_STANDARD 17)
 
 # thrift cmake macro
 find_program(THRIFT1 thrift1)

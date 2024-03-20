@@ -1,4 +1,4 @@
-cmake_minimum_required (VERSION 3.9)
+cmake_minimum_required (VERSION 3.9 FATAL_ERROR)
 
 project(
   katran
@@ -19,12 +19,12 @@ set(KATRAN_FBCODE_ROOT ${CMAKE_CURRENT_SOURCE_DIR})
 
 set(KATRAN_INCLUDE_DIR "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../../>")
 
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+message(STATUS "setting C++ standard to C++${CMAKE_CXX_STANDARD}")
+
 # for clang's compile_commands.json
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-
-set(CMAKE_CXX_COMPILER_ID "Clang")
-
-set(CMAKE_CXX_STANDARD 14)
 
 # Dependencies
 find_package(fmt CONFIG REQUIRED)
