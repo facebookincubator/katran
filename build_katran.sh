@@ -34,17 +34,21 @@ cat 1>&2 <<EOF
 Usage ${0##*/} [-h|?] [-p PATH] [-i INSTALL_DIR]
   -p BUILD_DIR                       (optional): Path to the base dir for katran
   -i INSTALL_DIR                     (optional): Install prefix path
+  -v                                 (optional): make it verbose (even more)
   -h|?                                           Show this help message
 EOF
 }
 
-while getopts ":hp:i:m" arg; do
+while getopts ":hp:i:v" arg; do
   case $arg in
     p)
       BUILD_DIR="${OPTARG}"
       ;;
     i)
       INSTALL_DIR="${OPTARG}"
+      ;;
+    v)
+      VERBOSE=1
       ;;
     h | *) # Display help.
       usage
@@ -418,31 +422,6 @@ get_zstd() {
     touch "${DEPS_DIR}/zstd_installed"
 }
 
-get_fmt() {
-    if [ -f "$DEPS_DIR/fmt_installed" ]; then
-        return
-    fi
-    FMT_DIR=$DEPS_DIR/fmt
-    FMT_BUILD_DIR=$DEPS_DIR/fmt/build/
-    rm -rf "$FMT_DIR"
-    pushd .
-    cd "$DEPS_DIR"
-    echo -e "${COLOR_GREEN}[ INFO ] Cloning fmt repo ${COLOR_OFF}"
-    git clone https://github.com/fmtlib/fmt
-    mkdir -p "$FMT_BUILD_DIR"
-    cd "$FMT_BUILD_DIR"
-    cmake -DCXX_STD=gnu++17                         \
-      -DCMAKE_BUILD_TYPE=RelWithDebInfo             \
-      -DCMAKE_PREFIX_PATH="$INSTALL_DIR"            \
-      -DCMAKE_INSTALL_PREFIX="$INSTALL_DIR"         \
-      ..
-    make -j "$NCPUS"
-    make install
-    echo -e "${COLOR_GREEN}fmt is installed ${COLOR_OFF}"
-    popd
-    touch "$DEPS_DIR/fmt_installed"
-}
-
 get_fbthrift() {
     if [ -f "$DEPS_DIR/fbthrift_installed" ]; then
         return
@@ -605,13 +584,24 @@ build_katran() {
 
     cd "$KATRAN_BUILD_DIR" || exit
     LIB_BPF_PREFIX="$INSTALL_DIR"
-    cmake -DCMAKE_PREFIX_PATH="$INSTALL_DIR"      \
-      -DCMAKE_INSTALL_PREFIX="$INSTALL_DIR"       \
-      -DCMAKE_BUILD_TYPE=RelWithDebInfo           \
-      -DPKG_CONFIG_USE_CMAKE_PREFIX_PATH=ON       \
-      -DLIB_BPF_PREFIX="$LIB_BPF_PREFIX"          \
-      -DBUILD_TESTS=On                            \
-      ../..
+    
+    # Base set of CMake flags
+    CMAKE_FLAGS="-DCMAKE_PREFIX_PATH=$INSTALL_DIR \
+    -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR \
+    -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+    -DPKG_CONFIG_USE_CMAKE_PREFIX_PATH=ON \
+    -DLIB_BPF_PREFIX=$LIB_BPF_PREFIX \
+    -DCMAKE_CXX_STANDARD=17 \
+    -DBUILD_TESTS=On"
+
+    # Append verbose flag if VERBOSE is set to 1
+    if [ "$VERBOSE" -eq 1 ]; then
+        CMAKE_FLAGS="$CMAKE_FLAGS -DCMAKE_VERBOSE_MAKEFILE:BOOL=ON"
+    fi
+
+    # Run CMake with the constructed flags
+    cmake $CMAKE_FLAGS ../..
+
     make -j "$NCPUS"
     popd
     "${ROOT_DIR}"/build_bpf_modules_opensource.sh \
@@ -632,7 +622,6 @@ test_katran() {
 get_dev_tools
 get_required_libs
 get_libevent
-get_fmt
 get_gflags
 get_folly
 get_clang

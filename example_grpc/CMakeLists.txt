@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.9)
 project(katran_grpc)
-set (CMAKE_CXX_STANDARD 14)
+set (CMAKE_CXX_STANDARD 17)
 
 find_library(PROTOBUF libprotobuf.a protobuf)
 set(GRPC_BUILD_PATH "${CMAKE_PREFIX_PATH}/grpc/_build")
