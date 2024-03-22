@@ -18,8 +18,8 @@ package affinitize
 
 import (
 	"fmt"
-	"io/ioutil"
 	"log"
+	"os"
 	"start_katran/irq_parser"
 	"start_katran/topology_parser"
 	"strconv"
@@ -67,7 +67,7 @@ func writeAffinityToFile(irq int, cpu uint64, ncpus int) {
 	log.Printf("affinitizing irq %d to cpu %d mask %s\n",
 		irq, cpu, cpu_flag_str)
 	filename := IRQ_DIR + irq_str + IRQ_FILE_SUFFIX
-	err := ioutil.WriteFile(filename, []byte(cpu_flag_str), 0644)
+	err := os.WriteFile(filename, []byte(cpu_flag_str), 0644)
 	if err != nil {
 		log.Fatal("error while writing affinitiy for irq and cpu:",
 			irq, cpu, err)
