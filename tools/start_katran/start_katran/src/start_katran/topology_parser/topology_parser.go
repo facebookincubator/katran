@@ -19,7 +19,6 @@ package topology_parser
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"runtime"
 	"strconv"
@@ -38,7 +37,7 @@ type CpuTopology struct {
 
 func getNumaNodeOfCpu(i int) int {
 	fileName := TOPOLOGY_DIR + strconv.Itoa(i) + NUMA_NODE_FILE
-	numa_bytes, err := ioutil.ReadFile(fileName)
+	numa_bytes, err := os.ReadFile(fileName)
 	if err != nil {
 		log.Fatal("cannot parse numa node id for file ", i, err)
 	}

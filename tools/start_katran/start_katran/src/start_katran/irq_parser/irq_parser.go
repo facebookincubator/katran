@@ -54,7 +54,7 @@ func parseProcIrqs(intf string) []int {
 	if err != nil {
 		log.Fatal("cannot compile regexp for intf ", intf)
 	}
-	file_bytes, err := ioutil.ReadFile(PROC_IRQ_FILE)
+	file_bytes, err := os.ReadFile(PROC_IRQ_FILE)
 	if err != nil {
 		log.Fatal("cannot read /proc/interrupts file")
 	}
