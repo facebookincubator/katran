@@ -22,7 +22,7 @@ namespace katran {
 using EventId = monitoring::EventId;
 
 PcapMsgMeta::PcapMsgMeta(PcapMsg&& msg, uint32_t event)
-    : msg_(std::move(msg)), event_(event){};
+    : msg_(std::move(msg)), event_(event) {}
 
 PcapMsgMeta::PcapMsgMeta(PcapMsgMeta&& msg) noexcept
     : msg_(std::move(msg.msg_)),
@@ -31,7 +31,7 @@ PcapMsgMeta::PcapMsgMeta(PcapMsgMeta&& msg) noexcept
       restart_(msg.restart_),
       control_(msg.control_),
       stop_(msg.stop_),
-      shutdown_(msg.shutdown_){};
+      shutdown_(msg.shutdown_) {}
 
 PcapMsgMeta& PcapMsgMeta::operator=(PcapMsgMeta&& msg) noexcept {
   msg_ = std::move(msg.msg_);
@@ -42,7 +42,7 @@ PcapMsgMeta& PcapMsgMeta::operator=(PcapMsgMeta&& msg) noexcept {
   stop_ = msg.stop_;
   shutdown_ = msg.shutdown_;
   return *this;
-};
+}
 
 PcapMsg& PcapMsgMeta::getPcapMsg() {
   return msg_;
