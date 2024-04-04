@@ -584,7 +584,7 @@ build_katran() {
 
     cd "$KATRAN_BUILD_DIR" || exit
     LIB_BPF_PREFIX="$INSTALL_DIR"
-    
+
     # Base set of CMake flags
     CMAKE_FLAGS="-DCMAKE_PREFIX_PATH=$INSTALL_DIR \
     -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR \
