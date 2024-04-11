@@ -2084,7 +2084,6 @@ std::vector<int64_t> KatranLb::getPerCorePacketsStats() {
   }
   std::vector<int64_t> corePackets(nr_cpus, 0);
   lb_stats stats[nr_cpus];
-  lb_stats sum_stat = {};
 
   auto fd = bpfAdapter_->getMapFdByName("stats");
 
