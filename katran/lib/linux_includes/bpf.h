@@ -3543,7 +3543,7 @@ struct bpf_func_info {
 };
 
 #define BPF_LINE_INFO_LINE_NUM(line_col) ((line_col) >> 10)
-#define BPF_LINE_INFO_LINE_COL(line_col) ((line_col)&0x3ff)
+#define BPF_LINE_INFO_LINE_COL(line_col) ((line_col) & 0x3ff)
 
 struct bpf_line_info {
   __u32 insn_off;

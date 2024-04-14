@@ -45,7 +45,7 @@
 // for ip-in-ip encap
 // source address of the healthcheck would be crafted the same way as data
 // packet
-//#define MANGLE_HC_SRC 1
+// #define MANGLE_HC_SRC 1
 #define MANGLED_HC_SRC_PORT 31337
 
 #define V6DADDR (1 << 0)

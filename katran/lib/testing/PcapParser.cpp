@@ -98,8 +98,7 @@ std::unique_ptr<folly::IOBuf> PcapParser::getPacketFromPcap() {
     }
     pcap_hdr = reinterpret_cast<const struct pcap_hdr_s*>(tmpBuf.c_str());
 
-    VLOG(2) << "pcap hdr:"
-            << "\nversion major: " << pcap_hdr->version_major
+    VLOG(2) << "pcap hdr:" << "\nversion major: " << pcap_hdr->version_major
             << "\nversion minor: " << pcap_hdr->version_minor
             << "\nmagic number: " << pcap_hdr->magic_number
             << "\nnetwork: " << pcap_hdr->network;
