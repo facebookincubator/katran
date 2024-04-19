@@ -183,7 +183,7 @@ KatranLb::KatranLb(
 }
 
 KatranLb::~KatranLb() {
-  if (!config_.testing && progsAttached_) {
+  if (!config_.testing && progsAttached_ && config_.cleanupOnShutdown) {
     int res;
     auto mainIfindex = ctlValues_[kMainIntfPos].ifindex;
     auto hcIfindex = ctlValues_[kHcIntfPos].ifindex;

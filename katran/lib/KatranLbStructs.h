@@ -219,6 +219,7 @@ struct KatranConfig {
   bool enableCidV3 = false;
   uint32_t mainInterfaceIndex = kUnspecifiedInterfaceIndex;
   uint32_t hcInterfaceIndex = kUnspecifiedInterfaceIndex;
+  bool cleanupOnShutdown = true;
 };
 
 /**
