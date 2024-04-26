@@ -148,8 +148,10 @@ __attribute__((__always_inline__)) static inline bool hc_encap_ipip(
   return true;
 }
 
-__attribute__((__always_inline__)) static inline __u16 gue_sport(__u32 seed) {
-  return (__u16)((seed ^ (seed >> 16)) & 0xFFFF);
+__attribute__((__always_inline__)) static inline __u16 gue_sport() {
+  __u16 port = bpf_get_prandom_u32();
+  // avoid 0..1023 well known port range, by always setting 11th bit (1024)
+  return (port | 0x400); // (1024 == 0x400)
 }
 
 __attribute__((__always_inline__)) static inline bool hc_encap_gue(
@@ -167,7 +169,7 @@ __attribute__((__always_inline__)) static inline bool hc_encap_gue(
   pkt_len = skb->len - sizeof(struct ethhdr);
 
   if (real->flags == V6DADDR) {
-    sport = gue_sport(real->v6daddr[0] | real->v6daddr[3]);
+    sport = gue_sport();
     __u8 proto = IPPROTO_IPV6;
     key = V6_SRC_INDEX;
     src = bpf_map_lookup_elem(&hc_pckt_srcs_map, &key);
@@ -195,7 +197,7 @@ __attribute__((__always_inline__)) static inline bool hc_encap_gue(
     create_v6_hdr(
         ip6h, DEFAULT_TOS, src->v6daddr, real->v6daddr, pkt_len, IPPROTO_UDP);
   } else {
-    sport = gue_sport(real->daddr);
+    sport = gue_sport();
     key = V4_SRC_INDEX;
     src = bpf_map_lookup_elem(&hc_pckt_srcs_map, &key);
     if (!src) {
