@@ -90,13 +90,13 @@ class TcpPktRouter {
       int statsMapFd);
 
   RunningMode mode_;
+  std::string cgroupPath_;
 
  private:
   folly::Expected<folly::Unit, std::system_error> updateServerInfo() noexcept;
 
   bool isInitialized_{false};
   uint32_t v6Id_;
-  std::string cgroupPath_;
   bool kdeEnabled_;
   std::optional<uint32_t> serverPort_;
   /**
