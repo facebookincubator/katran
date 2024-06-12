@@ -17,6 +17,13 @@ extern "C" {
 #include <sys/types.h>
 }
 
+// starting kernel 5.11 setting rlimit_memlock is no longer necessary
+// https://lore.kernel.org/bpf/20211214195904.1785155-2-andrii@kernel.org/
+DEFINE_bool(
+    tpr_set_rlimit_memlock,
+    true,
+    "Whether we have to set rlimit_memlock in tpr bpf adapter.");
+
 namespace katran_tpr::BpfUtil {
 
 #if False
@@ -36,7 +43,7 @@ SystemMaybe<folly::Unit> init() noexcept {
   VLOG(1) << "Enabled libbpf strict mode";
   libbpf_set_strict_mode(LIBBPF_STRICT_ALL);
 
-  return setRLimit();
+  return FLAGS_tpr_set_rlimit_memlock ? setRLimit() : noSystemError();
 }
 
 SystemMaybe<folly::Unit> setRLimit() noexcept {
