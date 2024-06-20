@@ -6,7 +6,7 @@
 
 #include <folly/Conv.h>
 #include <folly/Expected.h>
-#include <folly/experimental/TestUtil.h>
+#include <folly/testing/TestUtil.h>
 
 namespace katran_tpr {
 
