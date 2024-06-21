@@ -188,7 +188,7 @@ Status KatranGrpcService::addRealForVip(
   try {
     Guard lock(giant_);
     res = lb_.addRealForVip(nr, vk);
-  } catch (const std::exception& e) {
+  } catch (const std::exception&) {
     res = false;
   }
   response->set_success(res);
