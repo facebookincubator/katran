@@ -52,7 +52,7 @@ struct TesterConfig {
    */
   int bpfProgFd{-1};
 
-  folly::Optional<int> singleTestRunPacketNumber_{folly::none};
+  std::optional<int> singleTestRunPacketNumber_{std::nullopt};
 };
 
 /**

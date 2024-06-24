@@ -48,9 +48,7 @@ class KatranMonitor {
 
   void stopMonitor();
 
-  void restartMonitor(
-      uint32_t limit,
-      folly::Optional<PcapStorageFormat> storage);
+  void restartMonitor(uint32_t limit, std::optional<PcapStorageFormat> storage);
 
   PcapWriterStats getWriterStats();
 

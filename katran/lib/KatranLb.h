@@ -151,7 +151,7 @@ class KatranLb {
    */
   bool reloadBalancerProg(
       const std::string& path,
-      folly::Optional<KatranConfig> config = folly::none);
+      std::optional<KatranConfig> config = std::nullopt);
 
   /**
    * helper function to attach bpf program (e.g. to rootlet array,
@@ -677,7 +677,7 @@ class KatranLb {
    */
   bool restartKatranMonitor(
       uint32_t limit,
-      folly::Optional<PcapStorageFormat> storage = folly::none);
+      std::optional<PcapStorageFormat> storage = std::nullopt);
 
   /**
    * @param monitoring::EventId event monitoring event id. see
@@ -1097,7 +1097,7 @@ class KatranLb {
 
   std::unordered_map<VipKey, Vip, VipKeyHasher> vips_;
 
-  folly::Optional<VipKey> lruMissStatsVip_;
+  std::optional<VipKey> lruMissStatsVip_;
 
   /**
    * Maps an HcKey to its id

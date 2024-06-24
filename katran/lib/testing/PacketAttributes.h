@@ -37,7 +37,7 @@ struct PacketAttributes {
 
   // We set this if we want to verify whether or not the packet was
   // routed through global lru
-  folly::Optional<bool> routedThroughGlobalLru{folly::none};
+  std::optional<bool> routedThroughGlobalLru{std::nullopt};
 };
 
 } // namespace katran

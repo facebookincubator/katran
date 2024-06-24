@@ -74,7 +74,7 @@ void KatranMonitor::stopMonitor() {
 
 void KatranMonitor::restartMonitor(
     uint32_t limit,
-    folly::Optional<PcapStorageFormat> storage) {
+    std::optional<PcapStorageFormat> storage) {
   if (storage.has_value() && config_.storage != *storage) {
     stopMonitor();
     config_.storage = *storage;

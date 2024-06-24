@@ -825,7 +825,7 @@ void KatranLb::loadBpfProgs() {
 
 bool KatranLb::reloadBalancerProg(
     const std::string& path,
-    folly::Optional<KatranConfig> config) {
+    std::optional<KatranConfig> config) {
   int res;
   res = bpfAdapter_->reloadBpfProg(path);
   if (res) {
@@ -1509,7 +1509,7 @@ std::unique_ptr<folly::IOBuf> KatranLb::getKatranMonitorEventBuffer(
 
 bool KatranLb::restartKatranMonitor(
     uint32_t limit,
-    folly::Optional<PcapStorageFormat> storage) {
+    std::optional<PcapStorageFormat> storage) {
   if (!monitor_) {
     return false;
   }

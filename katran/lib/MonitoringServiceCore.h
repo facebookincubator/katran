@@ -78,9 +78,9 @@ class MonitoringServiceCore
    */
   typedef struct SubscriptionResult {
     ResponseStatus status;
-    folly::Optional<ClientId> cid;
-    folly::Optional<EventIds> subscribed_events;
-    folly::Optional<std::shared_ptr<SubscriptionCallback>> sub_cb;
+    std::optional<ClientId> cid;
+    std::optional<EventIds> subscribed_events;
+    std::optional<std::shared_ptr<SubscriptionCallback>> sub_cb;
 
     /**
      * Constructor used for error and empty results
