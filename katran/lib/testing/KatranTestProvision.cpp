@@ -192,6 +192,18 @@ void prepareOptionalLbData(katran::KatranLb& lb) {
   lb.modifyReal("10.0.0.6", kLocalReal);
 }
 
+void prepareVipUninitializedLbData(katran::KatranLb& lb) {
+  katran::VipKey vip;
+  vip.address = "10.200.1.99";
+  vip.port = kVipPort;
+  vip.proto = kTcp;
+  lb.addVip(vip);
+
+  vip.address = "fc00:1::11";
+  vip.proto = kUdp;
+  lb.addVip(vip);
+}
+
 void preparePerfTestingLbData(katran::KatranLb& lb) {
   for (auto& dst : kReals) {
     lb.addInlineDecapDst(dst);

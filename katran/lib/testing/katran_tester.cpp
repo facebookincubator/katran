@@ -286,6 +286,8 @@ void runTestsFromFixture(
     katran::BpfTester& tester,
     KatranTestParam& testParam) {
   prepareLbData(lb);
+  prepareVipUninitializedLbData(lb);
+
   tester.resetTestFixtures(testParam.testData);
   auto prog_fd = lb.getKatranProgFd();
   tester.setBpfProgFd(prog_fd);

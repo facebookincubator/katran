@@ -337,6 +337,23 @@ const std::vector<::katran::PacketAttributes> gueTestFixtures = {
      .expectedReturnValue = "XDP_TX",
      .expectedOutputPacket = "AADerb6vAgAAAAAAht1gAAAAAC4RQPwAIwcAAAAAAAAAAAAAEzf8AAAAAAAAAAAAAAAAAAACe0MmngAu/TFFAAAmAAEAAEARrSfAqAEqCsgBBXppAbsAEm5CAIADBEQAAAAAQA=="
     },
+    // 35
+    {// Ether(src="0x1", dst="0x2")/IP(src="192.168.1.1",
+     // dst="10.200.1.99")/TCP(sport=31337, dport=80, flags="A")/"katran test pkt"
+     .inputPacket = "AgAAAAAAAQAAAAAACABFAAA3AAEAAEAGrOzAqAEBCsgBY3ppAFAAAAAAAAAAAFAQIAAnggAAa2F0cmFuIHRlc3QgcGt0",
+     .description = "packet to TCP based v4 VIP that is not initialzed",
+     .expectedReturnValue = "XDP_DROP",
+     .expectedOutputPacket = "AgAAAAAAAQAAAAAACABFAAA3AAEAAEAGrOzAqAEBCsgBY3ppAFAAAAAAAAAAAFAQIAAnggAAa2F0cmFuIHRlc3QgcGt0"
+    },
+    // 36
+    {// Ether(src="0x1", dst="0x2")/IPv6(src="fc00:2::1",
+     // dst="fc00:1::11")/UDP(sport=31337, dport=80)/"katran test pkt"
+     .inputPacket = "AgAAAAAAAQAAAAAAht1gAAAAABMRQPwAAAIAAAAAAAAAAAAAAAH8AAABAAAAAAAAAAAAAAARemkAUAATUc5rYXRyYW4gdGVzdA==",
+     .description = "packet to UDP based v6 VIP that is not initialized",
+     .expectedReturnValue = "XDP_DROP",
+     .expectedOutputPacket = "AgAAAAAAAQAAAAAAht1gAAAAABMRQPwAAAIAAAAAAAAAAAAAAAH8AAABAAAAAAAAAAAAAAARemkAUAATUc5rYXRyYW4gdGVzdA=="
+    },
+
 };
 
 } // namespace testing

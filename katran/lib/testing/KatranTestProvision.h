@@ -138,6 +138,8 @@ void prepareLbData(katran::KatranLb& lb);
 
 void prepareOptionalLbData(katran::KatranLb& lb);
 
+void prepareVipUninitializedLbData(katran::KatranLb& lb);
+
 void preparePerfTestingLbData(katran::KatranLb& lb);
 } // namespace testing
 } // namespace katran

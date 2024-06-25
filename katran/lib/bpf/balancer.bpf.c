@@ -152,6 +152,7 @@ __attribute__((__always_inline__)) static inline bool get_packet_dst(
       // Real ids start from 1, so we don't map the id 0 to any real. This
       // is likely to happen if the ch ring for a vip is uninitialized.
       increment_ch_drop_real_0();
+      return false;
     }
   }
   pckt->real_index = key;
