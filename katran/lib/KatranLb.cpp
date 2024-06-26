@@ -942,11 +942,11 @@ bool KatranLb::changeMac(const std::vector<uint8_t> newMac) {
 
     if (features_.directHealthchecking) {
       key = kHcDstMacPos;
-      auto res = bpfAdapter_->bpfUpdateMap(
+      auto res_2 = bpfAdapter_->bpfUpdateMap(
           bpfAdapter_->getMapFdByName("hc_pckt_macs"),
           &key,
           &ctlValues_[kMacAddrPos].mac);
-      if (res != 0) {
+      if (res_2 != 0) {
         lbStats_.bpfFailedCalls++;
         VLOG(4) << "can't add new mac address for direct healthchecks";
         return false;
