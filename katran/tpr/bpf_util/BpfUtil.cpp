@@ -21,7 +21,7 @@ extern "C" {
 // https://lore.kernel.org/bpf/20211214195904.1785155-2-andrii@kernel.org/
 DEFINE_bool(
     tpr_set_rlimit_memlock,
-    true,
+    false,
     "Whether we have to set rlimit_memlock in tpr bpf adapter.");
 
 namespace katran_tpr::BpfUtil {
