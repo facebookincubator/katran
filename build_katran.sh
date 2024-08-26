@@ -156,7 +156,7 @@ get_required_libs() {
 
 
 get_libevent() {
-    if [ ! -f /etc/redhat-release ] && [ ! -f /etc/mariner-release ]; then
+    if [ ! -f /etc/redhat-release ]; then
         # not needed on ubuntu as it is available as a package
         return
     fi
@@ -189,7 +189,7 @@ get_libevent() {
 }
 
 get_gflags() {
-    if [ ! -f /etc/redhat-release ] && [ ! -f /etc/mariner-release ]; then
+    if [ ! -f /etc/redhat-release ]; then
         # not needed on ubuntu as it is available as a package
         return
     fi
@@ -569,7 +569,7 @@ get_libbpf() {
     cd "${LIBBPF_DIR}"/src
     make
     #on centos the cp -fpR used was throwing an error, so just use a regular cp -R
-    if [ -f /etc/redhat-release ] || [-f /etc/mariner-release]; then
+    if [ -f /etc/redhat-release ]; then
         sed -i 's/cp -fpR/cp -R/g' Makefile
     fi
     DESTDIR="$INSTALL_DIR" make install
