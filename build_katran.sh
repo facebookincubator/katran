@@ -105,6 +105,8 @@ get_dev_tools() {
         sudo yum-config-manager --enable PowerTools
         sudo yum groupinstall -y "Development Tools"
         sudo yum install -y cmake
+    elif [ -f /etc/mariner-release ]; then
+        sudo tdnf install -y cmake
     else
         sudo apt-get update
         sudo apt-get install -y   \
@@ -129,6 +131,16 @@ get_required_libs() {
             libatomic-static \
             libsodium-static \
             fmt-devel
+    elif [ -f /etc/mariner-release ]; then
+        sudo tdnf install -y \
+            git \
+            elfutils-libelf-devel \
+            libmnl \
+            xz-devel \
+            re2-devel \
+            libatomic\
+            libsodium\
+            fmt  
     else
         sudo apt-get install -y    \
             libgoogle-glog-dev     \
@@ -144,7 +156,7 @@ get_required_libs() {
 
 
 get_libevent() {
-    if [ ! -f /etc/redhat-release ]; then
+    if [ ! -f /etc/redhat-release ] && [ ! -f /etc/mariner-release ]; then
         # not needed on ubuntu as it is available as a package
         return
     fi
@@ -177,7 +189,7 @@ get_libevent() {
 }
 
 get_gflags() {
-    if [ ! -f /etc/redhat-release ]; then
+    if [ ! -f /etc/redhat-release ] && [ ! -f /etc/mariner-release ]; then
         # not needed on ubuntu as it is available as a package
         return
     fi
@@ -234,6 +246,22 @@ get_folly() {
             libunwind-devel \
             bzip2-devel \
             binutils-devel
+    elif [ -f /etc/mariner-release ]; then
+        sudo tdnf install -y \
+            boost-devel \
+            boost-static \
+            lz4-devel \
+            xz-devel \
+            snappy-devel \
+            zlib-devel \
+            zlib-static \
+            glog \
+            python3 \
+            openssl-devel \
+            elfutils-devel elfutils-devel-static \
+            libunwind-devel \
+            bzip2-devel \
+            binutils-devel
     else
         sudo apt-get install -y       \
             g++                       \
@@ -286,6 +314,8 @@ get_clang() {
 
     if [ -f /etc/redhat-release ]; then
         sudo yum install -y clang llvm
+    elif [ -f /etc/mariner-release ]; then
+        sudo tdnf install -y clang llvm
     else
         CLANG_DIR=$DEPS_DIR/clang
         rm -rf "$CLANG_DIR"
@@ -485,6 +515,8 @@ get_grpc() {
     if [ -z "$GO_INSTALLED" ]; then
         if [ -f /etc/centos-release ]; then
             sudo yum install -y golang
+        elif [ -f /etc/mariner-release ]; then
+            sudo tdnf install -y golang
         else
             sudo apt-get install -y golang
         fi
@@ -537,7 +569,7 @@ get_libbpf() {
     cd "${LIBBPF_DIR}"/src
     make
     #on centos the cp -fpR used was throwing an error, so just use a regular cp -R
-    if [ -f /etc/redhat-release ]; then
+    if [ -f /etc/redhat-release ] || [-f /etc/mariner-release]; then
         sed -i 's/cp -fpR/cp -R/g' Makefile
     fi
     DESTDIR="$INSTALL_DIR" make install

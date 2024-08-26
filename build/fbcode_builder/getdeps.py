@@ -370,7 +370,7 @@ class InstallSysDepsCmd(ProjectCmdBase):
         parser.add_argument(
             "--os-type",
             help="Filter to just this OS type to run",
-            choices=["linux", "darwin", "windows", "pacman-package"],
+            choices=["linux", "darwin", "windows", "pacman-package", "mariner"],
             action="store",
             dest="ostype",
             default=None,
@@ -428,28 +428,37 @@ class InstallSysDepsCmd(ProjectCmdBase):
                 all_packages[k] = merged
 
         cmd_args = None
-        if manager == "rpm":
-            packages = sorted(set(all_packages["rpm"]))
-            if packages:
-                cmd_args = ["sudo", "dnf", "install", "-y"] + packages
-        elif manager == "deb":
-            packages = sorted(set(all_packages["deb"]))
-            if packages:
-                cmd_args = ["sudo", "apt", "install", "-y"] + packages
-        elif manager == "homebrew":
-            packages = sorted(set(all_packages["homebrew"]))
-            if packages:
-                cmd_args = ["brew", "install"] + packages
-        elif manager == "pacman-package":
-            packages = sorted(list(set(all_packages["pacman-package"])))
-            if packages:
-                cmd_args = ["pacman", "-S"] + packages
-        else:
-            host_tuple = loader.build_opts.host_type.as_tuple_string()
-            print(
-                f"I don't know how to install any packages on this system {host_tuple}"
-            )
-            return
+
+        print(f"Package manager is:" {manager})
+        packages = sorted(set(all_packages["rpm"]))
+        if packages:
+            cmd_args = ["sudo", "tdnf", "install", "-y"] + packages
+        # if manager == "rpm":
+        #     packages = sorted(set(all_packages["rpm"]))
+        #     if packages:
+        #         cmd_args = ["sudo", "dnf", "install", "-y"] + packages
+        # elif manager == "deb":
+        #     packages = sorted(set(all_packages["deb"]))
+        #     if packages:
+        #         cmd_args = ["sudo", "apt", "install", "-y"] + packages
+        # elif manager == "homebrew":
+        #     packages = sorted(set(all_packages["homebrew"]))
+        #     if packages:
+        #         cmd_args = ["brew", "install"] + packages
+        # elif manager == "pacman-package":
+        #     packages = sorted(list(set(all_packages["pacman-package"])))
+        #     if packages:
+        #         cmd_args = ["pacman", "-S"] + packages
+        # elif manager == "mariner":
+        #     packages = sorted(list(set(all_packages["mariner"])))
+        #     if packages:
+        #         cmd_args = ["sudo", "tdnf", "install", "-y"] + packages
+        # else:
+        #     host_tuple = loader.build_opts.host_type.as_tuple_string()
+        #     print(
+        #         f"I don't know how to install any packages on this system {host_tuple}"
+        #     )
+        #     return
 
         if cmd_args:
             if args.dry_run:
