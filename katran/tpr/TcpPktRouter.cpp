@@ -107,7 +107,6 @@ folly::Expected<folly::Unit, std::system_error> TcpPktRouter::shutdown() {
 }
 
 bool TcpPktRouter::setServerIdV6(uint32_t id) {
-  CHECK(!isInitialized_);
   CHECK_EQ(mode_, RunningMode::SERVER);
   if (id == 0) {
     return false;
@@ -116,6 +115,9 @@ bool TcpPktRouter::setServerIdV6(uint32_t id) {
     return false;
   }
   v6Id_ = id;
+  if (isInitialized_) {
+    updateServerInfo();
+  }
   return true;
 }
 
