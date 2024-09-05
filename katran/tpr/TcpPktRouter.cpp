@@ -108,11 +108,12 @@ folly::Expected<folly::Unit, std::system_error> TcpPktRouter::shutdown() {
 
 bool TcpPktRouter::setServerIdV6(uint32_t id) {
   CHECK_EQ(mode_, RunningMode::SERVER);
-  if (id == 0) {
-    return false;
-  }
   if (id > kMaxServerId) {
     return false;
+  }
+  if (v6Id_ == id) {
+    LOG(WARNING) << "Server id is already set to " << id;
+    return true;
   }
   v6Id_ = id;
   if (isInitialized_) {
@@ -129,8 +130,8 @@ TcpPktRouter::updateServerInfo() noexcept {
     info.kde_enabled = kdeEnabled_;
     info.server_id = v6Id_;
     if (info.server_id == 0) {
-      LOG(ERROR) << "TCP Pkt router is set but server_id is 0. Please check "
-                    "if the id has been set properly.";
+      LOG(WARNING) << "TCP Pkt router is set but server_id is 0. Please check "
+                      "if the id has been set properly.";
     }
   } else {
     info.running_mode = RunningMode::CLIENT;
