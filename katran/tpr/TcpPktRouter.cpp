@@ -108,6 +108,7 @@ folly::Expected<folly::Unit, std::system_error> TcpPktRouter::shutdown() {
 
 bool TcpPktRouter::setServerIdV6(uint32_t id) {
   CHECK_EQ(mode_, RunningMode::SERVER);
+  LOG(INFO) << "Setting server_id=" << id;
   if (id > kMaxServerId) {
     return false;
   }
@@ -117,7 +118,12 @@ bool TcpPktRouter::setServerIdV6(uint32_t id) {
   }
   v6Id_ = id;
   if (isInitialized_) {
-    updateServerInfo();
+    auto updateRes = updateServerInfo();
+    if (updateRes.hasError()) {
+      LOG(ERROR) << "Failed to update server info: "
+                 << updateRes.error().what();
+      return false;
+    }
   }
   return true;
 }
