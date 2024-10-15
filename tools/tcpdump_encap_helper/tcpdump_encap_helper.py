@@ -42,7 +42,7 @@ def ipv4_in_hex(addr):
     @param string addr ipv4 address
     @return string hex representation of this address
     """
-    return "0x{:08X}".format(int(ipaddress.ip_address(addr)))
+    return f"0x{int(ipaddress.ip_address(addr)):08X}"
 
 
 def ip6_exploded(addr):
@@ -51,8 +51,7 @@ def ip6_exploded(addr):
     @return list<string> ipv6 addresses splited into 4 groups by 32bit each
     """
     return [
-        "0x{:04X}".format(x)
-        for x in struct.unpack("!IIII", ipaddress.ip_address(addr).packed)
+        f"0x{x:04X}" for x in struct.unpack("!IIII", ipaddress.ip_address(addr).packed)
     ]
 
 
@@ -68,9 +67,7 @@ def modify_filter(tcpdump_filters, value, offset, size, v6=False):
     packet_type = "ip"
     if v6:
         packet_type = "ip6"
-    tcpdump_filters.append(
-        "({}[{}:{}] == {} )".format(packet_type, offset, size, value)
-    )
+    tcpdump_filters.append(f"({packet_type}[{offset}:{size}] == {value} )")
     return tcpdump_filters
 
 

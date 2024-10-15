@@ -13,7 +13,6 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-from __future__ import absolute_import, division, print_function
 
 import argparse
 import time
@@ -191,7 +190,7 @@ class FplaneTester:
         self._queue = queue
 
     def sniff_packets(self):
-        pcap_filter = "ether src host {}".format(self._katran_mac)
+        pcap_filter = f"ether src host {self._katran_mac}"
         sniff(filter=pcap_filter, iface=self._iface, prn=self.process_received_packet)
 
     def send_test_pckts(self):
@@ -224,9 +223,9 @@ class FplaneTester:
 
     def print_test_results(self):
         for test in self._recved_pckts.values():
-            print("test: {:70} passed".format(test))
+            print(f"test: {test:70} passed")
         for test in self._missed_pckts.values():
-            print("test: {:70} failed".format(test))
+            print(f"test: {test:70} failed")
 
     def process_received_packet(self, packet):
         if self._verbose:
