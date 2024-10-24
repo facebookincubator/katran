@@ -62,6 +62,15 @@ struct quic_parse_result {
   bool is_initial;
 };
 
+struct stable_routing_header {
+  __u8 connection_id[STABLE_RT_LEN];
+} __attribute__((__packed__));
+
+struct udp_stable_rt_result {
+  __be32 server_id;
+  bool is_stable_rt_pkt;
+};
+
 __attribute__((__always_inline__)) static inline __u64 calc_offset(
     bool is_ipv6,
     bool is_icmp) {
@@ -415,6 +424,43 @@ parse_quic(
     result.server_id =
         (connId[1] << 24) | (connId[2] << 16) | (connId[3] << 8) | (connId[4]);
   }
+  return result;
+}
+
+__attribute__((__always_inline__)) static inline struct udp_stable_rt_result
+parse_udp_stable_rt_hdr(
+    void* data,
+    void* data_end,
+    bool is_ipv6,
+    struct packet_description* pckt) {
+  struct udp_stable_rt_result result = {
+      .server_id = STABLE_RT_NO_SERVER_ID, .is_stable_rt_pkt = false};
+
+  bool is_icmp = (pckt->flags & F_ICMP);
+  __u64 off = calc_offset(is_ipv6, is_icmp);
+  // offset points to the beginning of transport header (udp)
+  /*                                      |PKT TYPE|           */
+  if ((data + off + sizeof(struct udphdr) + sizeof(__u8)) > data_end) {
+    return result;
+  }
+
+  __u8* udp_data = data + off + sizeof(struct udphdr);
+  __u8* pkt_type = udp_data;
+  __u8* connId = NULL;
+  if ((*pkt_type & STABLE_ROUTING_HEADER) == STABLE_ROUTING_HEADER) {
+    // packet with stable routing header
+    if (udp_data + sizeof(struct stable_routing_header) > data_end) {
+      return result;
+    }
+    connId = ((struct stable_routing_header*)udp_data)->connection_id;
+    result.is_stable_rt_pkt = true;
+  }
+  if (!connId) {
+    return result;
+  }
+
+  // same as QUIC connId v2 schema
+  result.server_id = (connId[1] << 16) | (connId[2] << 8) | (connId[3]);
   return result;
 }
 

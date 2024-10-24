@@ -125,6 +125,15 @@ struct {
   __uint(map_flags, NO_FLAGS);
 } quic_stats_map SEC(".maps");
 
+// map for udp stable routing stats
+struct {
+  __uint(type, BPF_MAP_TYPE_PERCPU_ARRAY);
+  __type(key, __u32);
+  __type(value, struct lb_stable_rt_packets_stats);
+  __uint(max_entries, STABLE_RT_STATS_MAP_SIZE);
+  __uint(map_flags, NO_FLAGS);
+} stable_rt_stats SEC(".maps");
+
 // map w/ per vip decap statistics
 struct {
   __uint(type, BPF_MAP_TYPE_PERCPU_ARRAY);

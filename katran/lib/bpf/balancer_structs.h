@@ -163,4 +163,13 @@ struct lb_tpr_packets_stats {
   __u64 tcp_syn;
 };
 
+// struct for udp stable routing statistics counters
+struct lb_stable_rt_packets_stats {
+  __u64 ch_routed;
+  __u64 cid_routed;
+  __u64 cid_invalid_server_id;
+  __u64 cid_unknown_real_dropped;
+  __u64 invalid_packet_type;
+};
+
 #endif // of _BALANCER_STRUCTS

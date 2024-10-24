@@ -551,6 +551,56 @@ __attribute__((__always_inline__)) static inline int process_encaped_gue_pckt(
 }
 #endif // of INLINE_DECAP_GUE
 
+#ifdef UDP_STABLE_ROUTING
+__attribute__((__always_inline__)) static inline bool
+process_udp_stable_routing(
+    void* data,
+    void* data_end,
+    struct real_definition** dst,
+    struct packet_description* pckt,
+    bool is_ipv6) {
+  __u32 stable_rt_stats_key = 0;
+  struct lb_stable_rt_packets_stats* stable_rt_packets_stats =
+      bpf_map_lookup_elem(&stable_rt_stats, &stable_rt_stats_key);
+  if (!stable_rt_packets_stats) {
+    return XDP_DROP;
+  }
+  struct udp_stable_rt_result usr =
+      parse_udp_stable_rt_hdr(data, data_end, is_ipv6, pckt);
+  if (usr.server_id > 0) {
+    // server_id is expected to always be positive
+    __u32 key = usr.server_id;
+    __u32* real_pos = bpf_map_lookup_elem(&server_id_map, &key);
+    if (real_pos) {
+      // get a real position for the server id
+      key = *real_pos;
+      if (key != 0) {
+        pckt->real_index = key;
+        *dst = bpf_map_lookup_elem(&reals, &key);
+        if (!*dst) {
+          // fail to find a real server with the real pos, drop the packet
+          stable_rt_packets_stats->cid_unknown_real_dropped += 1;
+          return XDP_DROP;
+        }
+        // increment cid routed stats
+        stable_rt_packets_stats->cid_routed += 1;
+      }
+    } else {
+      // increment invalid server id stats
+      stable_rt_packets_stats->cid_invalid_server_id += 1;
+      stable_rt_packets_stats->ch_routed += 1;
+    }
+  } else {
+    // cannot get a server id , fallback to lru or ch
+    if (!usr.is_stable_rt_pkt) {
+      // invalid packet type
+      stable_rt_packets_stats->invalid_packet_type += 1;
+    }
+    stable_rt_packets_stats->ch_routed += 1;
+  }
+}
+#endif // of UDP_STABLE_ROUTING
+
 __attribute__((__always_inline__)) static inline void
 increment_quic_cid_version_stats(
     struct lb_quic_packets_stats* quic_packets_stats,
@@ -889,6 +939,12 @@ process_packet(struct xdp_md* xdp, __u64 off, bool is_ipv6) {
       }
     }
   }
+#ifdef UDP_STABLE_ROUTING
+  if (pckt.flow.proto == IPPROTO_UDP &&
+      vip_info->flags & F_UDP_STABLE_ROUTING_VIP) {
+    process_udp_stable_routing(data, data_end, &dst, &pckt, is_ipv6);
+  }
+#endif // UDP_STABLE_ROUTING
 
   // save the original sport before making real selection, possibly changing its
   // value.

@@ -137,4 +137,13 @@ struct lb_tpr_packets_stats {
   uint64_t tcp_syn;
 };
 
+// struct for udp stable routing statistics counters
+struct lb_stable_rt_packets_stats {
+  uint64_t ch_routed;
+  uint64_t cid_routed;
+  uint64_t cid_invalid_server_id;
+  uint64_t cid_unknown_real_dropped;
+  uint64_t invalid_packet_type;
+};
+
 } // namespace katran

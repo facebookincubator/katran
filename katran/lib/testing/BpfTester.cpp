@@ -181,6 +181,8 @@ bool BpfTester::runBpfTesterFromFixtures(
     if (config_.testData[i].routedThroughGlobalLru) {
       packetsRoutedGlobalLruBefore = getGlobalLruRoutedPackets();
     }
+    VLOG(2) << "Running test for pckt #" << pckt_num
+            << " with description: " << config_.testData[i].description;
     auto res = adapter_.testXdpProg(
         progFd,
         kTestRepeatCount,

@@ -34,6 +34,9 @@
 // process a packet to figure out what to do with it
 #define FURTHER_PROCESSING -1
 
+// indicates no server id was found in the packet
+#define STABLE_RT_NO_SERVER_ID 0
+
 // 3FFF mask covers more fragments flag and fragment offset field.
 // 65343 = 3FFF in BigEndian
 #define PCKT_FRAGMENTED 65343
@@ -96,6 +99,8 @@
 
 #define TPR_STATS_MAP_SIZE 1
 
+#define STABLE_RT_STATS_MAP_SIZE 1
+
 // for LRU's map in map we will support up to this number of cpus
 #ifndef MAX_SUPPORTED_CPUS
 #define MAX_SUPPORTED_CPUS 128
@@ -145,6 +150,8 @@
 // use both src and dst port for the hash calculation for vips which normally
 // wouldn't
 #define F_HASH_SRC_DST_PORT (1 << 7)
+// parse udp stable routing header to get server-id
+#define F_UDP_STABLE_ROUTING_VIP (1 << 8)
 // packet_description flags:
 // the description has been created from icmp msg
 #define F_ICMP (1 << 0)
@@ -164,6 +171,7 @@
 // draft-ietf-quic-invariants-06
 #define QUIC_LONG_HEADER 0x80
 #define QUIC_SHORT_HEADER 0x00
+#define STABLE_ROUTING_HEADER 0x80
 // Long header packet types (with alignment of 8-bits for packet-type)
 #define QUIC_CLIENT_INITIAL 0x00
 #define QUIC_0RTT 0x10
@@ -176,6 +184,9 @@
 #ifndef QUIC_MIN_CONNID_LEN
 #define QUIC_MIN_CONNID_LEN 8
 #endif
+
+#define STABLE_RT_LEN 8
+
 // explicitly version the connection id
 #ifndef QUIC_CONNID_VERSION_V1
 #define QUIC_CONNID_VERSION_V1 0x1
