@@ -29,5 +29,7 @@ KatranTestParam createDefaultTestParam(TestMode testMode);
 
 KatranTestParam createTPRTestParam();
 
+KatranTestParam createUdpStableRtTestParam();
+
 } // namespace testing
 } // namespace katran

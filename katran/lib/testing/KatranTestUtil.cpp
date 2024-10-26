@@ -18,6 +18,7 @@
 #include "katran/lib/testing/KatranGueTestFixtures.h"
 #include "katran/lib/testing/KatranTPRTestFixtures.h"
 #include "katran/lib/testing/KatranTestFixtures.h"
+#include "katran/lib/testing/KatranUdpStableRtTestFixtures.h"
 
 namespace katran {
 namespace testing {
@@ -179,6 +180,28 @@ KatranTestParam createTPRTestParam() {
       .perVipCounters = {{vip, std::pair<uint64_t, uint64_t>(4, 244)}}};
   return testParam;
 }
+
+KatranTestParam createUdpStableRtTestParam() {
+  katran::VipKey vip;
+  vip.address = "fc00:1::9";
+  vip.port = kVipPort;
+  vip.proto = kUdp;
+  KatranTestParam testParam = {
+      .mode = TestMode::GUE,
+      .testData = katran::testing::udpStableRtFixtures,
+      .expectedCounters =
+          {
+              {KatranTestCounters::TOTAL_PKTS, 5},
+              {KatranTestCounters::STABLE_RT_CH_ROUTING, 2},
+              {KatranTestCounters::STABLE_RT_CID_ROUTING, 3},
+              {KatranTestCounters::STABLE_RT_CID_INVALID_SERVER_ID, 0},
+              {KatranTestCounters::STABLE_RT_CID_UNKNOWN_REAL_DROPPED, 0},
+              {KatranTestCounters::STABLE_RT_INVALID_PACKET_TYPE, 0},
+          },
+      .perVipCounters = {{vip, std::pair<uint64_t, uint64_t>(4, 244)}}};
+  return testParam;
+
+} // namespace testing
 
 } // namespace testing
 } // namespace katran

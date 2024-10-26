@@ -98,6 +98,15 @@ void addQuicMappings(katran::KatranLb& lb) {
     constexpr uint32_t twJobMask = 0x030000; // tw job set to 3
     qreal.id = twJobMask | ids[i];
     qreals.push_back(qreal);
+    // log server address and id in hex
+    LOG(INFO) << "Adding mapping for " << qreal.address << " with id "
+              << qreal.id;
+    printf(
+        "%02X%02X%02X%02X\n",
+        (qreal.id >> 24) & 0xFF,
+        (qreal.id >> 16) & 0xFF,
+        (qreal.id >> 8) & 0xFF,
+        qreal.id & 0xFF);
   }
   lb.modifyQuicRealsMapping(action, qreals);
 }
@@ -192,6 +201,68 @@ void prepareOptionalLbData(katran::KatranLb& lb) {
   lb.modifyReal("10.0.0.6", kLocalReal);
 }
 
+void prepareLbDataStableRt(katran::KatranLb& lb) {
+  lb.restartKatranMonitor(kMonitorLimit);
+  katran::VipKey vip;
+  // adding few reals to test
+  std::vector<std::string> reals = {"10.0.0.1", "10.0.0.2", "10.0.0.3"};
+  std::vector<std::string> reals6 = {"fc00::1", "fc00::2", "fc00::3"};
+  vip.address = "fc00:1::9";
+  vip.proto = kUdp;
+  vip.port = kVipPort;
+  lb.addVip(vip);
+  addReals(lb, vip, reals6);
+  lb.modifyVip(vip, kUdpStableRouting);
+  // add v4 vip to test
+  vip.address = "10.200.1.90";
+  lb.addVip(vip);
+  // adding few reals to test
+  addReals(lb, vip, reals);
+  lb.modifyVip(vip, kUdpStableRouting);
+  // vip which ignores dst_port (testing for TURN-like services)
+  vip.address = "10.200.1.2";
+  vip.port = 0;
+  lb.addVip(vip);
+  // adding few reals to test
+  addReals(lb, vip, reals);
+  // vip which is using only dst port to pick up real
+  vip.address = "10.200.1.4";
+  lb.addVip(vip);
+  // adding few reals to test
+  addReals(lb, vip, reals);
+  lb.modifyVip(vip, kDportHash);
+  // v4inv6 vip. tcp
+  vip.address = "10.200.1.3";
+  vip.port = kVipPort;
+  lb.addVip(vip);
+  // adding few reals to test
+  addReals(lb, vip, reals6);
+  // v6inv6 vip. tcp
+  vip.address = "fc00:1::1";
+  lb.addVip(vip);
+  // adding few reals to test
+  addReals(lb, vip, reals6);
+  // adding mappings for quic.
+  addQuicMappings(lb);
+  // adding quic v4 vip.
+  vip.proto = kUdp;
+  vip.port = 443;
+  vip.address = "10.200.1.5";
+  lb.addVip(vip);
+  lb.modifyVip(vip, kQuicVip);
+  addReals(lb, vip, reals);
+  // adding quic v6 vip.
+  vip.address = "fc00:1::2";
+  lb.addVip(vip);
+  lb.modifyVip(vip, kQuicVip);
+  addReals(lb, vip, reals6);
+
+  // adding healthchecking dst
+  lb.addHealthcheckerDst(1, "10.0.0.1");
+  lb.addHealthcheckerDst(2, "10.0.0.2");
+  lb.addHealthcheckerDst(3, "fc00::1");
+}
+
 void prepareVipUninitializedLbData(katran::KatranLb& lb) {
   katran::VipKey vip;
   vip.address = "10.200.1.99";
@@ -269,6 +340,22 @@ uint64_t KatranTestParam::expectedTcpServerIdRoutingCounts() noexcept {
 }
 uint64_t KatranTestParam::expectedTcpServerIdRoutingFallbackCounts() noexcept {
   return _lookup_counter(KatranTestCounters::TCP_SERVER_ID_ROUTING_FALLBACK_CH);
+}
+uint64_t KatranTestParam::expectedUdpStableRoutingWithCh() noexcept {
+  return _lookup_counter(KatranTestCounters::STABLE_RT_CH_ROUTING);
+}
+uint64_t KatranTestParam::expectedUdpStableRoutingWithCid() noexcept {
+  return _lookup_counter(KatranTestCounters::STABLE_RT_CID_ROUTING);
+}
+uint64_t KatranTestParam::expectedUdpStableRoutingInvalidSid() noexcept {
+  return _lookup_counter(KatranTestCounters::STABLE_RT_CID_INVALID_SERVER_ID);
+}
+uint64_t KatranTestParam::expectedUdpStableRoutingUnknownReals() noexcept {
+  return _lookup_counter(
+      KatranTestCounters::STABLE_RT_CID_UNKNOWN_REAL_DROPPED);
+}
+uint64_t KatranTestParam::expectedUdpStableRoutingInvalidPacketType() noexcept {
+  return _lookup_counter(KatranTestCounters::STABLE_RT_INVALID_PACKET_TYPE);
 }
 uint64_t KatranTestParam::expectedTotalFailedBpfCalls() noexcept {
   return _lookup_counter(KatranTestCounters::TOTAL_FAILED_BPF_CALLS);

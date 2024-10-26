@@ -2013,6 +2013,33 @@ lb_tpr_packets_stats KatranLb::getTcpServerIdRoutingStats() {
   return sum_stat;
 }
 
+lb_stable_rt_packets_stats KatranLb::getUdpStableRoutingStats() {
+  unsigned int nr_cpus = BpfAdapter::getPossibleCpus();
+  if (nr_cpus < 0) {
+    LOG(ERROR) << "Error while getting number of possible cpus";
+    return lb_stable_rt_packets_stats{};
+  }
+  lb_stable_rt_packets_stats stats[nr_cpus];
+  lb_stable_rt_packets_stats sum_stat = {};
+
+  if (!config_.testing) {
+    int position = 0;
+    auto res = bpfAdapter_->bpfMapLookupElement(
+        bpfAdapter_->getMapFdByName("stable_rt_stats"), &position, stats);
+    if (!res) {
+      for (auto& stat : stats) {
+        sum_stat.ch_routed += stat.ch_routed;
+        sum_stat.cid_routed += stat.cid_routed;
+        sum_stat.cid_invalid_server_id += stat.cid_invalid_server_id;
+        sum_stat.cid_unknown_real_dropped += stat.cid_unknown_real_dropped;
+      }
+    } else {
+      lbStats_.bpfFailedCalls++;
+    }
+  }
+  return sum_stat;
+}
+
 lb_stats KatranLb::getChDropStats() {
   return getLbStats(config_.maxVips + kChDropOffset);
 }

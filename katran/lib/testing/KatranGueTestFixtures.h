@@ -353,7 +353,6 @@ const std::vector<::katran::PacketAttributes> gueTestFixtures = {
      .expectedReturnValue = "XDP_DROP",
      .expectedOutputPacket = "AgAAAAAAAQAAAAAAht1gAAAAABMRQPwAAAIAAAAAAAAAAAAAAAH8AAABAAAAAAAAAAAAAAARemkAUAATUc5rYXRyYW4gdGVzdA=="
     },
-
 };
 
 } // namespace testing

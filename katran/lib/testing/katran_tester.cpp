@@ -31,6 +31,7 @@
 #include "katran/lib/testing/KatranOptionalTestFixtures.h"
 #include "katran/lib/testing/KatranTestProvision.h"
 #include "katran/lib/testing/KatranTestUtil.h"
+#include "katran/lib/testing/KatranUdpStableRtTestFixtures.h"
 
 using namespace katran::testing;
 using KatranFeatureEnum = katran::KatranFeatureEnum;
@@ -60,6 +61,7 @@ DEFINE_bool(
     false,
     "run optional (kernel specific) counter tests");
 DEFINE_bool(gue, false, "run GUE tests instead of IPIP ones");
+DEFINE_bool(stable_rt, false, "run UDP Stable Routing tests");
 DEFINE_bool(
     tpr,
     false,
@@ -143,6 +145,36 @@ void testOptionalLbCounters(katran::KatranLb& lb, KatranTestParam& testParam) {
   LOG(INFO) << "limit: " << monitor_stats.limit
             << " amount: " << monitor_stats.amount;
   LOG(INFO) << "Testing of optional counters is complete";
+}
+
+void testStableRtCounters(katran::KatranLb& lb, KatranTestParam& testParam) {
+  LOG(INFO) << "Testing optional counter's sanity";
+  auto stats = lb.getUdpStableRoutingStats();
+  if (stats.ch_routed != testParam.expectedUdpStableRoutingWithCh()) {
+    VLOG(2) << "CH routed pckts: " << stats.ch_routed;
+    LOG(INFO) << "CH routed packet's counter is incorrect";
+  }
+  if (stats.cid_routed != testParam.expectedUdpStableRoutingWithCid()) {
+    VLOG(2) << "SID routed pckts: " << stats.cid_routed;
+    LOG(INFO) << "SID routed packet's counter is incorrect";
+  }
+  if (stats.cid_invalid_server_id !=
+      testParam.expectedUdpStableRoutingInvalidSid()) {
+    VLOG(2) << "cid_invalid_server_id pckts: " << stats.cid_invalid_server_id;
+    LOG(INFO) << "cid_invalid_server_id counter is incorrect";
+  }
+  if (stats.cid_unknown_real_dropped !=
+      testParam.expectedUdpStableRoutingUnknownReals()) {
+    VLOG(2) << "cid_unknown_real_dropped pckts: "
+            << stats.cid_unknown_real_dropped;
+    LOG(INFO) << "cid_unknown_real_dropped counter is incorrect";
+  }
+  if (stats.invalid_packet_type !=
+      testParam.expectedUdpStableRoutingInvalidPacketType()) {
+    VLOG(2) << "invalid_packet_type pckts: " << stats.cid_unknown_real_dropped;
+    LOG(INFO) << "invalid_packet_type counter is incorrect";
+  }
+  LOG(INFO) << "Stable Routing stats verified";
 }
 
 void validateMapSize(
@@ -313,6 +345,13 @@ void runTestsFromFixture(
     }
     tester.testFromFixture();
     testOptionalLbCounters(lb, testParam);
+  }
+  if (FLAGS_stable_rt) {
+    prepareLbDataStableRt(lb);
+    tester.resetTestFixtures(katran::testing::udpStableRtFixtures);
+    tester.testFromFixture();
+    auto udpTestParams = createUdpStableRtTestParam();
+    testStableRtCounters(lb, udpTestParams);
   }
 }
 

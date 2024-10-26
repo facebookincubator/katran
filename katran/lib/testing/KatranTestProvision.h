@@ -40,11 +40,20 @@ constexpr uint16_t kVipPort = 80;
 constexpr uint8_t kUdp = 17;
 constexpr uint8_t kTcp = 6;
 constexpr uint32_t kDefaultWeight = 1;
-constexpr uint32_t kDportHash = 8;
-constexpr uint32_t kQuicVip = 4;
-constexpr uint32_t kSrcRouting = 16;
-constexpr uint32_t kLocalVip = 32;
+
+// Flags from katran/lib/bpf/balancer_consts.h
+// real is specified as local (1 << 1)
 constexpr uint8_t kLocalReal = 2;
+// use quic's connection id for the hash calculation (1 << 2)
+constexpr uint32_t kQuicVip = 4;
+// use only dst port for the hash calculation (1 << 3)
+constexpr uint32_t kDportHash = 8;
+// check if src based routing should be used (1 << 4)
+constexpr uint32_t kSrcRouting = 16;
+// vip flag to optimize local delivery (1 << 5)
+constexpr uint32_t kLocalVip = 32;
+// parse udp stable routing header to get server-id (1 << 8)
+constexpr uint32_t kUdpStableRouting = 256;
 
 // Each of the TestMode correspond to the TestFixtures
 enum class TestMode : uint8_t {
@@ -81,6 +90,12 @@ enum class KatranTestCounters : uint8_t {
   SRC_ROUTING_PKTS_LOCAL = 18,
   SRC_ROUTING_PKTS_REMOTE = 19,
   INLINE_DECAP_PKTS = 20,
+  // udp stable routing counters
+  STABLE_RT_CH_ROUTING = 21,
+  STABLE_RT_CID_ROUTING = 22,
+  STABLE_RT_CID_INVALID_SERVER_ID = 23,
+  STABLE_RT_CID_UNKNOWN_REAL_DROPPED = 24,
+  STABLE_RT_INVALID_PACKET_TYPE = 25,
 };
 
 struct KatranTestParam {
@@ -103,6 +118,11 @@ struct KatranTestParam {
   uint64_t expectedQuicCidDropsNoRealCounts() noexcept;
   uint64_t expectedTcpServerIdRoutingCounts() noexcept;
   uint64_t expectedTcpServerIdRoutingFallbackCounts() noexcept;
+  uint64_t expectedUdpStableRoutingWithCh() noexcept;
+  uint64_t expectedUdpStableRoutingWithCid() noexcept;
+  uint64_t expectedUdpStableRoutingInvalidSid() noexcept;
+  uint64_t expectedUdpStableRoutingUnknownReals() noexcept;
+  uint64_t expectedUdpStableRoutingInvalidPacketType() noexcept;
   uint64_t expectedTotalFailedBpfCalls() noexcept;
   uint64_t expectedTotalAddressValidations() noexcept;
   // optional counters
@@ -137,6 +157,8 @@ void addQuicMappings(katran::KatranLb& lb);
 void prepareLbData(katran::KatranLb& lb);
 
 void prepareOptionalLbData(katran::KatranLb& lb);
+
+void prepareLbDataStableRt(katran::KatranLb& lb);
 
 void prepareVipUninitializedLbData(katran::KatranLb& lb);
 

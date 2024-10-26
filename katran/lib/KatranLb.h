@@ -546,6 +546,15 @@ class KatranLb {
   lb_tpr_packets_stats getTcpServerIdRoutingStats();
 
   /**
+   * @return struct lb_stable_rt_packets_stats w/ statistic of UDP stable
+   * routing
+   *
+   * helper function which returns how many UDP packets were routed
+   * using the default 5-tuple hash vs using the connection-id
+   */
+  lb_stable_rt_packets_stats getUdpStableRoutingStats();
+
+  /**
    * @return struct lb_stats w/ src routing related statistics
    *
    * helper function which returns how many packets were sent to local
