@@ -18,6 +18,15 @@ import argparse
 import time
 from multiprocessing import Process, Queue
 
+# pyre-fixme[21]: Could not find name `ARP` in `scapy.all`.
+# pyre-fixme[21]: Could not find name `Ether` in `scapy.all`.
+# pyre-fixme[21]: Could not find name `ICMP` in `scapy.all`.
+# pyre-fixme[21]: Could not find name `ICMPv6EchoRequest` in `scapy.all`.
+# pyre-fixme[21]: Could not find name `ICMPv6PacketTooBig` in `scapy.all`.
+# pyre-fixme[21]: Could not find name `IP` in `scapy.all`.
+# pyre-fixme[21]: Could not find name `IPv6` in `scapy.all`.
+# pyre-fixme[21]: Could not find name `TCP` in `scapy.all`.
+# pyre-fixme[21]: Could not find name `UDP` in `scapy.all`.
 from scapy.all import (
     ARP,
     Ether,
@@ -39,80 +48,114 @@ INDEX_LEN = 2
 
 TEST_PCKTS = [
     # pkt 1; reply expected
+    # pyre-fixme[16]: Module `all` has no attribute `Ether`.
     Ether(src="0x002", dst="0x2")
+    # pyre-fixme[16]: Module `all` has no attribute `IP`.
     / IP(src="192.168.1.1", dst="10.200.1.1")
-    / UDP(sport=31337, dport=80)
-    / "katran test pckt 01",
+    # pyre-fixme[16]: Module `all` has no attribute `UDP`.
+    / UDP(sport=31337, dport=80) / "katran test pckt 01",
     # pkt 2; reply expected
+    # pyre-fixme[16]: Module `all` has no attribute `Ether`.
     Ether(src="0x002", dst="0x2")
+    # pyre-fixme[16]: Module `all` has no attribute `IP`.
     / IP(src="192.168.1.1", dst="10.200.1.1")
-    / TCP(sport=31337, dport=80, flags="A")
-    / "katran test pckt 02",
+    # pyre-fixme[16]: Module `all` has no attribute `TCP`.
+    / TCP(sport=31337, dport=80, flags="A") / "katran test pckt 02",
     # pkt 3; reply expected
+    # pyre-fixme[16]: Module `all` has no attribute `Ether`.
     Ether(src="0x002", dst="0x2")
+    # pyre-fixme[16]: Module `all` has no attribute `IP`.
     / IP(src="192.168.1.1", dst="10.200.1.2")
-    / TCP(sport=31337, dport=42, flags="A")
-    / "katran test pckt 03",
+    # pyre-fixme[16]: Module `all` has no attribute `TCP`.
+    / TCP(sport=31337, dport=42, flags="A") / "katran test pckt 03",
     # pkt 4; reply expected
+    # pyre-fixme[16]: Module `all` has no attribute `Ether`.
     Ether(src="0x002", dst="0x2")
+    # pyre-fixme[16]: Module `all` has no attribute `IP`.
     / IP(src="192.168.1.1", dst="10.200.1.3")
-    / TCP(sport=31337, dport=80, flags="A")
-    / "katran test pckt 04",
+    # pyre-fixme[16]: Module `all` has no attribute `TCP`.
+    / TCP(sport=31337, dport=80, flags="A") / "katran test pckt 04",
     # pkt 5; reply expected
+    # pyre-fixme[16]: Module `all` has no attribute `Ether`.
     Ether(src="0x002", dst="0x2")
+    # pyre-fixme[16]: Module `all` has no attribute `IPv6`.
     / IPv6(src="fc00:2::1", dst="fc00:1::1")
-    / TCP(sport=31337, dport=80, flags="A")
-    / "katran test pckt 05",
+    # pyre-fixme[16]: Module `all` has no attribute `TCP`.
+    / TCP(sport=31337, dport=80, flags="A") / "katran test pckt 05",
     # pkt 6; reply expected
+    # pyre-fixme[16]: Module `all` has no attribute `Ether`.
     Ether(src="0x002", dst="0x2")
+    # pyre-fixme[16]: Module `all` has no attribute `IP`.
     / IP(src="192.168.1.1", dst="10.200.1.3")
-    / ICMP(type="echo-request")
-    / "katran test pckt 06",
+    # pyre-fixme[16]: Module `all` has no attribute `ICMP`.
+    / ICMP(type="echo-request") / "katran test pckt 06",
     # pkt 7; reply expected
+    # pyre-fixme[16]: Module `all` has no attribute `Ether`.
     Ether(src="0x002", dst="0x2")
+    # pyre-fixme[16]: Module `all` has no attribute `IPv6`.
     / IPv6(src="fc00:2::1", dst="fc00:1::1")
-    / ICMPv6EchoRequest()
-    / "katran test pckt 07",
+    # pyre-fixme[16]: Module `all` has no attribute `ICMPv6EchoRequest`.
+    / ICMPv6EchoRequest() / "katran test pckt 07",
     # pkt 8; reply expected
+    # pyre-fixme[16]: Module `all` has no attribute `Ether`.
     Ether(src="0x002", dst="0x2")
+    # pyre-fixme[16]: Module `all` has no attribute `IP`.
     / IP(src="192.168.100.1", dst="10.200.1.1")
+    # pyre-fixme[16]: Module `all` has no attribute `ICMP`.
     / ICMP(type="dest-unreach", code="fragmentation-needed")
+    # pyre-fixme[16]: Module `all` has no attribute `IP`.
     / IP(src="10.200.1.1", dst="192.168.1.1")
-    / TCP(sport=80, dport=31337)
-    / "katran test pckt 08",
+    # pyre-fixme[16]: Module `all` has no attribute `TCP`.
+    / TCP(sport=80, dport=31337) / "katran test pckt 08",
     # pkt 9; reply expected
+    # pyre-fixme[16]: Module `all` has no attribute `Ether`.
     Ether(src="0x002", dst="0x2")
+    # pyre-fixme[16]: Module `all` has no attribute `IPv6`.
     / IPv6(src="fc00:200::1", dst="fc00:1::1")
+    # pyre-fixme[16]: Module `all` has no attribute `ICMPv6PacketTooBig`.
     / ICMPv6PacketTooBig()
+    # pyre-fixme[16]: Module `all` has no attribute `IPv6`.
     / IPv6(src="fc00:1::1", dst="fc00:2::1")
-    / TCP(sport=80, dport=31337)
-    / "katran test pckt 09",
+    # pyre-fixme[16]: Module `all` has no attribute `TCP`.
+    / TCP(sport=80, dport=31337) / "katran test pckt 09",
     # pkt 10; will be droped on katran side
+    # pyre-fixme[16]: Module `all` has no attribute `Ether`.
     Ether(src="0x002", dst="0x2")
+    # pyre-fixme[16]: Module `all` has no attribute `IP`.
     / IP(src="192.168.1.1", dst="10.200.1.1", ihl=6)
-    / TCP(sport=31337, dport=80, flags="A")
-    / "katran test pckt 10",
+    # pyre-fixme[16]: Module `all` has no attribute `TCP`.
+    / TCP(sport=31337, dport=80, flags="A") / "katran test pckt 10",
     # pkt 11; will be droped on katran side
+    # pyre-fixme[16]: Module `all` has no attribute `Ether`.
     Ether(src="0x002", dst="0x2")
+    # pyre-fixme[16]: Module `all` has no attribute `IP`.
     / IP(src="192.168.1.1", dst="10.200.1.1", ihl=5, flags="MF")
-    / TCP(sport=31337, dport=80, flags="A")
-    / "katran test pckt 11",
+    # pyre-fixme[16]: Module `all` has no attribute `TCP`.
+    / TCP(sport=31337, dport=80, flags="A") / "katran test pckt 11",
     # pkt 12; will be droped on katran side
+    # pyre-fixme[16]: Module `all` has no attribute `Ether`.
     Ether(src="0x002", dst="0x2")
+    # pyre-fixme[16]: Module `all` has no attribute `IPv6`.
     / IPv6(src="fc00:2::1", dst="fc00:1::1", nh=44)
-    / TCP(sport=31337, dport=80, flags="A")
-    / "katran test pckt 12",
+    # pyre-fixme[16]: Module `all` has no attribute `TCP`.
+    / TCP(sport=31337, dport=80, flags="A") / "katran test pckt 12",
     # pkt 13; will be passed to katran's tcp stack; no reply expected
+    # pyre-fixme[16]: Module `all` has no attribute `Ether`.
     Ether(src="0x002", dst="0x2")
+    # pyre-fixme[16]: Module `all` has no attribute `IP`.
     / IP(src="192.168.1.1", dst="10.200.1.1", ihl=5)
-    / TCP(sport=31337, dport=82, flags="A")
-    / "katran test pckt 13",
+    # pyre-fixme[16]: Module `all` has no attribute `TCP`.
+    / TCP(sport=31337, dport=82, flags="A") / "katran test pckt 13",
     # pkt 14; will be passed to katran's tcp stack; no reply expected
+    # pyre-fixme[16]: Module `all` has no attribute `Ether`.
     Ether(src="0x002", dst="0x2")
+    # pyre-fixme[16]: Module `all` has no attribute `IPv6`.
     / IPv6(src="fc00:2::1", dst="fc00:1::1")
-    / TCP(sport=31337, dport=82, flags="A")
-    / "katran test pckt 14",
+    # pyre-fixme[16]: Module `all` has no attribute `TCP`.
+    / TCP(sport=31337, dport=82, flags="A") / "katran test pckt 14",
     # pkt 15; will be passed to katran's tcp stack; no reply expected
+    # pyre-fixme[16]: Module `all` has no attribute `Ether`.
+    # pyre-fixme[16]: Module `all` has no attribute `ARP`.
     Ether(src="0x002", dst="0x2") / ARP(),
 ]
 
