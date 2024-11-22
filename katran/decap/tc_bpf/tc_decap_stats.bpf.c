@@ -64,6 +64,12 @@ __attribute__((__always_inline__)) static inline void validate_tpr_server_id(
         data_stats->tpr_total += 1;
         if (*server_id_host != server_id) {
           data_stats->tpr_misrouted += 1;
+          __u32 sid_sample_key = 0;
+          __u64* server_id_sample =
+              bpf_map_lookup_elem(&tpr_mism_sid, &sid_sample_key);
+          if (server_id_sample) {
+            *server_id_sample = server_id;
+          }
         }
       }
     }

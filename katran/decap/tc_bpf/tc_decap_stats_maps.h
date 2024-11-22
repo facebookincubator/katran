@@ -49,4 +49,13 @@ struct {
   __uint(map_flags, NO_FLAGS);
 } tpr_server_id SEC(".maps");
 
+// map for sampled tpr mismatched server ids
+struct {
+  __uint(type, BPF_MAP_TYPE_PERCPU_ARRAY);
+  __type(key, __u32);
+  __type(value, __u64);
+  __uint(max_entries, DECAP_STATS_MAP_SIZE);
+  __uint(map_flags, NO_FLAGS);
+} tpr_mism_sid SEC(".maps");
+
 #endif // of __DECAP_STATS_MAPS_H
