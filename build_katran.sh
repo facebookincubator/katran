@@ -208,6 +208,26 @@ get_gflags() {
     touch "${DEPS_DIR}/gflags_installed"
 }
 
+get_fast_float() {
+    if [ -f "${DEPS_DIR}/fast_float_installed" ]; then
+        export FASTFLOAT_INCLUDE_DIR="$DEPS_DIR/fast_float/include"
+        return
+    fi
+    
+    FAST_FLOAT_DIR=$DEPS_DIR/fast_float
+    rm -rf "$FAST_FLOAT_DIR"
+    pushd .
+    echo -e "${COLOR_GREEN}[ INFO ] Cloning fast_float repo ${COLOR_OFF}"
+    git clone https://github.com/fastfloat/fast_float --depth 1 "$FAST_FLOAT_DIR"
+
+    echo -e "${COLOR_GREEN}Fast_float is set up. Include directory: ${FASTFLOAT_INCLUDE_DIR} ${COLOR_OFF}"
+    popd
+    touch "${DEPS_DIR}/fast_float_installed"
+    
+    # Set the include directory
+    export FASTFLOAT_INCLUDE_DIR="$FAST_FLOAT_DIR/include"
+}
+
 get_folly() {
     if [ -f "${DEPS_DIR}/folly_installed" ]; then
         return
@@ -271,6 +291,7 @@ get_folly() {
       -DCMAKE_BUILD_TYPE=RelWithDebInfo             \
       -DCMAKE_PREFIX_PATH="$INSTALL_DIR"            \
       -DCMAKE_INSTALL_PREFIX="$INSTALL_DIR"         \
+      -DFASTFLOAT_INCLUDE_DIR="$FASTFLOAT_INCLUDE_DIR" \
       ..
     make -j "$NCPUS"
     make install
@@ -623,6 +644,7 @@ get_dev_tools
 get_required_libs
 get_libevent
 get_gflags
+get_fast_float
 get_folly
 get_clang
 get_gtest
