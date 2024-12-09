@@ -71,6 +71,10 @@ class TcpPktRouter {
     return v6Id_;
   }
 
+  RunningMode getMode() {
+    return mode_;
+  }
+
   /**
    * Collects aggregated tcp_router_stats over numCpus.
    */
