@@ -171,7 +171,10 @@
 // draft-ietf-quic-invariants-06
 #define QUIC_LONG_HEADER 0x80
 #define QUIC_SHORT_HEADER 0x00
-#define STABLE_ROUTING_HEADER 0x80
+// 0x52 is 0b01010010. Six MSB bits are used to encode edgeray udp packet
+// type and two LSB bits are used to encode connection id version type
+// Thus range of first byte for stable udp type is 0x50 - 0x53
+#define STABLE_ROUTING_HEADER 0x52
 // Long header packet types (with alignment of 8-bits for packet-type)
 #define QUIC_CLIENT_INITIAL 0x00
 #define QUIC_0RTT 0x10

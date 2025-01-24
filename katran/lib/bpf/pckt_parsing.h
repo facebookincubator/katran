@@ -447,7 +447,7 @@ parse_udp_stable_rt_hdr(
   __u8* udp_data = data + off + sizeof(struct udphdr);
   __u8* pkt_type = udp_data;
   __u8* connId = NULL;
-  if ((*pkt_type & STABLE_ROUTING_HEADER) == STABLE_ROUTING_HEADER) {
+  if ((*pkt_type) == STABLE_ROUTING_HEADER) {
     // packet with stable routing header
     if (udp_data + sizeof(struct stable_routing_header) > data_end) {
       return result;

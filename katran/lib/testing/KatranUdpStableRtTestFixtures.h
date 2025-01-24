@@ -43,43 +43,43 @@ namespace testing {
 const std::vector<::katran::PacketAttributes> udpStableRtFixtures = {
     // 1
     {// Ether(src="0x1", dst="0x2")/IPv6(src="fc00:1::1",
-    // dst="fc00:1::9")/UDP(sport=31337, dport=80)/Raw(load=b'\x80\x00\x00\x00\x00\x00\x00\x00local test pkt')
-     .inputPacket = "AgAAAAAAAQAAAAAAht1gAAAAAB4RQPwAAAEAAAAAAAAAAAAAAAH8AAABAAAAAAAAAAAAAAAJemkAUAAeXTuAAAAAAAAAAGxvY2FsIHRlc3QgcGt0",
-     .description = "Stable Rt packet with conn-id 0",
+    // dst="fc00:1::9")/UDP(sport=31337, dport=80)/Raw(load=b'\x52\x00\x00\x00\x00\x00\x00\x00local test pkt')
+     .inputPacket = "AgAAAAAAAQAAAAAAht1gAAAAAB4RQPwAAAEAAAAAAAAAAAAAAAH8AAABAAAAAAAAAAAAAAAJemkAUAAeiztSAAAAAAAAAGxvY2FsIHRlc3QgcGt0",
+     .description = "Stable Rt packet with conn-id 0 - 1",
      .expectedReturnValue = "XDP_TX",
-     .expectedOutputPacket = "AADerb6vAgAAAAAAht1gAAAAAE4RQPwAIwcAAAAAAAAAAAAAEzf8AAAAAAAAAAAAAAAAAAADemkmngBOvthgAAAAAB4RQPwAAAEAAAAAAAAAAAAAAAH8AAABAAAAAAAAAAAAAAAJemkAUAAeXTuAAAAAAAAAAGxvY2FsIHRlc3QgcGt0"
+     .expectedOutputPacket = "AADerb6vAgAAAAAAht1gAAAAAE4RQPwAIwcAAAAAAAAAAAAAEzf8AAAAAAAAAAAAAAAAAAADemkmngBOvthgAAAAAB4RQPwAAAEAAAAAAAAAAAAAAAH8AAABAAAAAAAAAAAAAAAJemkAUAAeiztSAAAAAAAAAGxvY2FsIHRlc3QgcGt0"
     },
     // 2
     {// Ether(src="0x1", dst="0x2")/IPv6(src="fc00:1::1",
-     // dst="fc00:1::9")/UDP(sport=31337, dport=80)/Raw(load=b'\x80\x03\x04\x03\x00\x00\x00\x00local test pkt')
-    .inputPacket = "AgAAAAAAAQAAAAAAht1gAAAAAB4RQPwAAAEAAAAAAAAAAAAAAAH8AAABAAAAAAAAAAAAAAAJemkAUAAeWTWAAwQDAAAAAGxvY2FsIHRlc3QgcGt0",
-    .description = "Stable Rt packet from same src, with conn-id for fc00::3 real",
+     // dst="fc00:1::9")/UDP(sport=31337, dport=80)/Raw(load=b'\x52\x03\x04\x03\x00\x00\x00\x00local test pkt')
+    .inputPacket = "AgAAAAAAAQAAAAAAht1gAAAAAB4RQPwAAAEAAAAAAAAAAAAAAAH8AAABAAAAAAAAAAAAAAAJemkAUAAehzVSAwQDAAAAAGxvY2FsIHRlc3QgcGt0",
+    .description = "Stable Rt packet from same src, with conn-id for fc00::3 real - 2",
     .expectedReturnValue = "XDP_TX",
-    .expectedOutputPacket = "AADerb6vAgAAAAAAht1gAAAAAE4RQPwAIwcAAAAAAAAAAAAAEzf8AAAAAAAAAAAAAAAAAAADemkmngBOvthgAAAAAB4RQPwAAAEAAAAAAAAAAAAAAAH8AAABAAAAAAAAAAAAAAAJemkAUAAeWTWAAwQDAAAAAGxvY2FsIHRlc3QgcGt0"
+    .expectedOutputPacket = "AADerb6vAgAAAAAAht1gAAAAAE4RQPwAIwcAAAAAAAAAAAAAEzf8AAAAAAAAAAAAAAAAAAADemkmngBOvthgAAAAAB4RQPwAAAEAAAAAAAAAAAAAAAH8AAABAAAAAAAAAAAAAAAJemkAUAAehzVSAwQDAAAAAGxvY2FsIHRlc3QgcGt0"
     },
     // 3
     {// Ether(src="0x1", dst="0x2")/IPv6(src="fc00:1::1",
-    // dst="fc00:1::9")/UDP(sport=31339, dport=80)/Raw(load=b'\x80\x03\x04\x03\x00\x00\x00\x00local test pkt')
-    .inputPacket = "AgAAAAAAAQAAAAAAht1gAAAAAB4RQPwAAAEAAAAAAAAAAAAAAAH8AAABAAAAAAAAAAAAAAAJemsAUAAeWTOAAwQDAAAAAGxvY2FsIHRlc3QgcGt0",
-    .description = "Stable Rt packet from different src port, with conn-id for fc00::3 real",
+    // dst="fc00:1::9")/UDP(sport=31339, dport=80)/Raw(load=b'\x52\x03\x04\x03\x00\x00\x00\x00local test pkt')
+    .inputPacket = "AgAAAAAAAQAAAAAAht1gAAAAAB4RQPwAAAEAAAAAAAAAAAAAAAH8AAABAAAAAAAAAAAAAAAJemsAUAAehzNSAwQDAAAAAGxvY2FsIHRlc3QgcGt0",
+    .description = "Stable Rt packet from different src port, with conn-id for fc00::3 real - 3",
     .expectedReturnValue = "XDP_TX",
-    .expectedOutputPacket = "AADerb6vAgAAAAAAht1gAAAAAE4RQPwAIwcAAAAAAAAAAAAAEzf8AAAAAAAAAAAAAAAAAAADemsmngBOvtZgAAAAAB4RQPwAAAEAAAAAAAAAAAAAAAH8AAABAAAAAAAAAAAAAAAJemsAUAAeWTOAAwQDAAAAAGxvY2FsIHRlc3QgcGt0"
+    .expectedOutputPacket = "AADerb6vAgAAAAAAht1gAAAAAE4RQPwAIwcAAAAAAAAAAAAAEzf8AAAAAAAAAAAAAAAAAAADemsmngBOvtZgAAAAAB4RQPwAAAEAAAAAAAAAAAAAAAH8AAABAAAAAAAAAAAAAAAJemsAUAAehzNSAwQDAAAAAGxvY2FsIHRlc3QgcGt0"
     },
     // 4
     {// Ether(src="0x1", dst="0x2")/IPv6(src="fc00:1::5",
-    // dst="fc00:1::9")/UDP(sport=31339, dport=80)/Raw(load=b'\x80\x03\x04\x03\x00\x00\x00\x00local test pkt')
-    .inputPacket = "AgAAAAAAAQAAAAAAht1gAAAAAB4RQPwAAAEAAAAAAAAAAAAAAAX8AAABAAAAAAAAAAAAAAAJemsAUAAeWS+AAwQDAAAAAGxvY2FsIHRlc3QgcGt0",
-    .description = "Stable Rt packet from different src ip, with same conn-id for fc00::3 real",
+    // dst="fc00:1::9")/UDP(sport=31339, dport=80)/Raw(load=b'\x52\x03\x04\x03\x00\x00\x00\x00local test pkt')
+    .inputPacket = "AgAAAAAAAQAAAAAAht1gAAAAAB4RQPwAAAEAAAAAAAAAAAAAAAX8AAABAAAAAAAAAAAAAAAJemsAUAAehy9SAwQDAAAAAGxvY2FsIHRlc3QgcGt0",
+    .description = "Stable Rt packet from different src ip, with same conn-id for fc00::3 real - 4",
     .expectedReturnValue = "XDP_TX",
-    .expectedOutputPacket = "AADerb6vAgAAAAAAht1gAAAAAE4RQPwAIwcAAAAAAAAAAAAAEzf8AAAAAAAAAAAAAAAAAAADemsmngBOvtZgAAAAAB4RQPwAAAEAAAAAAAAAAAAAAAX8AAABAAAAAAAAAAAAAAAJemsAUAAeWS+AAwQDAAAAAGxvY2FsIHRlc3QgcGt0"
+    .expectedOutputPacket = "AADerb6vAgAAAAAAht1gAAAAAE4RQPwAIwcAAAAAAAAAAAAAEzf8AAAAAAAAAAAAAAAAAAADemsmngBOvtZgAAAAAB4RQPwAAAEAAAAAAAAAAAAAAAX8AAABAAAAAAAAAAAAAAAJemsAUAAehy9SAwQDAAAAAGxvY2FsIHRlc3QgcGt0"
     },
     // 5
     {// Ether(src="0x1", dst="0x2")/IPv6(src="fc00:1::1",
-    // dst="fc00:1::9")/UDP(sport=31337, dport=80)/Raw(load=b'\x80\x00\x00\x00\x00\x00\x00\x00local test pkt')
-    .inputPacket = "AgAAAAAAAQAAAAAAht1gAAAAAB4RQPwAAAEAAAAAAAAAAAAAAAH8AAABAAAAAAAAAAAAAAAJemkAUAAeXTuAAAAAAAAAAGxvY2FsIHRlc3QgcGt0",
-    .description = "Stable Rt packet with conn-id 0, from same original src ip/port, so LRU hit",
+    // dst="fc00:1::9")/UDP(sport=31337, dport=80)/Raw(load=b'\x52\x00\x00\x00\x00\x00\x00\x00local test pkt')
+    .inputPacket = "AgAAAAAAAQAAAAAAht1gAAAAAB4RQPwAAAEAAAAAAAAAAAAAAAH8AAABAAAAAAAAAAAAAAAJemkAUAAeiztSAAAAAAAAAGxvY2FsIHRlc3QgcGt0",
+    .description = "Stable Rt packet with conn-id 0, from same original src ip/port, so LRU hit - 5",
     .expectedReturnValue = "XDP_TX",
-    .expectedOutputPacket = "AADerb6vAgAAAAAAht1gAAAAAE4RQPwAIwcAAAAAAAAAAAAAEzf8AAAAAAAAAAAAAAAAAAADemkmngBOvthgAAAAAB4RQPwAAAEAAAAAAAAAAAAAAAH8AAABAAAAAAAAAAAAAAAJemkAUAAeXTuAAAAAAAAAAGxvY2FsIHRlc3QgcGt0"
+    .expectedOutputPacket = "AADerb6vAgAAAAAAht1gAAAAAE4RQPwAIwcAAAAAAAAAAAAAEzf8AAAAAAAAAAAAAAAAAAADemkmngBOvthgAAAAAB4RQPwAAAEAAAAAAAAAAAAAAAH8AAABAAAAAAAAAAAAAAAJemkAUAAeiztSAAAAAAAAAGxvY2FsIHRlc3QgcGt0"
     }
 };
 }
