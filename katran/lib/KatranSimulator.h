@@ -17,6 +17,7 @@
 #pragma once
 
 #include <folly/io/IOBuf.h>
+#include <folly/io/async/ScopedEventBaseThread.h>
 #include <memory>
 #include <string>
 
@@ -66,6 +67,15 @@ class KatranSimulator final {
       std::unique_ptr<folly::IOBuf> pckt);
 
  private:
+  std::unique_ptr<folly::IOBuf> runSimulationInternal(
+      std::unique_ptr<folly::IOBuf> pckt);
+
+  // Affinitize simulator evb thread to CPU 0.
+  // This ensures that subsequent simulations run on the same CPU and hit
+  // same per-CPU maps.
+  void affinitizeSimulatorThread();
+
   int progFd_;
+  folly::ScopedEventBaseThread simulatorEvb_{"KatranSimulator"};
 };
 } // namespace katran

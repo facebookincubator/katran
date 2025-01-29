@@ -209,12 +209,23 @@ std::unique_ptr<folly::IOBuf> createPacketFromFlow(const KatranFlow& flow) {
 
 } // namespace
 
-KatranSimulator::KatranSimulator(int progFd) : progFd_(progFd) {}
+KatranSimulator::KatranSimulator(int progFd) : progFd_(progFd) {
+  affinitizeSimulatorThread();
+}
 
 KatranSimulator::~KatranSimulator() {}
 
 std::unique_ptr<folly::IOBuf> KatranSimulator::runSimulation(
     std::unique_ptr<folly::IOBuf> pckt) {
+  std::unique_ptr<folly::IOBuf> result;
+  simulatorEvb_.getEventBase()->runInEventBaseThreadAndWait(
+      [&]() { result = runSimulationInternal(std::move(pckt)); });
+  return result;
+}
+
+std::unique_ptr<folly::IOBuf> KatranSimulator::runSimulationInternal(
+    std::unique_ptr<folly::IOBuf> pckt) {
+  CHECK(simulatorEvb_.getEventBase()->isInEventBaseThread());
   if (!pckt) {
     LOG(ERROR) << "packet is empty";
     return nullptr;
@@ -263,6 +274,21 @@ const std::string KatranSimulator::getRealForFlow(const KatranFlow& flow) {
     return kEmptyString.data();
   }
   return getPcktDst(rpckt);
+}
+
+void KatranSimulator::affinitizeSimulatorThread() {
+  simulatorEvb_.getEventBase()->runInEventBaseThreadAndWait([]() {
+    cpu_set_t cpuSet;
+    CPU_ZERO(&cpuSet);
+    CPU_SET(0, &cpuSet);
+    pthread_t currentThread = pthread_self();
+    auto ret =
+        pthread_setaffinity_np(currentThread, sizeof(cpu_set_t), &cpuSet);
+    if (ret != 0) {
+      LOG(ERROR) << "Error while affinitizing simulator thread to CPU 0: "
+                 << ret;
+    }
+  });
 }
 
 } // namespace katran

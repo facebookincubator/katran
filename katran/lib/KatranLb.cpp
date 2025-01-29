@@ -2267,28 +2267,26 @@ std::unordered_map<uint32_t, std::string> KatranLb::getHealthcheckersDst() {
 
 std::string KatranLb::simulatePacket(const std::string& inPacket) {
   std::string result;
-  if (!progsLoaded_) {
-    LOG(ERROR) << "bpf programs are not loaded";
+  if (!initSimulator()) {
     return result;
   }
   auto inBuf = folly::IOBuf::copyBuffer(inPacket);
-  auto sim = KatranSimulator(getKatranProgFd());
-  auto outBuf = sim.runSimulation(std::move(inBuf));
+  auto outBuf = simulator_->runSimulation(std::move(inBuf));
   if (!outBuf) {
     LOG(ERROR) << "simulator failed to run simulation";
-    return result;
+  } else {
+    result = outBuf->moveToFbString().toStdString();
   }
-  result = outBuf->moveToFbString().toStdString();
   return result;
 }
 
 const std::string KatranLb::getRealForFlow(const KatranFlow& flow) {
-  if (!progsLoaded_) {
-    LOG(ERROR) << "bpf programs are not loaded";
-    return kEmptyString.data();
+  std::string result;
+  if (!initSimulator()) {
+    return result;
   }
-  auto sim = KatranSimulator(getKatranProgFd());
-  return sim.getRealForFlow(flow);
+  result = simulator_->getRealForFlow(flow);
+  return result;
 }
 
 bool KatranLb::updateVipMap(
@@ -2562,4 +2560,14 @@ void KatranLb::revalidateServerIds(const std::vector<QuicReal>& quicReals) {
     }
   }
 }
+
+bool KatranLb::initSimulator() {
+  if (!progsLoaded_) {
+    LOG(ERROR) << "bpf programs are not loaded";
+    return false;
+  }
+  simulator_ = std::make_unique<KatranSimulator>(getKatranProgFd());
+  return true;
+}
+
 } // namespace katran

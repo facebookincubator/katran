@@ -1070,6 +1070,8 @@ class KatranLb {
       const std::vector<RealPos>& chPositions,
       const uint32_t vipNum);
 
+  bool initSimulator();
+
   /**
    * main configurations of katran
    */
@@ -1217,6 +1219,8 @@ class KatranLb {
    */
 
   std::unordered_set<uint64_t> invalidServerIds_;
+
+  std::unique_ptr<KatranSimulator> simulator_;
 };
 
 } // namespace katran
