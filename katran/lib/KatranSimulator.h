@@ -59,12 +59,13 @@ class KatranSimulator final {
    */
   const std::string getRealForFlow(const KatranFlow& flow);
 
- private:
   // runSimulation takes packet (in iobuf represenation) and
   // run it through katran bpf program. It returns a modified pckt, if the
   // result was XDP_TX or nullptr otherwise.
   std::unique_ptr<folly::IOBuf> runSimulation(
       std::unique_ptr<folly::IOBuf> pckt);
+
+ private:
   int progFd_;
 };
 } // namespace katran

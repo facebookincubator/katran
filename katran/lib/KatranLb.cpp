@@ -2265,6 +2265,23 @@ std::unordered_map<uint32_t, std::string> KatranLb::getHealthcheckersDst() {
   return hcs;
 }
 
+std::string KatranLb::simulatePacket(const std::string& inPacket) {
+  std::string result;
+  if (!progsLoaded_) {
+    LOG(ERROR) << "bpf programs are not loaded";
+    return result;
+  }
+  auto inBuf = folly::IOBuf::copyBuffer(inPacket);
+  auto sim = KatranSimulator(getKatranProgFd());
+  auto outBuf = sim.runSimulation(std::move(inBuf));
+  if (!outBuf) {
+    LOG(ERROR) << "simulator failed to run simulation";
+    return result;
+  }
+  result = outBuf->moveToFbString().toStdString();
+  return result;
+}
+
 const std::string KatranLb::getRealForFlow(const KatranFlow& flow) {
   if (!progsLoaded_) {
     LOG(ERROR) << "bpf programs are not loaded";

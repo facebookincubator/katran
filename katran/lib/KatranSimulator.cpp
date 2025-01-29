@@ -215,6 +215,18 @@ KatranSimulator::~KatranSimulator() {}
 
 std::unique_ptr<folly::IOBuf> KatranSimulator::runSimulation(
     std::unique_ptr<folly::IOBuf> pckt) {
+  if (!pckt) {
+    LOG(ERROR) << "packet is empty";
+    return nullptr;
+  }
+  if (pckt->isChained()) {
+    LOG(ERROR) << "Chained buffers are not supported";
+    return nullptr;
+  }
+  if (pckt->length() > kMaxXdpPcktSize) {
+    LOG(ERROR) << "packet is too big";
+    return nullptr;
+  }
   auto rpckt = folly::IOBuf::create(kMaxXdpPcktSize);
   if (!rpckt) {
     LOG(ERROR) << "not able to allocate memory for resulting packet";
@@ -226,7 +238,7 @@ std::unique_ptr<folly::IOBuf> KatranSimulator::runSimulation(
       progFd_,
       kTestRepeatCount,
       pckt->writableData(),
-      pckt->computeChainDataLength(),
+      pckt->length(),
       rpckt->writableData(),
       &output_pckt_size,
       &prog_ret_val);

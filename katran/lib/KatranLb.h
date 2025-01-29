@@ -732,6 +732,18 @@ class KatranLb {
    */
   KatranBpfMapStats getBpfMapStats(const std::string& map);
 
+  /*
+   * @param inPacket binary data of the packet, including Ethernet header and up
+   * @return binary data of the packet after it was processed by Katran
+   *
+   * Processes given packet thru Katran BPF and returns the resulting packet.
+   * Note that while the packet is not going thru actual networking stack, it
+   * is processed by the same BPF program and affects it's state (like maps,
+   * stats, etc).
+
+   */
+  std::string simulatePacket(const std::string& inPacket);
+
   /**
    * @param KatranFlow 5 tuple which describes a flow
    * @return string address of the real.
