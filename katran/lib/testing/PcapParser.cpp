@@ -17,7 +17,6 @@
 #include "katran/lib/testing/PcapParser.h"
 
 #include <chrono>
-#include <stdexcept>
 
 #include <folly/FileUtil.h>
 #include <glog/logging.h>

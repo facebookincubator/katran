@@ -2,7 +2,6 @@
 #include "katran/lib/MonitoringServiceCore.h"
 #include <fcntl.h>
 #include <fmt/core.h>
-#include <folly/Utility.h>
 
 namespace katran {
 namespace monitoring {

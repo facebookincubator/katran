@@ -15,7 +15,6 @@
  */
 #include "katran/lib/PcapMsgMeta.h"
 #include <fmt/core.h>
-#include <folly/Utility.h>
 
 namespace katran {
 

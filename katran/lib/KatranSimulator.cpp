@@ -23,7 +23,6 @@
 #include "katran/lib/BpfAdapter.h"
 
 extern "C" {
-#include <arpa/inet.h>
 #include <linux/ipv6.h>
 #include <netinet/if_ether.h>
 #include <netinet/ip.h>

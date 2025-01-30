@@ -17,7 +17,6 @@
 #include "IpHelpers.h"
 
 #include <folly/lang/Bits.h>
-#include <stdexcept>
 
 namespace katran {
 

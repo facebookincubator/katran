@@ -15,9 +15,6 @@
  */
 #include "katran/lib/KatranEventReader.h"
 
-#include <folly/Utility.h>
-#include <unistd.h>
-
 #include "katran/lib/BalancerStructs.h"
 
 namespace katran {

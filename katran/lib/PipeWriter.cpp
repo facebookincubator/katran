@@ -2,7 +2,6 @@
 
 #include "katran/lib/PipeWriter.h"
 #include <folly/io/IOBuf.h>
-#include <unistd.h>
 #include <cstring>
 
 namespace katran {
