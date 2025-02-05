@@ -287,9 +287,9 @@ void KatranLb::initialSanityChecking(bool flowDebug, bool globalLru) {
   }
 }
 
-int KatranLb::createLruMap(int size, int flags, int numaNode) {
+int KatranLb::createLruMap(int size, int flags, int numaNode, int cpu) {
   return bpfAdapter_->createNamedBpfMap(
-      "katran_lru",
+      "katran_lru" + std::to_string(cpu),
       kBpfMapTypeLruHash,
       sizeof(struct flow_key),
       sizeof(struct real_pos_lru),
@@ -450,9 +450,7 @@ void KatranLb::attachGlobalLru(int core) {
 void KatranLb::initLrus(bool flowDebug, bool globalLru) {
   bool forwarding_cores_specified{false};
   bool numa_mapping_specified{false};
-  int lru_map_flags = 0;
-  int lru_proto_fd;
-  int res;
+
   if (forwardingCores_.size() != 0) {
     if (numaNodes_.size() != 0) {
       if (numaNodes_.size() != forwardingCores_.size()) {
@@ -461,7 +459,6 @@ void KatranLb::initLrus(bool flowDebug, bool globalLru) {
       }
       numa_mapping_specified = true;
     }
-    int lru_fd, numa_node;
     auto per_core_lru_size = config_.LruSize / forwardingCores_.size();
     VLOG(2) << "per core lru size: " << per_core_lru_size;
     for (int i = 0; i < forwardingCores_.size(); i++) {
@@ -472,13 +469,14 @@ void KatranLb::initLrus(bool flowDebug, bool globalLru) {
                    << kMaxForwardingCores << " ]";
         throw std::runtime_error("unsuported number of forwarding cores");
       }
+      int numa_node = kNoNuma;
+      int lru_map_flags = 0;
       if (numa_mapping_specified) {
         numa_node = numaNodes_[i];
-        lru_map_flags |= kMapNumaNode;
-      } else {
-        numa_node = kNoNuma;
+        lru_map_flags |= BPF_F_NUMA_NODE;
       }
-      lru_fd = createLruMap(per_core_lru_size, lru_map_flags, numa_node);
+      int lru_fd =
+          createLruMap(per_core_lru_size, lru_map_flags, numa_node, core);
       if (lru_fd < 0) {
         LOG(FATAL) << "can't creat lru for core: " << core;
         throw std::runtime_error(fmt::format(
@@ -498,6 +496,7 @@ void KatranLb::initLrus(bool flowDebug, bool globalLru) {
     forwarding_cores_specified = true;
   }
 
+  int lru_proto_fd;
   if (forwarding_cores_specified) {
     // creating prototype for main LRU's map in map
     // as we know that forwardingCores_ at least has one element
@@ -513,7 +512,7 @@ void KatranLb::initLrus(bool flowDebug, bool globalLru) {
       throw std::runtime_error("can't create prototype map for test lru");
     }
   }
-  res = bpfAdapter_->setInnerMapPrototype("lru_mapping", lru_proto_fd);
+  int res = bpfAdapter_->setInnerMapPrototype("lru_mapping", lru_proto_fd);
   if (res < 0) {
     throw std::runtime_error(fmt::format(
         "can't update inner_maps_fds w/ prototype for main lru, error: {}",

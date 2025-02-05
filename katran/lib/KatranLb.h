@@ -72,7 +72,6 @@ constexpr uint32_t kIcmpPtbV4Offset = 13;
  */
 constexpr int kFallbackLruSize = 1024;
 constexpr int kMapNoFlags = 0;
-constexpr int kMapNumaNode = 4;
 constexpr int kNoNuma = -1;
 
 constexpr uint8_t V6DADDR = 1;
@@ -967,7 +966,8 @@ class KatranLb {
   int createLruMap(
       int size = kFallbackLruSize,
       int flags = kMapNoFlags,
-      int numaNode = kNoNuma);
+      int numaNode = kNoNuma,
+      int cpu = 0);
 
   /**
    * helper function to creat LRU map w/ specified size.
