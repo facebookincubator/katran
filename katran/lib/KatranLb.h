@@ -753,6 +753,20 @@ class KatranLb {
    */
   const std::string getRealForFlow(const KatranFlow& flow);
 
+  struct LruEntry {
+    std::string realAddress;
+    uint32_t realPos{0};
+    uint64_t atime{0};
+    int64_t atime_delta_sec{0};
+    std::string sourceMap;
+  };
+  using LruEntries = std::vector<LruEntry>;
+  /**
+   * Search for LRU entry in all per-CPU and fallback LRU maps.
+   */
+  LruEntries
+  searchLru(const VipKey& dstVip, const std::string& srcIp, uint16_t srcPort);
+
   /**
    * @param src ip address of the src
    * @return true is the update is successful
@@ -1071,6 +1085,8 @@ class KatranLb {
       const uint32_t vipNum);
 
   bool initSimulator();
+
+  std::optional<LruEntry> lookupLruMap(int mapFd, flow_key& key);
 
   /**
    * main configurations of katran

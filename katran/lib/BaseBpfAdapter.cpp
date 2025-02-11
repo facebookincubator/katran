@@ -892,4 +892,13 @@ void BaseBpfAdapter::setPrintBpfDbgFlag(bool flag) {
   flagPrintBpfDbg = flag;
 }
 
+int64_t BaseBpfAdapter::getKtimeNs() {
+  struct timespec ts;
+  if (clock_gettime(CLOCK_BOOTTIME, &ts) == 0) {
+    return static_cast<int64_t>(ts.tv_sec) * 1'000'000'000 + ts.tv_nsec;
+  } else {
+    return -1;
+  }
+}
+
 } // namespace katran

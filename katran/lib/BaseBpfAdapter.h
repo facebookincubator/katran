@@ -664,6 +664,11 @@ class BaseBpfAdapter {
       const std::string& path,
       const std::string& mapName);
 
+  /**
+   * Returns nanosec count since boot, same as bpf_ktime_get_ns
+   */
+  static int64_t getKtimeNs();
+
  protected:
   /**
    * helper function to modify (add/delete/replace) tc's bpf prog.
