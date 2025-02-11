@@ -767,6 +767,13 @@ class KatranLb {
   LruEntries
   searchLru(const VipKey& dstVip, const std::string& srcIp, uint16_t srcPort);
 
+  /*
+   * Delete given 5 tuple from all per-CPU and fallback LRU maps.
+   * Returns list of maps where the entry was deleted.
+   */
+  std::vector<std::string>
+  deleteLru(const VipKey& dstVip, const std::string& srcIp, uint16_t srcPort);
+
   /**
    * @param src ip address of the src
    * @return true is the update is successful
@@ -1087,6 +1094,11 @@ class KatranLb {
   bool initSimulator();
 
   std::optional<LruEntry> lookupLruMap(int mapFd, flow_key& key);
+
+  static std::optional<flow_key> flowKeyFromParams(
+      const VipKey& dstVip,
+      const std::string& srcIp,
+      uint16_t srcPort);
 
   /**
    * main configurations of katran

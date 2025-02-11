@@ -2295,34 +2295,11 @@ KatranLb::LruEntries KatranLb::searchLru(
     uint16_t srcPort) {
   LruEntries lruEntries;
 
-  flow_key key = {};
-
-  auto vip = folly::IPAddress::tryFromString(dstVip.address);
-  if (!vip) {
-    LOG(ERROR) << "Invalid vip address: " << dstVip.address;
+  auto maybeKey = flowKeyFromParams(dstVip, srcIp, srcPort);
+  if (!maybeKey) {
     return lruEntries;
   }
-  auto beAddr = IpHelpers::parseAddrToBe(*vip);
-  if (vip->isV4()) {
-    key.dst = beAddr.daddr;
-  } else {
-    memcpy(key.dstv6, beAddr.v6daddr, sizeof(key.dstv6));
-  }
-  key.port16[1] = htons(dstVip.port);
-
-  auto src = folly::IPAddress::tryFromString(srcIp);
-  if (!src) {
-    LOG(ERROR) << "Invalid src address: " << srcIp;
-    return lruEntries;
-  }
-  auto beSrcAddr = IpHelpers::parseAddrToBe(*src);
-  if (src->isV4()) {
-    key.src = beSrcAddr.daddr;
-  } else {
-    memcpy(key.srcv6, beSrcAddr.v6daddr, sizeof(key.srcv6));
-  }
-  key.port16[0] = htons(srcPort);
-  key.proto = dstVip.proto;
+  flow_key key = *maybeKey;
 
   for (int cpu = 0; cpu < lruMapsFd_.size(); cpu++) {
     int mapFd = lruMapsFd_[cpu];
@@ -2347,10 +2324,10 @@ KatranLb::LruEntries KatranLb::searchLru(
     LOG(ERROR) << "LRU fallback cache map not found";
   }
 
-  int64_t current_time_ns = BpfAdapter::getKtimeNs();
+  int64_t currentTimeNs = BpfAdapter::getKtimeNs();
   for (auto& entry : lruEntries) {
     if (entry.atime > 0) {
-      entry.atime_delta_sec = (current_time_ns - entry.atime) / 1000000000;
+      entry.atime_delta_sec = (currentTimeNs - entry.atime) / 1000000000;
     }
   }
   return lruEntries;
@@ -2382,6 +2359,84 @@ std::optional<KatranLb::LruEntry> KatranLb::lookupLruMap(
     }
   }
   return entry;
+}
+
+std::optional<flow_key> KatranLb::flowKeyFromParams(
+    const VipKey& dstVip,
+    const std::string& srcIp,
+    uint16_t srcPort) {
+  flow_key key = {};
+
+  auto vip = folly::IPAddress::tryFromString(dstVip.address);
+  if (!vip) {
+    LOG(ERROR) << "Invalid vip address: " << dstVip.address;
+    return std::nullopt;
+  }
+  auto beAddr = IpHelpers::parseAddrToBe(*vip);
+  if (vip->isV4()) {
+    key.dst = beAddr.daddr;
+  } else {
+    memcpy(key.dstv6, beAddr.v6daddr, sizeof(key.dstv6));
+  }
+  key.port16[1] = htons(dstVip.port);
+
+  auto src = folly::IPAddress::tryFromString(srcIp);
+  if (!src) {
+    LOG(ERROR) << "Invalid src address: " << srcIp;
+    return std::nullopt;
+  }
+  auto beSrcAddr = IpHelpers::parseAddrToBe(*src);
+  if (src->isV4()) {
+    key.src = beSrcAddr.daddr;
+  } else {
+    memcpy(key.srcv6, beSrcAddr.v6daddr, sizeof(key.srcv6));
+  }
+  key.port16[0] = htons(srcPort);
+  key.proto = dstVip.proto;
+  return key;
+}
+
+std::vector<std::string> KatranLb::deleteLru(
+    const VipKey& dstVip,
+    const std::string& srcIp,
+    uint16_t srcPort) {
+  std::vector<std::string> mapsWithDeletions;
+  auto maybeKey = flowKeyFromParams(dstVip, srcIp, srcPort);
+  if (!maybeKey) {
+    return mapsWithDeletions;
+  }
+  flow_key key = *maybeKey;
+  for (int cpu = 0; cpu < lruMapsFd_.size(); cpu++) {
+    int mapFd = lruMapsFd_[cpu];
+    if (mapFd <= 0) {
+      continue;
+    }
+    int res = bpfAdapter_->bpfMapDeleteElement(mapFd, &key);
+    if (res == 0) {
+      mapsWithDeletions.push_back("cpu" + std::to_string(cpu));
+    } else {
+      if (errno != ENOENT) {
+        // ENOENT is expected in case there is no entry in the lru map
+        LOG(ERROR) << "Error while querying lru map: " << errno;
+      }
+    }
+  }
+
+  int fallbackMapFd = bpfAdapter_->getMapFdByName("fallback_cache");
+  if (fallbackMapFd > 0) {
+    int res = bpfAdapter_->bpfMapDeleteElement(fallbackMapFd, &key);
+    if (res == 0) {
+      mapsWithDeletions.push_back("fallback");
+    } else {
+      if (errno != ENOENT) {
+        // ENOENT is expected in case there is no entry in the lru map
+        LOG(ERROR) << "Error while querying lru map: " << errno;
+      }
+    }
+  } else {
+    LOG(ERROR) << "LRU fallback cache map not found";
+  }
+  return mapsWithDeletions;
 }
 
 bool KatranLb::updateVipMap(
