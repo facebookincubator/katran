@@ -236,22 +236,22 @@ void KatranLb::initialSanityChecking(bool flowDebug, bool globalLru) {
 
   std::vector<std::string> maps;
 
-  maps.push_back("ctl_array");
-  maps.push_back("vip_map");
-  maps.push_back("ch_rings");
-  maps.push_back("reals");
-  maps.push_back("stats");
-  maps.push_back("lru_mapping");
-  maps.push_back("server_id_map");
-  maps.push_back("lru_miss_stats");
-  maps.push_back("vip_miss_stats");
+  maps.push_back(KatranLbMaps::ctl_array);
+  maps.push_back(KatranLbMaps::vip_map);
+  maps.push_back(KatranLbMaps::ch_rings);
+  maps.push_back(KatranLbMaps::reals);
+  maps.push_back(KatranLbMaps::stats);
+  maps.push_back(KatranLbMaps::lru_mapping);
+  maps.push_back(KatranLbMaps::server_id_map);
+  maps.push_back(KatranLbMaps::lru_miss_stats);
+  maps.push_back(KatranLbMaps::vip_miss_stats);
 
   if (flowDebug) {
-    maps.push_back(kFlowDebugParentMapName.data());
+    maps.push_back(KatranLbMaps::flow_debug_maps);
   }
 
   if (globalLru) {
-    maps.push_back(kGlobalLruMapName.data());
+    maps.push_back(KatranLbMaps::global_lru_maps);
   }
 
   res = getKatranProgFd();
@@ -270,9 +270,9 @@ void KatranLb::initialSanityChecking(bool flowDebug, bool globalLru) {
           kHealthcheckerProgName,
           folly::errnoStr(errno)));
     }
-    maps.push_back("hc_ctrl_map");
-    maps.push_back("hc_reals_map");
-    maps.push_back("hc_stats_map");
+    maps.push_back(KatranLbMaps::hc_ctrl_map);
+    maps.push_back(KatranLbMaps::hc_reals_map);
+    maps.push_back(KatranLbMaps::hc_stats_map);
   }
 
   // some sanity checking. we will check that all maps exists, so in later
@@ -290,7 +290,7 @@ void KatranLb::initialSanityChecking(bool flowDebug, bool globalLru) {
 
 int KatranLb::createLruMap(int size, int flags, int numaNode, int cpu) {
   return bpfAdapter_->createNamedBpfMap(
-      "katran_lru" + std::to_string(cpu),
+      KatranLbMaps::katran_lru + std::to_string(cpu),
       kBpfMapTypeLruHash,
       sizeof(struct flow_key),
       sizeof(struct real_pos_lru),
@@ -307,7 +307,7 @@ void KatranLb::initFlowDebugMapForCore(
   int lru_fd;
   VLOG(3) << "Creating flow debug lru for core " << core;
   lru_fd = bpfAdapter_->createNamedBpfMap(
-      kFlowDebugCpuLruName.data(),
+      KatranLbMaps::flow_debug_lru,
       kBpfMapTypeLruHash,
       sizeof(struct flow_key),
       sizeof(struct flow_debug_info),
@@ -331,7 +331,7 @@ void KatranLb::initFlowDebugPrototypeMap() {
   } else {
     VLOG(3) << "Creating generic flow debug lru";
     flow_proto_fd = bpfAdapter_->createNamedBpfMap(
-        kFlowDebugCpuLruName.data(),
+        KatranLbMaps::flow_debug_lru,
         kBpfMapTypeLruHash,
         sizeof(struct flow_key),
         sizeof(struct flow_debug_info),
@@ -344,7 +344,7 @@ void KatranLb::initFlowDebugPrototypeMap() {
         "can't create LRU prototype, error: {}", folly::errnoStr(errno)));
   }
   res = bpfAdapter_->setInnerMapPrototype(
-      kFlowDebugParentMapName.data(), flow_proto_fd);
+      KatranLbMaps::flow_debug_maps, flow_proto_fd);
   if (res < 0) {
     throw std::runtime_error(fmt::format(
         "can't update inner_maps_fds w/ prototype for main lru, error: {}",
@@ -362,7 +362,7 @@ void KatranLb::attachFlowDebugLru(int core) {
         fmt::format("Invalid FD found for core {}: {}", core, map_fd));
   }
   res = bpfAdapter_->bpfUpdateMap(
-      bpfAdapter_->getMapFdByName(kFlowDebugParentMapName.data()),
+      bpfAdapter_->getMapFdByName(KatranLbMaps::flow_debug_maps),
       &key,
       &map_fd);
   if (res < 0) {
@@ -382,7 +382,7 @@ void KatranLb::initGlobalLruMapForCore(
   int lru_fd;
   VLOG(3) << "Creating global lru for core " << core;
   lru_fd = bpfAdapter_->createNamedBpfMap(
-      kGlobalLruPerCpuName.data(),
+      KatranLbMaps::global_lru,
       kBpfMapTypeLruHash,
       sizeof(struct flow_key),
       sizeof(uint32_t),
@@ -407,7 +407,7 @@ void KatranLb::initGlobalLruPrototypeMap() {
   } else {
     VLOG(3) << "Creating generic flow debug lru";
     proto_fd = bpfAdapter_->createNamedBpfMap(
-        kGlobalLruPerCpuName.data(),
+        KatranLbMaps::global_lru,
         kBpfMapTypeLruHash,
         sizeof(struct flow_key),
         sizeof(uint32_t),
@@ -420,8 +420,8 @@ void KatranLb::initGlobalLruPrototypeMap() {
         "can't create global LRU prototype, error: {}",
         folly::errnoStr(errno)));
   }
-  int res =
-      bpfAdapter_->setInnerMapPrototype(kGlobalLruMapName.data(), proto_fd);
+  int res = bpfAdapter_->setInnerMapPrototype(
+      KatranLbMaps::global_lru_maps, proto_fd);
   if (res < 0) {
     throw std::runtime_error(fmt::format(
         "can't update inner_maps_fds w/ prototype for global lru, error: {}",
@@ -439,7 +439,9 @@ void KatranLb::attachGlobalLru(int core) {
         fmt::format("Invalid FD found for core {}: {}", core, map_fd));
   }
   int res = bpfAdapter_->bpfUpdateMap(
-      bpfAdapter_->getMapFdByName(kGlobalLruMapName.data()), &key, &map_fd);
+      bpfAdapter_->getMapFdByName(KatranLbMaps::global_lru_maps),
+      &key,
+      &map_fd);
   if (res < 0) {
     throw std::runtime_error(fmt::format(
         "can't attach global lru to forwarding core, error: {}",
@@ -513,7 +515,8 @@ void KatranLb::initLrus(bool flowDebug, bool globalLru) {
       throw std::runtime_error("can't create prototype map for test lru");
     }
   }
-  int res = bpfAdapter_->setInnerMapPrototype("lru_mapping", lru_proto_fd);
+  int res = bpfAdapter_->setInnerMapPrototype(
+      KatranLbMaps::lru_mapping, lru_proto_fd);
   if (res < 0) {
     throw std::runtime_error(fmt::format(
         "can't update inner_maps_fds w/ prototype for main lru, error: {}",
@@ -530,7 +533,7 @@ void KatranLb::attachLrus(bool flowDebug, bool globalLru) {
     key = core;
     map_fd = lruMapsFd_[core];
     res = bpfAdapter_->bpfUpdateMap(
-        bpfAdapter_->getMapFdByName("lru_mapping"), &key, &map_fd);
+        bpfAdapter_->getMapFdByName(KatranLbMaps::lru_mapping), &key, &map_fd);
     if (res < 0) {
       throw std::runtime_error(fmt::format(
           "can't attach lru to forwarding core, error: {}",
@@ -545,7 +548,8 @@ void KatranLb::attachLrus(bool flowDebug, bool globalLru) {
   }
 
   if (globalLru) {
-    globalLruFallbackFd_ = bpfAdapter_->getMapFdByName("fallback_glru");
+    globalLruFallbackFd_ =
+        bpfAdapter_->getMapFdByName(KatranLbMaps::fallback_glru);
   }
 }
 
@@ -559,7 +563,7 @@ void KatranLb::setupGueEnvironment() {
         IpHelpers::parseAddrToBe(folly::IPAddress(config_.katranSrcV4));
     uint32_t key = kSrcV4Pos;
     auto res = bpfAdapter_->bpfUpdateMap(
-        bpfAdapter_->getMapFdByName("pckt_srcs"), &key, &srcv4);
+        bpfAdapter_->getMapFdByName(KatranLbMaps::pckt_srcs), &key, &srcv4);
     if (res < 0) {
       throw std::runtime_error("can not update src v4 address for GUE packet");
     } else {
@@ -574,7 +578,7 @@ void KatranLb::setupGueEnvironment() {
         IpHelpers::parseAddrToBe(folly::IPAddress(config_.katranSrcV6));
     auto key = kSrcV6Pos;
     auto res = bpfAdapter_->bpfUpdateMap(
-        bpfAdapter_->getMapFdByName("pckt_srcs"), &key, &srcv6);
+        bpfAdapter_->getMapFdByName(KatranLbMaps::pckt_srcs), &key, &srcv6);
     if (res < 0) {
       throw std::runtime_error("can not update src v6 address for GUE packet");
     } else {
@@ -587,7 +591,7 @@ void KatranLb::setupGueEnvironment() {
 }
 
 void KatranLb::setupHcEnvironment() {
-  auto map_fd = bpfAdapter_->getMapFdByName("hc_pckt_srcs_map");
+  auto map_fd = bpfAdapter_->getMapFdByName(KatranLbMaps::hc_pckt_srcs_map);
   if (config_.katranSrcV4.empty() && config_.katranSrcV6.empty()) {
     throw std::runtime_error(
         "No source address provided for direct healthchecking");
@@ -634,7 +638,7 @@ void KatranLb::setupHcEnvironment() {
   }
   for (auto position : {kHcSrcMacPos, kHcDstMacPos}) {
     auto res = bpfAdapter_->bpfUpdateMap(
-        bpfAdapter_->getMapFdByName("hc_pckt_macs"),
+        bpfAdapter_->getMapFdByName(KatranLbMaps::hc_pckt_macs),
         &position,
         &macs[position]);
     if (res < 0) {
@@ -648,7 +652,9 @@ bool KatranLb::addSrcIpForPcktEncap(const folly::IPAddress& src) {
   uint32_t key = src.isV4() ? kSrcV4Pos : kSrcV6Pos;
   // update map for hc_pckt_src
   auto res = bpfAdapter_->bpfUpdateMap(
-      bpfAdapter_->getMapFdByName("hc_pckt_srcs_map"), &key, &srcBe);
+      bpfAdapter_->getMapFdByName(KatranLbMaps::hc_pckt_srcs_map),
+      &key,
+      &srcBe);
   if (res) {
     LOG(ERROR) << "cannot insert src address in map: hc_pckt_srcs_map";
     return false;
@@ -656,7 +662,7 @@ bool KatranLb::addSrcIpForPcktEncap(const folly::IPAddress& src) {
   VLOG(3) << "Successfully updated hc_pckt_srcs_map with ip: " << src.str();
 
   res = bpfAdapter_->bpfUpdateMap(
-      bpfAdapter_->getMapFdByName("pckt_srcs"), &key, &srcBe);
+      bpfAdapter_->getMapFdByName(KatranLbMaps::pckt_srcs), &key, &srcBe);
   if (res) {
     LOG(ERROR) << "cannot insert src address in map: pckt_srcs";
     return false;
@@ -677,32 +683,36 @@ void KatranLb::enableRecirculation() {
 }
 
 void KatranLb::featureDiscovering() {
-  if (bpfAdapter_->isMapInProg(kBalancerProgName.toString(), "lpm_src_v4")) {
+  if (bpfAdapter_->isMapInProg(
+          kBalancerProgName.toString(), KatranLbMaps::lpm_src_v4)) {
     VLOG(2) << "source based routing is supported";
     features_.srcRouting = true;
   } else {
     features_.srcRouting = false;
   }
-  if (bpfAdapter_->isMapInProg(kBalancerProgName.toString(), "decap_dst")) {
+  if (bpfAdapter_->isMapInProg(
+          kBalancerProgName.toString(), KatranLbMaps::decap_dst)) {
     VLOG(2) << "inline decapsulation is supported";
     features_.inlineDecap = true;
   } else {
     features_.inlineDecap = false;
   }
-  if (bpfAdapter_->isMapInProg(kBalancerProgName.toString(), "event_pipe")) {
+  if (bpfAdapter_->isMapInProg(
+          kBalancerProgName.toString(), KatranLbMaps::event_pipe)) {
     VLOG(2) << "katran introspection is enabled";
     features_.introspection = true;
   } else {
     features_.introspection = false;
   }
-  if (bpfAdapter_->isMapInProg(kBalancerProgName.toString(), "pckt_srcs")) {
+  if (bpfAdapter_->isMapInProg(
+          kBalancerProgName.toString(), KatranLbMaps::pckt_srcs)) {
     VLOG(2) << "GUE encapsulation is enabled";
     features_.gueEncap = true;
   } else {
     features_.gueEncap = false;
   }
   if (bpfAdapter_->isMapInProg(
-          kHealthcheckerProgName.toString(), "hc_pckt_srcs_map")) {
+          kHealthcheckerProgName.toString(), KatranLbMaps::hc_pckt_srcs_map)) {
     VLOG(2) << "Direct healthchecking is enabled";
     features_.directHealthchecking = true;
   } else {
@@ -710,7 +720,7 @@ void KatranLb::featureDiscovering() {
   }
 
   if (bpfAdapter_->isMapInProg(
-          kBalancerProgName.toString(), kFlowDebugParentMapName.data())) {
+          kBalancerProgName.toString(), KatranLbMaps::flow_debug_maps)) {
     VLOG(2) << "Flow debug is enabled";
     features_.flowDebug = true;
   } else {
@@ -721,7 +731,7 @@ void KatranLb::featureDiscovering() {
 void KatranLb::startIntrospectionRoutines() {
   auto monitor_config = config_.monitorConfig;
   monitor_config.nCpus = katran::BpfAdapter::getPossibleCpus();
-  monitor_config.mapFd = bpfAdapter_->getMapFdByName("event_pipe");
+  monitor_config.mapFd = bpfAdapter_->getMapFdByName(KatranLbMaps::event_pipe);
   monitor_ = std::make_shared<KatranMonitor>(monitor_config);
 }
 
@@ -731,9 +741,9 @@ void KatranLb::loadBpfProgs() {
   bool globalLruInProg = false;
 
   flowDebugInProg = bpfAdapter_->isMapInBpfObject(
-      config_.balancerProgPath, kFlowDebugParentMapName.data());
+      config_.balancerProgPath, KatranLbMaps::flow_debug_maps);
   globalLruInProg = bpfAdapter_->isMapInBpfObject(
-      config_.balancerProgPath, kGlobalLruMapName.data());
+      config_.balancerProgPath, KatranLbMaps::global_lru_maps);
   initLrus(flowDebugInProg, globalLruInProg);
   if (flowDebugInProg) {
     initFlowDebugPrototypeMap();
@@ -771,7 +781,7 @@ void KatranLb::loadBpfProgs() {
 
   for (auto ctl_key : balancer_ctl_keys) {
     res = bpfAdapter_->bpfUpdateMap(
-        bpfAdapter_->getMapFdByName("ctl_array"),
+        bpfAdapter_->getMapFdByName(KatranLbMaps::ctl_array),
         &ctl_key,
         &ctlValues_[ctl_key]);
 
@@ -790,7 +800,7 @@ void KatranLb::loadBpfProgs() {
     }
     for (auto ctl_key : hc_ctl_keys) {
       res = bpfAdapter_->bpfUpdateMap(
-          bpfAdapter_->getMapFdByName("hc_ctrl_map"),
+          bpfAdapter_->getMapFdByName(KatranLbMaps::hc_ctrl_map),
           &ctl_key,
           &ctlValues_[ctl_key].ifindex);
 
@@ -816,7 +826,9 @@ void KatranLb::loadBpfProgs() {
   memset(&vip_def, 0, sizeof(vip_definition));
   uint32_t key = 0;
   res = bpfAdapter_->bpfUpdateMap(
-      bpfAdapter_->getMapFdByName("vip_miss_stats"), &key, &vip_def);
+      bpfAdapter_->getMapFdByName(KatranLbMaps::vip_miss_stats),
+      &key,
+      &vip_def);
   if (res) {
     LOG(ERROR) << "can't update lru miss stat vip, error: "
                << folly::errnoStr(errno);
@@ -839,9 +851,9 @@ bool KatranLb::reloadBalancerProg(
   config_.balancerProgPath = path;
 
   bool flowDebugInProg =
-      bpfAdapter_->isMapInBpfObject(path, kFlowDebugParentMapName.data());
+      bpfAdapter_->isMapInBpfObject(path, KatranLbMaps::flow_debug_maps);
   bool globalLruInProg =
-      bpfAdapter_->isMapInBpfObject(path, kGlobalLruMapName.data());
+      bpfAdapter_->isMapInBpfObject(path, KatranLbMaps::global_lru_maps);
   initialSanityChecking(flowDebugInProg, globalLruInProg);
   featureDiscovering();
 
@@ -931,7 +943,7 @@ bool KatranLb::changeMac(const std::vector<uint8_t> newMac) {
   }
   if (!config_.testing) {
     auto res = bpfAdapter_->bpfUpdateMap(
-        bpfAdapter_->getMapFdByName("ctl_array"),
+        bpfAdapter_->getMapFdByName(KatranLbMaps::ctl_array),
         &key,
         &ctlValues_[kMacAddrPos].mac);
     if (res != 0) {
@@ -943,7 +955,7 @@ bool KatranLb::changeMac(const std::vector<uint8_t> newMac) {
     if (features_.directHealthchecking) {
       key = kHcDstMacPos;
       auto res_2 = bpfAdapter_->bpfUpdateMap(
-          bpfAdapter_->getMapFdByName("hc_pckt_macs"),
+          bpfAdapter_->getMapFdByName(KatranLbMaps::hc_pckt_macs),
           &key,
           &ctlValues_[kMacAddrPos].mac);
       if (res_2 != 0) {
@@ -1259,7 +1271,7 @@ void KatranLb::programHashRing(
     uint32_t keys[updateSize];
     uint32_t values[updateSize];
 
-    auto ch_fd = bpfAdapter_->getMapFdByName("ch_rings");
+    auto ch_fd = bpfAdapter_->getMapFdByName(KatranLbMaps::ch_rings);
     for (uint32_t i = 0; i < updateSize; i++) {
       keys[i] = vipNum * config_.chRingSize + chPositions[i].pos;
       values[i] = chPositions[i].real;
@@ -1479,7 +1491,7 @@ bool KatranLb::changeKatranMonitorForwardingState(KatranMonitorState state) {
       break;
   }
   auto res = bpfAdapter_->bpfUpdateMap(
-      bpfAdapter_->getMapFdByName("ctl_array"), &key, &value);
+      bpfAdapter_->getMapFdByName(KatranLbMaps::ctl_array), &key, &value);
   if (res != 0) {
     LOG(INFO) << "can't change state of introspection forwarding plane";
     lbStats_.bpfFailedCalls++;
@@ -1661,7 +1673,7 @@ bool KatranLb::modifyDecapDst(
   auto addr = IpHelpers::parseAddrToBe(dst);
   if (action == ModifyAction::ADD) {
     auto res = bpfAdapter_->bpfUpdateMap(
-        bpfAdapter_->getMapFdByName("decap_dst"), &addr, &flags);
+        bpfAdapter_->getMapFdByName(KatranLbMaps::decap_dst), &addr, &flags);
     if (res != 0) {
       LOG(ERROR) << "error while adding dst for inline decap " << dst
                  << ", error: " << folly::errnoStr(errno);
@@ -1670,7 +1682,7 @@ bool KatranLb::modifyDecapDst(
     }
   } else {
     auto res = bpfAdapter_->bpfMapDeleteElement(
-        bpfAdapter_->getMapFdByName("decap_dst"), &addr);
+        bpfAdapter_->getMapFdByName(KatranLbMaps::decap_dst), &addr);
     if (res != 0) {
       LOG(ERROR) << "error while deleting dst for inline decap " << dst
                  << ", error: " << folly::errnoStr(errno);
@@ -1743,7 +1755,8 @@ void KatranLb::modifyQuicRealsMapping(
     }
   }
   if (!config_.testing) {
-    auto server_id_map_fd = bpfAdapter_->getMapFdByName("server_id_map");
+    auto server_id_map_fd =
+        bpfAdapter_->getMapFdByName(KatranLbMaps::server_id_map);
     uint32_t id, rnum;
     int res;
     for (auto& mapping : to_update) {
@@ -1822,7 +1835,9 @@ uint64_t KatranLb::getPacketsProcessedForHcKey(const VipKey& hcKey) {
 
   if (!config_.testing) {
     auto res = bpfAdapter_->bpfMapLookupElement(
-        bpfAdapter_->getMapFdByName("per_hckey_stats"), &hcKeyId, stats);
+        bpfAdapter_->getMapFdByName(KatranLbMaps::per_hckey_stats),
+        &hcKeyId,
+        stats);
     if (!res) {
       for (auto& stat : stats) {
         sum_stat += stat;
@@ -1845,7 +1860,9 @@ bool KatranLb::logVipLruMissStats(VipKey& vip) {
   vip_definition vip_def = vipKeyToVipDefinition(vip);
   uint32_t vip_key = 0;
   auto res = bpfAdapter_->bpfUpdateMap(
-      bpfAdapter_->getMapFdByName("vip_miss_stats"), &vip_key, &vip_def);
+      bpfAdapter_->getMapFdByName(KatranLbMaps::vip_miss_stats),
+      &vip_key,
+      &vip_def);
   if (res != 0) {
     LOG(ERROR) << "can't update lru miss stat vip, error: "
                << folly::errnoStr(errno);
@@ -1853,7 +1870,7 @@ bool KatranLb::logVipLruMissStats(VipKey& vip) {
     return false;
   }
 
-  int fd = bpfAdapter_->getMapFdByName("lru_miss_stats");
+  int fd = bpfAdapter_->getMapFdByName(KatranLbMaps::lru_miss_stats);
   if (fd < 0) {
     LOG(ERROR) << "Unable to get fd for lru_miss_stats";
     return false;
@@ -1906,7 +1923,7 @@ std::unordered_map<std::string, int32_t> KatranLb::getVipLruMissStats(
   uint64_t value[nr_cpus];
   for (uint32_t i = 0; i < reals_ids.size(); i++) {
     uint32_t key = reals_ids[i];
-    int fd = bpfAdapter_->getMapFdByName("lru_miss_stats");
+    int fd = bpfAdapter_->getMapFdByName(KatranLbMaps::lru_miss_stats);
     auto res = bpfAdapter_->bpfMapLookupElement(fd, &key, value);
     if (res) {
       lbStats_.bpfFailedCalls++;
@@ -2112,7 +2129,7 @@ std::vector<int64_t> KatranLb::getPerCorePacketsStats() {
   std::vector<int64_t> corePackets(nr_cpus, 0);
   lb_stats stats[nr_cpus];
 
-  auto fd = bpfAdapter_->getMapFdByName("stats");
+  auto fd = bpfAdapter_->getMapFdByName(KatranLbMaps::stats);
 
   for (const auto& [_, vip] : vips_) {
     uint32_t num = vip.getVipNum();
@@ -2152,7 +2169,9 @@ HealthCheckProgStats KatranLb::getStatsForHealthCheckProgram() {
   HealthCheckProgStats total_stats = {};
   if (!config_.testing) {
     auto res = bpfAdapter_->bpfMapLookupElement(
-        bpfAdapter_->getMapFdByName("hc_stats_map"), &stats_index, stats);
+        bpfAdapter_->getMapFdByName(KatranLbMaps::hc_stats_map),
+        &stats_index,
+        stats);
     if (res) {
       lbStats_.bpfFailedCalls++;
     } else {
@@ -2217,7 +2236,7 @@ bool KatranLb::addHealthcheckerDst(
   }
   if (!config_.testing) {
     auto res = bpfAdapter_->bpfUpdateMap(
-        bpfAdapter_->getMapFdByName("hc_reals_map"), &key, &addr);
+        bpfAdapter_->getMapFdByName(KatranLbMaps::hc_reals_map), &key, &addr);
     if (res != 0) {
       LOG(INFO) << "can't add new real for healthchecking, error: "
                 << folly::errnoStr(errno);
@@ -2244,7 +2263,7 @@ bool KatranLb::delHealthcheckerDst(const uint32_t somark) {
   }
   if (!config_.testing) {
     auto res = bpfAdapter_->bpfMapDeleteElement(
-        bpfAdapter_->getMapFdByName("hc_reals_map"), &key);
+        bpfAdapter_->getMapFdByName(KatranLbMaps::hc_reals_map), &key);
     if (res) {
       LOG(INFO) << "can't remove hc w/ somark: " << key
                 << ", error: " << folly::errnoStr(errno);
@@ -2313,7 +2332,7 @@ KatranLb::LruEntries KatranLb::searchLru(
     }
   }
 
-  int fallbackMapFd = bpfAdapter_->getMapFdByName("fallback_cache");
+  int fallbackMapFd = bpfAdapter_->getMapFdByName(KatranLbMaps::fallback_cache);
   if (fallbackMapFd > 0) {
     auto maybeEntry = lookupLruMap(fallbackMapFd, key);
     if (maybeEntry) {
@@ -2422,7 +2441,7 @@ std::vector<std::string> KatranLb::deleteLru(
     }
   }
 
-  int fallbackMapFd = bpfAdapter_->getMapFdByName("fallback_cache");
+  int fallbackMapFd = bpfAdapter_->getMapFdByName(KatranLbMaps::fallback_cache);
   if (fallbackMapFd > 0) {
     int res = bpfAdapter_->bpfMapDeleteElement(fallbackMapFd, &key);
     if (res == 0) {
@@ -2446,7 +2465,7 @@ bool KatranLb::updateVipMap(
   vip_definition vip_def = vipKeyToVipDefinition(vip);
   if (action == ModifyAction::ADD) {
     auto res = bpfAdapter_->bpfUpdateMap(
-        bpfAdapter_->getMapFdByName("vip_map"), &vip_def, meta);
+        bpfAdapter_->getMapFdByName(KatranLbMaps::vip_map), &vip_def, meta);
     if (res != 0) {
       LOG(INFO) << "can't add new element into vip_map, error: "
                 << folly::errnoStr(errno);
@@ -2455,7 +2474,7 @@ bool KatranLb::updateVipMap(
     }
   } else {
     auto res = bpfAdapter_->bpfMapDeleteElement(
-        bpfAdapter_->getMapFdByName("vip_map"), &vip_def);
+        bpfAdapter_->getMapFdByName(KatranLbMaps::vip_map), &vip_def);
     if (res != 0) {
       LOG(INFO) << "can't delete element from vip_map, error: "
                 << folly::errnoStr(errno);
@@ -2474,7 +2493,9 @@ bool KatranLb::updateHcKeyMap(
 
   if (action == ModifyAction::ADD) {
     auto res = bpfAdapter_->bpfUpdateMap(
-        bpfAdapter_->getMapFdByName("hc_key_map"), &hc_key_def, &hcKeyId);
+        bpfAdapter_->getMapFdByName(KatranLbMaps::hc_key_map),
+        &hc_key_def,
+        &hcKeyId);
     if (res != 0) {
       LOG(INFO) << "can't add new element into hc_key_map, error: "
                 << folly::errnoStr(errno);
@@ -2483,7 +2504,7 @@ bool KatranLb::updateHcKeyMap(
     }
   } else {
     auto res = bpfAdapter_->bpfMapDeleteElement(
-        bpfAdapter_->getMapFdByName("hc_key_map"), &hc_key_def);
+        bpfAdapter_->getMapFdByName(KatranLbMaps::hc_key_map), &hc_key_def);
     if (res != 0) {
       LOG(INFO) << "can't delete element from hc_key_map, error: "
                 << folly::errnoStr(errno);
@@ -2668,7 +2689,8 @@ lb_stats KatranLb::getSidRoutingStatsForVip(const VipKey& vip) {
 }
 
 void KatranLb::invalidateServerIds(const std::vector<int32_t>& serverIds) {
-  auto server_id_map_fd = bpfAdapter_->getMapFdByName("server_id_map");
+  auto server_id_map_fd =
+      bpfAdapter_->getMapFdByName(KatranLbMaps::server_id_map);
   for (auto serverId : serverIds) {
     LOG(ERROR) << "Invalidate the server id " << serverId
                << " in server_id_map";
@@ -2691,7 +2713,8 @@ void KatranLb::invalidateServerIds(const std::vector<int32_t>& serverIds) {
 }
 
 void KatranLb::revalidateServerIds(const std::vector<QuicReal>& quicReals) {
-  auto server_id_map_fd = bpfAdapter_->getMapFdByName("server_id_map");
+  auto server_id_map_fd =
+      bpfAdapter_->getMapFdByName(KatranLbMaps::server_id_map);
   for (auto [real, serverId] : quicReals) {
     int realIndex = getIndexForReal(real);
     if (realIndex == kError) {

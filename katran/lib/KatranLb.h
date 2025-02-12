@@ -90,10 +90,36 @@ constexpr uint32_t kSrcV6Pos = 1;
 constexpr uint32_t kRecirculationIndex = 0;
 constexpr uint32_t kHcSrcMacPos = 0;
 constexpr uint32_t kHcDstMacPos = 1;
-constexpr folly::StringPiece kFlowDebugParentMapName = "flow_debug_maps";
-constexpr folly::StringPiece kFlowDebugCpuLruName = "flow_debug_lru";
-constexpr folly::StringPiece kGlobalLruMapName = "global_lru_maps";
-constexpr folly::StringPiece kGlobalLruPerCpuName = "global_lru";
+
+namespace KatranLbMaps {
+constexpr auto ch_rings = "ch_rings";
+constexpr auto ctl_array = "ctl_array";
+constexpr auto decap_dst = "decap_dst";
+constexpr auto event_pipe = "event_pipe";
+constexpr auto fallback_cache = "fallback_cache";
+constexpr auto fallback_glru = "fallback_glru";
+constexpr auto flow_debug_lru = "flow_debug_lru";
+constexpr auto flow_debug_maps = "flow_debug_maps";
+constexpr auto global_lru = "global_lru";
+constexpr auto global_lru_maps = "global_lru_maps";
+constexpr auto hc_ctrl_map = "hc_ctrl_map";
+constexpr auto hc_key_map = "hc_key_map";
+constexpr auto hc_pckt_macs = "hc_pckt_macs";
+constexpr auto hc_pckt_srcs_map = "hc_pckt_srcs_map";
+constexpr auto hc_reals_map = "hc_reals_map";
+constexpr auto hc_stats_map = "hc_stats_map";
+constexpr auto katran_lru = "katran_lru";
+constexpr auto lpm_src_v4 = "lpm_src_v4";
+constexpr auto lru_mapping = "lru_mapping";
+constexpr auto lru_miss_stats = "lru_miss_stats";
+constexpr auto pckt_srcs = "pckt_srcs";
+constexpr auto per_hckey_stats = "per_hckey_stats";
+constexpr auto reals = "reals";
+constexpr auto server_id_map = "server_id_map";
+constexpr auto stats = "stats";
+constexpr auto vip_map = "vip_map";
+constexpr auto vip_miss_stats = "vip_miss_stats";
+} // namespace KatranLbMaps
 
 namespace {
 /**
