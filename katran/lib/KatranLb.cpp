@@ -2458,6 +2458,88 @@ std::vector<std::string> KatranLb::deleteLru(
   return mapsWithDeletions;
 }
 
+KatranLb::PurgeResponse KatranLb::purgeVipLru(const VipKey& dstVip) {
+  PurgeResponse response;
+  // we only need dst values, setting src to dummy values
+  auto maybeKey = flowKeyFromParams(dstVip, "::0", 0);
+  if (!maybeKey) {
+    response.error = "invalid vip address";
+    return response;
+  }
+  flow_key filterKey = *maybeKey;
+  for (int cpu = 0; cpu < lruMapsFd_.size(); cpu++) {
+    int mapFd = lruMapsFd_[cpu];
+    if (mapFd <= 0) {
+      continue;
+    }
+    auto mapResp = purgeVipLruMap(mapFd, filterKey);
+    response.deletedCount += mapResp.deletedCount;
+    if (!mapResp.error.empty()) {
+      response.error = mapResp.error;
+    }
+  }
+  int fallbackMapFd = bpfAdapter_->getMapFdByName("fallback_cache");
+  if (fallbackMapFd > 0) {
+    auto mapResp = purgeVipLruMap(fallbackMapFd, filterKey);
+    response.deletedCount += mapResp.deletedCount;
+    if (!mapResp.error.empty()) {
+      response.error = mapResp.error;
+    }
+  } else {
+    LOG(ERROR) << "LRU fallback cache map not found";
+  }
+  return response;
+}
+
+KatranLb::PurgeResponse KatranLb::purgeVipLruMap(
+    int mapFd,
+    const flow_key& filter) {
+  PurgeResponse response;
+
+  flow_key key;
+  flow_key nextKey;
+  memset(&key, 0, sizeof(key));
+  memset(&nextKey, 0, sizeof(nextKey));
+
+  // Limit to 100K lookups. In case high ingress results in high LRU insertion
+  // rate, affecting traversal.
+  const int kMaxLookups = 100 * 1000;
+  for (int i = 0; i < kMaxLookups; i++) {
+    int lookupRes = bpfAdapter_->bpfMapGetNextKey(mapFd, &key, &nextKey);
+    // First lookup has empty key
+    if (i != 0) {
+      if (key.proto == filter.proto && key.port16[1] == filter.port16[1] &&
+          key.dstv6[0] == filter.dstv6[0] && key.dstv6[1] == filter.dstv6[1] &&
+          key.dstv6[2] == filter.dstv6[2] && key.dstv6[3] == filter.dstv6[3]) {
+        // dst of the key matches the filter
+        int delRes = bpfAdapter_->bpfMapDeleteElement(mapFd, &key);
+        if (delRes != 0) {
+          LOG(ERROR) << "Error while deleting lru map: " << delRes;
+          response.error = "delete error";
+        } else {
+          response.deletedCount++;
+        }
+      }
+    }
+    if (lookupRes != 0) {
+      if (lookupRes == -ENOENT) {
+        // ENOENT is returned when last entry in the map is reached
+        return response;
+      } else {
+        LOG(ERROR) << "Error while querying lru map, error=" << lookupRes;
+        response.error = "query error";
+        return response;
+      }
+    }
+    if (i == kMaxLookups - 1) {
+      LOG(ERROR) << "Max lookups reached";
+      response.error = "maxed lookups";
+    }
+    key = nextKey;
+  }
+  return response;
+}
+
 bool KatranLb::updateVipMap(
     const ModifyAction action,
     const VipKey& vip,

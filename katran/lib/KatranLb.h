@@ -800,6 +800,12 @@ class KatranLb {
   std::vector<std::string>
   deleteLru(const VipKey& dstVip, const std::string& srcIp, uint16_t srcPort);
 
+  struct PurgeResponse {
+    int deletedCount{0};
+    std::string error;
+  };
+  PurgeResponse purgeVipLru(const VipKey& dstVip);
+
   /**
    * @param src ip address of the src
    * @return true is the update is successful
@@ -1120,6 +1126,8 @@ class KatranLb {
   bool initSimulator();
 
   std::optional<LruEntry> lookupLruMap(int mapFd, flow_key& key);
+
+  PurgeResponse purgeVipLruMap(int mapFd, const flow_key& key);
 
   static std::optional<flow_key> flowKeyFromParams(
       const VipKey& dstVip,
