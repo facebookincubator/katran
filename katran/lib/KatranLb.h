@@ -785,13 +785,19 @@ class KatranLb {
     uint64_t atime{0};
     int64_t atime_delta_sec{0};
     std::string sourceMap;
+    std::string srcAddress;
+    uint16_t srcPort{0};
   };
-  using LruEntries = std::vector<LruEntry>;
+  struct LruEntries {
+    std::string error;
+    std::vector<LruEntry> entries;
+  };
   /**
    * Search for LRU entry in all per-CPU and fallback LRU maps.
    */
   LruEntries
   searchLru(const VipKey& dstVip, const std::string& srcIp, uint16_t srcPort);
+  LruEntries listLru(const VipKey& dstVip, int limit);
 
   /*
    * Delete given 5 tuple from all per-CPU and fallback LRU maps.
@@ -1125,7 +1131,16 @@ class KatranLb {
 
   bool initSimulator();
 
-  std::optional<LruEntry> lookupLruMap(int mapFd, flow_key& key);
+  folly::Expected<KatranLb::LruEntry, std::string> lookupLruMap(
+      int mapFd,
+      flow_key& key);
+  bool listLruMap(
+      int mapFd,
+      const std::string& sourceMap,
+      flow_key& filterKey,
+      bool isIPv6,
+      int limit,
+      LruEntries& lruEntries);
 
   PurgeResponse purgeVipLruMap(int mapFd, const flow_key& key);
 
@@ -1133,6 +1148,8 @@ class KatranLb {
       const VipKey& dstVip,
       const std::string& srcIp,
       uint16_t srcPort);
+
+  void fillAtimeDelta(LruEntries& entries);
 
   /**
    * main configurations of katran

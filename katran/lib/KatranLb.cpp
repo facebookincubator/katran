@@ -40,6 +40,10 @@ namespace katran {
 namespace {
 using EventId = monitoring::EventId;
 constexpr int kMaxInvalidServerIds = 10000;
+
+// Limit LRU lookups when traversing entire map.
+// In case high ingress results in high LRU insertion rate, affecting traversal.
+const int kLruMaxLookups = 100 * 1000;
 } // namespace
 
 KatranLb::KatranLb(
@@ -2328,7 +2332,9 @@ KatranLb::LruEntries KatranLb::searchLru(
     auto maybeEntry = lookupLruMap(mapFd, key);
     if (maybeEntry) {
       maybeEntry->sourceMap = "cpu" + std::to_string(cpu);
-      lruEntries.push_back(*maybeEntry);
+      lruEntries.entries.push_back(*maybeEntry);
+    } else {
+      lruEntries.error = maybeEntry.error();
     }
   }
 
@@ -2337,32 +2343,76 @@ KatranLb::LruEntries KatranLb::searchLru(
     auto maybeEntry = lookupLruMap(fallbackMapFd, key);
     if (maybeEntry) {
       maybeEntry->sourceMap = "fallback";
-      lruEntries.push_back(*maybeEntry);
+      lruEntries.entries.push_back(*maybeEntry);
+    } else {
+      lruEntries.error = maybeEntry.error();
     }
   } else {
     LOG(ERROR) << "LRU fallback cache map not found";
   }
 
+  fillAtimeDelta(lruEntries);
+  return lruEntries;
+}
+
+KatranLb::LruEntries KatranLb::listLru(const VipKey& dstVip, int limit) {
+  LruEntries response;
+
+  // we only need dst values, setting src to dummy values
+  auto maybeKey = flowKeyFromParams(dstVip, "::0", 0);
+  if (!maybeKey) {
+    response.error = "invalid vip address";
+    return response;
+  }
+  flow_key key = *maybeKey;
+  bool isIPv6 = false;
+  auto maybeVipAddr = folly::IPAddress::tryFromString(dstVip.address);
+  if (maybeVipAddr) {
+    isIPv6 = maybeVipAddr->isV6();
+  }
+
+  for (int cpu = 0; cpu < lruMapsFd_.size(); cpu++) {
+    int mapFd = lruMapsFd_[cpu];
+    if (mapFd <= 0) {
+      continue;
+    }
+    if (!listLruMap(
+            mapFd, "cpu" + std::to_string(cpu), key, isIPv6, limit, response)) {
+      break;
+    }
+  }
+
+  int fallbackMapFd = bpfAdapter_->getMapFdByName(KatranLbMaps::fallback_cache);
+  if (fallbackMapFd > 0) {
+    listLruMap(fallbackMapFd, "fallback", key, isIPv6, limit, response);
+  } else {
+    LOG(ERROR) << "LRU fallback cache map not found";
+  }
+
+  fillAtimeDelta(response);
+  return response;
+}
+
+void KatranLb::fillAtimeDelta(LruEntries& entries) {
   int64_t currentTimeNs = BpfAdapter::getKtimeNs();
-  for (auto& entry : lruEntries) {
+  for (auto& entry : entries.entries) {
     if (entry.atime > 0) {
       entry.atime_delta_sec = (currentTimeNs - entry.atime) / 1000000000;
     }
   }
-  return lruEntries;
 }
 
-std::optional<KatranLb::LruEntry> KatranLb::lookupLruMap(
+folly::Expected<KatranLb::LruEntry, std::string> KatranLb::lookupLruMap(
     int mapFd,
     flow_key& key) {
   real_pos_lru real = {};
   int res = bpfAdapter_->bpfMapLookupElement(mapFd, &key, &real);
   if (res != 0) {
-    if (errno != ENOENT) {
+    if (res != -ENOENT) {
       // ENOENT is expected in case there is no entry in the lru map
       LOG(ERROR) << "Error while querying lru map: " << res;
     }
-    return std::nullopt;
+    return folly::makeUnexpected(fmt::format("error={}", res));
   }
   LruEntry entry;
   entry.realPos = real.pos;
@@ -2380,11 +2430,92 @@ std::optional<KatranLb::LruEntry> KatranLb::lookupLruMap(
   return entry;
 }
 
+bool KatranLb::listLruMap(
+    int mapFd,
+    const std::string& sourceMap,
+    flow_key& filter,
+    bool isIPv6,
+    int limit,
+    LruEntries& lruEntries) {
+  real_pos_lru real = {};
+
+  flow_key key;
+  flow_key nextKey;
+  memset(&key, 0, sizeof(key));
+  memset(&nextKey, 0, sizeof(nextKey));
+
+  for (int i = 0; i < kLruMaxLookups; i++) {
+    int nextKeyRes = bpfAdapter_->bpfMapGetNextKey(mapFd, &key, &nextKey);
+    // First lookup has empty key
+    if (i != 0) {
+      bool vipMatch =
+          (key.proto == filter.proto && key.port16[1] == filter.port16[1] &&
+           key.dstv6[0] == filter.dstv6[0] && key.dstv6[1] == filter.dstv6[1] &&
+           key.dstv6[2] == filter.dstv6[2] && key.dstv6[3] == filter.dstv6[3]);
+      if (vipMatch) {
+        int lookupRes = bpfAdapter_->bpfMapLookupElement(mapFd, &key, &real);
+        if (lookupRes == 0) {
+          LruEntry entry;
+          entry.sourceMap = sourceMap;
+          entry.realPos = real.pos;
+          entry.atime = real.atime;
+          if (real.pos == 0) {
+            LOG(ERROR) << "Real position is 0";
+          } else {
+            auto realIt = numToReals_.find(real.pos);
+            if (realIt == numToReals_.end()) {
+              LOG(ERROR) << "Real with num " << real.pos << " not found";
+            } else {
+              entry.realAddress = realIt->second.str();
+            }
+          }
+          if (isIPv6) {
+            entry.srcAddress =
+                folly::IPAddressV6::fromBinary(
+                    folly::ByteRange(
+                        reinterpret_cast<const uint8_t*>(key.srcv6), 16))
+                    .str();
+          } else {
+            entry.srcAddress = folly::IPAddressV4::fromLong(key.src).str();
+          }
+          entry.srcPort = ntohs(key.port16[0]);
+          lruEntries.entries.push_back(entry);
+        } else {
+          LOG(ERROR) << "Error while querying lru map, error=" << lookupRes;
+          lruEntries.error = "lookup error";
+        }
+      }
+    }
+    if (nextKeyRes != 0) {
+      if (nextKeyRes == -ENOENT) {
+        // ENOENT is returned when last entry in the map is reached
+        return true;
+      } else {
+        LOG(ERROR) << "Error while querying lru map, error=" << nextKeyRes;
+        lruEntries.error = "query error";
+        return true;
+      }
+    }
+    if (i == kLruMaxLookups - 1) {
+      LOG(ERROR) << "Max lookups reached";
+      lruEntries.error = "maxed lookups";
+    }
+    if (lruEntries.entries.size() >= limit) {
+      LOG(INFO) << "lookupLru limit reached";
+      lruEntries.error = "limit reached";
+      return false;
+    }
+    key = nextKey;
+  }
+  return true;
+}
+
 std::optional<flow_key> KatranLb::flowKeyFromParams(
     const VipKey& dstVip,
     const std::string& srcIp,
     uint16_t srcPort) {
   flow_key key = {};
+  memset(&key, 0, sizeof(key));
 
   auto vip = folly::IPAddress::tryFromString(dstVip.address);
   if (!vip) {
@@ -2501,10 +2632,7 @@ KatranLb::PurgeResponse KatranLb::purgeVipLruMap(
   memset(&key, 0, sizeof(key));
   memset(&nextKey, 0, sizeof(nextKey));
 
-  // Limit to 100K lookups. In case high ingress results in high LRU insertion
-  // rate, affecting traversal.
-  const int kMaxLookups = 100 * 1000;
-  for (int i = 0; i < kMaxLookups; i++) {
+  for (int i = 0; i < kLruMaxLookups; i++) {
     int lookupRes = bpfAdapter_->bpfMapGetNextKey(mapFd, &key, &nextKey);
     // First lookup has empty key
     if (i != 0) {
@@ -2531,7 +2659,7 @@ KatranLb::PurgeResponse KatranLb::purgeVipLruMap(
         return response;
       }
     }
-    if (i == kMaxLookups - 1) {
+    if (i == kLruMaxLookups - 1) {
       LOG(ERROR) << "Max lookups reached";
       response.error = "maxed lookups";
     }
