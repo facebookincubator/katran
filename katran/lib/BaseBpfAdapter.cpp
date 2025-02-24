@@ -33,6 +33,7 @@
 
 extern "C" {
 #include <arpa/inet.h>
+#include <asm/unistd.h> // @manual
 #include <fcntl.h>
 #include <linux/if_ether.h>
 #include <linux/netlink.h>
