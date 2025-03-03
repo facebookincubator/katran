@@ -160,6 +160,8 @@ void prepareOptionalLbData(katran::KatranLb& lb);
 
 void prepareLbDataStableRt(katran::KatranLb& lb);
 
+void prepareLbDataXpopDecap(katran::KatranLb& lb);
+
 void prepareVipUninitializedLbData(katran::KatranLb& lb);
 
 void preparePerfTestingLbData(katran::KatranLb& lb);

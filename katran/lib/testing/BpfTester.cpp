@@ -221,6 +221,13 @@ bool BpfTester::runBpfTesterFromFixtures(
       VLOG(2) << "value from test: " << ret_val_str
               << " expected: " << config_.testData[i].expectedReturnValue;
       test_result = "\033[31mFailed\033[0m";
+      auto output_test_pckt =
+          parser_.convertPacketToBase64(std::move(pckt_buf));
+      if (output_test_pckt != config_.testData[i].expectedOutputPacket) {
+        VLOG(2) << "output packet not equal to expected one; expected pkt="
+                << config_.testData[i].expectedOutputPacket
+                << ", actual=" << output_test_pckt;
+      }
       iterationSuccess = false;
     }
 

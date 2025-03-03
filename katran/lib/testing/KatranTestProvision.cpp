@@ -263,6 +263,42 @@ void prepareLbDataStableRt(katran::KatranLb& lb) {
   lb.addHealthcheckerDst(3, "fc00::1");
 }
 
+void prepareLbDataXpopDecap(katran::KatranLb& lb) {
+  lb.restartKatranMonitor(kMonitorLimit);
+  katran::VipKey vip;
+  // Define some example reals for testing
+  std::vector<std::string> reals = {"10.0.0.1", "10.0.0.2", "10.0.0.3"};
+  std::vector<std::string> reals6 = {"fc00::1", "fc00::2", "fc00::3"};
+
+  // Add a VIP for UDP with xpop decapsulation
+  vip.address = "10.200.1.1";
+  vip.port = kVipPort;
+  vip.proto = kUdp;
+  lb.addVip(vip);
+  addReals(lb, vip, reals);
+
+  // Configure v6-in-v6 VIP for TCP
+  vip.address = "fc00:1::1";
+  vip.proto = kTcp;
+  lb.addVip(vip);
+  addReals(lb, vip, reals6); // Associate with IPv6 reals
+
+  vip.address = "10.200.1.2";
+  vip.port = kVipPort;
+  vip.proto = kUdp;
+  lb.addVip(vip);
+  addReals(lb, vip, reals6);
+
+  // Add QUIC mappings
+  addQuicMappings(lb);
+  lb.addInlineDecapDst("fc00:1404::1");
+
+  // adding healthchecking dst
+  lb.addHealthcheckerDst(1, "10.0.0.1");
+  lb.addHealthcheckerDst(2, "10.0.0.2");
+  lb.addHealthcheckerDst(3, "fc00::1");
+}
+
 void prepareVipUninitializedLbData(katran::KatranLb& lb) {
   katran::VipKey vip;
   vip.address = "10.200.1.99";

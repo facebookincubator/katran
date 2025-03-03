@@ -32,6 +32,7 @@
 #include "katran/lib/testing/KatranTestProvision.h"
 #include "katran/lib/testing/KatranTestUtil.h"
 #include "katran/lib/testing/KatranUdpStableRtTestFixtures.h"
+#include "katran/lib/testing/KatranXPopDecapTestFixtures.h"
 
 using namespace katran::testing;
 using KatranFeatureEnum = katran::KatranFeatureEnum;
@@ -62,6 +63,7 @@ DEFINE_bool(
     "run optional (kernel specific) counter tests");
 DEFINE_bool(gue, false, "run GUE tests instead of IPIP ones");
 DEFINE_bool(stable_rt, false, "run UDP Stable Routing tests");
+DEFINE_bool(xpop_decap, false, "run cross pop decap tests");
 DEFINE_bool(
     tpr,
     false,
@@ -175,6 +177,16 @@ void testStableRtCounters(katran::KatranLb& lb, KatranTestParam& testParam) {
     LOG(INFO) << "invalid_packet_type counter is incorrect";
   }
   LOG(INFO) << "Stable Routing stats verified";
+}
+
+void testXPopDecapCounters(katran::KatranLb& lb, KatranTestParam& testParam) {
+  LOG(INFO) << "Testing cross pop decapsulation sanity";
+  auto stats = lb.getInlineDecapStats();
+  if (stats.v1 != testParam.expectedInlineDecapPkts()) {
+    VLOG(2) << "inline decapsulated pckts: " << stats.v1;
+    LOG(INFO) << "inline decapsulated packet's counter is incorrect";
+  }
+  LOG(INFO) << "Testing of cross pop decapsulation counters is complete";
 }
 
 void validateMapSize(
@@ -352,6 +364,13 @@ void runTestsFromFixture(
     tester.testFromFixture();
     auto udpTestParams = createUdpStableRtTestParam();
     testStableRtCounters(lb, udpTestParams);
+  }
+  if (FLAGS_xpop_decap) {
+    prepareLbDataXpopDecap(lb);
+    tester.resetTestFixtures(katran::testing::xPopDecapTestFixtures);
+    tester.testFromFixture();
+    auto xpopTestParams = createXPopDecapTestParam();
+    testXPopDecapCounters(lb, xpopTestParams);
   }
 }
 

@@ -31,5 +31,7 @@ KatranTestParam createTPRTestParam();
 
 KatranTestParam createUdpStableRtTestParam();
 
+KatranTestParam createXPopDecapTestParam();
+
 } // namespace testing
 } // namespace katran

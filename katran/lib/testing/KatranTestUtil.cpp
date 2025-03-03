@@ -19,6 +19,7 @@
 #include "katran/lib/testing/KatranTPRTestFixtures.h"
 #include "katran/lib/testing/KatranTestFixtures.h"
 #include "katran/lib/testing/KatranUdpStableRtTestFixtures.h"
+#include "katran/lib/testing/KatranXPopDecapTestFixtures.h"
 
 namespace katran {
 namespace testing {
@@ -200,8 +201,23 @@ KatranTestParam createUdpStableRtTestParam() {
           },
       .perVipCounters = {{vip, std::pair<uint64_t, uint64_t>(4, 244)}}};
   return testParam;
+}
 
-} // namespace testing
-
+KatranTestParam createXPopDecapTestParam() {
+  katran::VipKey vip;
+  vip.address = "10.200.1.1";
+  vip.port = kVipPort;
+  vip.proto = kTcp;
+  KatranTestParam testParam = {
+      .mode = TestMode::GUE,
+      .testData = katran::testing::xPopDecapTestFixtures,
+      .expectedCounters =
+          {
+              {KatranTestCounters::TOTAL_PKTS, 5},
+              {KatranTestCounters::INLINE_DECAP_PKTS, 5},
+          },
+      .perVipCounters = {{vip, std::pair<uint64_t, uint64_t>(4, 244)}}};
+  return testParam;
+}
 } // namespace testing
 } // namespace katran

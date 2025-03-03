@@ -278,6 +278,25 @@ check_decap_dst(struct packet_description* pckt, bool is_ipv6, bool* pass) {
   struct address dst_addr = {};
   struct lb_stats* data_stats;
 
+  // Check if cross pop packet with shiv decap vip set
+  if (is_ipv6) {
+    memcpy(dst_addr.addrv6, pckt->flow.dstv6, 16);
+  } else {
+    dst_addr.addr = pckt->flow.dst;
+  }
+  __u32* decap_dst_flags = bpf_map_lookup_elem(&decap_dst, &dst_addr);
+
+  if (decap_dst_flags) {
+    *pass = false;
+    __u32 stats_key = MAX_VIPS + REMOTE_ENCAP_CNTRS;
+    data_stats = bpf_map_lookup_elem(&stats, &stats_key);
+    if (!data_stats) {
+      return XDP_DROP;
+    }
+    data_stats->v1 += 1;
+    return FURTHER_PROCESSING;
+  }
+
 #ifdef DECAP_STRICT_DESTINATION
   struct real_definition* host_primary_addrs;
   __u32 addr_index;
@@ -311,22 +330,6 @@ check_decap_dst(struct packet_description* pckt, bool is_ipv6, bool* pass) {
   }
 #endif // DECAP_STRICT_DESTINATION
 
-  if (is_ipv6) {
-    memcpy(dst_addr.addrv6, pckt->flow.dstv6, 16);
-  } else {
-    dst_addr.addr = pckt->flow.dst;
-  }
-  __u32* decap_dst_flags = bpf_map_lookup_elem(&decap_dst, &dst_addr);
-
-  if (decap_dst_flags) {
-    *pass = false;
-    __u32 stats_key = MAX_VIPS + REMOTE_ENCAP_CNTRS;
-    data_stats = bpf_map_lookup_elem(&stats, &stats_key);
-    if (!data_stats) {
-      return XDP_DROP;
-    }
-    data_stats->v1 += 1;
-  }
   return FURTHER_PROCESSING;
 }
 
