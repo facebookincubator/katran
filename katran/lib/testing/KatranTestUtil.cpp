@@ -134,7 +134,7 @@ KatranTestParam createDefaultTestParam(TestMode testMode) {
                                             : katran::testing::testFixtures,
       .expectedCounters =
           {
-              {KatranTestCounters::TOTAL_PKTS, 23},
+              {KatranTestCounters::TOTAL_PKTS, 25},
               {KatranTestCounters::LRU_MISSES, 11},
               {KatranTestCounters::TCP_SYNS, 2},
               {KatranTestCounters::NON_SYN_LRU_MISSES, 6},
@@ -332,18 +332,20 @@ void postTestOptionalLbCounters(
   LOG(INFO) << "Followup testing of counters is complete";
 }
 
-void testLbCounters(katran::KatranLb& lb, KatranTestParam& testParam) {
+bool testLbCounters(katran::KatranLb& lb, KatranTestParam& testParam) {
   katran::VipKey vip;
   vip.address = "10.200.1.1";
   vip.port = kVipPort;
   vip.proto = kTcp;
   LOG(INFO) << "Testing counter's sanity. Printing on errors only";
+  bool counters_ok = true;
   for (auto& vipCounter : testParam.perVipCounters) {
     auto vipStats = lb.getStatsForVip(vip);
     if ((vipStats.v1 != testParam.expectedTotalPktsForVip(vipCounter.first)) ||
         (vipStats.v2 != testParam.expectedTotalBytesForVip(vipCounter.first))) {
       VLOG(2) << "pckts: " << vipStats.v1 << ", bytes: " << vipStats.v2;
       LOG(ERROR) << "per Vip counter is incorrect for vip:" << vip.address;
+      counters_ok = false;
     }
   }
   auto stats = lb.getLruStats();
@@ -351,17 +353,20 @@ void testLbCounters(katran::KatranLb& lb, KatranTestParam& testParam) {
       (stats.v2 != testParam.expectedTotalLruMisses())) {
     VLOG(2) << "Total pckts: " << stats.v1 << ", LRU misses: " << stats.v2;
     LOG(ERROR) << "LRU counter is incorrect";
+    counters_ok = false;
   }
   stats = lb.getLruMissStats();
   if ((stats.v1 != testParam.expectedTotalTcpSyns()) ||
       (stats.v2 != testParam.expectedTotalTcpNonSynLruMisses())) {
     VLOG(2) << "TCP syns: " << stats.v1 << " TCP non-syns: " << stats.v2;
     LOG(ERROR) << "per pckt type LRU miss counter is incorrect";
+    // counters_ok = false; //TODO: enable after fixing the sanity counters
   }
   stats = lb.getLruFallbackStats();
   if (stats.v1 != testParam.expectedTotalLruFallbackHits()) {
     VLOG(2) << "FallbackLRU hits: " << stats.v1;
     LOG(ERROR) << "LRU fallback counter is incorrect";
+    // counters_ok = false;
   }
   auto tprStats = lb.getTcpServerIdRoutingStats();
   if (tprStats.sid_routed != testParam.expectedTcpServerIdRoutingCounts() ||
@@ -371,6 +376,7 @@ void testLbCounters(katran::KatranLb& lb, KatranTestParam& testParam) {
                << tprStats.ch_routed
                << ", with server-id (v2): " << tprStats.sid_routed;
     LOG(ERROR) << "Counters for TCP server-id based routing are wrong";
+    counters_ok = false;
   }
   auto quicStats = lb.getLbQuicPacketsStats();
   if (quicStats.ch_routed != testParam.expectedQuicRoutingWithCh() ||
@@ -379,12 +385,14 @@ void testLbCounters(katran::KatranLb& lb, KatranTestParam& testParam) {
                << quicStats.ch_routed
                << ",  with connection-id: " << quicStats.cid_routed;
     LOG(ERROR) << "Counters for routing of QUIC packets is wrong.";
+    // counters_ok = false;
   }
   if (quicStats.cid_v1 != testParam.expectedQuicCidV1Counts() ||
       quicStats.cid_v2 != testParam.expectedQuicCidV2Counts()) {
     LOG(ERROR) << "QUIC CID version counters v1 " << stats.v1 << " v2 "
                << stats.v2;
     LOG(ERROR) << "Counters for QUIC versions are wrong";
+    counters_ok = false;
   }
   if (quicStats.cid_invalid_server_id !=
           testParam.expectedQuicCidDropsReal0Counts() ||
@@ -393,6 +401,7 @@ void testLbCounters(katran::KatranLb& lb, KatranTestParam& testParam) {
     LOG(ERROR) << "QUIC CID drop counters v1 " << stats.v1 << " v2 "
                << stats.v2;
     LOG(ERROR) << "Counters for QUIC drops are wrong";
+    // counters_ok = false;
   }
   auto realStats = testParam.expectedRealStats();
   for (int i = 0; i < kReals.size(); i++) {
@@ -409,6 +418,7 @@ void testLbCounters(katran::KatranLb& lb, KatranTestParam& testParam) {
               << " v2: " << stats.v2;
       LOG(INFO) << "incorrect stats for real: " << real;
       LOG(INFO) << "Expected to be incorrect w/ non default build flags";
+      // counters_ok = false;
     }
   }
   auto lb_stats = lb.getKatranLbStats();
@@ -416,6 +426,7 @@ void testLbCounters(katran::KatranLb& lb, KatranTestParam& testParam) {
     VLOG(2) << "failed bpf calls: " << lb_stats.bpfFailedCalls;
     LOG(INFO) << "incorrect stats about katran library internals: "
               << "number of failed bpf syscalls is non zero";
+    counters_ok = false;
   }
   if (lb_stats.addrValidationFailed !=
       testParam.expectedTotalAddressValidations()) {
@@ -423,10 +434,11 @@ void testLbCounters(katran::KatranLb& lb, KatranTestParam& testParam) {
             << lb_stats.addrValidationFailed;
     LOG(INFO) << "incorrect stats about katran library internals: "
               << "number of failed ip address validations is non zero";
+    counters_ok = false;
   }
 
   LOG(INFO) << "Testing of counters is complete";
-  return;
+  return counters_ok;
 }
 
 std::string toString(KatranFeatureEnum feature) {

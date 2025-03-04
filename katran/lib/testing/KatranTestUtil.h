@@ -41,7 +41,7 @@ void preTestOptionalLbCounters(
 void postTestOptionalLbCounters(
     katran::KatranLb& lb,
     const std::string& healthcheckingProg);
-void testLbCounters(katran::KatranLb& lb, KatranTestParam& testParam);
+bool testLbCounters(katran::KatranLb& lb, KatranTestParam& testParam);
 void testXPopDecapCounters(katran::KatranLb& lb, KatranTestParam& testParam);
 std::string toString(katran::KatranFeatureEnum feature);
 

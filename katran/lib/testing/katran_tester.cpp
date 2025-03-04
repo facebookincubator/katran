@@ -134,7 +134,9 @@ void runTestsFromFixture(
   auto prog_fd = lb.getKatranProgFd();
   tester.setBpfProgFd(prog_fd);
   tester.testFromFixture();
-  testLbCounters(lb, testParam);
+  if (!testLbCounters(lb, testParam)) {
+    LOG(ERROR) << "counters do not match";
+  }
   if (FLAGS_optional_counter_tests) {
     postTestOptionalLbCounters(lb, FLAGS_healthchecking_prog);
   }
