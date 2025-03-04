@@ -2312,6 +2312,72 @@ const std::string KatranLb::getRealForFlow(const KatranFlow& flow) {
   return result;
 }
 
+KatranLb::LruStatsResponse KatranLb::analyzeLru() {
+  LruStatsResponse resp;
+  for (int cpu = 0; cpu < lruMapsFd_.size(); cpu++) {
+    int mapFd = lruMapsFd_[cpu];
+    if (mapFd <= 0) {
+      continue;
+    }
+    analyzeLruMap(mapFd, resp);
+  }
+
+  // Populate human readable vip 3-tuple
+  for (const auto& [vipKey, _] : vips_) {
+    auto maybeFlowKey = flowKeyFromParams(vipKey, "::0", 0);
+    if (!maybeFlowKey) {
+      LOG(ERROR) << "invalid vips_ key";
+      resp.error = "invalid vips_ key";
+      continue;
+    }
+    LruVipKey lruVipKey;
+    lruVipKey.proto = maybeFlowKey->proto;
+    lruVipKey.port = maybeFlowKey->port16[1];
+    lruVipKey.dstv6[0] = maybeFlowKey->dstv6[0];
+    lruVipKey.dstv6[1] = maybeFlowKey->dstv6[1];
+    lruVipKey.dstv6[2] = maybeFlowKey->dstv6[2];
+    lruVipKey.dstv6[3] = maybeFlowKey->dstv6[3];
+    auto vipStatsIt = resp.perVipStats.find(lruVipKey);
+    if (vipStatsIt == resp.perVipStats.end()) {
+      continue;
+    }
+    vipStatsIt->second.vip =
+        fmt::format("{}-{}-{}", vipKey.address, vipKey.port, vipKey.proto);
+  }
+  // We have VIPs with wildcard ports, such VipKey entries don't match any
+  // existing VIPs above. Aggregate separate entries at IP level, ignoring port.
+  std::unordered_map<LruVipKey, VipLruStats, LruVipKeyHash> aggregateVipStats;
+  for (const auto& [vipKey, vipStats] : resp.perVipStats) {
+    if (!vipStats.vip.empty()) {
+      continue;
+    }
+    LruVipKey aggVipKey = vipKey;
+    aggVipKey.port = 0;
+    aggregateVipStats[aggVipKey].add(vipStats);
+  }
+  for (auto it = resp.perVipStats.begin(); it != resp.perVipStats.end();) {
+    if (it->second.vip.empty()) {
+      it = resp.perVipStats.erase(it);
+    } else {
+      it++;
+    }
+  }
+  for (auto& [vipKey, vipStats] : aggregateVipStats) {
+    resp.perVipStats[vipKey].add(vipStats);
+    if (resp.perVipStats[vipKey].vip.empty()) {
+      resp.perVipStats[vipKey].vip = fmt::format(
+          "agg-{:x},{:x},{:x},{:x}-{}",
+          vipKey.dstv6[0],
+          vipKey.dstv6[1],
+          vipKey.dstv6[2],
+          vipKey.dstv6[3],
+          vipKey.proto);
+    }
+  }
+
+  return resp;
+}
+
 KatranLb::LruEntries KatranLb::searchLru(
     const VipKey& dstVip,
     const std::string& srcIp,
@@ -2508,6 +2574,78 @@ bool KatranLb::listLruMap(
     key = nextKey;
   }
   return true;
+}
+
+void KatranLb::analyzeLruMap(int mapFd, LruStatsResponse& lruStats) {
+  int64_t currentTimeNs = BpfAdapter::getKtimeNs();
+
+  real_pos_lru real = {};
+
+  flow_key key;
+  flow_key nextKey;
+  memset(&key, 0, sizeof(key));
+  memset(&nextKey, 0, sizeof(nextKey));
+
+  for (int i = 0; i < kLruMaxLookups; i++) {
+    int nextKeyRes = bpfAdapter_->bpfMapGetNextKey(mapFd, &key, &nextKey);
+    // First lookup has empty key
+    if (i != 0) {
+      int lookupRes = bpfAdapter_->bpfMapLookupElement(mapFd, &key, &real);
+      if (lookupRes == 0) {
+        LruVipKey vipKey;
+        vipKey.proto = key.proto;
+        vipKey.port = key.port16[1];
+        vipKey.dstv6[0] = key.dstv6[0];
+        vipKey.dstv6[1] = key.dstv6[1];
+        vipKey.dstv6[2] = key.dstv6[2];
+        vipKey.dstv6[3] = key.dstv6[3];
+
+        VipLruStats& stats = lruStats.perVipStats[vipKey];
+
+        stats.count++;
+        if (real.pos == 0) {
+          stats.staleRealsCount++;
+          LOG(ERROR) << "Real position is 0";
+        } else {
+          auto realIt = numToReals_.find(real.pos);
+          if (realIt == numToReals_.end()) {
+            LOG(ERROR) << "Real with num " << real.pos << " not found";
+            stats.staleRealsCount++;
+          }
+        }
+        if (real.atime == 0) {
+          stats.atimeZeroCount++;
+        } else {
+          int deltaSec = (currentTimeNs - real.atime) / 1000000000;
+          if (deltaSec < 30) {
+            stats.atimeUnder30secCount++;
+          } else if (deltaSec < 60) {
+            stats.atime30to60secCount++;
+          } else {
+            stats.atimeOver60secCount++;
+          }
+        }
+      } else {
+        LOG(ERROR) << "Error while querying lru map, error=" << lookupRes;
+        lruStats.error = "lookup error";
+      }
+    }
+    if (nextKeyRes != 0) {
+      if (nextKeyRes == -ENOENT) {
+        // ENOENT is returned when last entry in the map is reached
+        return;
+      } else {
+        LOG(ERROR) << "Error while querying lru map, error=" << nextKeyRes;
+        lruStats.error = "query error";
+        return;
+      }
+    }
+    if (i == kLruMaxLookups - 1) {
+      LOG(ERROR) << "Max lookups reached";
+      lruStats.error = "maxed lookups";
+    }
+    key = nextKey;
+  }
 }
 
 std::optional<flow_key> KatranLb::flowKeyFromParams(

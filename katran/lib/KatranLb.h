@@ -792,12 +792,64 @@ class KatranLb {
     std::string error;
     std::vector<LruEntry> entries;
   };
+
+  // VIP part from struct flow_key
+  struct LruVipKey {
+    union {
+      uint32_t dst;
+      uint32_t dstv6[4];
+    };
+    uint16_t port;
+    uint8_t proto;
+
+    bool operator==(const LruVipKey& other) const {
+      return (proto == other.proto) && (port == other.port) &&
+          (dstv6[0] == other.dstv6[0]) && (dstv6[1] == other.dstv6[1]) &&
+          (dstv6[2] == other.dstv6[2]) && (dstv6[3] == other.dstv6[3]);
+    }
+  };
+  struct LruVipKeyHash {
+    std::size_t operator()(const LruVipKey& k) const {
+      std::size_t h = 0;
+      h = folly::hash::hash_combine(h, k.proto);
+      h = folly::hash::hash_combine(h, k.port);
+      for (int i = 0; i < 4; i++) {
+        h = folly::hash::hash_combine(h, k.dstv6[i]);
+      }
+      return h;
+    }
+  };
+
+  struct VipLruStats {
+    std::string vip;
+    int count{0};
+    int staleRealsCount{0};
+    int atimeZeroCount{0};
+    int atimeUnder30secCount{0};
+    int atime30to60secCount{0};
+    int atimeOver60secCount{0};
+
+    void add(const VipLruStats& other) {
+      count += other.count;
+      staleRealsCount += other.staleRealsCount;
+      atimeZeroCount += other.atimeZeroCount;
+      atimeUnder30secCount += other.atimeUnder30secCount;
+      atime30to60secCount += other.atime30to60secCount;
+      atimeOver60secCount += other.atimeOver60secCount;
+    }
+  };
+  struct LruStatsResponse {
+    std::unordered_map<LruVipKey, VipLruStats, LruVipKeyHash> perVipStats;
+    std::string error;
+  };
+
   /**
    * Search for LRU entry in all per-CPU and fallback LRU maps.
    */
   LruEntries
   searchLru(const VipKey& dstVip, const std::string& srcIp, uint16_t srcPort);
   LruEntries listLru(const VipKey& dstVip, int limit);
+  LruStatsResponse analyzeLru();
 
   /*
    * Delete given 5 tuple from all per-CPU and fallback LRU maps.
@@ -1141,6 +1193,7 @@ class KatranLb {
       bool isIPv6,
       int limit,
       LruEntries& lruEntries);
+  void analyzeLruMap(int mapFd, LruStatsResponse& lruStats);
 
   PurgeResponse purgeVipLruMap(int mapFd, const flow_key& key);
 
