@@ -21,6 +21,9 @@
 #include "katran/lib/testing/KatranUdpStableRtTestFixtures.h"
 #include "katran/lib/testing/KatranXPopDecapTestFixtures.h"
 
+#include <folly/File.h>
+#include <folly/FileUtil.h>
+
 namespace katran {
 namespace testing {
 
@@ -218,6 +221,233 @@ KatranTestParam createXPopDecapTestParam() {
           },
       .perVipCounters = {{vip, std::pair<uint64_t, uint64_t>(4, 244)}}};
   return testParam;
+}
+
+void testOptionalLbCounters(katran::KatranLb& lb, KatranTestParam& testParam) {
+  LOG(INFO) << "Testing optional counter's sanity";
+  auto stats = lb.getIcmpTooBigStats();
+  if (stats.v1 != testParam.expectedIcmpV4Counts() ||
+      stats.v2 != testParam.expectedIcmpV6Counts()) {
+    VLOG(2) << "icmpV4 hits: " << stats.v1 << " icmpv6 hits:" << stats.v2;
+    LOG(INFO) << "icmp packet too big counter is incorrect";
+  }
+  stats = lb.getSrcRoutingStats();
+  if (stats.v1 != testParam.expectedSrcRoutingPktsLocal() ||
+      stats.v2 != testParam.expectedSrcRoutingPktsRemote()) {
+    VLOG(2) << "lpm src. local pckts: " << stats.v1 << " remote:" << stats.v2;
+    LOG(INFO) << "source based routing counter is incorrect";
+  }
+  stats = lb.getInlineDecapStats();
+  if (stats.v1 != testParam.expectedInlineDecapPkts()) {
+    VLOG(2) << "inline decapsulated pckts: " << stats.v1;
+    LOG(INFO) << "inline decapsulated packet's counter is incorrect";
+  }
+  LOG(INFO) << "KatranMonitor stats (only for -DKATRAN_INTROSPECTION)";
+  auto monitor_stats = lb.getKatranMonitorStats();
+  LOG(INFO) << "limit: " << monitor_stats.limit
+            << " amount: " << monitor_stats.amount;
+  LOG(INFO) << "Testing of optional counters is complete";
+}
+
+void testStableRtCounters(katran::KatranLb& lb, KatranTestParam& testParam) {
+  LOG(INFO) << "Testing optional counter's sanity";
+  auto stats = lb.getUdpStableRoutingStats();
+  if (stats.ch_routed != testParam.expectedUdpStableRoutingWithCh()) {
+    VLOG(2) << "CH routed pckts: " << stats.ch_routed;
+    LOG(INFO) << "CH routed packet's counter is incorrect";
+  }
+  if (stats.cid_routed != testParam.expectedUdpStableRoutingWithCid()) {
+    VLOG(2) << "SID routed pckts: " << stats.cid_routed;
+    LOG(INFO) << "SID routed packet's counter is incorrect";
+  }
+  if (stats.cid_invalid_server_id !=
+      testParam.expectedUdpStableRoutingInvalidSid()) {
+    VLOG(2) << "cid_invalid_server_id pckts: " << stats.cid_invalid_server_id;
+    LOG(INFO) << "cid_invalid_server_id counter is incorrect";
+  }
+  if (stats.cid_unknown_real_dropped !=
+      testParam.expectedUdpStableRoutingUnknownReals()) {
+    VLOG(2) << "cid_unknown_real_dropped pckts: "
+            << stats.cid_unknown_real_dropped;
+    LOG(INFO) << "cid_unknown_real_dropped counter is incorrect";
+  }
+  if (stats.invalid_packet_type !=
+      testParam.expectedUdpStableRoutingInvalidPacketType()) {
+    VLOG(2) << "invalid_packet_type pckts: " << stats.cid_unknown_real_dropped;
+    LOG(INFO) << "invalid_packet_type counter is incorrect";
+  }
+  LOG(INFO) << "Stable Routing stats verified";
+}
+
+void testXPopDecapCounters(katran::KatranLb& lb, KatranTestParam& testParam) {
+  LOG(INFO) << "Testing cross pop decapsulation sanity";
+  auto stats = lb.getInlineDecapStats();
+  if (stats.v1 != testParam.expectedInlineDecapPkts()) {
+    VLOG(2) << "inline decapsulated pckts: " << stats.v1;
+    LOG(INFO) << "inline decapsulated packet's counter is incorrect";
+  }
+  LOG(INFO) << "Testing of cross pop decapsulation counters is complete";
+}
+
+void validateMapSize(
+    katran::KatranLb& lb,
+    const std::string& map_name,
+    int expected_current,
+    int expected_max) {
+  auto map_stats = lb.getBpfMapStats(map_name);
+  VLOG(3) << map_name << ": " << map_stats.currentEntries << "/"
+          << map_stats.maxEntries;
+  if (expected_max != map_stats.maxEntries) {
+    LOG(INFO) << map_name
+              << ": max size is incorrect: " << map_stats.maxEntries;
+  }
+  if (expected_current != map_stats.currentEntries) {
+    LOG(INFO) << map_name
+              << ": current size is incorrect: " << map_stats.currentEntries;
+  }
+}
+
+void preTestOptionalLbCounters(
+    katran::KatranLb& lb,
+    const std::string& healthcheckingProg) {
+  validateMapSize(lb, "vip_map", 0, katran::kDefaultMaxVips);
+  validateMapSize(
+      lb, "reals", katran::kDefaultMaxReals, katran::kDefaultMaxReals);
+  if (!healthcheckingProg.empty()) {
+    validateMapSize(lb, "hc_reals_map", 0, katran::kDefaultMaxReals);
+  }
+  LOG(INFO) << "Initial testing of counters is complete";
+  return;
+}
+
+void postTestOptionalLbCounters(
+    katran::KatranLb& lb,
+    const std::string& healthcheckingProg) {
+  validateMapSize(lb, "vip_map", 8, katran::kDefaultMaxVips);
+  validateMapSize(
+      lb, "reals", katran::kDefaultMaxReals, katran::kDefaultMaxReals);
+  if (!healthcheckingProg.empty()) {
+    validateMapSize(lb, "hc_reals_map", 3, katran::kDefaultMaxReals);
+  }
+  LOG(INFO) << "Followup testing of counters is complete";
+}
+
+void testLbCounters(katran::KatranLb& lb, KatranTestParam& testParam) {
+  katran::VipKey vip;
+  vip.address = "10.200.1.1";
+  vip.port = kVipPort;
+  vip.proto = kTcp;
+  LOG(INFO) << "Testing counter's sanity. Printing on errors only";
+  for (auto& vipCounter : testParam.perVipCounters) {
+    auto vipStats = lb.getStatsForVip(vip);
+    if ((vipStats.v1 != testParam.expectedTotalPktsForVip(vipCounter.first)) ||
+        (vipStats.v2 != testParam.expectedTotalBytesForVip(vipCounter.first))) {
+      VLOG(2) << "pckts: " << vipStats.v1 << ", bytes: " << vipStats.v2;
+      LOG(ERROR) << "per Vip counter is incorrect for vip:" << vip.address;
+    }
+  }
+  auto stats = lb.getLruStats();
+  if ((stats.v1 != testParam.expectedTotalPkts()) ||
+      (stats.v2 != testParam.expectedTotalLruMisses())) {
+    VLOG(2) << "Total pckts: " << stats.v1 << ", LRU misses: " << stats.v2;
+    LOG(ERROR) << "LRU counter is incorrect";
+  }
+  stats = lb.getLruMissStats();
+  if ((stats.v1 != testParam.expectedTotalTcpSyns()) ||
+      (stats.v2 != testParam.expectedTotalTcpNonSynLruMisses())) {
+    VLOG(2) << "TCP syns: " << stats.v1 << " TCP non-syns: " << stats.v2;
+    LOG(ERROR) << "per pckt type LRU miss counter is incorrect";
+  }
+  stats = lb.getLruFallbackStats();
+  if (stats.v1 != testParam.expectedTotalLruFallbackHits()) {
+    VLOG(2) << "FallbackLRU hits: " << stats.v1;
+    LOG(ERROR) << "LRU fallback counter is incorrect";
+  }
+  auto tprStats = lb.getTcpServerIdRoutingStats();
+  if (tprStats.sid_routed != testParam.expectedTcpServerIdRoutingCounts() ||
+      tprStats.ch_routed !=
+          testParam.expectedTcpServerIdRoutingFallbackCounts()) {
+    LOG(ERROR) << "Counters for TCP server-id routing with CH (v1): "
+               << tprStats.ch_routed
+               << ", with server-id (v2): " << tprStats.sid_routed;
+    LOG(ERROR) << "Counters for TCP server-id based routing are wrong";
+  }
+  auto quicStats = lb.getLbQuicPacketsStats();
+  if (quicStats.ch_routed != testParam.expectedQuicRoutingWithCh() ||
+      quicStats.cid_routed != testParam.expectedQuicRoutingWithCid()) {
+    LOG(ERROR) << "Counters for QUIC packets routed with CH: "
+               << quicStats.ch_routed
+               << ",  with connection-id: " << quicStats.cid_routed;
+    LOG(ERROR) << "Counters for routing of QUIC packets is wrong.";
+  }
+  if (quicStats.cid_v1 != testParam.expectedQuicCidV1Counts() ||
+      quicStats.cid_v2 != testParam.expectedQuicCidV2Counts()) {
+    LOG(ERROR) << "QUIC CID version counters v1 " << stats.v1 << " v2 "
+               << stats.v2;
+    LOG(ERROR) << "Counters for QUIC versions are wrong";
+  }
+  if (quicStats.cid_invalid_server_id !=
+          testParam.expectedQuicCidDropsReal0Counts() ||
+      quicStats.cid_unknown_real_dropped !=
+          testParam.expectedQuicCidDropsNoRealCounts()) {
+    LOG(ERROR) << "QUIC CID drop counters v1 " << stats.v1 << " v2 "
+               << stats.v2;
+    LOG(ERROR) << "Counters for QUIC drops are wrong";
+  }
+  auto realStats = testParam.expectedRealStats();
+  for (int i = 0; i < kReals.size(); i++) {
+    auto real = kReals[i];
+    auto id = lb.getIndexForReal(real);
+    if (id < 0) {
+      LOG(INFO) << "Real does not exists: " << real;
+      continue;
+    }
+    stats = lb.getRealStats(id);
+    auto expected_stats = realStats[i];
+    if (stats.v1 != expected_stats.v1 || stats.v2 != expected_stats.v2) {
+      VLOG(2) << "stats for real: " << real << " v1: " << stats.v1
+              << " v2: " << stats.v2;
+      LOG(INFO) << "incorrect stats for real: " << real;
+      LOG(INFO) << "Expected to be incorrect w/ non default build flags";
+    }
+  }
+  auto lb_stats = lb.getKatranLbStats();
+  if (lb_stats.bpfFailedCalls != testParam.expectedTotalFailedBpfCalls()) {
+    VLOG(2) << "failed bpf calls: " << lb_stats.bpfFailedCalls;
+    LOG(INFO) << "incorrect stats about katran library internals: "
+              << "number of failed bpf syscalls is non zero";
+  }
+  if (lb_stats.addrValidationFailed !=
+      testParam.expectedTotalAddressValidations()) {
+    VLOG(2) << "failed ip address validations: "
+            << lb_stats.addrValidationFailed;
+    LOG(INFO) << "incorrect stats about katran library internals: "
+              << "number of failed ip address validations is non zero";
+  }
+
+  LOG(INFO) << "Testing of counters is complete";
+  return;
+}
+
+std::string toString(KatranFeatureEnum feature) {
+  switch (feature) {
+    case KatranFeatureEnum::SrcRouting:
+      return "LPM_SRC";
+    case KatranFeatureEnum::InlineDecap:
+      return "INLINE_DECAP";
+    case KatranFeatureEnum::Introspection:
+      return "INTROSPECTION";
+    case KatranFeatureEnum::GueEncap:
+      return "GUE_ENCAP";
+    case KatranFeatureEnum::DirectHealthchecking:
+      return "DIRECT_HC";
+    case KatranFeatureEnum::LocalDeliveryOptimization:
+      return "LOCAL_DELIVERY";
+    case KatranFeatureEnum::FlowDebug:
+      return "FLOW_DEBUG";
+    default:
+      return "UNKNOWN";
+  }
 }
 } // namespace testing
 } // namespace katran

@@ -24,14 +24,26 @@ namespace katran {
 namespace testing {
 
 bool testSimulator(katran::KatranLb& lb);
-
 KatranTestParam createDefaultTestParam(TestMode testMode);
-
 KatranTestParam createTPRTestParam();
-
 KatranTestParam createUdpStableRtTestParam();
-
 KatranTestParam createXPopDecapTestParam();
+void testOptionalLbCounters(katran::KatranLb& lb, KatranTestParam& testParam);
+void testStableRtCounters(katran::KatranLb& lb, KatranTestParam& testParam);
+void validateMapSize(
+    katran::KatranLb& lb,
+    const std::string& map_name,
+    int expected_current,
+    int expected_max);
+void preTestOptionalLbCounters(
+    katran::KatranLb& lb,
+    const std::string& healthcheckingProg);
+void postTestOptionalLbCounters(
+    katran::KatranLb& lb,
+    const std::string& healthcheckingProg);
+void testLbCounters(katran::KatranLb& lb, KatranTestParam& testParam);
+void testXPopDecapCounters(katran::KatranLb& lb, KatranTestParam& testParam);
+std::string toString(katran::KatranFeatureEnum feature);
 
 } // namespace testing
 } // namespace katran
