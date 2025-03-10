@@ -16,8 +16,8 @@
  */
 
 #include "BpfLoader.h"
-
 #include <glog/logging.h>
+#include <array>
 
 namespace katran {
 
