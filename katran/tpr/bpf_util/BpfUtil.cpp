@@ -7,6 +7,7 @@
 #include <folly/ScopeGuard.h>
 #include <folly/portability/SysResource.h>
 #include <folly/portability/Unistd.h>
+#include <katran/facebook/Flags.h>
 
 #include <errno.h>
 #include <glog/logging.h>
@@ -16,13 +17,6 @@ extern "C" {
 #include <sys/stat.h>
 #include <sys/types.h>
 }
-
-// starting kernel 5.11 setting rlimit_memlock is no longer necessary
-// https://lore.kernel.org/bpf/20211214195904.1785155-2-andrii@kernel.org/
-DEFINE_bool(
-    tpr_set_rlimit_memlock,
-    false,
-    "Whether we have to set rlimit_memlock in tpr bpf adapter.");
 
 namespace katran_tpr::BpfUtil {
 
@@ -43,7 +37,7 @@ SystemMaybe<folly::Unit> init() noexcept {
   VLOG(1) << "Enabled libbpf strict mode";
   libbpf_set_strict_mode(LIBBPF_STRICT_ALL);
 
-  return FLAGS_tpr_set_rlimit_memlock ? setRLimit() : noSystemError();
+  return FLAGS_set_rlimit_memlock ? setRLimit() : noSystemError();
 }
 
 SystemMaybe<folly::Unit> setRLimit() noexcept {
