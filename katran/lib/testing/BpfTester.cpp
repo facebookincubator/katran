@@ -158,9 +158,7 @@ bool BpfTester::runBpfTesterFromFixtures(
 
   uint32_t output_pckt_size{0};
   uint32_t prog_ret_val{0};
-  uint64_t pckt_num{1};
   std::string ret_val_str;
-  std::string test_result;
   uint64_t packetsRoutedGlobalLruBefore{0};
   uint64_t packetsRoutedGlobalLruAfter{0};
   bool overallSuccess{true};
@@ -169,7 +167,6 @@ bool BpfTester::runBpfTesterFromFixtures(
 
     if (config_.singleTestRunPacketNumber_ &&
         *config_.singleTestRunPacketNumber_ != (i + 1)) {
-      ++pckt_num;
       VLOG(2) << "Skipped test for packet #" << i;
       continue;
     }
@@ -181,7 +178,7 @@ bool BpfTester::runBpfTesterFromFixtures(
     if (config_.testData[i].routedThroughGlobalLru) {
       packetsRoutedGlobalLruBefore = getGlobalLruRoutedPackets();
     }
-    VLOG(2) << "Running test for pckt #" << pckt_num
+    VLOG(2) << "Running test for test #" << (i + 1)
             << " with description: " << config_.testData[i].description;
     auto res = adapter_.testXdpProg(
         progFd,
@@ -195,9 +192,8 @@ bool BpfTester::runBpfTesterFromFixtures(
         ctx_in,
         ctx_size);
     if (res < 0) {
-      LOG(INFO) << "failed to run bpf test on pckt #" << pckt_num << " errno "
+      LOG(INFO) << "failed to run bpf test on test #" << (i + 1) << " errno "
                 << errno << " : " << folly::errnoStr(errno);
-      ++pckt_num;
       overallSuccess = false;
       continue;
     }
@@ -218,55 +214,45 @@ bool BpfTester::runBpfTesterFromFixtures(
     writePcapOutput(pckt_buf->cloneOne());
 
     if (ret_val_str != config_.testData[i].expectedReturnValue) {
-      VLOG(2) << "value from test: " << ret_val_str
-              << " expected: " << config_.testData[i].expectedReturnValue;
-      test_result = "\033[31mFailed\033[0m";
-      auto output_test_pckt =
-          parser_.convertPacketToBase64(std::move(pckt_buf));
-      if (output_test_pckt != config_.testData[i].expectedOutputPacket) {
-        VLOG(2) << "output packet not equal to expected one; expected pkt="
-                << config_.testData[i].expectedOutputPacket
-                << ", actual=" << output_test_pckt;
-      }
+      LOG(ERROR) << "value from test: " << ret_val_str
+                 << " expected: " << config_.testData[i].expectedReturnValue;
+      iterationSuccess = false;
+    }
+
+    auto output_test_pckt = parser_.convertPacketToBase64(std::move(pckt_buf));
+    if (output_test_pckt != config_.testData[i].expectedOutputPacket) {
+      LOG(ERROR) << "output packet not equal to expected one:" << "\ninput=    "
+                 << config_.testData[i].inputPacket
+                 << "\nexpected= " << config_.testData[i].expectedOutputPacket
+                 << "\nactual=   " << output_test_pckt;
       iterationSuccess = false;
     }
 
     if (iterationSuccess && config_.testData[i].routedThroughGlobalLru) {
       if (*config_.testData[i].routedThroughGlobalLru &&
           !packetRoutedThroughGlobalLru) {
-        VLOG(2)
+        LOG(ERROR)
             << "packet should have been routed through global lru, but wasn't";
-        test_result = "\033[31mFailed\033[0m";
         iterationSuccess = false;
       } else if (
           !*config_.testData[i].routedThroughGlobalLru &&
           packetRoutedThroughGlobalLru) {
-        VLOG(2)
+        LOG(ERROR)
             << "packet should not have been routed through global lru, but was";
-        test_result = "\033[31mFailed\033[0m";
         iterationSuccess = false;
       }
     }
 
-    if (iterationSuccess) {
-      test_result = "\033[32mPassed\033[0m";
-      auto output_test_pckt =
-          parser_.convertPacketToBase64(std::move(pckt_buf));
-      if (output_test_pckt != config_.testData[i].expectedOutputPacket) {
-        VLOG(2) << "output packet not equal to expected one; expected pkt="
-                << config_.testData[i].expectedOutputPacket
-                << ", actual=" << output_test_pckt;
-        test_result = "\033[31mFailed\033[0m";
-        iterationSuccess = false;
-      }
-    }
+    std::string test_result =
+        (iterationSuccess) ? "\033[32mPassed\033[0m" : "\033[31mFailed\033[0m";
 
     overallSuccess = overallSuccess && iterationSuccess;
 
-    VLOG(2) << "pckt #" << pckt_num;
     LOG(INFO) << fmt::format(
-        "Test: {:60} result: {}", config_.testData[i].description, test_result);
-    ++pckt_num;
+        "Test #{}: {:60} result: {}",
+        i + 1,
+        config_.testData[i].description,
+        test_result);
   }
   return overallSuccess;
 }

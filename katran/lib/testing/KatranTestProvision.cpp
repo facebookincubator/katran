@@ -99,14 +99,8 @@ void addQuicMappings(katran::KatranLb& lb) {
     qreal.id = twJobMask | ids[i];
     qreals.push_back(qreal);
     // log server address and id in hex
-    LOG(INFO) << "Adding mapping for " << qreal.address << " with id "
-              << qreal.id;
-    printf(
-        "%02X%02X%02X%02X\n",
-        (qreal.id >> 24) & 0xFF,
-        (qreal.id >> 16) & 0xFF,
-        (qreal.id >> 8) & 0xFF,
-        qreal.id & 0xFF);
+    VLOG(1) << "Adding mapping for " << qreal.address << " with id "
+            << qreal.id;
   }
   lb.modifyQuicRealsMapping(action, qreals);
 }

@@ -198,7 +198,7 @@ KatranLb::~KatranLb() {
       res = bpfAdapter_->bpfMapDeleteElement(rootMapFd_, &config_.rootMapPos);
     }
     if (res != 0) {
-      LOG(INFO) << fmt::format(
+      LOG(ERROR) << fmt::format(
           "wasn't able to delete main bpf prog, error: {}",
           folly::errnoStr(errno));
     }
@@ -210,7 +210,7 @@ KatranLb::~KatranLb() {
           config_.priority,
           TC_EGRESS);
       if (res != 0) {
-        LOG(INFO) << fmt::format(
+        LOG(ERROR) << fmt::format(
             "wasn't able to delete hc bpf prog, error: {}",
             folly::errnoStr(errno));
       }
@@ -571,8 +571,8 @@ void KatranLb::setupGueEnvironment() {
     if (res < 0) {
       throw std::runtime_error("can not update src v4 address for GUE packet");
     } else {
-      LOG(INFO) << "update src v4 address " << config_.katranSrcV4
-                << " for GUE packet";
+      VLOG(1) << "update src v4 address " << config_.katranSrcV4
+              << " for GUE packet";
     }
   } else {
     LOG(ERROR) << "Empty IPV4 address provided to use as source in GUE encap";
@@ -586,8 +586,8 @@ void KatranLb::setupGueEnvironment() {
     if (res < 0) {
       throw std::runtime_error("can not update src v6 address for GUE packet");
     } else {
-      LOG(INFO) << "update src v6 address " << config_.katranSrcV6
-                << " for GUE packet";
+      VLOG(1) << "update src v6 address " << config_.katranSrcV6
+              << " for GUE packet";
     }
   } else {
     LOG(ERROR) << "Empty IPV6 address provided to use as source in GUE encap";
@@ -609,8 +609,8 @@ void KatranLb::setupHcEnvironment() {
       throw std::runtime_error(
           "can not update src v4 address for direct healthchecking");
     } else {
-      LOG(INFO) << "update src v4 address " << config_.katranSrcV4
-                << " for direct healthchecking";
+      VLOG(1) << "update src v4 address " << config_.katranSrcV4
+              << " for direct healthchecking";
     }
   } else {
     LOG(ERROR) << "Empty IPV4 address provided to use as source in healthcheck";
@@ -624,8 +624,8 @@ void KatranLb::setupHcEnvironment() {
       throw std::runtime_error(
           "can not update src v6 address for direct healthchecking");
     } else {
-      LOG(INFO) << "update src v6 address " << config_.katranSrcV6
-                << " for direct healthchecking";
+      VLOG(1) << "update src v6 address " << config_.katranSrcV6
+              << " for direct healthchecking";
     }
   } else {
     LOG(ERROR) << "Empty IPV6 address provided to use as source in healthcheck";
@@ -996,15 +996,15 @@ bool KatranLb::addVip(const VipKey& vip, const uint32_t flags) {
     LOG(ERROR) << "Invalid Vip address: " << vip.address;
     return false;
   }
-  LOG(INFO) << fmt::format(
+  VLOG(1) << fmt::format(
       "adding new vip: {}:{}:{}", vip.address, vip.port, vip.proto);
 
   if (vipNums_.size() == 0) {
-    LOG(INFO) << "exhausted vip's space";
+    LOG(ERROR) << "exhausted vip's space";
     return false;
   }
   if (vips_.find(vip) != vips_.end()) {
-    LOG(INFO) << "trying to add already existing vip";
+    LOG(ERROR) << "trying to add already existing vip";
     return false;
   }
   auto vip_num = vipNums_[0];
@@ -1050,7 +1050,7 @@ bool KatranLb::changeHashFunctionForVip(const VipKey& vip, HashFunction func) {
   }
   auto vip_iter = vips_.find(vip);
   if (vip_iter == vips_.end()) {
-    LOG(INFO) << "trying to change non existing vip";
+    LOG(ERROR) << "trying to change non existing vip";
     return false;
   }
   vip_iter->second.setHashFunction(func);
@@ -1060,12 +1060,12 @@ bool KatranLb::changeHashFunctionForVip(const VipKey& vip, HashFunction func) {
 }
 
 bool KatranLb::delVip(const VipKey& vip) {
-  LOG(INFO) << fmt::format(
+  VLOG(1) << fmt::format(
       "deleting vip: {}:{}:{}", vip.address, vip.port, vip.proto);
 
   auto vip_iter = vips_.find(vip);
   if (vip_iter == vips_.end()) {
-    LOG(INFO) << "trying to delete non-existing vip";
+    LOG(ERROR) << "trying to delete non-existing vip";
     return false;
   }
 
@@ -1089,12 +1089,12 @@ bool KatranLb::delHcKey(const VipKey& hcKey) {
     return false;
   }
 
-  LOG(INFO) << fmt::format(
+  VLOG(1) << fmt::format(
       "deleting hc_key: {}:{}:{}", hcKey.address, hcKey.port, hcKey.proto);
 
   auto hc_key_iter = hckeys_.find(hcKey);
   if (hc_key_iter == hckeys_.end()) {
-    LOG(INFO) << "trying to delete non-existing hc_key";
+    LOG(ERROR) << "trying to delete non-existing hc_key";
     return false;
   }
   hcKeyNums_.push_back(hc_key_iter->second);
@@ -1125,12 +1125,12 @@ uint32_t KatranLb::getVipFlags(const VipKey& vip) {
 }
 
 bool KatranLb::modifyVip(const VipKey& vip, uint32_t flag, bool set) {
-  LOG(INFO) << fmt::format(
+  VLOG(1) << fmt::format(
       "modifying vip: {}:{}:{}", vip.address, vip.port, vip.proto);
 
   auto vip_iter = vips_.find(vip);
   if (vip_iter == vips_.end()) {
-    LOG(INFO) << fmt::format(
+    LOG(ERROR) << fmt::format(
         "trying to modify non-existing vip: {}", vip.address);
     return false;
   }
@@ -1170,7 +1170,7 @@ bool KatranLb::modifyReal(const std::string& real, uint8_t flags, bool set) {
   folly::IPAddress raddr(real);
   auto real_iter = reals_.find(raddr);
   if (real_iter == reals_.end()) {
-    LOG(INFO) << fmt::format("trying to modify non-existing real: {}", real);
+    LOG(ERROR) << fmt::format("trying to modify non-existing real: {}", real);
     return false;
   }
   flags &= ~V6DADDR; // to keep IPv4/IPv6 specific flag
@@ -1196,7 +1196,7 @@ bool KatranLb::modifyRealsForVip(
 
   auto vip_iter = vips_.find(vip);
   if (vip_iter == vips_.end()) {
-    LOG(INFO) << fmt::format(
+    LOG(ERROR) << fmt::format(
         "trying to modify reals for non existing vip: {}", vip.address);
     return false;
   }
@@ -1219,14 +1219,14 @@ bool KatranLb::modifyRealsForVip(
     if (action == ModifyAction::DEL) {
       auto real_iter = reals_.find(raddr);
       if (real_iter == reals_.end()) {
-        LOG(INFO) << "trying to delete non-existing real";
+        LOG(ERROR) << "trying to delete non-existing real";
         continue;
       }
       if (std::find(
               cur_reals.begin(), cur_reals.end(), real_iter->second.num) ==
           cur_reals.end()) {
         // this real doesn't belong to this vip
-        LOG(INFO) << fmt::format(
+        LOG(ERROR) << fmt::format(
             "trying to delete non-existing real for the VIP: {}", vip.address);
         continue;
       }
@@ -1246,7 +1246,7 @@ bool KatranLb::modifyRealsForVip(
       } else {
         auto rnum = increaseRefCountForReal(raddr, real.flags);
         if (rnum == config_.maxReals) {
-          LOG(INFO) << "exhausted real's space";
+          LOG(ERROR) << "exhausted real's space";
           continue;
         }
         ureal.updatedReal.num = rnum;
@@ -1284,8 +1284,8 @@ void KatranLb::programHashRing(
     auto res = bpfAdapter_->bpfUpdateMapBatch(ch_fd, keys, values, updateSize);
     if (res != 0) {
       lbStats_.bpfFailedCalls++;
-      LOG(INFO) << "can't update ch ring"
-                << ", error: " << folly::errnoStr(errno);
+      LOG(ERROR) << "can't update ch ring"
+                 << ", error: " << folly::errnoStr(errno);
     }
   }
 }
@@ -1497,7 +1497,7 @@ bool KatranLb::changeKatranMonitorForwardingState(KatranMonitorState state) {
   auto res = bpfAdapter_->bpfUpdateMap(
       bpfAdapter_->getMapFdByName(KatranLbMaps::ctl_array), &key, &value);
   if (res != 0) {
-    LOG(INFO) << "can't change state of introspection forwarding plane";
+    LOG(ERROR) << "can't change state of introspection forwarding plane";
     lbStats_.bpfFailedCalls++;
     return false;
   }
@@ -1569,8 +1569,8 @@ bool KatranLb::modifyLpmMap(
       auto res = bpfAdapter_->bpfUpdateMap(
           bpfAdapter_->getMapFdByName(mapName), &key_v4, value);
       if (res != 0) {
-        LOG(INFO) << "can't add new element into " << mapName
-                  << ", error: " << folly::errnoStr(errno);
+        LOG(ERROR) << "can't add new element into " << mapName
+                   << ", error: " << folly::errnoStr(errno);
         lbStats_.bpfFailedCalls++;
         return false;
       }
@@ -1578,8 +1578,8 @@ bool KatranLb::modifyLpmMap(
       auto res = bpfAdapter_->bpfMapDeleteElement(
           bpfAdapter_->getMapFdByName(mapName), &key_v4);
       if (res != 0) {
-        LOG(INFO) << "can't delete element from " << mapName
-                  << ", error: " << folly::errnoStr(errno);
+        LOG(ERROR) << "can't delete element from " << mapName
+                   << ", error: " << folly::errnoStr(errno);
         lbStats_.bpfFailedCalls++;
         return false;
       }
@@ -1594,8 +1594,8 @@ bool KatranLb::modifyLpmMap(
       auto res = bpfAdapter_->bpfUpdateMap(
           bpfAdapter_->getMapFdByName(mapName), &key_v6, value);
       if (res != 0) {
-        LOG(INFO) << "can't add new element into " << mapName
-                  << ", error: " << folly::errnoStr(errno);
+        LOG(ERROR) << "can't add new element into " << mapName
+                   << ", error: " << folly::errnoStr(errno);
         lbStats_.bpfFailedCalls++;
         return false;
       }
@@ -1603,8 +1603,8 @@ bool KatranLb::modifyLpmMap(
       auto res = bpfAdapter_->bpfMapDeleteElement(
           bpfAdapter_->getMapFdByName(mapName), &key_v6);
       if (res != 0) {
-        LOG(INFO) << "can't delete element from " << mapName
-                  << ", error: " << folly::errnoStr(errno);
+        LOG(ERROR) << "can't delete element from " << mapName
+                   << ", error: " << folly::errnoStr(errno);
         lbStats_.bpfFailedCalls++;
         return false;
       }
@@ -1790,7 +1790,7 @@ std::vector<QuicReal> KatranLb::getQuicRealsMapping() {
 lb_stats KatranLb::getStatsForVip(const VipKey& vip) {
   auto vip_iter = vips_.find(vip);
   if (vip_iter == vips_.end()) {
-    LOG(INFO) << fmt::format(
+    LOG(ERROR) << fmt::format(
         "trying to get stats for non-existing vip  {}:{}:{}",
         vip.address,
         vip.port,
@@ -1804,7 +1804,7 @@ lb_stats KatranLb::getStatsForVip(const VipKey& vip) {
 lb_stats KatranLb::getDecapStatsForVip(const VipKey& vip) {
   auto vip_iter = vips_.find(vip);
   if (vip_iter == vips_.end()) {
-    LOG(INFO) << fmt::format(
+    LOG(ERROR) << fmt::format(
         "trying to get stats for non-existing vip  {}:{}:{}",
         vip.address,
         vip.port,
@@ -2229,7 +2229,7 @@ bool KatranLb::addHealthcheckerDst(
 
   auto hc_iter = hcReals_.find(somark);
   if (hc_iter == hcReals_.end() && hcReals_.size() == config_.maxReals) {
-    LOG(INFO) << "healthchecker's reals space exhausted";
+    LOG(ERROR) << "healthchecker's reals space exhausted";
     return false;
   }
   // for md bassed tunnels remote_ipv4 must be in host endian format
@@ -2242,8 +2242,8 @@ bool KatranLb::addHealthcheckerDst(
     auto res = bpfAdapter_->bpfUpdateMap(
         bpfAdapter_->getMapFdByName(KatranLbMaps::hc_reals_map), &key, &addr);
     if (res != 0) {
-      LOG(INFO) << "can't add new real for healthchecking, error: "
-                << folly::errnoStr(errno);
+      LOG(ERROR) << "can't add new real for healthchecking, error: "
+                 << folly::errnoStr(errno);
       lbStats_.bpfFailedCalls++;
       return false;
     }
@@ -2262,15 +2262,15 @@ bool KatranLb::delHealthcheckerDst(const uint32_t somark) {
 
   auto hc_iter = hcReals_.find(somark);
   if (hc_iter == hcReals_.end()) {
-    LOG(INFO) << "trying to remove non-existing healthcheck";
+    LOG(ERROR) << "trying to remove non-existing healthcheck";
     return false;
   }
   if (!config_.testing) {
     auto res = bpfAdapter_->bpfMapDeleteElement(
         bpfAdapter_->getMapFdByName(KatranLbMaps::hc_reals_map), &key);
     if (res) {
-      LOG(INFO) << "can't remove hc w/ somark: " << key
-                << ", error: " << folly::errnoStr(errno);
+      LOG(ERROR) << "can't remove hc w/ somark: " << key
+                 << ", error: " << folly::errnoStr(errno);
       lbStats_.bpfFailedCalls++;
       return false;
     }
@@ -2567,7 +2567,7 @@ bool KatranLb::listLruMap(
       lruEntries.error = "maxed lookups";
     }
     if (lruEntries.entries.size() >= limit) {
-      LOG(INFO) << "lookupLru limit reached";
+      LOG(ERROR) << "lookupLru limit reached";
       lruEntries.error = "limit reached";
       return false;
     }
@@ -2815,8 +2815,8 @@ bool KatranLb::updateVipMap(
     auto res = bpfAdapter_->bpfUpdateMap(
         bpfAdapter_->getMapFdByName(KatranLbMaps::vip_map), &vip_def, meta);
     if (res != 0) {
-      LOG(INFO) << "can't add new element into vip_map, error: "
-                << folly::errnoStr(errno);
+      LOG(ERROR) << "can't add new element into vip_map, error: "
+                 << folly::errnoStr(errno);
       lbStats_.bpfFailedCalls++;
       return false;
     }
@@ -2824,8 +2824,8 @@ bool KatranLb::updateVipMap(
     auto res = bpfAdapter_->bpfMapDeleteElement(
         bpfAdapter_->getMapFdByName(KatranLbMaps::vip_map), &vip_def);
     if (res != 0) {
-      LOG(INFO) << "can't delete element from vip_map, error: "
-                << folly::errnoStr(errno);
+      LOG(ERROR) << "can't delete element from vip_map, error: "
+                 << folly::errnoStr(errno);
       lbStats_.bpfFailedCalls++;
       return false;
     }
@@ -2845,8 +2845,8 @@ bool KatranLb::updateHcKeyMap(
         &hc_key_def,
         &hcKeyId);
     if (res != 0) {
-      LOG(INFO) << "can't add new element into hc_key_map, error: "
-                << folly::errnoStr(errno);
+      LOG(ERROR) << "can't add new element into hc_key_map, error: "
+                 << folly::errnoStr(errno);
       lbStats_.bpfFailedCalls++;
       return false;
     }
@@ -2854,8 +2854,8 @@ bool KatranLb::updateHcKeyMap(
     auto res = bpfAdapter_->bpfMapDeleteElement(
         bpfAdapter_->getMapFdByName(KatranLbMaps::hc_key_map), &hc_key_def);
     if (res != 0) {
-      LOG(INFO) << "can't delete element from hc_key_map, error: "
-                << folly::errnoStr(errno);
+      LOG(ERROR) << "can't delete element from hc_key_map, error: "
+                 << folly::errnoStr(errno);
       lbStats_.bpfFailedCalls++;
       return false;
     }
@@ -2873,7 +2873,7 @@ bool KatranLb::updateRealsMap(
   auto res = bpfAdapter_->bpfUpdateMap(
       bpfAdapter_->getMapFdByName("reals"), &num, &real_addr);
   if (res != 0) {
-    LOG(INFO) << "can't add new real, error: " << folly::errnoStr(errno);
+    LOG(ERROR) << "can't add new real, error: " << folly::errnoStr(errno);
     lbStats_.bpfFailedCalls++;
     return false;
   } else {
@@ -2956,7 +2956,7 @@ bool KatranLb::installFeature(
     KatranFeatureEnum feature,
     const std::string& prog_path) {
   if (hasFeature(feature)) {
-    LOG(INFO) << "already have requested feature";
+    LOG(ERROR) << "already have requested feature";
     return true;
   }
   if (prog_path.empty()) {
@@ -3025,7 +3025,7 @@ std::vector<int> KatranLb::getGlobalLruMapsFds() {
 lb_stats KatranLb::getSidRoutingStatsForVip(const VipKey& vip) {
   auto vip_iter = vips_.find(vip);
   if (vip_iter == vips_.end()) {
-    LOG(INFO) << fmt::format(
+    VLOG(1) << fmt::format(
         "trying to get sid routing stats for non-existing vip  {}:{}:{}",
         vip.address,
         vip.port,

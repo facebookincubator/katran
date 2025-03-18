@@ -131,7 +131,21 @@ int libbpf_print(
   if (level == LIBBPF_DEBUG && !VLOG_IS_ON(6) && !flagPrintBpfDbg) {
     return 0;
   }
-  return vfprintf(stderr, format, args);
+
+  std::array<char, 1024> buf;
+  int ret = ::vsnprintf(buf.data(), buf.size(), format, args);
+  if (ret < 0) {
+    LOG(ERROR) << "libbpf failed to log ret=" << ret;
+  } else {
+    folly::StringPiece msg(buf.data(), std::min<size_t>(ret, buf.size()));
+    if (level == LIBBPF_DEBUG) {
+      VLOG(1) << msg;
+    } else {
+      LOG(ERROR) << msg;
+    }
+  }
+
+  return ret;
 }
 
 static int NetlinkRoundtrip(const NetlinkMessage& msg) {
