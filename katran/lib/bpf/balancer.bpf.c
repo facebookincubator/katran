@@ -198,74 +198,6 @@ __attribute__((__always_inline__)) static inline void connection_table_lookup(
   return;
 }
 
-__attribute__((__always_inline__)) static inline int process_l3_headers(
-    struct packet_description* pckt,
-    __u8* protocol,
-    __u64 nh_off, // network header offset (IPv4/IPv6)
-    __u64* th_off, // transport header offset (TCP/UDP/...)
-    __u16* pkt_bytes,
-    void* data,
-    void* data_end,
-    bool is_ipv6) {
-  __u64 iph_len;
-  struct iphdr* iph;
-  struct ipv6hdr* ip6h;
-  if (is_ipv6) {
-    ip6h = data + nh_off;
-    if (ip6h + 1 > data_end) {
-      return XDP_DROP;
-    }
-
-    iph_len = sizeof(struct ipv6hdr);
-    *protocol = ip6h->nexthdr;
-    pckt->flow.proto = *protocol;
-
-    // copy tos from the packet
-    pckt->tos = (ip6h->priority << 4) & 0xF0;
-    pckt->tos = pckt->tos | ((ip6h->flow_lbl[0] >> 4) & 0x0F);
-
-    *pkt_bytes = bpf_ntohs(ip6h->payload_len);
-    *th_off += nh_off + iph_len;
-    if (*protocol == IPPROTO_FRAGMENT) {
-      // we drop fragmented packets
-      return XDP_DROP;
-    } else if (*protocol == IPPROTO_ICMPV6) {
-      return FURTHER_PROCESSING;
-    } else {
-      memcpy(pckt->flow.srcv6, ip6h->saddr.s6_addr32, 16);
-      memcpy(pckt->flow.dstv6, ip6h->daddr.s6_addr32, 16);
-    }
-  } else {
-    iph = data + nh_off;
-    if (iph + 1 > data_end) {
-      return XDP_DROP;
-    }
-    // ihl contains len of ipv4 header in 32bit words
-    if (iph->ihl != 5) {
-      // if len of ipv4 hdr is not equal to 20bytes that means that header
-      // contains ip options, and we dont support em
-      return XDP_DROP;
-    }
-    pckt->tos = iph->tos;
-    *protocol = iph->protocol;
-    pckt->flow.proto = *protocol;
-    *pkt_bytes = bpf_ntohs(iph->tot_len);
-    *th_off += nh_off + IPV4_HDR_LEN_NO_OPT;
-
-    if (iph->frag_off & PCKT_FRAGMENTED) {
-      // we drop fragmented packets.
-      return XDP_DROP;
-    }
-    if (*protocol == IPPROTO_ICMP) {
-      return FURTHER_PROCESSING;
-    } else {
-      pckt->flow.src = iph->saddr;
-      pckt->flow.dst = iph->daddr;
-    }
-  }
-  return FURTHER_PROCESSING;
-}
-
 #ifdef INLINE_DECAP_GENERIC
 __attribute__((__always_inline__)) static inline int
 check_decap_dst(struct packet_description* pckt, bool is_ipv6, bool* pass) {
@@ -437,7 +369,7 @@ incr_decap_vip_stats(void* data, __u64 nh_off, void* data_end, bool is_ipv6) {
   __u8 inner_protocol;
   __u16 inner_pkt_bytes;
   __u64 th_off = 0;
-  if (process_l3_headers(
+  if (parse_l3_headers(
           &inner_pckt,
           &inner_protocol,
           nh_off,
@@ -711,7 +643,7 @@ process_packet(struct xdp_md* xdp, __u64 nh_off, bool is_ipv6) {
   __u32 mac_addr_pos = 0;
   __u16 pkt_bytes;
   __u64 th_off = 0;
-  action = process_l3_headers(
+  action = parse_l3_headers(
       &pckt, &protocol, nh_off, &th_off, &pkt_bytes, data, data_end, is_ipv6);
   if (action >= 0) {
     return action;
