@@ -201,17 +201,17 @@ __attribute__((__always_inline__)) static inline void connection_table_lookup(
 __attribute__((__always_inline__)) static inline int process_l3_headers(
     struct packet_description* pckt,
     __u8* protocol,
-    __u64 off,
+    __u64 nh_off, // network header offset (IPv4/IPv6)
+    __u64* th_off, // transport header offset (TCP/UDP/...)
     __u16* pkt_bytes,
     void* data,
     void* data_end,
     bool is_ipv6) {
   __u64 iph_len;
-  int action;
   struct iphdr* iph;
   struct ipv6hdr* ip6h;
   if (is_ipv6) {
-    ip6h = data + off;
+    ip6h = data + nh_off;
     if (ip6h + 1 > data_end) {
       return XDP_DROP;
     }
@@ -225,21 +225,18 @@ __attribute__((__always_inline__)) static inline int process_l3_headers(
     pckt->tos = pckt->tos | ((ip6h->flow_lbl[0] >> 4) & 0x0F);
 
     *pkt_bytes = bpf_ntohs(ip6h->payload_len);
-    off += iph_len;
+    *th_off += nh_off + iph_len;
     if (*protocol == IPPROTO_FRAGMENT) {
       // we drop fragmented packets
       return XDP_DROP;
     } else if (*protocol == IPPROTO_ICMPV6) {
-      action = parse_icmpv6(data, data_end, off, pckt);
-      if (action >= 0) {
-        return action;
-      }
+      return FURTHER_PROCESSING;
     } else {
       memcpy(pckt->flow.srcv6, ip6h->saddr.s6_addr32, 16);
       memcpy(pckt->flow.dstv6, ip6h->daddr.s6_addr32, 16);
     }
   } else {
-    iph = data + off;
+    iph = data + nh_off;
     if (iph + 1 > data_end) {
       return XDP_DROP;
     }
@@ -253,17 +250,14 @@ __attribute__((__always_inline__)) static inline int process_l3_headers(
     *protocol = iph->protocol;
     pckt->flow.proto = *protocol;
     *pkt_bytes = bpf_ntohs(iph->tot_len);
-    off += IPV4_HDR_LEN_NO_OPT;
+    *th_off += nh_off + IPV4_HDR_LEN_NO_OPT;
 
     if (iph->frag_off & PCKT_FRAGMENTED) {
       // we drop fragmented packets.
       return XDP_DROP;
     }
     if (*protocol == IPPROTO_ICMP) {
-      action = parse_icmp(data, data_end, off, pckt);
-      if (action >= 0) {
-        return action;
-      }
+      return FURTHER_PROCESSING;
     } else {
       pckt->flow.src = iph->saddr;
       pckt->flow.dst = iph->daddr;
@@ -436,20 +430,26 @@ __attribute__((__always_inline__)) static inline int process_encaped_ipip_pckt(
 
 #ifdef INLINE_DECAP_GUE
 __attribute__((__always_inline__)) static inline void
-incr_decap_vip_stats(void* data, __u64 off, void* data_end, bool is_ipv6) {
+incr_decap_vip_stats(void* data, __u64 nh_off, void* data_end, bool is_ipv6) {
   struct packet_description inner_pckt = {};
   struct vip_definition vip = {};
   struct vip_meta* vip_info;
   __u8 inner_protocol;
   __u16 inner_pkt_bytes;
+  __u64 th_off = 0;
   if (process_l3_headers(
           &inner_pckt,
           &inner_protocol,
-          off,
+          nh_off,
+          &th_off,
           &inner_pkt_bytes,
           data,
           data_end,
           is_ipv6) >= 0) {
+    return;
+  }
+  if (handle_if_icmp(data, data_end, th_off, &inner_pckt, inner_protocol) >=
+      0) {
     return;
   }
   if (is_ipv6) {
@@ -693,7 +693,7 @@ incr_server_id_routing_stats(__u32 vip_num, bool newConn, bool misMatchInLRU) {
 }
 
 __attribute__((__always_inline__)) static inline int
-process_packet(struct xdp_md* xdp, __u64 off, bool is_ipv6) {
+process_packet(struct xdp_md* xdp, __u64 nh_off, bool is_ipv6) {
   void* data = (void*)(long)xdp->data;
   void* data_end = (void*)(long)xdp->data_end;
   struct ctl_value* cval;
@@ -710,8 +710,13 @@ process_packet(struct xdp_md* xdp, __u64 off, bool is_ipv6) {
   __u32 vip_num;
   __u32 mac_addr_pos = 0;
   __u16 pkt_bytes;
+  __u64 th_off = 0;
   action = process_l3_headers(
-      &pckt, &protocol, off, &pkt_bytes, data, data_end, is_ipv6);
+      &pckt, &protocol, nh_off, &th_off, &pkt_bytes, data, data_end, is_ipv6);
+  if (action >= 0) {
+    return action;
+  }
+  action = handle_if_icmp(data, data_end, th_off, &pckt, protocol);
   if (action >= 0) {
     return action;
   }
@@ -778,7 +783,7 @@ process_packet(struct xdp_md* xdp, __u64 off, bool is_ipv6) {
         return action;
       }
       return process_encaped_gue_pckt(
-          &data, &data_end, xdp, off, is_ipv6, pass);
+          &data, &data_end, xdp, nh_off, is_ipv6, pass);
     }
 #endif // of INLINE_DECAP_GUE
   } else {

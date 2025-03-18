@@ -336,4 +336,19 @@ ignorable_quic_icmp_code(void* data, void* data_end, bool is_ipv6) {
   }
 }
 
+__attribute__((__always_inline__)) static inline int handle_if_icmp(
+    void* data,
+    void* data_end,
+    __u64 off,
+    struct packet_description* pckt,
+    __u8 protocol) {
+  if (protocol == IPPROTO_ICMPV6) {
+    return parse_icmpv6(data, data_end, off, pckt);
+  } else if (protocol == IPPROTO_ICMP) {
+    return parse_icmp(data, data_end, off, pckt);
+  } else {
+    return FURTHER_PROCESSING;
+  }
+}
+
 #endif // of __HANDLE_ICMP_H
