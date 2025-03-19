@@ -129,14 +129,15 @@ bool BpfTester::testFromFixture() {
   return runBpfTesterFromFixtures(config_.bpfProgFd, kXdpCodes, {});
 }
 
-void BpfTester::testClsFromFixture(
+bool BpfTester::testClsFromFixture(
     int progFd,
     std::vector<struct __sk_buff> ctxs_in) {
   std::vector<void*> ctxs;
   for (auto& ctx : ctxs_in) {
     ctxs.push_back(&ctx);
   }
-  runBpfTesterFromFixtures(progFd, kTcCodes, ctxs, sizeof(struct __sk_buff));
+  return runBpfTesterFromFixtures(
+      progFd, kTcCodes, ctxs, sizeof(struct __sk_buff));
 }
 
 bool BpfTester::runBpfTesterFromFixtures(

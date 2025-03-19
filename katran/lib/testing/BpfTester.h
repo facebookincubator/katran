@@ -110,7 +110,7 @@ class BpfTester {
    * helper function to run tests on data from test fixtures
    * for clsact(tc) based bpf program. optional ctxs could be specified
    */
-  void testClsFromFixture(int progFd, std::vector<struct __sk_buff> ctxs_in);
+  bool testClsFromFixture(int progFd, std::vector<struct __sk_buff> ctxs_in);
 
   /**
    * @param vector<string, string> new input fixtures
