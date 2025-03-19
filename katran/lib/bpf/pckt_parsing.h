@@ -206,13 +206,10 @@ __attribute__((__always_inline__)) int parse_hdr_opt_raw(
   state->byte_offset += hdr_len;
   return 0;
 }
-#ifdef TCP_HDR_OPT_SKIP_UNROLL_LOOP
-__attribute__ ((noinline))
-#else
-__attribute__ ((__always_inline__))
-#endif
-int parse_hdr_opt(const struct xdp_md *xdp, struct hdr_opt_state *state)
-{
+
+__attribute__((noinline)) int parse_hdr_opt(
+    const struct xdp_md* xdp,
+    struct hdr_opt_state* state) {
   __u8 *tcp_opt, kind, hdr_len;
 
   const void* data = (void*)(long)xdp->data;
@@ -255,12 +252,7 @@ tcp_hdr_opt_lookup_server_id(
 
   opt_state.hdr_bytes_remaining = tcp_hdr_opt_len;
   opt_state.byte_offset = sizeof(struct tcphdr) + tcp_offset;
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 3, 0) || \
-    !defined TCP_HDR_OPT_SKIP_UNROLL_LOOP
-  // For linux kernel version < 5.3, there isn't support in the bpf verifier
-  // for validating bounded loops, so we need to unroll the loop
 #pragma clang loop unroll(full)
-#endif
   for (int i = 0; i < TCP_HDR_OPT_MAX_OPT_CHECKS; i++) {
     err = parse_hdr_opt(xdp, &opt_state);
     if (err || !opt_state.hdr_bytes_remaining) {
@@ -298,12 +290,7 @@ tcp_hdr_opt_lookup_server_id_skb(
 
   opt_state.hdr_bytes_remaining = tcp_hdr_opt_len;
   opt_state.byte_offset = sizeof(struct tcphdr) + tcp_offset;
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 3, 0) || \
-    !defined TCP_HDR_OPT_SKIP_UNROLL_LOOP
-  // For linux kernel version < 5.3, there isn't support in the bpf verifier
-  // for validating bounded loops, so we need to unroll the loop
 #pragma clang loop unroll(full)
-#endif
   for (int i = 0; i < TCP_HDR_OPT_MAX_OPT_CHECKS; i++) {
     err = parse_hdr_opt_skb(skb, &opt_state);
     if (err || !opt_state.hdr_bytes_remaining) {
