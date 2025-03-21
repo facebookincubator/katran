@@ -252,7 +252,6 @@ tcp_hdr_opt_lookup_server_id(
 
   opt_state.hdr_bytes_remaining = tcp_hdr_opt_len;
   opt_state.byte_offset = sizeof(struct tcphdr) + tcp_offset;
-#pragma clang loop unroll(full)
   for (int i = 0; i < TCP_HDR_OPT_MAX_OPT_CHECKS; i++) {
     err = parse_hdr_opt(xdp, &opt_state);
     if (err || !opt_state.hdr_bytes_remaining) {
@@ -290,7 +289,6 @@ tcp_hdr_opt_lookup_server_id_skb(
 
   opt_state.hdr_bytes_remaining = tcp_hdr_opt_len;
   opt_state.byte_offset = sizeof(struct tcphdr) + tcp_offset;
-#pragma clang loop unroll(full)
   for (int i = 0; i < TCP_HDR_OPT_MAX_OPT_CHECKS; i++) {
     err = parse_hdr_opt_skb(skb, &opt_state);
     if (err || !opt_state.hdr_bytes_remaining) {
