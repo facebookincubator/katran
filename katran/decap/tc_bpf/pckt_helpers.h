@@ -31,6 +31,38 @@
 
 #define DECAP_FURTHER_PROCESSING -2
 
+struct pckt_addr_proto {
+  union {
+    struct iphdr* iph;
+    struct ipv6hdr* ip6h;
+  };
+  __u8 proto;
+};
+
+// gets pointer to v4/v6 address and ip_proto
+// note that this does not memcpy dst addr
+__attribute__((__always_inline__)) static inline int get_packet_addr_proto(
+    void* data,
+    void* data_end,
+    __u64 off,
+    bool is_ipv6,
+    struct pckt_addr_proto* pckt) {
+  if (is_ipv6) {
+    pckt->ip6h = data + off;
+    if (pckt->ip6h + 1 > data_end) {
+      return TC_ACT_SHOT;
+    }
+    pckt->proto = pckt->ip6h->nexthdr;
+  } else {
+    pckt->iph = data + off;
+    if (pckt->iph + 1 > data_end) {
+      return TC_ACT_SHOT;
+    }
+    pckt->proto = pckt->iph->protocol;
+  }
+  return DECAP_FURTHER_PROCESSING;
+}
+
 __attribute__((__always_inline__)) static inline int process_l3_headers(
     void* data,
     void* data_end,

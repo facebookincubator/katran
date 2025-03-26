@@ -168,7 +168,7 @@ bool BpfTester::runBpfTesterFromFixtures(
 
     if (config_.singleTestRunPacketNumber_ &&
         *config_.singleTestRunPacketNumber_ != (i + 1)) {
-      VLOG(2) << "Skipped test for packet #" << i;
+      LOG(INFO) << "Skipped test for packet #" << i;
       continue;
     }
     void* ctx_in = ctxs_in.size() != 0 ? ctxs_in[i] : nullptr;

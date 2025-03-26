@@ -33,26 +33,22 @@
 #include "pckt_helpers.h"
 #include "tc_decap_stats_maps.h"
 
+#define PROTO_TCP_BIT 0
+#define PROTO_UDP_BIT 1
+
+#ifdef DECAP_TPR_STATS
 __attribute__((__always_inline__)) static inline void validate_tpr_server_id(
     void* data,
-    __u64 off,
     void* data_end,
     bool is_ipv6,
     struct __sk_buff* skb,
     struct decap_tpr_stats* data_stats) {
-  __u16 inner_pkt_bytes;
-  struct packet_description inner_pckt = {};
-  if (process_l3_headers(data, data_end, off, is_ipv6, &inner_pckt.flow) >= 0) {
-    return;
-  }
-  if (inner_pckt.flow.proto != IPPROTO_TCP) {
-    return;
-  }
-  if (!parse_tcp(data, data_end, is_ipv6, &inner_pckt)) {
+  struct packet_description pckt = {};
+  if (!parse_tcp(data, data_end, is_ipv6, &pckt)) {
     return;
   }
   // only check for TCP non SYN packets
-  if (!(inner_pckt.flags & F_SYN_SET)) {
+  if (!(pckt.flags & F_SYN_SET)) {
     // lookup server id from tpr header option and compare against server_id on
     // this host (if available)
     __u32 s_key = 0;
@@ -75,6 +71,54 @@ __attribute__((__always_inline__)) static inline void validate_tpr_server_id(
     }
   }
 }
+#endif
+
+__attribute__((__always_inline__)) static inline void incr_vip_stats(
+    __u8 proto,
+    bool is_ipv6) {
+  __u32 key = proto == IPPROTO_TCP ? 0 : 1;
+  struct vip_decap_stats* vip_stats = bpf_map_lookup_elem(&tc_vip_stats, &key);
+  if (vip_stats) {
+    if (is_ipv6) {
+      vip_stats->v6_packets += 1;
+    } else {
+      vip_stats->v4_packets += 1;
+    }
+  }
+}
+
+__attribute__((__always_inline__)) static inline void incr_decap_vip_stats(
+    void* data,
+    void* data_end,
+    struct pckt_addr_proto* pckt,
+    bool is_ipv6) {
+  struct vip_info* vip;
+  if (is_ipv6) {
+    if (pckt->ip6h + 1 > data_end) {
+      return;
+    }
+    // We use pct->ip6h->daddr directly as a key to lookup in vip info map.
+    // This saves us memcpy daddr to a new struct, especially since we are
+    // calling this for every packet. The downside is that we can't use
+    // daddr+port as key
+    vip = bpf_map_lookup_elem(&tc_vip6_info, &pckt->ip6h->daddr.s6_addr32);
+  } else {
+    if (pckt->iph + 1 > data_end) {
+      return;
+    }
+    vip = bpf_map_lookup_elem(&tc_vip4_info, &pckt->iph->daddr);
+  }
+  if (vip) {
+    // check if dst protocol is expected for vip
+    if (pckt->proto == IPPROTO_TCP && vip->proto_mask & (1 << PROTO_TCP_BIT)) {
+      incr_vip_stats(pckt->proto, is_ipv6);
+    } else if (
+        pckt->proto == IPPROTO_UDP && vip->proto_mask & (1 << PROTO_UDP_BIT)) {
+      incr_vip_stats(pckt->proto, is_ipv6);
+    }
+  }
+  return;
+}
 
 __attribute__((__always_inline__)) static inline int process_packet(
     void* data,
@@ -82,14 +126,27 @@ __attribute__((__always_inline__)) static inline int process_packet(
     void* data_end,
     bool is_ipv6,
     struct __sk_buff* skb) {
-  struct packet_description pckt = {};
   struct decap_tpr_stats* data_stats;
   __u32 key = 0;
   data_stats = bpf_map_lookup_elem(&tc_tpr_stats, &key);
   if (!data_stats) {
-    return XDP_PASS;
+    return TC_ACT_UNSPEC;
   }
-  validate_tpr_server_id(data, off, data_end, is_ipv6, skb, data_stats);
+  struct pckt_addr_proto pckt_info = {};
+  if (get_packet_addr_proto(data, data_end, off, is_ipv6, &pckt_info) !=
+      DECAP_FURTHER_PROCESSING) {
+    return TC_ACT_UNSPEC;
+  }
+#ifdef DECAP_TPR_STATS
+  if (pckt_info.proto == IPPROTO_TCP) {
+    validate_tpr_server_id(data, data_end, is_ipv6, skb, data_stats);
+  }
+#endif
+
+#ifdef DECAP_VIP_STATS
+  incr_decap_vip_stats(data, data_end, &pckt_info, is_ipv6);
+#endif
+
   return TC_ACT_UNSPEC;
 }
 
@@ -112,6 +169,7 @@ int tcdecapstats(struct __sk_buff* skb) {
   } else {
     return TC_ACT_UNSPEC;
   }
+  return TC_ACT_UNSPEC;
 }
 
 char _license[] SEC("license") = "GPL";
