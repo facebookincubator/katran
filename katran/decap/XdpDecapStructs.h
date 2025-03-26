@@ -40,6 +40,13 @@ struct decap_stats {
   uint64_t tpr_total;
 };
 
+struct vip_decap_stats {
+  uint64_t tcp_v4_packets;
+  uint64_t tcp_v6_packets;
+  uint64_t udp_v4_packets;
+  uint64_t udp_v6_packets;
+};
+
 /**
  * @param string progPath path to bpf object file w/ xdpdecap program
  * @param string mapPath in shared mode - path to bpf prog array
