@@ -155,13 +155,13 @@ int tcdecapstats(struct __sk_buff* skb) {
   void* data = (void*)(long)skb->data;
   void* data_end = (void*)(long)skb->data_end;
   __u32 eth_proto;
-  struct ethhdr* eth = data;
   __u32 nh_off = sizeof(struct ethhdr);
 
   if (data + nh_off > data_end) {
     return TC_ACT_UNSPEC;
   }
-  eth_proto = eth->h_proto;
+  // Looking at decapped packet, skb->protocol has the correct protocol
+  eth_proto = skb->protocol;
   if (eth_proto == BE_ETH_P_IP) {
     return process_packet(data, nh_off, data_end, false, skb);
   } else if (eth_proto == BE_ETH_P_IPV6) {
