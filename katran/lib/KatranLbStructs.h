@@ -42,9 +42,9 @@ constexpr unsigned int kDefaultLruSize = 8000000;
 constexpr uint32_t kDefaultGlobalLruSize = 100000;
 constexpr uint32_t kNoFlags = 0;
 constexpr uint32_t kUnspecifiedInterfaceIndex = 0;
-std::string kNoExternalMap = "";
-std::string kDefaultHcInterface = "";
-std::string kAddressNotSpecified = "";
+std::string kNoExternalMap;
+std::string kDefaultHcInterface;
+std::string kAddressNotSpecified;
 } // namespace
 
 /**
