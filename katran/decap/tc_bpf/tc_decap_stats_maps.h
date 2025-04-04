@@ -63,9 +63,9 @@ struct {
   __uint(type, BPF_MAP_TYPE_ARRAY);
   __type(key, __u32);
   __type(value, __u32);
-  __uint(max_entries, 1);
+  __uint(max_entries, 2);
   __uint(map_flags, NO_FLAGS);
-} tpr_server_id SEC(".maps");
+} tpr_server_ids SEC(".maps");
 
 // map for sampled tpr mismatched server ids
 struct {

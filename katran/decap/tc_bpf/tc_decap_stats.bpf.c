@@ -51,14 +51,21 @@ __attribute__((__always_inline__)) static inline void validate_tpr_server_id(
   if (!(pckt.flags & F_SYN_SET)) {
     // lookup server id from tpr header option and compare against server_id on
     // this host (if available)
-    __u32 s_key = 0;
-    __u32* server_id_host = bpf_map_lookup_elem(&tpr_server_id, &s_key);
-    if (server_id_host && *server_id_host > 0) {
+    // there might be two different server ids from packets to different
+    // processes during hotswap, so we check both
+    __u32 s_key_0 = 0;
+    __u32* server_id_0 = bpf_map_lookup_elem(&tpr_server_ids, &s_key_0);
+    bool server_id_0_found = (server_id_0 && *server_id_0 > 0);
+    __u32 s_key_1 = 1;
+    __u32* server_id_1 = bpf_map_lookup_elem(&tpr_server_ids, &s_key_1);
+    bool server_id_1_found = (server_id_1 && *server_id_1 > 0);
+    if (server_id_0_found || server_id_1_found) {
       __u32 server_id = 0;
       tcp_hdr_opt_lookup_server_id_skb(skb, is_ipv6, &server_id);
       if (server_id > 0) {
         data_stats->tpr_total += 1;
-        if (*server_id_host != server_id) {
+        if ((!server_id_0_found || (*server_id_0 != server_id)) &&
+            (!server_id_1_found || (*server_id_1 != server_id))) {
           data_stats->tpr_misrouted += 1;
           __u32 sid_sample_key = 0;
           __u64* server_id_sample =
