@@ -30,7 +30,6 @@
 #include <linux/ptrace.h>
 #include <linux/tcp.h>
 #include <linux/udp.h>
-#include <linux/version.h>
 #include <stdbool.h>
 #include <stddef.h>
 
