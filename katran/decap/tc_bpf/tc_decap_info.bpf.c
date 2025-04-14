@@ -103,7 +103,7 @@ __attribute__((__always_inline__)) static inline int process_packet(
   if (action >= 0) {
     return action;
   }
-  if (is_inner_ipv6) {
+  if (is_ipv6) {
     off =
         sizeof(struct ethhdr) + sizeof(struct ipv6hdr) + sizeof(struct udphdr);
   } else {
@@ -111,7 +111,8 @@ __attribute__((__always_inline__)) static inline int process_packet(
   }
 
   struct packet_description inner_pckt = {};
-  action = process_l3_headers(data, data_end, off, is_ipv6, &inner_pckt.flow);
+  action =
+      process_l3_headers(data, data_end, off, is_inner_ipv6, &inner_pckt.flow);
   if (action >= 0) {
     return action;
   }
