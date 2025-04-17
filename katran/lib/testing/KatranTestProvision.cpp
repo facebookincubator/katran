@@ -320,14 +320,14 @@ KatranTestParam::expectedRealStats() noexcept {
 
 uint64_t KatranTestParam::expectedTotalPktsForVip(
     const katran::VipKey& vip) noexcept {
-  if (perVipCounters.count(vip) == 0) {
+  if (!perVipCounters.contains(vip)) {
     return 0;
   }
   return perVipCounters[vip].first;
 }
 uint64_t KatranTestParam::expectedTotalBytesForVip(
     const katran::VipKey& vip) noexcept {
-  if (perVipCounters.count(vip) == 0) {
+  if (!perVipCounters.contains(vip)) {
     return 0;
   }
   return perVipCounters[vip].second;
@@ -409,7 +409,7 @@ uint64_t KatranTestParam::expectedInlineDecapPkts() noexcept {
   return _lookup_counter(KatranTestCounters::INLINE_DECAP_PKTS);
 }
 uint64_t KatranTestParam::_lookup_counter(KatranTestCounters counter) noexcept {
-  if (expectedCounters.count(counter) == 0) {
+  if (!expectedCounters.contains(counter)) {
     return 0;
   }
   return expectedCounters[counter];
