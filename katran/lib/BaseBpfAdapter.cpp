@@ -887,7 +887,7 @@ bool BaseBpfAdapter::batchOpsAreSupported() {
   };
 
   // try a batch lookup operation to see if batch ops are supported
-  auto size = 2;
+  constexpr auto size = 2;
 
   uint32_t* next_batch_key;
   uint32_t count = size;
