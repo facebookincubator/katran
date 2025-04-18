@@ -270,8 +270,9 @@ int BaseBpfAdapter::bpfUpdateMapBatch(
     uint32_t numUpdated = count;
     DECLARE_LIBBPF_OPTS(
         bpf_map_batch_opts, opts, .elem_flags = 0, .flags = 0, );
-    if (auto bpfError =
-            bpf_map_update_batch(map_fd, keys, values, &numUpdated, &opts)) {
+    auto bpfError =
+        bpf_map_update_batch(map_fd, keys, values, &numUpdated, &opts);
+    if (bpfError) {
       LOG(ERROR) << "Failed to perform batch update, errno = " << errno;
       return -1;
     }
