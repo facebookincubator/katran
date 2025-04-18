@@ -23,10 +23,11 @@ static inline bool kde_enabled() {
 
 static inline bool has_syn_with_kde_opt(struct bpf_sock_ops* skops) {
   __u64 load_flags = BPF_LOAD_HDR_OPT_TCP_SYN;
-  struct kde_clt_tcp_opt kde_opt = {};
+  struct kde_clt_tcp_opt_v2 kde_opt = {};
   kde_opt.kind = KDE_CLT_TCP_HDR_OPT_KIND;
   int ret = bpf_load_hdr_opt(skops, &kde_opt, sizeof(kde_opt), load_flags);
-  return (ret == sizeof(kde_opt));
+  return (ret == KDE_CLT_TCP_HDR_OPT_LEN) ||
+      (ret == KDE_CLT_TCP_HDR_OPT_V2_LEN);
 }
 
 static inline bool should_ignore_due_to_kde(struct bpf_sock_ops* skops) {

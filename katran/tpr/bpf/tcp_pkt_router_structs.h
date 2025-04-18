@@ -19,10 +19,13 @@ struct tcp_opt {
 
 // struct that represents an option that, if present in the incoming
 // syn from the client, indicates that we shouldn't use TPR.
-struct kde_clt_tcp_opt {
+struct kde_clt_tcp_opt_v2 {
   __u8 kind;
   __u8 len;
+  __u8 zone;
 } __attribute__((packed));
+#define KDE_CLT_TCP_HDR_OPT_LEN 2
+#define KDE_CLT_TCP_HDR_OPT_V2_LEN 3
 
 // stats for different packet events
 struct stats {
