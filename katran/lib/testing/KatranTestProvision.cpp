@@ -21,7 +21,7 @@ namespace testing {
 const std::string kMainInterface = "lo";
 const std::string kV4TunInterface = "lo";
 const std::string kV6TunInterface = "lo";
-const std::string kNoExternalMap = "";
+const std::string kNoExternalMap;
 const std::vector<uint8_t> kDefaultMac = {0x00, 0x00, 0xDE, 0xAD, 0xBE, 0xAF};
 const std::vector<uint8_t> kLocalMac = {0x00, 0xFF, 0xDE, 0xAD, 0xBE, 0xAF};
 
