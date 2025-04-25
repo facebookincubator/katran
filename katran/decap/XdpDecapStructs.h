@@ -21,7 +21,7 @@
 namespace katran {
 
 namespace {
-std::string kDefaultMapPath = "";
+std::string kDefaultMapPath;
 const int kDefaultProgPos = 8;
 std::string kDefaultInterface = "lo";
 } // namespace
