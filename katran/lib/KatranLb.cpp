@@ -952,7 +952,7 @@ bool KatranLb::changeMac(const std::vector<uint8_t> newMac) {
         &ctlValues_[kMacAddrPos].mac);
     if (res != 0) {
       lbStats_.bpfFailedCalls++;
-      VLOG(4) << "can't add new mac address";
+      LOG(ERROR) << "can't add new mac address";
       return false;
     }
 
@@ -964,7 +964,7 @@ bool KatranLb::changeMac(const std::vector<uint8_t> newMac) {
           &ctlValues_[kMacAddrPos].mac);
       if (res_2 != 0) {
         lbStats_.bpfFailedCalls++;
-        VLOG(4) << "can't add new mac address for direct healthchecks";
+        LOG(ERROR) << "can't add new mac address for direct healthchecks";
         return false;
       }
     }
@@ -2001,6 +2001,7 @@ lb_quic_packets_stats KatranLb::getLbQuicPacketsStats() {
         sum_stat.dst_not_found_in_lru += stat.dst_not_found_in_lru;
       }
     } else {
+      LOG(ERROR) << "Failed to read quic stats map";
       lbStats_.bpfFailedCalls++;
     }
   }
@@ -2028,6 +2029,7 @@ lb_tpr_packets_stats KatranLb::getTcpServerIdRoutingStats() {
         sum_stat.tcp_syn += stat.tcp_syn;
       }
     } else {
+      LOG(ERROR) << "Failed to read tpr stats map";
       lbStats_.bpfFailedCalls++;
     }
   }
@@ -2055,6 +2057,7 @@ lb_stable_rt_packets_stats KatranLb::getUdpStableRoutingStats() {
         sum_stat.cid_unknown_real_dropped += stat.cid_unknown_real_dropped;
       }
     } else {
+      LOG(ERROR) << "Failed to read stable rt stats map";
       lbStats_.bpfFailedCalls++;
     }
   }
@@ -2115,6 +2118,7 @@ lb_stats KatranLb::getLbStats(uint32_t position, const std::string& map) {
         sum_stat.v2 += stat.v2;
       }
     } else {
+      LOG(ERROR) << "Failed to read " << map;
       lbStats_.bpfFailedCalls++;
     }
   }
@@ -2177,6 +2181,7 @@ HealthCheckProgStats KatranLb::getStatsForHealthCheckProgram() {
         &stats_index,
         stats);
     if (res) {
+      LOG(ERROR) << "Failed to read " << KatranLbMaps::hc_stats_map;
       lbStats_.bpfFailedCalls++;
     } else {
       for (auto& perCpuStat : stats) {
