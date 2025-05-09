@@ -72,7 +72,7 @@ class TPRStatsPoller : public folly::AsyncTimeout {
   /**
    * Optional prefix for the fb303 counter
    */
-  std::string statsPrefix_ = "";
+  std::string statsPrefix_;
 
   /**
    * FD of the bpf map containing per-cpu stats
