@@ -922,12 +922,12 @@ class KatranLb {
    * callback registered at a time. If a callback has already been registered,
    * it is replaced by this one.
    */
-  void setRealsIdCallback(RealsIdCallback* callback);
+  void addRealsIdCallback(RealsIdCallback* callback);
 
   /**
    * Unregisters the real addition/deletion callback
    */
-  void unsetRealsIdCallback();
+  void removeRealsIdCallback(RealsIdCallback* callback);
 
   /**
    * Returns the fds of the global lru maps
@@ -1342,9 +1342,9 @@ class KatranLb {
   bool progsReloaded_{false};
 
   /**
-   * Callback to be notified when a real is added or deleted
+   * Callbacks to be notified when a real is added or deleted
    */
-  RealsIdCallback* realsIdCallback_{nullptr};
+  std::vector<RealsIdCallback*> realsIdCallbacks_;
 
   /**
    * set of invalid server ids sampled from katran

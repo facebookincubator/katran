@@ -2899,8 +2899,10 @@ void KatranLb::decreaseRefCountForReal(const folly::IPAddress& real) {
     reals_.erase(real_iter);
     numToReals_.erase(num);
 
-    if (realsIdCallback_) {
-      realsIdCallback_->onRealDeleted(real, num);
+    if (!realsIdCallbacks_.empty()) {
+      for (auto& callback : realsIdCallbacks_) {
+        callback->onRealDeleted(real, num);
+      }
     }
   }
 }
@@ -2929,8 +2931,10 @@ uint32_t KatranLb::increaseRefCountForReal(
       updateRealsMap(real, rnum, flags);
     }
 
-    if (realsIdCallback_) {
-      realsIdCallback_->onRealAdded(real, rnum);
+    if (!realsIdCallbacks_.empty()) {
+      for (auto& callback : realsIdCallbacks_) {
+        callback->onRealAdded(real, rnum);
+      }
     }
 
     return rnum;
@@ -3008,12 +3012,23 @@ bool KatranLb::removeFeature(
   return !hasFeature(feature);
 }
 
-void KatranLb::setRealsIdCallback(RealsIdCallback* callback) {
-  realsIdCallback_ = callback;
+void KatranLb::addRealsIdCallback(RealsIdCallback* callback) {
+  if (std::find(realsIdCallbacks_.begin(), realsIdCallbacks_.end(), callback) !=
+      realsIdCallbacks_.end()) {
+    return; // Callback already present, no need to add again
+  }
+  realsIdCallbacks_.push_back(callback);
 }
 
-void KatranLb::unsetRealsIdCallback() {
-  realsIdCallback_ = nullptr;
+void KatranLb::removeRealsIdCallback(RealsIdCallback* callback) {
+  auto it =
+      std::find(realsIdCallbacks_.begin(), realsIdCallbacks_.end(), callback);
+  if (it != realsIdCallbacks_.end()) {
+    realsIdCallbacks_.erase(it);
+  } else {
+    LOG(ERROR)
+        << "Trying to remove a callback that is not present in realsIdCallbacks_";
+  }
 }
 
 std::vector<int> KatranLb::getGlobalLruMapsFds() {
