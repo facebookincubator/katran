@@ -917,4 +917,8 @@ int64_t BaseBpfAdapter::getKtimeNs() {
   }
 }
 
+bool BaseBpfAdapter::isBatchOpsEnabled() const {
+  return batchOpsEnabled_;
+}
+
 } // namespace katran

@@ -647,6 +647,19 @@ class KatranLb {
   lb_stats getRealStats(uint32_t index);
 
   /**
+   * @param indices A vector of indices representing the positions for which to
+   * retrieve stats. Each index corresponds to a key in the BPF map.
+   * @return An unordered map where each key is an index from the input vector,
+   * and the value is the corresponding `lb_stats`. If an index is not found in
+   * the BPF map, it will not be present in the map.
+   *
+   * helper function which returns per real stats for all existing reals
+   * with specified index.
+   */
+  std::unordered_map<int64_t, lb_stats> getRealsStats(
+      const std::vector<int64_t>& indices);
+
+  /**
    * Returns count of packets processed on each core (corresponding to index)
    */
   std::vector<int64_t> getPerCorePacketsStats();
@@ -999,6 +1012,26 @@ class KatranLb {
    * helper function to get stats from counter on specified possition
    */
   lb_stats getLbStats(uint32_t position, const std::string& map = "stats");
+
+  /**
+   * Retrieves load balancer statistics for multiple positions in a batch
+   * operation.
+   *
+   * @param indices A vector of indices representing the positions for which to
+   * retrieve statistics. Each index corresponds to a key in the BPF map.
+   * @param map The name of the BPF map from which to retrieve the statistics.
+   * @return An unordered map where each key is an index from the input vector,
+   * and the value is the corresponding `lb_stats` structure containing
+   * aggregated stats for that index. If an index is not found in the BPF map,
+   * it will not be present in the returned map.
+   *
+   * This function tries to retrieve multiple real stats by
+   * performing a batch lookup in the specified BPF map. It aggregates per-CPU
+   * statistics for each position and returns the results in a map.
+   */
+  std::unordered_map<int64_t, lb_stats> getLbStatsBatch(
+      const std::vector<int64_t>& indices,
+      const std::string& map = "stats");
 
   /**
    * helper function to convert a VipKey to a vip_definition

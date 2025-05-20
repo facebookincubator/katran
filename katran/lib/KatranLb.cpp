@@ -31,6 +31,7 @@
 #include <vector>
 
 #include "katran/lib/BalancerStructs.h"
+#include "katran/lib/BpfBatchUtil.h"
 #include "katran/lib/IpHelpers.h"
 #include "katran/lib/KatranLbStructs.h"
 #include "katran/lib/KatranMonitor.h"
@@ -3109,6 +3110,56 @@ bool KatranLb::initSimulator() {
   }
   simulator_ = std::make_unique<KatranSimulator>(getKatranProgFd());
   return true;
+}
+
+std::unordered_map<int64_t, lb_stats> KatranLb::getRealsStats(
+    const std::vector<int64_t>& indices) {
+  auto data = getLbStatsBatch(indices, "reals_stats");
+  return data;
+}
+
+std::unordered_map<int64_t, lb_stats> KatranLb::getLbStatsBatch(
+    const std::vector<int64_t>& indices,
+    const std::string& map) {
+  std::unordered_map<int64_t, lb_stats> results;
+  int nr_cpus = BpfAdapter::getPossibleCpus();
+  if (nr_cpus < 0) {
+    LOG(ERROR) << "Error while getting number of possible cpus";
+    return results;
+  }
+  if (indices.empty() || config_.testing) {
+    return results;
+  }
+  int map_fd = bpfAdapter_->getMapFdByName(map);
+  if (map_fd < 0) {
+    LOG(ERROR) << "Error getting fd for map: " << map;
+    lbStats_.bpfFailedCalls++;
+    return results;
+  }
+  std::unordered_set<uint32_t> keys(indices.begin(), indices.end());
+  std::unordered_map<uint32_t, std::vector<lb_stats>> resultMap;
+  if (bpfAdapter_->isBatchOpsEnabled()) {
+    auto res =
+        BpfBatchUtil::bpfMapLookupBatch(map_fd, keys, resultMap, nr_cpus);
+    if (res == 0) {
+      for (const auto& [key, values] : resultMap) {
+        lb_stats sum_stat = {};
+        for (const auto& value : values) {
+          sum_stat.v1 += value.v1;
+          sum_stat.v2 += value.v2;
+        }
+        results[key] = sum_stat;
+      }
+      return results;
+    } else {
+      lbStats_.bpfFailedCalls++;
+    }
+  }
+  // batch ops not enabled or failed, fallback to single lookup
+  for (size_t i = 0; i < indices.size(); i++) {
+    results[indices[i]] = getLbStats(indices[i], map);
+  }
+  return results;
 }
 
 } // namespace katran

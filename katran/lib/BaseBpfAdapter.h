@@ -18,6 +18,7 @@
 #include <folly/Function.h>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 extern "C" {
@@ -668,6 +669,8 @@ class BaseBpfAdapter {
    * Returns nanosec count since boot, same as bpf_ktime_get_ns
    */
   static int64_t getKtimeNs();
+
+  bool isBatchOpsEnabled() const;
 
  protected:
   /**
