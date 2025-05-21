@@ -85,8 +85,8 @@ class TcpPktRouter {
    */
   folly::Expected<int, std::system_error> getBpfProgramFd() noexcept;
 
-  folly::Expected<uint32_t, std::system_error> getServerIdFromSkSidStoreMap(
-      int socketFd) noexcept;
+  virtual folly::Expected<uint32_t, std::system_error>
+  getServerIdFromSkSidStoreMap(int socketFd) noexcept;
 
  protected:
   virtual std::unique_ptr<TPRStatsPoller> createStatsPoller(
