@@ -94,7 +94,6 @@ class BpfBatchUtil {
         const KeyT& k = key_buf[i];
         auto it = keys.find(key_buf[i]);
         if (keys.find(k) == keys.end()) {
-          LOG(ERROR) << "Found unexpected key in returned bpf batch map: " << k;
           continue;
         }
         if (foundMap.contains(k)) {
@@ -105,7 +104,12 @@ class BpfBatchUtil {
         std::vector<ValueT> values(raw, raw + num_cpus);
         foundMap.emplace(*it, std::move(values));
       }
+      remaining = keys.size() - foundMap.size();
       inKey = nextKey; // nextKey is the new inKey
+    }
+    if (remaining > 0) {
+      LOG(WARNING) << "Failed to find " << remaining << " keys in bpf map "
+                   << mapInfo.name;
     }
 
     return 0;
