@@ -44,7 +44,8 @@ add_library(bpftester STATIC
     KatranGueTestFixtures.h
     KatranTPRTestFixtures.h
     KatranOptionalTestFixtures.h
-    KatranGueOptionalTestFixtures.h
+    KatranIcmpTooBigTestFixtures.h
+    KatranLpmSrcLookupTestFixtures.h
 )
 
 target_link_libraries(bpftester

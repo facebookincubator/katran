@@ -16,6 +16,7 @@
 
 #include "katran/lib/testing/KatranTestUtil.h"
 #include "katran/lib/testing/KatranGueTestFixtures.h"
+#include "katran/lib/testing/KatranIcmpTooBigTestFixtures.h"
 #include "katran/lib/testing/KatranTPRTestFixtures.h"
 #include "katran/lib/testing/KatranTestFixtures.h"
 #include "katran/lib/testing/KatranUdpStableRtTestFixtures.h"
@@ -220,6 +221,28 @@ KatranTestParam createXPopDecapTestParam() {
               {KatranTestCounters::INLINE_DECAP_PKTS, 5},
           },
       .perVipCounters = {{vip, std::pair<uint64_t, uint64_t>(4, 244)}}};
+  return testParam;
+}
+
+KatranTestParam createIcmpTooBigTestParam() {
+  katran::VipKey vip;
+  vip.address = "10.200.1.1";
+  vip.port = kVipPort;
+  vip.proto = kTcp;
+  KatranTestParam testParam = {
+      .mode = TestMode::GUE,
+      .testData = katran::testing::icmpTooBigTestFixtures,
+      .expectedCounters =
+          {
+              {KatranTestCounters::TOTAL_PKTS, 14},
+              {KatranTestCounters::LRU_MISSES, 14},
+              {KatranTestCounters::LRU_FALLBACK_HITS, 14},
+              {KatranTestCounters::TOTAL_FAILED_BPF_CALLS, 0},
+              {KatranTestCounters::ICMP_V4_COUNTS, 1},
+              {KatranTestCounters::ICMP_V6_COUNTS, 1},
+              {KatranTestCounters::INLINE_DECAP_PKTS, 2},
+          },
+      .perVipCounters = {{vip, std::pair<uint64_t, uint64_t>(4, 248)}}};
   return testParam;
 }
 
@@ -438,6 +461,46 @@ bool testLbCounters(katran::KatranLb& lb, KatranTestParam& testParam) {
   }
 
   LOG(INFO) << "Testing of counters is complete";
+  return counters_ok;
+}
+
+/**
+ * Custom test function for ICMP Too Big counters
+ * This function tests both basic load balancer counters and
+ * ICMP Too Big specific counters that are relevant for this test case
+ */
+bool testIcmpTooBigCounters(katran::KatranLb& lb, KatranTestParam& testParam) {
+  LOG(INFO) << "Testing ICMP Too Big counter's sanity";
+  bool counters_ok = true;
+
+  // Test basic load balancer counters
+  auto stats = lb.getLruStats();
+  if ((stats.v1 != testParam.expectedTotalPkts()) ||
+      (stats.v2 != testParam.expectedTotalLruMisses())) {
+    LOG(ERROR) << "Total pckts: " << stats.v1 << ", LRU misses: " << stats.v2;
+    LOG(ERROR) << "LRU counter is incorrect";
+    counters_ok = false;
+  }
+
+  // Test ICMP Too Big specific counters
+  auto icmpStats = lb.getIcmpTooBigStats();
+  if (icmpStats.v1 != testParam.expectedIcmpV4Counts() ||
+      icmpStats.v2 != testParam.expectedIcmpV6Counts()) {
+    LOG(ERROR) << "icmpV4 hits: " << icmpStats.v1
+               << " icmpv6 hits:" << icmpStats.v2;
+    LOG(ERROR) << "ICMP packet too big counter is incorrect";
+    counters_ok = false;
+  }
+
+  // Test inline decapsulation stats which are relevant for ICMP Too Big
+  auto inlineDecapStats = lb.getInlineDecapStats();
+  if (inlineDecapStats.v1 != testParam.expectedInlineDecapPkts()) {
+    LOG(ERROR) << "inline decapsulated pckts: " << inlineDecapStats.v1;
+    LOG(ERROR) << "inline decapsulated packet's counter is incorrect";
+    counters_ok = false;
+  }
+
+  LOG(INFO) << "Testing of ICMP Too Big counters is complete";
   return counters_ok;
 }
 

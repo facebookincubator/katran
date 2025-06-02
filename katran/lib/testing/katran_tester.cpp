@@ -26,8 +26,8 @@
 
 #include "katran/lib/MonitoringStructs.h"
 #include "katran/lib/testing/BpfTester.h"
-#include "katran/lib/testing/KatranGueOptionalTestFixtures.h"
 #include "katran/lib/testing/KatranHCTestFixtures.h"
+#include "katran/lib/testing/KatranIcmpTooBigTestFixtures.h"
 #include "katran/lib/testing/KatranOptionalTestFixtures.h"
 #include "katran/lib/testing/KatranTestProvision.h"
 #include "katran/lib/testing/KatranTestUtil.h"
@@ -151,7 +151,7 @@ void runTestsFromFixture(
     LOG(INFO) << "Running optional tests. they could fail if requirements "
               << "are not satisfied";
     if (FLAGS_gue) {
-      tester.resetTestFixtures(katran::testing::gueOptionalTestFixtures);
+      tester.resetTestFixtures(katran::testing::icmpTooBigTestFixtures);
     } else {
       tester.resetTestFixtures(katran::testing::optionalTestFixtures);
     }

@@ -1,0 +1,103 @@
+// @nolint
+
+/* Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; version 2 of the License.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along
+ * with this program; if not, write to the Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+
+#pragma once
+#include "katran/lib/testing/PacketAttributes.h"
+
+namespace katran {
+namespace testing {
+/**
+ * see KatranTestFixtures.h on how to generate input and output data
+ */
+using TestFixture = std::vector<PacketAttributes>;
+const TestFixture icmpTooBigTestFixtures = {
+    // 1
+    {
+        // Ether(src="0x1", dst="0x2")/IP(src="192.168.1.1",
+        // dst="10.200.1.1")/UDP(sport=31337, dport=80)/("katran test pkt"*100)
+        .inputPacket =
+            "AgAAAAAAAQAAAAAACABFAAX4AAEAAEARp4LAqAEBCsgBAXppAFAF5Og2a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0",
+        .description =
+            "ICMPv4 packet too big. ICMP_TOOBIG_GENERATION and 4.17+ kernel is required",
+        .expectedReturnValue = "XDP_TX",
+        .expectedOutputPacket =
+            "AQAAAAAAAgAAAAAACABFAABwAAAAAEABrRsKyAEBwKgBAQMEboQAAAXcRQAF+AABAABAEaeCwKgBAQrIAQF6aQBQBeToNmthdHJhbiB0ZXN0IHBrdGthdHJhbiB0ZXN0IHBrdGthdHJhbiB0ZXN0IHBrdGthdHJhbiB0ZXN0"},
+    // 2
+    {// Ether(src="0x1", dst="0x2")/IPv6(src="fc00:2::1",
+     // dst="fc00:1::1")/TCP(sport=31337, dport=80,flags="A")/("katran test
+     // pkt"*100)
+     .inputPacket =
+         "AgAAAAAAAQAAAAAAht1gAAAABfAGQPwAAAIAAAAAAAAAAAAAAAH8AAABAAAAAAAAAAAAAAABemkAUAAAAAAAAAAAUBAgAFN1AABrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3Q=",
+     .description =
+         "ICMPv6 packet too big. ICMP_TOOBIG_GENERATION and 4.17+ kernel is required",
+     .expectedReturnValue = "XDP_TX",
+     .expectedOutputPacket =
+         "AQAAAAAAAgAAAAAAht1gAAAAAQA6QPwAAAEAAAAAAAAAAAAAAAH8AAACAAAAAAAAAAAAAAABAgD3sgAABdxgAAAABfAGQPwAAAIAAAAAAAAAAAAAAAH8AAABAAAAAAAAAAAAAAABemkAUAAAAAAAAAAAUBAgAFN1AABrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdA=="},
+};
+/*
+Example difference between icmpTooBigTestFixtures (edge and fna) and
+originGueIcmpTooBigTestFixtures (origin)
+>>>
+Ether(base64.b64decode(b'AQAAAAAAAgAAAAAAht1gAAAAAQA6QPwAAAEAAAAAAAAAAAAAAAH8AAACAAAAAAAAAAAAAAABAgD34gAABaxgAAAABfAGQPwAAAIAAAAAAAAAAAAAAAH8AAABAAAAAAAAAAAAAAABemkAUAAAAAAAAAAAUBAgAFN1AABrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdA=='))
+<Ether  dst=01:00:00:00:00:00 src=02:00:00:00:00:00 type=IPv6 |<IPv6  version=6
+tc=0 fl=0 plen=256 nh=ICMPv6 hlim=64 src=fc00:1::1 dst=fc00:2::1
+|<ICMPv6PacketTooBig  type=Packet too big code=0 cksum=0xf7e2 mtu=1452
+|<IPerror6  version=6 tc=0 fl=0 plen=1520 nh=TCP hlim=64 src=fc00:2::1
+dst=fc00:1::1 |<TCPerror  sport=31337 dport=http seq=0 ack=0 dataofs=5
+reserved=0 flags=A window=8192 chksum=0x5375 urgptr=0 |<Raw  load=b'katran test
+pktkatran test pktkatran test pktkatran test pktkatran test pktkatran test
+pktkatran test pktkatran test pktkatran test pktkatran test pktkatran test
+pktkatran test pktkatran t' |>>>>>>
+>>>
+Ether(base64.b64decode(b'AQAAAAAAAgAAAAAAht1gAAAAAQA6QPwAAAEAAAAAAAAAAAAAAAH8AAACAAAAAAAAAAAAAAABAgD3sgAABdxgAAAABfAGQPwAAAIAAAAAAAAAAAAAAAH8AAABAAAAAAAAAAAAAAABemkAUAAAAAAAAAAAUBAgAFN1AABrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdA=='))
+<Ether  dst=01:00:00:00:00:00 src=02:00:00:00:00:00 type=IPv6 |<IPv6  version=6
+tc=0 fl=0 plen=256 nh=ICMPv6 hlim=64 src=fc00:1::1 dst=fc00:2::1
+|<ICMPv6PacketTooBig  type=Packet too big code=0 cksum=0xf7b2 mtu=1500
+|<IPerror6  version=6 tc=0 fl=0 plen=1520 nh=TCP hlim=64 src=fc00:2::1
+dst=fc00:1::1 |<TCPerror  sport=31337 dport=http seq=0 ack=0 dataofs=5
+reserved=0 flags=A window=8192 chksum=0x5375 urgptr=0 |<Raw  load=b'katran test
+pktkatran test pktkatran test pktkatran test pktkatran test pktkatran test
+pktkatran test pktkatran test pktkatran test pktkatran test pktkatran test
+pktkatran test pktkatran t' |>>>>>>
+*/
+const TestFixture originGueIcmpTooBigTestFixtures = {
+    // 1
+    {
+        // Ether(src="0x1", dst="0x2")/IP(src="192.168.1.1",
+        // dst="10.200.1.1")/UDP(sport=31337, dport=80)/("katran test pkt"*100)
+        .inputPacket =
+            "AgAAAAAAAQAAAAAACABFAAX4AAEAAEARp4LAqAEBCsgBAXppAFAF5Og2a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0",
+        .description =
+            "ICMPv4 packet too big. ICMP_TOOBIG_GENERATION and 4.17+ kernel is required",
+        .expectedReturnValue = "XDP_TX",
+        .expectedOutputPacket =
+            "AQAAAAAAAgAAAAAACABFAABwAAAAAEABrRsKyAEBwKgBAQMEbrQAAAWsRQAF+AABAABAEaeCwKgBAQrIAQF6aQBQBeToNmthdHJhbiB0ZXN0IHBrdGthdHJhbiB0ZXN0IHBrdGthdHJhbiB0ZXN0IHBrdGthdHJhbiB0ZXN0"},
+    // 2
+    {// Ether(src="0x1", dst="0x2")/IPv6(src="fc00:2::1",
+     // dst="fc00:1::1")/UDP(sport=31337, dport=80)/("katran test pkt"*100)
+     .inputPacket =
+         "AgAAAAAAAQAAAAAAht1gAAAABfAGQPwAAAIAAAAAAAAAAAAAAAH8AAABAAAAAAAAAAAAAAABemkAUAAAAAAAAAAAUBAgAFN1AABrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3Q=",
+     .description =
+         "ICMPv6 packet too big for Origin GUE. ICMP_TOOBIG_GENERATION and 4.17+ kernel is required",
+     .expectedReturnValue = "XDP_TX",
+     .expectedOutputPacket =
+         "AQAAAAAAAgAAAAAAht1gAAAAAQA6QPwAAAEAAAAAAAAAAAAAAAH8AAACAAAAAAAAAAAAAAABAgD34gAABaxgAAAABfAGQPwAAAIAAAAAAAAAAAAAAAH8AAABAAAAAAAAAAAAAAABemkAUAAAAAAAAAAAUBAgAFN1AABrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdA=="},
+};
+
+} // namespace testing
+} // namespace katran

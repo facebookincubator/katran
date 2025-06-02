@@ -28,6 +28,7 @@ KatranTestParam createDefaultTestParam(TestMode testMode);
 KatranTestParam createTPRTestParam();
 KatranTestParam createUdpStableRtTestParam();
 KatranTestParam createXPopDecapTestParam();
+KatranTestParam createIcmpTooBigTestParam();
 void testOptionalLbCounters(katran::KatranLb& lb, KatranTestParam& testParam);
 void testStableRtCounters(katran::KatranLb& lb, KatranTestParam& testParam);
 void validateMapSize(
@@ -43,6 +44,7 @@ void postTestOptionalLbCounters(
     const std::string& healthcheckingProg);
 bool testLbCounters(katran::KatranLb& lb, KatranTestParam& testParam);
 void testXPopDecapCounters(katran::KatranLb& lb, KatranTestParam& testParam);
+bool testIcmpTooBigCounters(katran::KatranLb& lb, KatranTestParam& testParam);
 std::string toString(katran::KatranFeatureEnum feature);
 
 } // namespace testing
