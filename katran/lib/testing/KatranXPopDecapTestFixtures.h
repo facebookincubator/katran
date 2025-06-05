@@ -17,8 +17,6 @@
  */
 
 #pragma once
-#include <string>
-#include <utility>
 #include <vector>
 #include "katran/lib/testing/PacketAttributes.h"
 
@@ -105,7 +103,7 @@ const std::vector<::katran::PacketAttributes> xPopDecapTestFixtures = {
     .expectedReturnValue = "XDP_PASS",
     .expectedOutputPacket = "AgAAAAAAAQAAAAAAht1gAAAAAFMRQAEAAAAAAAAAAAAAAAAAAGT8AAAAAAAAAAAAAAAAAAABemkmngBT+qBgAAAAACMGQPwAIwcAAQAAAAAAAAAAAAL8AAABAAAAAAAAAAAAAAABemkAUAAAAAAAAAAAUBAgANpIAABrYXRyYW4gdGVzdCBwa3Q="
     //<Ether  dst=02:00:00:00:00:00 src=01:00:00:00:00:00 type=IPv6 |<IPv6  version=6 tc=0 fl=0 plen=35 nh=TCP hlim=63 src=fc00:2307:1::2 dst=fc00:1::1 |<TCP  sport=31337 dport=http seq=0 ack=0 dataofs=5 reserved=0 flags=A window=8192 chksum=0xda48 urgptr=0 |<Raw  load='katran test pkt' |>>>>
-  },
+  }
 };
 }
 }

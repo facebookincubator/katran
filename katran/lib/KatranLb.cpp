@@ -2077,6 +2077,10 @@ lb_stats KatranLb::getInlineDecapStats() {
   return getLbStats(config_.maxVips + kInlineDecapOffset);
 }
 
+lb_stats KatranLb::getXPopDecapSuccessfulStats() {
+  return getLbStats(config_.maxVips + kXPopDecapSuccessfulOffset);
+}
+
 lb_stats KatranLb::getGlobalLruStats() {
   return getLbStats(config_.maxVips + kGlobalLruOffset);
 }

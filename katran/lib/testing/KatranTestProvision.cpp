@@ -408,6 +408,9 @@ uint64_t KatranTestParam::expectedSrcRoutingPktsRemote() noexcept {
 uint64_t KatranTestParam::expectedInlineDecapPkts() noexcept {
   return _lookup_counter(KatranTestCounters::INLINE_DECAP_PKTS);
 }
+uint64_t KatranTestParam::expectedXPopDecapSuccessful() noexcept {
+  return _lookup_counter(KatranTestCounters::XPOP_DECAP_SUCCESSFUL);
+}
 uint64_t KatranTestParam::_lookup_counter(KatranTestCounters counter) noexcept {
   if (!expectedCounters.contains(counter)) {
     return 0;

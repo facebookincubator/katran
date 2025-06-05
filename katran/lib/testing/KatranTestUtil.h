@@ -43,7 +43,7 @@ void postTestOptionalLbCounters(
     katran::KatranLb& lb,
     const std::string& healthcheckingProg);
 bool testLbCounters(katran::KatranLb& lb, KatranTestParam& testParam);
-void testXPopDecapCounters(katran::KatranLb& lb, KatranTestParam& testParam);
+bool testXPopDecapCounters(katran::KatranLb& lb, KatranTestParam& testParam);
 bool testIcmpTooBigCounters(katran::KatranLb& lb, KatranTestParam& testParam);
 std::string toString(katran::KatranFeatureEnum feature);
 

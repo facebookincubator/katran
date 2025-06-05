@@ -348,13 +348,19 @@ __attribute__((__always_inline__)) static inline int process_encaped_ipip_pckt(
   } else {
     data_stats->v1 += 1;
   }
-
   if (action >= 0) {
     return action;
   }
   if (pass) {
     // pass packet to kernel after decapsulation
     return XDP_PASS;
+  } else {
+    // Increment XPOP_DECAP_SUCCESSFUL counter if pass is false
+    __u32 stats_key = MAX_VIPS + XPOP_DECAP_SUCCESSFUL;
+    struct lb_stats* stats_data = bpf_map_lookup_elem(&stats, &stats_key);
+    if (stats_data) {
+      stats_data->v1 += 1;
+    }
   }
   return recirculate(xdp);
 }
@@ -456,6 +462,7 @@ __attribute__((__always_inline__)) static inline int process_encaped_gue_pckt(
     if ((*data + offset) > *data_end) {
       return XDP_DROP;
     }
+
     action = decrement_ttl(*data, *data_end, offset, false);
     if (!gue_decap_v4(xdp, data, data_end)) {
       return XDP_DROP;
@@ -481,6 +488,13 @@ __attribute__((__always_inline__)) static inline int process_encaped_gue_pckt(
     // increment stats after decapsulation
     incr_decap_vip_stats(*data, off, *data_end, inner_ipv6);
     return XDP_PASS;
+  } else {
+    // Increment XPOP_DECAP_SUCCESSFUL counter if pass is false
+    __u32 stats_key = MAX_VIPS + XPOP_DECAP_SUCCESSFUL;
+    struct lb_stats* stats_data = bpf_map_lookup_elem(&stats, &stats_key);
+    if (stats_data) {
+      stats_data->v1 += 1;
+    }
   }
   return recirculate(xdp);
 }

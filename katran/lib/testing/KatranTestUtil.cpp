@@ -217,8 +217,8 @@ KatranTestParam createXPopDecapTestParam() {
       .testData = katran::testing::xPopDecapTestFixtures,
       .expectedCounters =
           {
-              {KatranTestCounters::TOTAL_PKTS, 5},
               {KatranTestCounters::INLINE_DECAP_PKTS, 5},
+              {KatranTestCounters::XPOP_DECAP_SUCCESSFUL, 3},
           },
       .perVipCounters = {{vip, std::pair<uint64_t, uint64_t>(4, 244)}}};
   return testParam;
@@ -302,14 +302,29 @@ void testStableRtCounters(katran::KatranLb& lb, KatranTestParam& testParam) {
   LOG(INFO) << "Stable Routing stats verified";
 }
 
-void testXPopDecapCounters(katran::KatranLb& lb, KatranTestParam& testParam) {
+bool testXPopDecapCounters(katran::KatranLb& lb, KatranTestParam& testParam) {
   LOG(INFO) << "Testing cross pop decapsulation sanity";
+  bool counters_ok = true;
+
+  // Check general inline decap stats
   auto stats = lb.getInlineDecapStats();
   if (stats.v1 != testParam.expectedInlineDecapPkts()) {
-    VLOG(2) << "inline decapsulated pckts: " << stats.v1;
-    LOG(INFO) << "inline decapsulated packet's counter is incorrect";
+    LOG(INFO) << "inline decapsulated packet's counter is incorrect: "
+              << stats.v1;
+    counters_ok = false;
   }
+
+  // Check successful xpop decap counter
+  auto successfulStats = lb.getXPopDecapSuccessfulStats();
+  if (successfulStats.v1 != testParam.expectedXPopDecapSuccessful()) {
+    VLOG(2) << "xpop decap successful: " << successfulStats.v1;
+    LOG(INFO) << "xpop decap successful counter is incorrect: "
+              << successfulStats.v1;
+    counters_ok = false;
+  }
+
   LOG(INFO) << "Testing of cross pop decapsulation counters is complete";
+  return counters_ok;
 }
 
 void validateMapSize(

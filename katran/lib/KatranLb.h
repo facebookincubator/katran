@@ -66,6 +66,7 @@ constexpr uint32_t kDecapCounterOffset = 10;
 constexpr uint32_t kQuicIcmpOffset = 11;
 constexpr uint32_t kIcmpPtbV6Offset = 12;
 constexpr uint32_t kIcmpPtbV4Offset = 13;
+constexpr uint32_t kXPopDecapSuccessfulOffset = 14;
 
 /**
  * LRU map related constants
@@ -595,6 +596,14 @@ class KatranLb {
    * inline (v1)
    */
   lb_stats getInlineDecapStats();
+
+  /**
+   * @return struct lb_stats w/ statistics of successful cross-pop decapsulation
+   *
+   * helper function which returns how many packets were successfully
+   * decapsulated
+   */
+  lb_stats getXPopDecapSuccessfulStats();
 
   /**
    * @return struct lb_stats w/ src global lru statistics

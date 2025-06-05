@@ -276,6 +276,9 @@
 // offset of stats for icmp Fragment needed messages
 #define ICMP_PTB_V4_STATS 13
 
+// Tracks successful cross-pop packet decapsulation
+#define XPOP_DECAP_SUCCESSFUL 14
+
 // indice for all stats maps defined above correspond to entries in the map
 // stats starting from the index MAX_VIPS. The max_entries of stats is
 // STATS_MAP_SIZE defined as (MAX_VIPS * 2). So the index above should be always

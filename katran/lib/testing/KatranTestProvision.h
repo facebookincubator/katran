@@ -96,6 +96,8 @@ enum class KatranTestCounters : uint8_t {
   STABLE_RT_CID_INVALID_SERVER_ID = 23,
   STABLE_RT_CID_UNKNOWN_REAL_DROPPED = 24,
   STABLE_RT_INVALID_PACKET_TYPE = 25,
+  // xpop decap counters
+  XPOP_DECAP_SUCCESSFUL = 26,
 };
 
 struct KatranTestParam {
@@ -131,6 +133,7 @@ struct KatranTestParam {
   uint64_t expectedSrcRoutingPktsLocal() noexcept;
   uint64_t expectedSrcRoutingPktsRemote() noexcept;
   uint64_t expectedInlineDecapPkts() noexcept;
+  uint64_t expectedXPopDecapSuccessful() noexcept;
 
   // helper method to lookup the expected counter value
   uint64_t _lookup_counter(KatranTestCounters counter) noexcept;
