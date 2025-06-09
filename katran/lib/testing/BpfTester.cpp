@@ -16,10 +16,12 @@
 
 #include "katran/lib/testing/BpfTester.h"
 
+#include <arpa/inet.h>
 #include <fmt/core.h>
 #include <folly/String.h>
 #include <folly/io/IOBuf.h>
 #include <glog/logging.h>
+#include <linux/if_ether.h>
 #include <iostream>
 
 namespace katran {
@@ -131,19 +133,115 @@ bool BpfTester::testFromFixture() {
 
 bool BpfTester::testClsFromFixture(
     int progFd,
-    std::vector<struct __sk_buff> ctxs_in) {
+    const std::vector<struct __sk_buff>& ctxs_in) {
   std::vector<void*> ctxs;
-  for (auto& ctx : ctxs_in) {
-    ctxs.push_back(&ctx);
+  for (const auto& ctx : ctxs_in) {
+    ctxs.push_back(const_cast<void*>(static_cast<const void*>(&ctx)));
   }
   return runBpfTesterFromFixtures(
       progFd, kTcCodes, ctxs, sizeof(struct __sk_buff));
 }
 
+bool BpfTester::isGuePacket(const std::string& base64Packet) {
+  auto packet = parser_.getPacketFromBase64(base64Packet);
+  if (!packet || packet->length() < 42) {
+    return false;
+  }
+
+  uint16_t ethertype =
+      ntohs(*reinterpret_cast<const uint16_t*>(&packet->data()[12]));
+
+  size_t udpOffset = 0;
+  uint8_t protocol = 0;
+
+  if (ethertype == ETH_P_IP) { // IPv4
+    protocol = packet->data()[23];
+    uint8_t ipHeaderLen = (packet->data()[14] & 0x0F) * 4;
+    udpOffset = 14 + ipHeaderLen;
+  } else if (ethertype == ETH_P_IPV6) { // IPv6
+    protocol = packet->data()[20];
+    udpOffset = 14 + 40;
+  } else {
+    return false;
+  }
+
+  if (protocol != IPPROTO_UDP) {
+    return false;
+  }
+
+  if (packet->length() < udpOffset + 8) {
+    return false;
+  }
+
+  uint16_t dstPort =
+      ntohs(*reinterpret_cast<const uint16_t*>(&packet->data()[udpOffset + 2]));
+
+  return dstPort == 9886;
+}
+
+bool BpfTester::compareGuePackets(
+    const std::string& actualPacket,
+    const std::string& expectedPacket) {
+  auto actualBuf = parser_.getPacketFromBase64(actualPacket);
+  auto expectedBuf = parser_.getPacketFromBase64(expectedPacket);
+
+  if (!actualBuf || !expectedBuf) {
+    return false;
+  }
+
+  // Minimum packet size: Ethernet header (14) + IPv4 header (20) + UDP header
+  // (8) = 42 bytes
+  if (actualBuf->length() < 42 || expectedBuf->length() < 42) {
+    return false;
+  }
+
+  uint16_t ethertype =
+      ntohs(*reinterpret_cast<const uint16_t*>(&actualBuf->data()[12]));
+
+  size_t udpOffset = 0;
+  if (ethertype == ETH_P_IP) {
+    uint8_t ipHeaderLen = (actualBuf->data()[14] & 0x0F) * 4;
+    udpOffset = 14 + ipHeaderLen;
+  } else if (ethertype == ETH_P_IPV6) {
+    udpOffset = 14 + 40;
+  } else {
+    return false;
+  }
+
+  if (actualBuf->length() < udpOffset + 8) {
+    return false;
+  }
+
+  uint16_t actualPort =
+      ntohs(*reinterpret_cast<const uint16_t*>(&actualBuf->data()[udpOffset]));
+
+  uint16_t expectedPort = ntohs(
+      *reinterpret_cast<const uint16_t*>(&expectedBuf->data()[udpOffset]));
+
+  // If gueFixedSourcePort_ is set, override the actual port with it
+  if (gueFixedSourcePort_ != 0) {
+    LOG(INFO) << "GUE source port override: original=" << actualPort
+              << ", fixed=" << gueFixedSourcePort_;
+    actualPort = gueFixedSourcePort_;
+    actualBuf->writableData()[udpOffset] = (gueFixedSourcePort_ >> 8) & 0xFF;
+    actualBuf->writableData()[udpOffset + 1] = gueFixedSourcePort_ & 0xFF;
+  }
+
+  if (actualPort != expectedPort) {
+    LOG(ERROR) << "GUE source port mismatch: expected=" << expectedPort
+               << ", actual=" << actualPort;
+    return false;
+  }
+
+  return (
+      actualBuf->length() == expectedBuf->length() &&
+      memcmp(actualBuf->data(), expectedBuf->data(), actualBuf->length()) == 0);
+}
+
 bool BpfTester::runBpfTesterFromFixtures(
     int progFd,
     std::unordered_map<int, std::string> retvalTranslation,
-    std::vector<void*> ctxs_in,
+    const std::vector<void*>& ctxs_in,
     uint32_t ctx_size) {
   if (ctxs_in.size() != 0) {
     if (ctx_size == 0) {
@@ -221,7 +319,18 @@ bool BpfTester::runBpfTesterFromFixtures(
     }
 
     auto output_test_pckt = parser_.convertPacketToBase64(std::move(pckt_buf));
-    if (output_test_pckt != config_.testData[i].expectedOutputPacket) {
+    bool packetsMatch = false;
+
+    if (gueMode_ && isGuePacket(output_test_pckt)) {
+      // For GUE packets, verify with special handling for the source port
+      packetsMatch = compareGuePackets(
+          output_test_pckt, config_.testData[i].expectedOutputPacket);
+    } else {
+      packetsMatch =
+          (output_test_pckt == config_.testData[i].expectedOutputPacket);
+    }
+
+    if (!packetsMatch) {
       LOG(ERROR) << "output packet not equal to expected one:" << "\ninput=    "
                  << config_.testData[i].inputPacket
                  << "\nexpected= " << config_.testData[i].expectedOutputPacket

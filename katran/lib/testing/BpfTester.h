@@ -19,7 +19,6 @@
 #include <memory>
 #include <string>
 #include <unordered_map>
-#include <utility>
 #include <vector>
 
 #include "katran/lib/BpfAdapter.h"
@@ -110,7 +109,9 @@ class BpfTester {
    * helper function to run tests on data from test fixtures
    * for clsact(tc) based bpf program. optional ctxs could be specified
    */
-  bool testClsFromFixture(int progFd, std::vector<struct __sk_buff> ctxs_in);
+  bool testClsFromFixture(
+      int progFd,
+      const std::vector<struct __sk_buff>& ctxs_in);
 
   /**
    * @param vector<string, string> new input fixtures
@@ -118,6 +119,32 @@ class BpfTester {
    * helper function which set test fixtures to new values
    */
   void resetTestFixtures(const std::vector<katran::PacketAttributes>& data);
+
+  /**
+   * @param bool enable Enable or disable GUE mode
+   * @param uint16_t fixedSourcePort The fixed source port to use for GUE
+   * packets helper function to enable GUE mode with a fixed source port
+   */
+  void enableGueMode(bool enable, uint16_t fixedSourcePort = 0) {
+    gueMode_ = enable;
+    gueFixedSourcePort_ = fixedSourcePort;
+  }
+
+  /**
+   * @return bool Whether GUE mode is enabled
+   * helper function to check if GUE mode is enabled
+   */
+  bool isGueModeEnabled() const {
+    return gueMode_;
+  }
+
+  /**
+   * @return uint16_t The fixed source port for GUE packets
+   * helper function to get the fixed source port for GUE packets
+   */
+  uint16_t getGueFixedSourcePort() const {
+    return gueFixedSourcePort_;
+  }
 
   /**
    * @param int repeat      how many time should we repeat the test
@@ -141,17 +168,28 @@ class BpfTester {
   bool runBpfTesterFromFixtures(
       int progFd,
       std::unordered_map<int, std::string> retvalTranslation,
-      std::vector<void*> ctxs_in,
+      const std::vector<void*>& ctxs_in,
       uint32_t ctx_size = 0);
 
   // helper function that returns the number of packets that were routed
   // through the global lru
   uint64_t getGlobalLruRoutedPackets();
 
+  // Helper function to check if a packet is a GUE packet
+  bool isGuePacket(const std::string& base64Packet);
+
+  // Helper function to compare GUE packets with special handling for the source
+  // port
+  bool compareGuePackets(
+      const std::string& actualPacket,
+      const std::string& expectedPacket);
+
   TesterConfig config_;
   PcapParser parser_;
   BpfAdapter adapter_;
   KatranLb* katranLb_;
+  bool gueMode_ = false;
+  uint16_t gueFixedSourcePort_ = 0;
 };
 
 } // namespace katran

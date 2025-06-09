@@ -16,10 +16,10 @@
  */
 
 #pragma once
-#include <string>
-#include <vector>
-#include <utility>
 #include <bpf/bpf.h>
+#include <string>
+#include <utility>
+#include <vector>
 #include "katran/lib/testing/PacketAttributes.h"
 
 namespace katran {
@@ -42,49 +42,95 @@ namespace testing {
  */
 
 const std::vector<struct __sk_buff> getInputCtxsForHcTest() {
-    std::vector<struct __sk_buff> v;
-    for (int i = 0 ; i < 4 ; i++) {
-        struct __sk_buff skb = {};
-        skb.mark = i;
-        v.push_back(skb);
-    }
-    return v;
+  std::vector<struct __sk_buff> v;
+  for (int i = 0; i < 4; i++) {
+    struct __sk_buff skb = {};
+    skb.mark = i;
+    v.push_back(skb);
+  }
+  return v;
 };
 
 const std::vector<PacketAttributes> hcTestFixtures = {
-  //1
-  {
-    // Ether(src="0x1", dst="0x2")/IP(src="192.168.1.1", dst="10.200.1.1")/UDP(sport=31337, dport=80)/"katran test pkt"
-    .inputPacket = "AgAAAAAAAQAAAAAACABFAAArAAEAAEARrU/AqAEBCsgBAXppAFAAF5fea2F0cmFuIHRlc3QgcGt0",
-    .description = "v4 packet. no fwmark",
-    .expectedReturnValue = "TC_ACT_UNSPEC",
-    .expectedOutputPacket = "AgAAAAAAAQAAAAAACABFAAArAAEAAEARrU/AqAEBCsgBAXppAFAAF5fea2F0cmFuIHRlc3QgcGt0"
-  },
-  //2
-  {
-    // Ether(src="0x1", dst="0x2")/IP(src="192.168.1.1", dst="10.200.1.1")/UDP(sport=31337, dport=80)/"katran test pkt"
-    .inputPacket = "AgAAAAAAAQAAAAAACABFAAArAAEAAEARrU/AqAEBCsgBAXppAFAAF5fea2F0cmFuIHRlc3QgcGt0",
-    .description = "v4 packet. fwmark 1",
-    .expectedReturnValue = "TC_ACT_REDIRECT",
-    .expectedOutputPacket = "AADerb6vAP/erb6vCABFAAA/AAAAAEAEWZYKAA0lCgAAAUUAACsAAQAAQBGtT8CoAQEKyAEBemkAUAAXl95rYXRyYW4gdGVzdCBwa3Q="
-  },
+    // 1
+    {// Ether(src="0x1", dst="0x2")/IP(src="192.168.1.1",
+     // dst="10.200.1.1")/UDP(sport=31337, dport=80)/"katran test pkt"
+     .inputPacket =
+         "AgAAAAAAAQAAAAAACABFAAArAAEAAEARrU/AqAEBCsgBAXppAFAAF5fea2F0cmFuIHRlc3QgcGt0",
+     .description = "v4 packet. no fwmark",
+     .expectedReturnValue = "TC_ACT_UNSPEC",
+     .expectedOutputPacket =
+         "AgAAAAAAAQAAAAAACABFAAArAAEAAEARrU/AqAEBCsgBAXppAFAAF5fea2F0cmFuIHRlc3QgcGt0"},
+    // 2
+    {// Ether(src="0x1", dst="0x2")/IP(src="192.168.1.1",
+     // dst="10.200.1.1")/UDP(sport=31337, dport=80)/"katran test pkt"
+     .inputPacket =
+         "AgAAAAAAAQAAAAAACABFAAArAAEAAEARrU/AqAEBCsgBAXppAFAAF5fea2F0cmFuIHRlc3QgcGt0",
+     .description = "v4 packet. fwmark 1",
+     .expectedReturnValue = "TC_ACT_REDIRECT",
+     .expectedOutputPacket =
+         "AADerb6vAP/erb6vCABFAAA/AAAAAEAEWZYKAA0lCgAAAUUAACsAAQAAQBGtT8CoAQEKyAEBemkAUAAXl95rYXRyYW4gdGVzdCBwa3Q="},
 
-  //3
-  {
-    //Ether(src="0x1", dst="0x2")/IP(src="192.168.1.1", dst="10.200.1.1")/TCP(sport=31337, dport=80, flags="A")/"katran test pkt"
-    .inputPacket = "AgAAAAAAAQAAAAAACABFAAA3AAEAAEAGrU7AqAEBCsgBAXppAFAAAAAAAAAAAFAQIAAn5AAAa2F0cmFuIHRlc3QgcGt0",
-    .description = "v4 packet. fwmark 2",
-    .expectedReturnValue = "TC_ACT_REDIRECT",
-    .expectedOutputPacket = "AADerb6vAP/erb6vCABFAABLAAAAAEAEWYkKAA0lCgAAAkUAADcAAQAAQAatTsCoAQEKyAEBemkAUAAAAAAAAAAAUBAgACfkAABrYXRyYW4gdGVzdCBwa3Q="
-  },
-  //4
-  {
-    //Ether(src="0x1", dst="0x2")/IPv6(src="fc00:2::1", dst="fc00:1::1")/TCP(sport=31337, dport=80,flags="A")/"katran test pkt"
-    .inputPacket = "AgAAAAAAAQAAAAAAht1gAAAAACMGQPwAAAIAAAAAAAAAAAAAAAH8AAABAAAAAAAAAAAAAAABemkAUAAAAAAAAAAAUBAgAP1PAABrYXRyYW4gdGVzdCBwa3Q=",
-    .description = "v6 packet. fwmark 3",
-    .expectedReturnValue = "TC_ACT_REDIRECT",
-    .expectedOutputPacket = "AADerb6vAP/erb6vht1gAAAAAEspQPwAIwcAAAAAAAAAAAAAEzf8AAAAAAAAAAAAAAAAAAABYAAAAAAjBkD8AAACAAAAAAAAAAAAAAAB/AAAAQAAAAAAAAAAAAAAAXppAFAAAAAAAAAAAFAQIAD9TwAAa2F0cmFuIHRlc3QgcGt0"
-  },
+    // 3
+    {// Ether(src="0x1", dst="0x2")/IP(src="192.168.1.1",
+     // dst="10.200.1.1")/TCP(sport=31337, dport=80, flags="A")/"katran test
+     // pkt"
+     .inputPacket =
+         "AgAAAAAAAQAAAAAACABFAAA3AAEAAEAGrU7AqAEBCsgBAXppAFAAAAAAAAAAAFAQIAAn5AAAa2F0cmFuIHRlc3QgcGt0",
+     .description = "v4 packet. fwmark 2",
+     .expectedReturnValue = "TC_ACT_REDIRECT",
+     .expectedOutputPacket =
+         "AADerb6vAP/erb6vCABFAABLAAAAAEAEWYkKAA0lCgAAAkUAADcAAQAAQAatTsCoAQEKyAEBemkAUAAAAAAAAAAAUBAgACfkAABrYXRyYW4gdGVzdCBwa3Q="},
+    // 4
+    {// Ether(src="0x1", dst="0x2")/IPv6(src="fc00:2::1",
+     // dst="fc00:1::1")/TCP(sport=31337, dport=80,flags="A")/"katran test pkt"
+     .inputPacket =
+         "AgAAAAAAAQAAAAAAht1gAAAAACMGQPwAAAIAAAAAAAAAAAAAAAH8AAABAAAAAAAAAAAAAAABemkAUAAAAAAAAAAAUBAgAP1PAABrYXRyYW4gdGVzdCBwa3Q=",
+     .description = "v6 packet. fwmark 3",
+     .expectedReturnValue = "TC_ACT_REDIRECT",
+     .expectedOutputPacket =
+         "AADerb6vAP/erb6vht1gAAAAAEspQPwAIwcAAAAAAAAAAAAAEzf8AAAAAAAAAAAAAAAAAAABYAAAAAAjBkD8AAACAAAAAAAAAAAAAAAB/AAAAQAAAAAAAAAAAAAAAXppAFAAAAAAAAAAAFAQIAD9TwAAa2F0cmFuIHRlc3QgcGt0"},
+};
+
+// Test fixtures for GUE encapsulation
+const std::vector<PacketAttributes> hcGueTestFixtures = {
+    // 1
+    {// Ether(src="0x1", dst="0x2")/IP(src="192.168.1.1",
+     // dst="10.200.1.1")/UDP(sport=31337, dport=80)/"katran test pkt"
+     .inputPacket =
+         "AgAAAAAAAQAAAAAACABFAAArAAEAAEARrU/AqAEBCsgBAXppAFAAF5fea2F0cmFuIHRlc3QgcGt0",
+     .description = "v4 packet. no fwmark",
+     .expectedReturnValue = "TC_ACT_UNSPEC",
+     .expectedOutputPacket =
+         "AgAAAAAAAQAAAAAACABFAAArAAEAAEARrU/AqAEBCsgBAXppAFAAF5fea2F0cmFuIHRlc3QgcGt0"},
+    // 2
+    {// Ether(src="0x1", dst="0x2")/IP(src="192.168.1.1",
+     // dst="10.200.1.1")/UDP(sport=31337, dport=80)/"katran test pkt"
+     .inputPacket =
+         "AgAAAAAAAQAAAAAACABFAAArAAEAAEARrU/AqAEBCsgBAXppAFAAF5fea2F0cmFuIHRlc3QgcGt0",
+     .description = "v4 packet. fwmark 1",
+     .expectedReturnValue = "TC_ACT_REDIRECT",
+     .expectedOutputPacket =
+         "AADerb6vAP/erb6vCABFAABHAAAAAEARWYEKAA0lCgAAAfchJp4AMwAARQAAKwABAABAEa1PwKgBAQrIAQF6aQBQABeX3mthdHJhbiB0ZXN0IHBrdA=="},
+    // 3
+    {// Ether(src="0x1", dst="0x2")/IP(src="192.168.1.1",
+     // dst="10.200.1.1")/TCP(sport=31337, dport=80, flags="A")/"katran test
+     // pkt"
+     .inputPacket =
+         "AgAAAAAAAQAAAAAACABFAAA3AAEAAEAGrU7AqAEBCsgBAXppAFAAAAAAAAAAAFAQIAAn5AAAa2F0cmFuIHRlc3QgcGt0",
+     .description = "v4 packet. fwmark 2",
+     .expectedReturnValue = "TC_ACT_REDIRECT",
+     .expectedOutputPacket =
+         "AADerb6vAP/erb6vCABFAABTAAAAAEARWXQKAA0lCgAAAvchJp4APwAARQAANwABAABABq1OwKgBAQrIAQF6aQBQAAAAAAAAAABQECAAJ+QAAGthdHJhbiB0ZXN0IHBrdA=="},
+    // 4
+    {// Ether(src="0x1", dst="0x2")/IPv6(src="fc00:2::1",
+     // dst="fc00:1::1")/TCP(sport=31337, dport=80,flags="A")/"katran test pkt"
+     .inputPacket =
+         "AgAAAAAAAQAAAAAAht1gAAAAACMGQPwAAAIAAAAAAAAAAAAAAAH8AAABAAAAAAAAAAAAAAABemkAUAAAAAAAAAAAUBAgAP1PAABrYXRyYW4gdGVzdCBwa3Q=",
+     .description = "v6 packet. fwmark 3",
+     .expectedReturnValue = "TC_ACT_REDIRECT",
+     .expectedOutputPacket =
+         "AADerb6vAP/erb6vht1gAAAAAFMRQPwAIwcAAAAAAAAAAAAAEzf8AAAAAAAAAAAAAAAAAAAB9yEmngBTAABgAAAAACMGQPwAAAIAAAAAAAAAAAAAAAH8AAABAAAAAAAAAAAAAAABemkAUAAAAAAAAAAAUBAgAP1PAABrYXRyYW4gdGVzdCBwa3Q="},
 };
 
 } // namespace testing
