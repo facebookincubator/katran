@@ -37,10 +37,50 @@ namespace katran {
 
 class BpfBatchUtil {
  public:
-  template <typename KeyT, typename ValueT>
+  template <typename KeyT, typename HashT = std::hash<KeyT>>
+  static int bpfMapDeleteBatch(
+      int map_fd,
+      const std::unordered_set<KeyT, HashT>& keys) {
+    struct bpf_map_info mapInfo {};
+    auto err = BaseBpfAdapter::getBpfMapInfo(map_fd, &mapInfo);
+    if (err) {
+      LOG(ERROR) << "Error while retrieving map metadata for fd " << map_fd
+                 << " : " << folly::errnoStr(errno);
+      return err;
+    }
+
+    if (sizeof(KeyT) != mapInfo.key_size) {
+      LOG(ERROR) << "caller used the wrong KeyT for the given map";
+      return -EINVAL;
+    }
+
+    uint32_t count = keys.size();
+    std::vector<KeyT> key_buf(keys.begin(), keys.end());
+    int deleteErr = 0;
+
+    DECLARE_LIBBPF_OPTS(
+        bpf_map_batch_opts, opts, .elem_flags = 0, .flags = 0, );
+
+    deleteErr = bpf_map_delete_batch(map_fd, key_buf.data(), &count, &opts);
+
+    if (deleteErr) {
+      LOG(ERROR) << "Failed to perform batch delete, errno = "
+                 << folly::errnoStr(errno);
+      return deleteErr;
+    }
+
+    if (count < keys.size()) {
+      LOG(WARNING) << "Batch delete only deleted " << count
+                   << " elements out of " << keys.size();
+    }
+
+    return 0;
+  }
+
+  template <typename KeyT, typename ValueT, typename HashT = std::hash<KeyT>>
   static int bpfMapLookupBatch(
       int map_fd,
-      const std::unordered_set<KeyT>& keys,
+      const std::unordered_set<KeyT, HashT>& keys,
       std::unordered_map<KeyT, std::vector<ValueT>>& foundMap,
       std::uint32_t num_cpus = 1,
       std::uint32_t batch_sz = 128) {
