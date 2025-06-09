@@ -80,7 +80,7 @@ class BpfBatchUtil {
   template <typename KeyT, typename ValueT, typename HashT = std::hash<KeyT>>
   static int bpfMapReadBatch(
       int map_fd,
-      std::unordered_map<KeyT, std::vector<ValueT>>& foundMap,
+      std::unordered_map<KeyT, std::vector<ValueT>, HashT>& foundMap,
       std::uint32_t num_cpus = 1,
       std::uint32_t batch_sz = 128) {
     struct bpf_map_info mapInfo {};
@@ -147,7 +147,7 @@ class BpfBatchUtil {
   static int bpfMapLookupBatch(
       int map_fd,
       const std::unordered_set<KeyT, HashT>& keys,
-      std::unordered_map<KeyT, std::vector<ValueT>>& foundMap,
+      std::unordered_map<KeyT, std::vector<ValueT>, HashT>& foundMap,
       std::uint32_t num_cpus = 1,
       std::uint32_t batch_sz = 128) {
     struct bpf_map_info mapInfo {};

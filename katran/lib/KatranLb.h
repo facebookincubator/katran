@@ -886,10 +886,9 @@ class KatranLb {
   };
   PurgeResponse purgeVipLru(const VipKey& dstVip);
 
+  PurgeResponse purgeVipLruForReal(const VipKey& dstVip, uint32_t realPos);
+
   /**
-   * @param src ip address of the src
-   * @return true is the update is successful
-   *
    * Adds source ip to be used by Katran when it encapsulates packet.
    * It replaces existing one if present for the IP of given type (v4 or v6)
    */
@@ -1238,6 +1237,9 @@ class KatranLb {
   void analyzeLruMap(int mapFd, LruStatsResponse& lruStats);
 
   PurgeResponse purgeVipLruMap(int mapFd, const flow_key& key);
+
+  PurgeResponse
+  purgeVipLruMapForReal(int mapFd, const flow_key& filter, uint32_t realPos);
 
   static std::optional<flow_key> flowKeyFromParams(
       const VipKey& dstVip,

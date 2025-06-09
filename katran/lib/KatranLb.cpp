@@ -2816,6 +2816,114 @@ KatranLb::PurgeResponse KatranLb::purgeVipLruMap(
   return response;
 }
 
+KatranLb::PurgeResponse KatranLb::purgeVipLruMapForReal(
+    int mapFd,
+    const flow_key& filter,
+    uint32_t realPos) {
+  PurgeResponse response;
+  if (bpfAdapter_->isBatchOpsEnabled()) {
+    std::unordered_set<flow_key, FlowKeyHash> keysToDelete;
+    std::unordered_map<flow_key, std::vector<real_pos_lru>, FlowKeyHash>
+        foundMap;
+    auto readRes = BpfBatchUtil::bpfMapReadBatch(mapFd, foundMap);
+    if (readRes) {
+      LOG(ERROR) << "Error while reading lru map: " << readRes;
+      response.error = "read error";
+      return response;
+    }
+    for (auto& [key, value] : foundMap) {
+      if (key.proto == filter.proto && key.port16[1] == filter.port16[1] &&
+          key.dstv6[0] == filter.dstv6[0] && key.dstv6[1] == filter.dstv6[1] &&
+          key.dstv6[2] == filter.dstv6[2] && key.dstv6[3] == filter.dstv6[3]) {
+        // for a single cpu map we only care about the first value
+        auto pos = value[0].pos;
+        if (pos == realPos) {
+          keysToDelete.insert(key);
+        }
+      }
+    }
+    int deleteRes = BpfBatchUtil::bpfMapDeleteBatch(mapFd, keysToDelete);
+    if (deleteRes != 0) {
+      LOG(ERROR) << "Error while batch deleting from lru map: " << deleteRes;
+      response.error = "batch delete error";
+    } else {
+      response.deletedCount = keysToDelete.size();
+    }
+  } else {
+    flow_key key;
+    flow_key nextKey;
+    real_pos_lru value;
+    memset(&key, 0, sizeof(key));
+    memset(&nextKey, 0, sizeof(nextKey));
+    for (int i = 0; i < kLruMaxLookups; i++) {
+      int lookupRes = bpfAdapter_->bpfMapGetNextKey(mapFd, &key, &nextKey);
+      if (i != 0 && key.proto == filter.proto &&
+          key.port16[1] == filter.port16[1] &&
+          key.dstv6[0] == filter.dstv6[0] && key.dstv6[1] == filter.dstv6[1] &&
+          key.dstv6[2] == filter.dstv6[2] && key.dstv6[3] == filter.dstv6[3]) {
+        int valueRes = bpfAdapter_->bpfMapLookupElement(mapFd, &key, &value);
+        if (valueRes == 0 && value.pos == realPos) {
+          int delRes = bpfAdapter_->bpfMapDeleteElement(mapFd, &key);
+          if (delRes != 0) {
+            LOG(ERROR) << "Error while deleting lru map: " << delRes;
+            response.error = "delete error";
+          } else {
+            response.deletedCount++;
+          }
+        }
+      }
+      if (lookupRes != 0) {
+        if (lookupRes == -ENOENT) {
+          // ENOENT is returned when last entry in the map is reached
+          break;
+        } else {
+          LOG(ERROR) << "Error while querying lru map, error=" << lookupRes;
+          response.error = "query error";
+          return response;
+        }
+      }
+      key = nextKey;
+    }
+  }
+
+  return response;
+}
+
+KatranLb::PurgeResponse KatranLb::purgeVipLruForReal(
+    const VipKey& dstVip,
+    uint32_t realPos) {
+  PurgeResponse response;
+  // we only need dst values, setting src to dummy values
+  auto maybeKey = flowKeyFromParams(dstVip, "::0", 0);
+  if (!maybeKey) {
+    response.error = "invalid vip address";
+    return response;
+  }
+  flow_key filterKey = *maybeKey;
+  for (int cpu = 0; cpu < lruMapsFd_.size(); cpu++) {
+    int mapFd = lruMapsFd_[cpu];
+    if (mapFd <= 0) {
+      continue;
+    }
+    auto mapResp = purgeVipLruMapForReal(mapFd, filterKey, realPos);
+    response.deletedCount += mapResp.deletedCount;
+    if (!mapResp.error.empty()) {
+      response.error = mapResp.error;
+    }
+  }
+  int fallbackMapFd = bpfAdapter_->getMapFdByName(KatranLbMaps::fallback_cache);
+  if (fallbackMapFd > 0) {
+    auto mapResp = purgeVipLruMapForReal(fallbackMapFd, filterKey, realPos);
+    response.deletedCount += mapResp.deletedCount;
+    if (!mapResp.error.empty()) {
+      response.error = mapResp.error;
+    }
+  } else {
+    LOG(ERROR) << "LRU fallback cache map not found";
+  }
+  return response;
+}
+
 bool KatranLb::updateVipMap(
     const ModifyAction action,
     const VipKey& vip,

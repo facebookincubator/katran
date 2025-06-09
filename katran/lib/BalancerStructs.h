@@ -16,6 +16,7 @@
 
 #pragma once
 // this file must be in sync w/ balancer_structs from bpf folder
+#include <folly/hash/Hash.h>
 #include <cstdint>
 
 namespace katran {
@@ -80,6 +81,27 @@ struct flow_key {
     uint16_t port16[2];
   };
   uint8_t proto;
+
+  bool operator==(const flow_key& other) const {
+    for (int i = 0; i < 4; i++) {
+      if (srcv6[i] != other.srcv6[i] || dstv6[i] != other.dstv6[i]) {
+        return false;
+      }
+    }
+    return ports == other.ports && proto == other.proto;
+  }
+};
+struct FlowKeyHash {
+  std::size_t operator()(const flow_key& k) const {
+    std::size_t h = 0;
+    h = folly::hash::hash_combine(h, k.proto);
+    h = folly::hash::hash_combine(h, k.ports);
+    for (int i = 0; i < 4; i++) {
+      h = folly::hash::hash_combine(h, k.srcv6[i]);
+      h = folly::hash::hash_combine(h, k.dstv6[i]);
+    }
+    return h;
+  }
 };
 
 // value in lru map
