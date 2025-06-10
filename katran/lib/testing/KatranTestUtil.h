@@ -30,7 +30,7 @@ KatranTestParam createUdpStableRtTestParam();
 KatranTestParam createXPopDecapTestParam();
 KatranTestParam createIcmpTooBigTestParam();
 void testOptionalLbCounters(katran::KatranLb& lb, KatranTestParam& testParam);
-void testStableRtCounters(katran::KatranLb& lb, KatranTestParam& testParam);
+bool testStableRtCounters(katran::KatranLb& lb, KatranTestParam& testParam);
 void validateMapSize(
     katran::KatranLb& lb,
     const std::string& map_name,

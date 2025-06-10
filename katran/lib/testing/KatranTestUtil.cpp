@@ -272,34 +272,41 @@ void testOptionalLbCounters(katran::KatranLb& lb, KatranTestParam& testParam) {
   LOG(INFO) << "Testing of optional counters is complete";
 }
 
-void testStableRtCounters(katran::KatranLb& lb, KatranTestParam& testParam) {
+bool testStableRtCounters(katran::KatranLb& lb, KatranTestParam& testParam) {
   LOG(INFO) << "Testing optional counter's sanity";
+  bool counters_ok = true;
   auto stats = lb.getUdpStableRoutingStats();
   if (stats.ch_routed != testParam.expectedUdpStableRoutingWithCh()) {
     VLOG(2) << "CH routed pckts: " << stats.ch_routed;
     LOG(INFO) << "CH routed packet's counter is incorrect";
+    counters_ok = false;
   }
   if (stats.cid_routed != testParam.expectedUdpStableRoutingWithCid()) {
     VLOG(2) << "SID routed pckts: " << stats.cid_routed;
     LOG(INFO) << "SID routed packet's counter is incorrect";
+    counters_ok = false;
   }
   if (stats.cid_invalid_server_id !=
       testParam.expectedUdpStableRoutingInvalidSid()) {
     VLOG(2) << "cid_invalid_server_id pckts: " << stats.cid_invalid_server_id;
     LOG(INFO) << "cid_invalid_server_id counter is incorrect";
+    counters_ok = false;
   }
   if (stats.cid_unknown_real_dropped !=
       testParam.expectedUdpStableRoutingUnknownReals()) {
     VLOG(2) << "cid_unknown_real_dropped pckts: "
             << stats.cid_unknown_real_dropped;
     LOG(INFO) << "cid_unknown_real_dropped counter is incorrect";
+    counters_ok = false;
   }
   if (stats.invalid_packet_type !=
       testParam.expectedUdpStableRoutingInvalidPacketType()) {
     VLOG(2) << "invalid_packet_type pckts: " << stats.cid_unknown_real_dropped;
     LOG(INFO) << "invalid_packet_type counter is incorrect";
+    counters_ok = false;
   }
   LOG(INFO) << "Stable Routing stats verified";
+  return counters_ok;
 }
 
 bool testXPopDecapCounters(katran::KatranLb& lb, KatranTestParam& testParam) {
