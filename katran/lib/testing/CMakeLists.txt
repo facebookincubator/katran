@@ -39,6 +39,8 @@ target_link_libraries(pcap_parser
 add_library(bpftester STATIC
     BpfTester.h
     BpfTester.cpp
+    PacketBuilder.h
+    PacketBuilder.cpp
     KatranTestFixtures.h
     KatranHCTestFixtures.h
     KatranGueTestFixtures.h
