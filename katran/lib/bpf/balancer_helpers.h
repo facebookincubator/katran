@@ -101,12 +101,12 @@ decrement_ttl(void* data, void* data_end, int offset, bool is_ipv6) {
     }
     iph = (struct iphdr*)(data + offset);
     __u32 csum;
+    csum = iph->check + 0x0001;
+    iph->check = (csum & 0xffff) + (csum >> 16);
     if (!--iph->ttl) {
       // ttl 0
       return XDP_DROP;
     }
-    csum = iph->check + 0x0001;
-    iph->check = (csum & 0xffff) + (csum >> 16);
   }
   return FURTHER_PROCESSING;
 }

@@ -73,7 +73,7 @@ const std::vector<::katran::PacketAttributes> xPopDecapTestFixtures = {
     .inputPacket = generateGueIPv4UdpTtlExpiredPacket().base64Packet,
     .description = "Xpop decap and drop: IPv6 decap VIP, IPv4 dst VIP with TTL expired. Scapy: " + generateGueIPv4UdpTtlExpiredPacket().scapyCommand,
     .expectedReturnValue = "XDP_DROP",
-    .expectedOutputPacket = "AgAAAAAAAQAAAAAACABFAAArAAEAAAAR7E3AqAEDCsgBAXppAFAAF5fca2F0cmFuIHRlc3QgcGt0"
+    .expectedOutputPacket = "AgAAAAAAAQAAAAAACABFAAArAAEAAAAR7U3AqAEDCsgBAXppAFAAF5fca2F0cmFuIHRlc3QgcGt0"
   },
   //5
   {
