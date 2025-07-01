@@ -227,4 +227,24 @@ struct {
   __uint(map_flags, NO_FLAGS);
 } server_id_stats SEC(".maps");
 
+// vip to down reals map
+struct {
+  __uint(type, BPF_MAP_TYPE_HASH_OF_MAPS);
+  __type(key, struct vip_definition);
+  __type(value, __u32);
+  __uint(max_entries, MAX_VIPS);
+  __uint(map_flags, BPF_F_NO_PREALLOC);
+  __array(
+      values,
+      struct {
+        __uint(type, BPF_MAP_TYPE_HASH);
+        __type(key, __u32); // real index
+        __type(value, __u8); // dummy value if a host is down is in the map
+        __uint(max_entries, MAX_REALS); // TODO: theoretically the entries can
+                                        // be more than MAX_REALS, we might need
+                                        // to revisit the value in the future
+        __uint(map_flags, BPF_F_NO_PREALLOC); // we don't want to pre-allocate
+      });
+} vip_to_down_reals_map SEC(".maps");
+
 #endif // of _BALANCER_MAPS
