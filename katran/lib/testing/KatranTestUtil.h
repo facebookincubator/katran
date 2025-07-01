@@ -28,6 +28,9 @@ KatranTestParam createDefaultTestParam(TestMode testMode);
 KatranTestParam createTPRTestParam();
 KatranTestParam createUdpStableRtTestParam();
 KatranTestParam createXPopDecapTestParam();
+KatranTestParam createUdpFlowMigrationTestParam(
+    const std::vector<::katran::PacketAttributes>& fixture,
+    uint8_t totalInvalidations);
 KatranTestParam createIcmpTooBigTestParam();
 void testOptionalLbCounters(katran::KatranLb& lb, KatranTestParam& testParam);
 bool testStableRtCounters(katran::KatranLb& lb, KatranTestParam& testParam);
@@ -44,6 +47,9 @@ void postTestOptionalLbCounters(
     const std::string& healthcheckingProg);
 bool testLbCounters(katran::KatranLb& lb, KatranTestParam& testParam);
 bool testXPopDecapCounters(katran::KatranLb& lb, KatranTestParam& testParam);
+bool testUdpFlowMigrationCounters(
+    katran::KatranLb& lb,
+    KatranTestParam& testParam);
 bool testIcmpTooBigCounters(katran::KatranLb& lb, KatranTestParam& testParam);
 std::string toString(katran::KatranFeatureEnum feature);
 

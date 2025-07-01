@@ -653,6 +653,11 @@ __attribute__((__always_inline__)) static inline int check_udp_flow_migration(
         // If the real is in the map means is down, remove the destination so
         // it is re-hashed
         *dst = NULL;
+        __u32 stats_key = MAX_VIPS + UDP_FLOW_MIGRATION_STATS;
+        struct lb_stats* stats_data = bpf_map_lookup_elem(&stats, &stats_key);
+        if (stats_data) {
+          stats_data->v1 += 1;
+        }
       }
     }
   }

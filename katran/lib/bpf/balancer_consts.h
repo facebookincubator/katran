@@ -277,9 +277,10 @@
 #define ICMP_PTB_V6_STATS 12
 // offset of stats for icmp Fragment needed messages
 #define ICMP_PTB_V4_STATS 13
-
 // Tracks successful cross-pop packet decapsulation
 #define XPOP_DECAP_SUCCESSFUL 14
+// Tracks packets dst invalidated due to UDP flow migration
+#define UDP_FLOW_MIGRATION_STATS 15
 
 // indice for all stats maps defined above correspond to entries in the map
 // stats starting from the index MAX_VIPS. The max_entries of stats is

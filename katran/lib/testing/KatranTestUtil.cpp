@@ -19,6 +19,7 @@
 #include "katran/lib/testing/KatranIcmpTooBigTestFixtures.h"
 #include "katran/lib/testing/KatranTPRTestFixtures.h"
 #include "katran/lib/testing/KatranTestFixtures.h"
+#include "katran/lib/testing/KatranUdpFlowMigrationTestFixtures.h"
 #include "katran/lib/testing/KatranUdpStableRtTestFixtures.h"
 #include "katran/lib/testing/KatranXPopDecapTestFixtures.h"
 
@@ -224,6 +225,26 @@ KatranTestParam createXPopDecapTestParam() {
   return testParam;
 }
 
+KatranTestParam createUdpFlowMigrationTestParam(
+    const std::vector<::katran::PacketAttributes>& fixture,
+    uint8_t totalInvalidations) {
+  katran::VipKey vip;
+  vip.address = "10.200.1.1";
+  vip.port = kVipPort;
+  vip.proto = kUdp;
+  KatranTestParam testParam = {
+      .mode = TestMode::GUE,
+      .testData = fixture,
+      .expectedCounters =
+          {
+              {KatranTestCounters::TOTAL_PKTS, 4},
+              {KatranTestCounters::UDP_FLOW_MIGRATION_STATS,
+               totalInvalidations},
+          },
+      .perVipCounters = {{vip, std::pair<uint64_t, uint64_t>(3, 180)}}};
+  return testParam;
+}
+
 KatranTestParam createIcmpTooBigTestParam() {
   katran::VipKey vip;
   vip.address = "10.200.1.1";
@@ -331,6 +352,25 @@ bool testXPopDecapCounters(katran::KatranLb& lb, KatranTestParam& testParam) {
   }
 
   LOG(INFO) << "Testing of cross pop decapsulation counters is complete";
+  return counters_ok;
+}
+
+bool testUdpFlowMigrationCounters(
+    katran::KatranLb& lb,
+    KatranTestParam& testParam) {
+  LOG(INFO) << "Testing UDP flow migration sanity";
+  bool counters_ok = true;
+
+  // Check UDP flow migration invalidation counter
+  auto stats = lb.getUdpFlowMigrationStats();
+  if (stats.v1 != testParam.expectedUdpFlowMigrationInvalidation()) {
+    VLOG(2) << "UDP flow migration invalidations: " << stats.v1;
+    LOG(INFO) << "UDP flow migration invalidation counter is incorrect: "
+              << stats.v1 << " vs expected: "
+              << testParam.expectedUdpFlowMigrationInvalidation();
+    counters_ok = false;
+  }
+
   return counters_ok;
 }
 

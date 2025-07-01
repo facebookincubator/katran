@@ -293,6 +293,63 @@ void prepareLbDataXpopDecap(katran::KatranLb& lb) {
   lb.addHealthcheckerDst(3, "fc00::1");
 }
 
+void prepareUdpFlowMigrationTestData(katran::KatranLb& lb) {
+  lb.restartKatranMonitor(kMonitorLimit);
+
+  // Add a VIP with UDP flow migration enabled
+  katran::VipKey vipUdpFlowMigration;
+  vipUdpFlowMigration.address = "10.200.1.1";
+  vipUdpFlowMigration.port = kVipPort;
+  vipUdpFlowMigration.proto = kUdp;
+  lb.addVip(vipUdpFlowMigration);
+  lb.modifyVip(vipUdpFlowMigration, kUdpFlowMigration);
+  addReals(lb, vipUdpFlowMigration, kReals);
+
+  // Add a VIP with UDP flow migration and stable routing enabled
+  katran::VipKey vipStableRoutingUdpFlowMigration;
+  vipStableRoutingUdpFlowMigration.address = "10.200.1.2";
+  vipStableRoutingUdpFlowMigration.port = kVipPort;
+  vipStableRoutingUdpFlowMigration.proto = kUdp;
+  lb.addVip(vipStableRoutingUdpFlowMigration);
+  lb.modifyVip(
+      vipStableRoutingUdpFlowMigration, kUdpFlowMigration | kUdpStableRouting);
+  addReals(lb, vipStableRoutingUdpFlowMigration, kReals);
+  addQuicMappings(lb);
+
+  // Add a VIP without UDP flow migration for comparison
+  katran::VipKey vipUdp;
+  vipUdp.address = "10.200.1.3";
+  vipUdp.port = kVipPort;
+  vipUdp.proto = kUdp;
+  lb.addVip(vipUdp);
+  addReals(lb, vipUdp, kReals);
+
+  // Add a TCP VIP to test that UDP flow migration doesn't affect TCP
+  katran::VipKey vipTcp;
+  vipTcp.address = "10.200.1.4";
+  vipTcp.port = kVipPort;
+  vipTcp.proto = kTcp;
+  lb.addVip(vipTcp);
+  addReals(lb, vipTcp, kReals);
+}
+
+void setDownHostForUdpFlowMigration(katran::KatranLb& lb) {
+  LOG(INFO) << "Setting down host for UDP flow migration";
+  katran::VipKey vipUdpFlowMigration;
+  vipUdpFlowMigration.address = "10.200.1.1";
+  vipUdpFlowMigration.port = kVipPort;
+  vipUdpFlowMigration.proto = kUdp;
+  lb.addDownRealToVipToDownRealsMap(vipUdpFlowMigration, 2);
+  deleteReals(lb, vipUdpFlowMigration, {"10.0.0.2"});
+
+  katran::VipKey vipStableRoutingUdpFlowMigration;
+  vipStableRoutingUdpFlowMigration.address = "10.200.1.2";
+  vipStableRoutingUdpFlowMigration.port = kVipPort;
+  vipStableRoutingUdpFlowMigration.proto = kUdp;
+  lb.addDownRealToVipToDownRealsMap(vipStableRoutingUdpFlowMigration, 2);
+  deleteReals(lb, vipStableRoutingUdpFlowMigration, {"10.0.0.2"});
+}
+
 void prepareVipUninitializedLbData(katran::KatranLb& lb) {
   katran::VipKey vip;
   vip.address = "10.200.1.99";
@@ -410,6 +467,9 @@ uint64_t KatranTestParam::expectedInlineDecapPkts() noexcept {
 }
 uint64_t KatranTestParam::expectedXPopDecapSuccessful() noexcept {
   return _lookup_counter(KatranTestCounters::XPOP_DECAP_SUCCESSFUL);
+}
+uint64_t KatranTestParam::expectedUdpFlowMigrationInvalidation() noexcept {
+  return _lookup_counter(KatranTestCounters::UDP_FLOW_MIGRATION_STATS);
 }
 uint64_t KatranTestParam::_lookup_counter(KatranTestCounters counter) noexcept {
   if (!expectedCounters.contains(counter)) {

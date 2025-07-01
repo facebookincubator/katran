@@ -67,6 +67,7 @@ constexpr uint32_t kQuicIcmpOffset = 11;
 constexpr uint32_t kIcmpPtbV6Offset = 12;
 constexpr uint32_t kIcmpPtbV4Offset = 13;
 constexpr uint32_t kXPopDecapSuccessfulOffset = 14;
+constexpr uint32_t kUdpFlowMigrationInvalidationOffset = 15;
 
 /**
  * LRU map related constants
@@ -605,6 +606,14 @@ class KatranLb {
    * decapsulated
    */
   lb_stats getXPopDecapSuccessfulStats();
+
+  /**
+   * @return struct lb_stats w/ statistics of total invalidated dst
+   *
+   * helper function which returns how many packets were invalidated due
+   * to UDP flow migration.
+   */
+  lb_stats getUdpFlowMigrationStats();
 
   /**
    * @return struct lb_stats w/ src global lru statistics

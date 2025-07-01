@@ -54,6 +54,8 @@ constexpr uint32_t kSrcRouting = 16;
 constexpr uint32_t kLocalVip = 32;
 // parse udp stable routing header to get server-id (1 << 8)
 constexpr uint32_t kUdpStableRouting = 256;
+// validate real state and invalidate if down (1 << 9)
+constexpr uint32_t kUdpFlowMigration = 512;
 
 // Each of the TestMode correspond to the TestFixtures
 enum class TestMode : uint8_t {
@@ -98,6 +100,8 @@ enum class KatranTestCounters : uint8_t {
   STABLE_RT_INVALID_PACKET_TYPE = 25,
   // xpop decap counters
   XPOP_DECAP_SUCCESSFUL = 26,
+  // udp flow migration counters
+  UDP_FLOW_MIGRATION_STATS = 27,
 };
 
 struct KatranTestParam {
@@ -134,6 +138,7 @@ struct KatranTestParam {
   uint64_t expectedSrcRoutingPktsRemote() noexcept;
   uint64_t expectedInlineDecapPkts() noexcept;
   uint64_t expectedXPopDecapSuccessful() noexcept;
+  uint64_t expectedUdpFlowMigrationInvalidation() noexcept;
 
   // helper method to lookup the expected counter value
   uint64_t _lookup_counter(KatranTestCounters counter) noexcept;
@@ -168,5 +173,9 @@ void prepareLbDataXpopDecap(katran::KatranLb& lb);
 void prepareVipUninitializedLbData(katran::KatranLb& lb);
 
 void preparePerfTestingLbData(katran::KatranLb& lb);
+
+void prepareUdpFlowMigrationTestData(katran::KatranLb& lb);
+
+void setDownHostForUdpFlowMigration(katran::KatranLb& lb);
 } // namespace testing
 } // namespace katran

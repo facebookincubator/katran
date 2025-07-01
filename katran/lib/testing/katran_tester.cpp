@@ -31,6 +31,7 @@
 #include "katran/lib/testing/KatranOptionalTestFixtures.h"
 #include "katran/lib/testing/KatranTestProvision.h"
 #include "katran/lib/testing/KatranTestUtil.h"
+#include "katran/lib/testing/KatranUdpFlowMigrationTestFixtures.h"
 #include "katran/lib/testing/KatranUdpStableRtTestFixtures.h"
 #include "katran/lib/testing/KatranXPopDecapTestFixtures.h"
 
@@ -64,6 +65,7 @@ DEFINE_bool(
 DEFINE_bool(gue, false, "run GUE tests instead of IPIP ones");
 DEFINE_bool(stable_rt, false, "run UDP Stable Routing tests");
 DEFINE_bool(xpop_decap, false, "run cross pop decap tests");
+DEFINE_bool(udp_flow_migration, false, "run UDP flow migration tests");
 DEFINE_bool(
     tpr,
     false,
@@ -171,6 +173,24 @@ void runTestsFromFixture(
     tester.testFromFixture();
     auto xpopTestParams = createXPopDecapTestParam();
     testXPopDecapCounters(lb, xpopTestParams);
+  }
+  if (FLAGS_udp_flow_migration) {
+    prepareUdpFlowMigrationTestData(lb);
+    tester.resetTestFixtures(
+        katran::testing::udpFlowMigrationTestFirstFixtures);
+    tester.testFromFixture();
+    auto udpFlowMigrationParams = createUdpFlowMigrationTestParam(
+        katran::testing::udpFlowMigrationTestFirstFixtures, 0);
+    testUdpFlowMigrationCounters(lb, udpFlowMigrationParams);
+
+    setDownHostForUdpFlowMigration(lb);
+
+    tester.resetTestFixtures(
+        katran::testing::udpFlowMigrationTestSecondFixtures);
+    tester.testFromFixture();
+    auto udpFlowMigrationParams2 = createUdpFlowMigrationTestParam(
+        katran::testing::udpFlowMigrationTestSecondFixtures, 2);
+    testUdpFlowMigrationCounters(lb, udpFlowMigrationParams2);
   }
 }
 
