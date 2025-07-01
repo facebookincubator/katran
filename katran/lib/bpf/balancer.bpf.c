@@ -638,6 +638,27 @@ incr_server_id_routing_stats(__u32 vip_num, bool newConn, bool misMatchInLRU) {
   }
 }
 
+__attribute__((__always_inline__)) static inline int check_udp_flow_migration(
+    struct real_definition** dst,
+    struct packet_description* pckt,
+    struct vip_meta* vip_info,
+    struct vip_definition* vip) {
+  if (dst && pckt->flow.proto == IPPROTO_UDP &&
+      vip_info->flags & F_UDP_FLOW_MIGRATION) {
+    // Check if the real is down using the vip_to_down_reals_map
+    void* down_reals_map = bpf_map_lookup_elem(&vip_to_down_reals_map, vip);
+    if (down_reals_map) {
+      void* down_real = bpf_map_lookup_elem(down_reals_map, &pckt->real_index);
+      if (down_real) {
+        // If the real is in the map means is down, remove the destination so
+        // it is re-hashed
+        *dst = NULL;
+      }
+    }
+  }
+  return FURTHER_PROCESSING;
+}
+
 __attribute__((__always_inline__)) static inline int
 process_packet(struct xdp_md* xdp, __u64 nh_off, bool is_ipv6) {
   void* data = (void*)(long)xdp->data;
@@ -954,6 +975,8 @@ process_packet(struct xdp_md* xdp, __u64 nh_off, bool is_ipv6) {
       }
     }
 #endif // GLOBAL_LRU_LOOKUP
+
+    check_udp_flow_migration(&dst, &pckt, vip_info, &vip);
 
     // if dst is not found, route via consistent-hashing of the flow.
     if (!dst) {

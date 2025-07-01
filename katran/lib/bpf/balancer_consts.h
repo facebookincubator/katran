@@ -152,6 +152,8 @@
 #define F_HASH_SRC_DST_PORT (1 << 7)
 // parse udp stable routing header to get server-id
 #define F_UDP_STABLE_ROUTING_VIP (1 << 8)
+// check if real is down and invalidate any packets which are going to it
+#define F_UDP_FLOW_MIGRATION (1 << 9)
 // packet_description flags:
 // the description has been created from icmp msg
 #define F_ICMP (1 << 0)
