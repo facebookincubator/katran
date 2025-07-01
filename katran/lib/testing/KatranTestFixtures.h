@@ -324,6 +324,14 @@ const std::vector<katran::PacketAttributes> testFixtures = {
     .expectedReturnValue = "XDP_TX",
     .expectedOutputPacket = "AADerb6vAgAAAAAAht1gAAAAACYEQAEAAAAAAAAAAAAAALrBASr8AAAAAAAAAAAAAAAAAAACRQAAJgABAABAEa0nwKgBKgrIAQV6aQG7ABJuQgCAAwREAAAAAEA="
   },
+  //36
+  {
+    // Ether(src="0x1", dst="0x2")/IP(src="192.168.1.42", dst="10.200.1.6")/UDP(sport=31337, dport=80)/b'\x00\x80\x03\x04\x44\x00\x00\x00\x00@'
+    .inputPacket = "AgAAAAAAAQAAAAAACABFAAAmAAEAAEARrSbAqAEqCsgBBnppAFAAEm+sAIADBEQAAAAAQA==",
+    .description = "Packet to udp vip with udp flow migration enabled",
+    .expectedReturnValue = "XDP_TX",
+    .expectedOutputPacket = "AADerb6vAgAAAAAACABFAAA6AAAAAEAEXF2sEGhQCgAAA0UAACYAAQAAQBGtJsCoASoKyAEGemkAUAASb6wAgAMERAAAAABA"
+  },
 };
 
 } // namespace testing

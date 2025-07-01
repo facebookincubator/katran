@@ -159,6 +159,15 @@ void prepareLbData(katran::KatranLb& lb) {
   lb.addVip(vip);
   lb.modifyVip(vip, kQuicVip);
   addReals(lb, vip, reals6);
+  // adding udp with flow migration vip for tests
+  vip.address = "10.200.1.6";
+  vip.port = kVipPort;
+  vip.proto = kUdp;
+  lb.addVip(vip);
+  lb.modifyVip(vip, kUdpFlowMigration);
+  addReals(lb, vip, reals);
+  // setting a real to be down
+  lb.addDownRealToVipToDownRealsMap(vip, 1);
 
   // adding healthchecking dst
   lb.addHealthcheckerDst(1, "10.0.0.1");
