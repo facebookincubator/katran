@@ -18,6 +18,7 @@
 
 #include <folly/Optional.h>
 #include <string>
+#include "katran/lib/testing/PacketBuilder.h"
 
 namespace katran {
 
@@ -38,6 +39,18 @@ struct PacketAttributes {
   // We set this if we want to verify whether or not the packet was
   // routed through global lru
   std::optional<bool> routedThroughGlobalLru{std::nullopt};
+
+  // Scapy command representation of the input packet for debugging
+  std::string inputScapyCommand;
+
+  // Scapy command representation of the expected output packet for debugging
+  std::string expectedOutputScapyCommand;
+
+  // PacketBuilder for input packet
+  std::optional<katran::testing::PacketBuilder> inputPacketBuilder;
+
+  // PacketBuilder for expected output packet
+  std::optional<katran::testing::PacketBuilder> expectedOutputPacketBuilder;
 };
 
 } // namespace katran

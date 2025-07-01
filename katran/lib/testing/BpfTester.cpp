@@ -271,14 +271,49 @@ bool BpfTester::runBpfTesterFromFixtures(
     }
     void* ctx_in = ctxs_in.size() != 0 ? ctxs_in[i] : nullptr;
     auto pckt_buf = folly::IOBuf::create(kMaxXdpPcktSize);
-    auto input_pckt =
-        parser_.getPacketFromBase64(config_.testData[i].inputPacket);
+
+    // Handle both old string-based approach and new PacketBuilder approach
+    std::string inputPacketBase64;
+    std::string inputScapyCommand;
+    std::string expectedOutputPacketBase64;
+    std::string expectedOutputScapyCommand;
+
+    if (config_.testData[i].inputPacketBuilder.has_value()) {
+      auto inputResult = config_.testData[i].inputPacketBuilder->build();
+      inputPacketBase64 = inputResult.base64Packet;
+      inputScapyCommand = inputResult.scapyCommand;
+    } else {
+      inputPacketBase64 = config_.testData[i].inputPacket;
+      inputScapyCommand = config_.testData[i].inputScapyCommand;
+    }
+
+    if (config_.testData[i].expectedOutputPacketBuilder.has_value()) {
+      auto expectedResult =
+          config_.testData[i].expectedOutputPacketBuilder->build();
+      expectedOutputPacketBase64 = expectedResult.base64Packet;
+      expectedOutputScapyCommand = expectedResult.scapyCommand;
+    } else {
+      expectedOutputPacketBase64 = config_.testData[i].expectedOutputPacket;
+      expectedOutputScapyCommand =
+          config_.testData[i].expectedOutputScapyCommand;
+    }
+
+    auto input_pckt = parser_.getPacketFromBase64(inputPacketBase64);
     writePcapOutput(input_pckt->cloneOne());
     if (config_.testData[i].routedThroughGlobalLru) {
       packetsRoutedGlobalLruBefore = getGlobalLruRoutedPackets();
     }
     VLOG(2) << "Running test for test #" << (i + 1)
             << " with description: " << config_.testData[i].description;
+
+    // Log scapy commands for debugging
+    if (!inputScapyCommand.empty()) {
+      LOG(INFO) << "Input packet scapy command: " << inputScapyCommand;
+    }
+    if (!expectedOutputScapyCommand.empty()) {
+      LOG(INFO) << "Expected output packet scapy command: "
+                << expectedOutputScapyCommand;
+    }
     auto res = adapter_.testXdpProg(
         progFd,
         kTestRepeatCount,
@@ -323,17 +358,16 @@ bool BpfTester::runBpfTesterFromFixtures(
 
     if (gueMode_ && isGuePacket(output_test_pckt)) {
       // For GUE packets, verify with special handling for the source port
-      packetsMatch = compareGuePackets(
-          output_test_pckt, config_.testData[i].expectedOutputPacket);
-    } else {
       packetsMatch =
-          (output_test_pckt == config_.testData[i].expectedOutputPacket);
+          compareGuePackets(output_test_pckt, expectedOutputPacketBase64);
+    } else {
+      packetsMatch = (output_test_pckt == expectedOutputPacketBase64);
     }
 
     if (!packetsMatch) {
       LOG(ERROR) << "output packet not equal to expected one:" << "\ninput=    "
-                 << config_.testData[i].inputPacket
-                 << "\nexpected= " << config_.testData[i].expectedOutputPacket
+                 << inputPacketBase64
+                 << "\nexpected= " << expectedOutputPacketBase64
                  << "\nactual=   " << output_test_pckt;
       iterationSuccess = false;
     }

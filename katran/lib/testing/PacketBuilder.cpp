@@ -21,8 +21,8 @@
 #include <folly/base64.h>
 #include <glog/logging.h>
 #include <linux/if_ether.h>
+#include <linux/ip.h>
 #include <netinet/in.h>
-#include <netinet/ip.h>
 #include <netinet/ip6.h>
 #include <netinet/tcp.h>
 #include <cstring>
@@ -62,7 +62,7 @@ PacketBuilder& PacketBuilder::Eth(
     throw std::invalid_argument("Invalid destination MAC address: " + dst);
   }
 
-  headerStack_.push_back(std::make_unique<EthernetHeader>(src, dst));
+  headerStack_.push_back(std::make_shared<EthernetHeader>(src, dst));
   return *this;
 }
 
@@ -81,7 +81,7 @@ PacketBuilder& PacketBuilder::IPv4(
   }
 
   headerStack_.push_back(
-      std::make_unique<IPv4Header>(src, dst, ttl, tos, id, flags));
+      std::make_shared<IPv4Header>(src, dst, ttl, tos, id, flags));
   return *this;
 }
 
@@ -98,7 +98,7 @@ PacketBuilder& PacketBuilder::IPv6(
     throw std::invalid_argument("Invalid destination IPv6 address: " + dst);
   }
 
-  headerStack_.push_back(std::make_unique<IPv6Header>(
+  headerStack_.push_back(std::make_shared<IPv6Header>(
       src, dst, hopLimit, trafficClass, flowLabel));
   return *this;
 }
@@ -113,7 +113,7 @@ PacketBuilder& PacketBuilder::UDP(uint16_t sport, uint16_t dport) {
         "Invalid destination port: " + std::to_string(dport));
   }
 
-  headerStack_.push_back(std::make_unique<UDPHeader>(sport, dport));
+  headerStack_.push_back(std::make_shared<UDPHeader>(sport, dport));
   return *this;
 }
 
@@ -134,7 +134,7 @@ PacketBuilder& PacketBuilder::TCP(
   }
 
   headerStack_.push_back(
-      std::make_unique<TCPHeader>(sport, dport, seq, ackSeq, window, flags));
+      std::make_shared<TCPHeader>(sport, dport, seq, ackSeq, window, flags));
   return *this;
 }
 
@@ -148,7 +148,7 @@ PacketBuilder& PacketBuilder::payload(const std::vector<uint8_t>& data) {
     LOG(INFO) << "Adding empty payload";
   }
 
-  headerStack_.push_back(std::make_unique<PayloadHeader>(data));
+  headerStack_.push_back(std::make_shared<PayloadHeader>(data));
   return *this;
 }
 
@@ -182,7 +182,7 @@ std::vector<uint8_t> PacketBuilder::buildBinaryPacket() {
 
   // Build packet from the end (payload first) to calculate lengths correctly
   for (int i = static_cast<int>(headerStack_.size()) - 1; i >= 0; --i) {
-    headerStack_[i]->serialize(i, headerStack_, packet);
+    headerStack_[i]->serialize(static_cast<size_t>(i), headerStack_, packet);
   }
 
   return packet;
@@ -285,7 +285,7 @@ EthernetHeader::EthernetHeader(const std::string& src, const std::string& dst) {
 
 void EthernetHeader::serialize(
     size_t headerIndex,
-    const std::vector<std::unique_ptr<HeaderEntry>>& headerStack,
+    const std::vector<std::shared_ptr<HeaderEntry>>& headerStack,
     std::vector<uint8_t>& packet) {
   const uint8_t* ethBytes = reinterpret_cast<const uint8_t*>(&eth_);
   packet.insert(packet.begin(), ethBytes, ethBytes + sizeof(struct ethhdr));
@@ -404,7 +404,7 @@ IPv4Header::IPv4Header(
 
 void IPv4Header::serialize(
     size_t headerIndex,
-    const std::vector<std::unique_ptr<HeaderEntry>>& headerStack,
+    const std::vector<std::shared_ptr<HeaderEntry>>& headerStack,
     std::vector<uint8_t>& packet) {
   auto ip = ip_;
 
@@ -538,7 +538,7 @@ IPv6Header::IPv6Header(
 
 void IPv6Header::serialize(
     size_t headerIndex,
-    const std::vector<std::unique_ptr<HeaderEntry>>& headerStack,
+    const std::vector<std::shared_ptr<HeaderEntry>>& headerStack,
     std::vector<uint8_t>& packet) {
   auto ip6 = ip6_;
 
@@ -596,7 +596,7 @@ UDPHeader::UDPHeader(uint16_t sport, uint16_t dport) {
 
 void UDPHeader::serialize(
     size_t headerIndex,
-    const std::vector<std::unique_ptr<HeaderEntry>>& headerStack,
+    const std::vector<std::shared_ptr<HeaderEntry>>& headerStack,
     std::vector<uint8_t>& packet) {
   auto udp = udp_;
 
@@ -631,7 +631,7 @@ std::string UDPHeader::generateScapyCommand() const {
 
 void UDPHeader::findIPHeaderForChecksum(
     size_t headerIndex,
-    const std::vector<std::unique_ptr<HeaderEntry>>& headerStack,
+    const std::vector<std::shared_ptr<HeaderEntry>>& headerStack,
     struct iphdr* ipv4Header,
     struct ip6_hdr* ipv6Header) {
   // Find the most recent IP header before the current header
@@ -822,7 +822,7 @@ TCPHeader::TCPHeader(
 
 void TCPHeader::serialize(
     size_t headerIndex,
-    const std::vector<std::unique_ptr<HeaderEntry>>& headerStack,
+    const std::vector<std::shared_ptr<HeaderEntry>>& headerStack,
     std::vector<uint8_t>& packet) {
   auto tcp = tcp_;
 
@@ -884,7 +884,7 @@ std::string TCPHeader::generateScapyCommand() const {
 
 void TCPHeader::findIPHeaderForChecksum(
     size_t headerIndex,
-    const std::vector<std::unique_ptr<HeaderEntry>>& headerStack,
+    const std::vector<std::shared_ptr<HeaderEntry>>& headerStack,
     struct iphdr* ipv4Header,
     struct ip6_hdr* ipv6Header) {
   // Find the most recent IP header before the current header
@@ -1050,7 +1050,7 @@ PayloadHeader::PayloadHeader(const std::vector<uint8_t>& data) {
 
 void PayloadHeader::serialize(
     size_t headerIndex,
-    const std::vector<std::unique_ptr<HeaderEntry>>& headerStack,
+    const std::vector<std::shared_ptr<HeaderEntry>>& headerStack,
     std::vector<uint8_t>& packet) {
   packet.insert(packet.end(), payload_.begin(), payload_.end());
 }

@@ -19,85 +19,171 @@
 #pragma once
 #include <vector>
 #include "katran/lib/testing/PacketAttributes.h"
-#include "katran/lib/testing/KatranTestPacketGenerator.h"
+#include "katran/lib/testing/PacketBuilder.h"
+
+/**
+ * Test fixtures for XPop (Cross-Pop) decapsulation functionality.
+ * 
+ * Each test case is generated using PacketBuilder and contains:
+ * - inputPacketBuilder: PacketBuilder object for input packet
+ * - expectedOutputPacketBuilder: PacketBuilder object for expected output packet
+ * - description: Test case description
+ * - expectedReturnValue: Expected BPF program return code (XDP_TX, XDP_DROP, XDP_PASS)
+ *
+ * PacketBuilder Usage:
+ *   PacketBuilder::newPacket()
+ *       .Eth("01:00:00:00:00:00", "02:00:00:00:00:00")
+ *       .IPv4("192.168.1.1", "10.200.1.1")
+ *       .UDP(31337, 80)
+ *       .payload("katran test pkt")
+ *
+ * For GUE encapsulation:
+ *   PacketBuilder::newPacket()
+ *       .Eth("01:00:00:00:00:00", "02:00:00:00:00:00")
+ *       .IPv6("100::64", "fc00:1404::1")     // outer IPv6
+ *       .UDP(31337, 9886)                    // outer UDP (GUE)
+ *       .IPv4("192.168.1.1", "10.200.1.1")  // inner IPv4
+ *       .UDP(31337, 80)                      // inner UDP
+ *       .payload("katran test pkt")
+ *
+ * Requirements:
+ * - INLINE_DECAP_GUE feature must be enabled for all tests
+ * - Tests cover IPv4/IPv6 decap scenarios with various backend types
+ * - Includes TTL/hop limit expiration and address mismatch cases
+ */
 
 namespace katran {
 namespace testing {
-/**
- * input packets has been generated with scapy. above each of em you can find
- * a command which has been used to do so.
- *
- * format of the input data: <string, string>; 1st string is a base64 encoded
- * packet. 2nd string is test's description
- *
- * format of the output data: <string, string>; 1st string is a base64 encoded
- * packet which we are expecting to see after bpf program's run.
- * 2nd string = bpf's program return code.
- *
- * to create pcap w/ scapy:
- * 1) create packets
- * 2) pckts = [ <created packets from above> ]
- * 3) wrpcap(<path_to_file>, pckts)
- * to get base64 packet string: base64.b64encode(raw(packet))
- * to get packet from base64 string: Ether(base64.b64decode(b"..."))
- *
- * Note: INLINE_DECAP_GUE is required for all tests.
- */
+
 const std::vector<::katran::PacketAttributes> xPopDecapTestFixtures = {
   //1
   {
-    .inputPacket = generateGueIPv4UdpPacket().base64Packet,
-    .description = "Xpop decap and re-encap: IPv6 decap VIP, IPv4 dst VIP with IPv4 backends. Scapy: " + generateGueIPv4UdpPacket().scapyCommand,
+    .description = "Xpop decap and re-encap: IPv6 decap VIP, IPv4 dst VIP with IPv4 backends.",
     .expectedReturnValue = "XDP_TX",
-    ///<Ether  dst=00:00:de:ad:be:af src=02:00:00:00:00:00 type=IPv4 |<IP  version=4 ihl=5 tos=0x0 len=71 id=0 flags= frag=0 ttl=64 proto=udp chksum=0x5980 src=10.0.13.37 dst=10.0.0.2 |<UDP  sport=26745 dport=9886 len=51 chksum=0x1ce7 |<Raw  load=
-    .expectedOutputPacket = "AADerb6vAgAAAAAACABFAABHAAAAAEARWYAKAA0lCgAAAmh5Jp4AMxznRQAAKwABAAA/Ea5NwKgBAwrIAQF6aQBQABeX3GthdHJhbiB0ZXN0IHBrdA=="
+    .inputPacketBuilder = katran::testing::PacketBuilder::newPacket()
+        .Eth("0x1", "0x2")
+        .IPv6("100::64", "fc00:1404::1", 64)
+        .UDP(31337, 9886)
+        .IPv4("192.168.1.3", "10.200.1.1")
+        .UDP(31337, 80)
+        .payload("katran test pkt"),
+    .expectedOutputPacketBuilder = katran::testing::PacketBuilder::newPacket()
+        .Eth("02:00:00:00:00:00", "00:00:de:ad:be:af")
+        .IPv4("10.0.13.37", "10.0.0.2", 64, 0, 0)
+        .UDP(26745, 9886)
+        .IPv4("192.168.1.3", "10.200.1.1", 63, 0, 1)  // Inner IPv4: TTL=63, ID=1
+        .UDP(31337, 80)                                 // Inner UDP
+        .payload("katran test pkt")
   },
   //2
   {
-    .inputPacket = generateGueIPv4UdpPacketAltDst().base64Packet,
-    .description = "Xpop decap and re-encap: IPv6 decap VIP, IPv4 dst VIP with IPv6 backends. Scapy: " + generateGueIPv4UdpPacketAltDst().scapyCommand,
+    .description = "Xpop decap and re-encap: IPv6 decap VIP, IPv4 dst VIP with IPv6 backends.",
     .expectedReturnValue = "XDP_TX",
-    //<Ether  dst=00:00:de:ad:be:af src=02:00:00:00:00:00 type=IPv6 |<IPv6  version=6 tc=0 fl=0 plen=51 nh=UDP hlim=64 src=fc00:2307::1337 dst=fc00::3 |<UDP  sport=31594 dport=9886 len=51 chksum=0xfcda |<Raw  load=
-    .expectedOutputPacket = "AADerb6vAgAAAAAAht1gAAAAADMRQPwAIwcAAAAAAAAAAAAAEzf8AAAAAAAAAAAAAAAAAAADe2omngAz/NpFAAArAAEAAD8RrkzAqAEDCsgBAnppAFAAF5fba2F0cmFuIHRlc3QgcGt0"
+    .inputPacketBuilder = katran::testing::PacketBuilder::newPacket()
+        .Eth("0x1", "0x2")
+        .IPv6("100::64", "fc00:1404::1", 64)
+        .UDP(31337, 9886)
+        .IPv4("192.168.1.3", "10.200.1.2")
+        .UDP(31337, 80)
+        .payload("katran test pkt"),
+    .expectedOutputPacketBuilder = katran::testing::PacketBuilder::newPacket()
+        .Eth("02:00:00:00:00:00", "00:00:de:ad:be:af")
+        .IPv6("fc00:2307::1337", "fc00::3", 64)
+        .UDP(31594, 9886)
+        .IPv4("192.168.1.3", "10.200.1.2", 63, 0, 1)  // Inner IPv4: TTL=63, ID=1
+        .UDP(31337, 80)                                 // Inner UDP
+        .payload("katran test pkt")
   },
   //3
   {
-    .inputPacket = generateGueIPv6TcpPacket().base64Packet,
-    .description = "Xpop decap and re-encap: IPv6 decap VIP, IPv6 dst VIP with TCP payload. Scapy: " + generateGueIPv6TcpPacket().scapyCommand,
+    .description = "Xpop decap and re-encap: IPv6 decap VIP, IPv6 dst VIP with TCP payload.",
     .expectedReturnValue = "XDP_TX",
-    .expectedOutputPacket = "AADerb6vAgAAAAAAht1gAAAAAFMRQPwAIwcAAAAAAAAAAAAAEzf8AAAAAAAAAAAAAAAAAAABemkmngBTycZgAAAAACMGP/wAIwcAAQAAAAAAAAAAAAL8AAABAAAAAAAAAAAAAAABemkAUAAAAAAAAAAAUBAgANpIAABrYXRyYW4gdGVzdCBwa3Q="
-    //<Ether  dst=00:00:de:ad:be:af src=02:00:00:00:00:00 type=IPv6 |<IPv6  version=6 tc=0 fl=0 plen=83 nh=UDP hlim=64 src=fc00:2307::1337 dst=fc00::1 |<UDP  sport=31337 dport=9886 len=83 chksum=0xc9c6
+    .inputPacketBuilder = katran::testing::PacketBuilder::newPacket()
+        .Eth("0x1", "0x2")
+        .IPv6("100::64", "fc00:1404::1", 64)
+        .UDP(31337, 9886)
+        .IPv6("fc00:2307:1::2", "fc00:1::1")
+        .TCP(31337, 80, 0, 0, 8192, 0x10)
+        .payload("katran test pkt"),
+    .expectedOutputPacketBuilder = katran::testing::PacketBuilder::newPacket()
+        .Eth("02:00:00:00:00:00", "00:00:de:ad:be:af")
+        .IPv6("fc00:2307::1337", "fc00::1", 64)
+        .UDP(31337, 9886)
+        .IPv6("fc00:2307:1::2", "fc00:1::1", 63)  // Inner IPv6: hlim=63
+        .TCP(31337, 80, 0, 0, 8192, 0x10)         // Inner TCP
+        .payload("katran test pkt")
   },
   //4
   {
-    .inputPacket = generateGueIPv4UdpTtlExpiredPacket().base64Packet,
-    .description = "Xpop decap and drop: IPv6 decap VIP, IPv4 dst VIP with TTL expired. Scapy: " + generateGueIPv4UdpTtlExpiredPacket().scapyCommand,
+    .description = "Xpop decap and drop: IPv6 decap VIP, IPv4 dst VIP with TTL expired.",
     .expectedReturnValue = "XDP_DROP",
-    .expectedOutputPacket = "AgAAAAAAAQAAAAAACABFAAArAAEAAAAR7U3AqAEDCsgBAXppAFAAF5fca2F0cmFuIHRlc3QgcGt0"
+    .inputPacketBuilder = katran::testing::PacketBuilder::newPacket()
+        .Eth("0x1", "0x2")
+        .IPv6("100::64", "fc00:1404::1", 64)
+        .UDP(31337, 9886)
+        .IPv4("192.168.1.3", "10.200.1.1", 1)
+        .UDP(31337, 80)
+        .payload("katran test pkt"),
+    .expectedOutputPacketBuilder = katran::testing::PacketBuilder::newPacket()
+        .Eth("01:00:00:00:00:00", "02:00:00:00:00:00")
+        .IPv4("192.168.1.3", "10.200.1.1", 0, 0, 1)  // TTL=0 (expired), TOS=0, ID=1
+        .UDP(31337, 80)
+        .payload("katran test pkt")
   },
   //5
   {
-    .inputPacket = generateGueIPv6TcpHlimExpiredPacket().base64Packet,
-    .description = "Xpop decap and drop: IPv6 decap VIP, IPv6 dst VIP with hop limit expired. Scapy: " + generateGueIPv6TcpHlimExpiredPacket().scapyCommand,
+    .description = "Xpop decap and drop: IPv6 decap VIP, IPv6 dst VIP with hop limit expired.",
     .expectedReturnValue = "XDP_DROP",
-    .expectedOutputPacket = "AgAAAAAAAQAAAAAAht1gAAAAACMGAPwAIwcAAQAAAAAAAAAAAAL8AAABAAAAAAAAAAAAAAABemkAUAAAAAAAAAAAUBAgANpIAABrYXRyYW4gdGVzdCBwa3Q="
+    .inputPacketBuilder = katran::testing::PacketBuilder::newPacket()
+        .Eth("0x1", "0x2")
+        .IPv6("100::64", "fc00:1404::1", 64)
+        .UDP(31337, 9886)
+        .IPv6("fc00:2307:1::2", "fc00:1::1", 1)
+        .TCP(31337, 80, 0, 0, 8192, 0x10)
+        .payload("katran test pkt"),
+    .expectedOutputPacketBuilder = katran::testing::PacketBuilder::newPacket()
+        .Eth("01:00:00:00:00:00", "02:00:00:00:00:00")
+        .IPv6("fc00:2307:1::2", "fc00:1::1", 0)  // hlim=0 (hop limit expired)
+        .TCP(31337, 80, 0, 0, 8192, 0x10)  // ACK flag
+        .payload("katran test pkt")
   },
   //6
   {
-    .inputPacket = generateGueIPv6TcpStrictMatchPacket().base64Packet,
-    .description = "Gue encap and pass: strict inline decap address match with IPv6 dst VIP. Scapy: " + generateGueIPv6TcpStrictMatchPacket().scapyCommand,
+    .description = "Gue encap and pass: strict inline decap address match with IPv6 dst VIP.",
     .expectedReturnValue = "XDP_PASS",
-    .expectedOutputPacket = "AgAAAAAAAQAAAAAAht1gAAAAACMGP/wAIwcAAQAAAAAAAAAAAAL8AAABAAAAAAAAAAAAAAABemkAUAAAAAAAAAAAUBAgANpIAABrYXRyYW4gdGVzdCBwa3Q="
-    //<Ether  dst=02:00:00:00:00:00 src=01:00:00:00:00:00 type=IPv6 |<IPv6  version=6 tc=0 fl=0 plen=35 nh=TCP hlim=63 src=fc00:2307:1::2 dst=fc00:1::1 |<TCP  sport=31337 dport=http seq=0 ack=0 dataofs=5 reserved=0 flags=A window=8192 chksum=0xda48 urgptr=0 |<Raw  load='katran test pkt' |>>>>
+    .inputPacketBuilder = katran::testing::PacketBuilder::newPacket()
+        .Eth("0x1", "0x2")
+        .IPv6("100::64", "fc00:2307::1337", 64)
+        .UDP(31337, 9886)
+        .IPv6("fc00:2307:1::2", "fc00:1::1")
+        .TCP(31337, 80, 0, 0, 8192, 0x10)
+        .payload("katran test pkt"),
+    .expectedOutputPacketBuilder = katran::testing::PacketBuilder::newPacket()
+        .Eth("01:00:00:00:00:00", "02:00:00:00:00:00")
+        .IPv6("fc00:2307:1::2", "fc00:1::1", 63)  // hlim=63
+        .TCP(31337, 80, 0, 0, 8192, 0x10)  // ACK flag
+        .payload("katran test pkt")
   },
   //7
   {
-    .inputPacket = generateGueIPv6TcpMismatchPacket().base64Packet,
-    .description = "Gue encap and pass: strict inline decap with address mismatch, IPv6 dst VIP, passed as-is to kernel. Scapy: " + generateGueIPv6TcpMismatchPacket().scapyCommand,
+    .description = "Gue encap and pass: strict inline decap with address mismatch, IPv6 dst VIP, passed as-is to kernel.",
     .expectedReturnValue = "XDP_PASS",
-    .expectedOutputPacket = "AgAAAAAAAQAAAAAAht1gAAAAAFMRQAEAAAAAAAAAAAAAAAAAAGT8AAAAAAAAAAAAAAAAAAABemkmngBT+qBgAAAAACMGQPwAIwcAAQAAAAAAAAAAAAL8AAABAAAAAAAAAAAAAAABemkAUAAAAAAAAAAAUBAgANpIAABrYXRyYW4gdGVzdCBwa3Q="
-    //<Ether  dst=02:00:00:00:00:00 src=01:00:00:00:00:00 type=IPv6 |<IPv6  version=6 tc=0 fl=0 plen=35 nh=TCP hlim=63 src=fc00:2307:1::2 dst=fc00:1::1 |<TCP  sport=31337 dport=http seq=0 ack=0 dataofs=5 reserved=0 flags=A window=8192 chksum=0xda48 urgptr=0 |<Raw  load='katran test pkt' |>>>>
+    .inputPacketBuilder = katran::testing::PacketBuilder::newPacket()
+        .Eth("0x1", "0x2")
+        .IPv6("100::64", "fc00::1", 64)
+        .UDP(31337, 9886)
+        .IPv6("fc00:2307:1::2", "fc00:1::1")
+        .TCP(31337, 80, 0, 0, 8192, 0x10)
+        .payload("katran test pkt"),
+    .expectedOutputPacketBuilder = katran::testing::PacketBuilder::newPacket()
+        .Eth("01:00:00:00:00:00", "02:00:00:00:00:00")
+        .IPv6("100::64", "fc00::1", 64)
+        .UDP(31337, 9886)
+        .IPv6("fc00:2307:1::2", "fc00:1::1", 64)  // Inner IPv6: hlim=64
+        .TCP(31337, 80, 0, 0, 8192, 0x10)         // Inner TCP
+        .payload("katran test pkt")
   }
 };
-}
-}
+
+} // namespace testing
+} // namespace katran

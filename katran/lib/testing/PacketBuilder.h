@@ -22,8 +22,8 @@
 #include <vector>
 
 extern "C" {
+#include <linux/ip.h>
 #include <netinet/if_ether.h>
-#include <netinet/ip.h>
 #include <netinet/ip6.h>
 #include <netinet/tcp.h>
 #include <netinet/udp.h>
@@ -43,7 +43,7 @@ class HeaderEntry {
   virtual Type getType() const = 0;
   virtual void serialize(
       size_t headerIndex,
-      const std::vector<std::unique_ptr<HeaderEntry>>& headerStack,
+      const std::vector<std::shared_ptr<HeaderEntry>>& headerStack,
       std::vector<uint8_t>& packet) = 0;
   virtual std::string generateScapyCommand() const = 0;
   virtual void updateForNextHeader(Type nextHeaderType) {}
@@ -60,7 +60,7 @@ class EthernetHeader : public HeaderEntry {
   }
   void serialize(
       size_t headerIndex,
-      const std::vector<std::unique_ptr<HeaderEntry>>& headerStack,
+      const std::vector<std::shared_ptr<HeaderEntry>>& headerStack,
       std::vector<uint8_t>& packet) override;
   std::string generateScapyCommand() const override;
   void updateForNextHeader(Type nextHeaderType) override;
@@ -87,7 +87,7 @@ class IPv4Header : public HeaderEntry {
   }
   void serialize(
       size_t headerIndex,
-      const std::vector<std::unique_ptr<HeaderEntry>>& headerStack,
+      const std::vector<std::shared_ptr<HeaderEntry>>& headerStack,
       std::vector<uint8_t>& packet) override;
   std::string generateScapyCommand() const override;
   void updateForNextHeader(Type nextHeaderType) override;
@@ -119,7 +119,7 @@ class IPv6Header : public HeaderEntry {
   }
   void serialize(
       size_t headerIndex,
-      const std::vector<std::unique_ptr<HeaderEntry>>& headerStack,
+      const std::vector<std::shared_ptr<HeaderEntry>>& headerStack,
       std::vector<uint8_t>& packet) override;
   std::string generateScapyCommand() const override;
   void updateForNextHeader(Type nextHeaderType) override;
@@ -142,7 +142,7 @@ class UDPHeader : public HeaderEntry {
   }
   void serialize(
       size_t headerIndex,
-      const std::vector<std::unique_ptr<HeaderEntry>>& headerStack,
+      const std::vector<std::shared_ptr<HeaderEntry>>& headerStack,
       std::vector<uint8_t>& packet) override;
   std::string generateScapyCommand() const override;
 
@@ -150,7 +150,7 @@ class UDPHeader : public HeaderEntry {
   struct udphdr udp_;
   void findIPHeaderForChecksum(
       size_t headerIndex,
-      const std::vector<std::unique_ptr<HeaderEntry>>& headerStack,
+      const std::vector<std::shared_ptr<HeaderEntry>>& headerStack,
       struct iphdr* ipv4Header,
       struct ip6_hdr* ipv6Header);
   uint16_t calculateChecksum(
@@ -197,7 +197,7 @@ class TCPHeader : public HeaderEntry {
   }
   void serialize(
       size_t headerIndex,
-      const std::vector<std::unique_ptr<HeaderEntry>>& headerStack,
+      const std::vector<std::shared_ptr<HeaderEntry>>& headerStack,
       std::vector<uint8_t>& packet) override;
   std::string generateScapyCommand() const override;
 
@@ -205,7 +205,7 @@ class TCPHeader : public HeaderEntry {
   struct tcphdr tcp_;
   void findIPHeaderForChecksum(
       size_t headerIndex,
-      const std::vector<std::unique_ptr<HeaderEntry>>& headerStack,
+      const std::vector<std::shared_ptr<HeaderEntry>>& headerStack,
       struct iphdr* ipv4Header,
       struct ip6_hdr* ipv6Header);
   uint16_t calculateChecksum(
@@ -247,7 +247,7 @@ class PayloadHeader : public HeaderEntry {
   }
   void serialize(
       size_t headerIndex,
-      const std::vector<std::unique_ptr<HeaderEntry>>& headerStack,
+      const std::vector<std::shared_ptr<HeaderEntry>>& headerStack,
       std::vector<uint8_t>& packet) override;
   std::string generateScapyCommand() const override;
 
@@ -281,6 +281,9 @@ class PacketBuilder {
     std::string scapyCommand;
     size_t packetSize;
   };
+
+  // Default constructor
+  PacketBuilder() = default;
 
   static PacketBuilder newPacket();
 
@@ -320,7 +323,7 @@ class PacketBuilder {
   PacketResult build();
 
  private:
-  std::vector<std::unique_ptr<HeaderEntry>> headerStack_;
+  std::vector<std::shared_ptr<HeaderEntry>> headerStack_;
 
   std::vector<uint8_t> buildBinaryPacket();
   std::string generateScapyCommand();
