@@ -250,6 +250,7 @@ void KatranLb::initialSanityChecking(bool flowDebug, bool globalLru) {
   maps.push_back(KatranLbMaps::server_id_map);
   maps.push_back(KatranLbMaps::lru_miss_stats);
   maps.push_back(KatranLbMaps::vip_miss_stats);
+  maps.push_back(KatranLbMaps::vip_to_down_reals_map);
 
   if (flowDebug) {
     maps.push_back(KatranLbMaps::flow_debug_maps);
@@ -3213,6 +3214,236 @@ void KatranLb::revalidateServerIds(const std::vector<QuicReal>& quicReals) {
       lbStats_.bpfFailedCalls++;
     }
   }
+}
+
+bool KatranLb::addDownRealToVipToDownRealsMap(
+    const VipKey& vip,
+    uint32_t realIndex) {
+  VLOG(3) << "Adding real " << realIndex << " to down reals map for vip "
+          << vip.address << " - " << vip.port << " - " << vip.proto;
+  auto vipIter = vips_.find(vip);
+  if (vipIter == vips_.end()) {
+    LOG(ERROR) << "Trying to set state for non-existing vip";
+    return false;
+  }
+
+  // Get the inner map fd for the VIP
+  vip_definition vipDef = vipKeyToVipDefinition(vip);
+  uint32_t innerMapId = 0;
+  auto res = bpfAdapter_->bpfMapLookupElement(
+      bpfAdapter_->getMapFdByName(KatranLbMaps::vip_to_down_reals_map),
+      &vipDef,
+      &innerMapId);
+  uint32_t innerMapFd = 0;
+  if (res != 0 && res != -ENOENT) {
+    LOG(ERROR)
+        << "Failed to lookup inner map for vip_to_down_reals_map, error: "
+        << folly::errnoStr(errno);
+    lbStats_.bpfFailedCalls++;
+    return false;
+  }
+  if (res != 0) {
+    VLOG(3)
+        << "Inner map for vip_to_down_reals_map doesn't exist yet, creating it";
+    // Inner map doesn't exist yet, create it
+    int innerMapFdNew = bpfAdapter_->createBpfMap(
+        BPF_MAP_TYPE_HASH,
+        sizeof(uint32_t),
+        sizeof(uint8_t),
+        config_.maxReals,
+        BPF_F_NO_PREALLOC);
+
+    if (innerMapFdNew < 0) {
+      LOG(ERROR)
+          << "Failed to create inner map for vip_to_down_reals_map, error: "
+          << folly::errnoStr(errno);
+      lbStats_.bpfFailedCalls++;
+      return false;
+    }
+
+    res = bpfAdapter_->bpfUpdateMap(
+        bpfAdapter_->getMapFdByName(KatranLbMaps::vip_to_down_reals_map),
+        &vipDef,
+        &innerMapFdNew);
+
+    if (res != 0) {
+      LOG(ERROR) << "Failed to add inner map to vip_to_down_reals_map, error: "
+                 << folly::errnoStr(errno);
+      lbStats_.bpfFailedCalls++;
+      return false;
+    }
+
+    innerMapFd = innerMapFdNew;
+    VLOG(4) << "Inner map for vip_to_down_reals_map created";
+  } else {
+    // we found the inner map id, get the fd
+    VLOG(3) << "Inner map for vip_to_down_reals_map already exists, getting fd";
+    innerMapFd = bpfAdapter_->bpfMapGetFdById(innerMapId);
+    if (innerMapFd < 0) {
+      LOG(ERROR) << "Failed to get fd for inner map, error: "
+                 << folly::errnoStr(errno);
+      lbStats_.bpfFailedCalls++;
+      return false;
+    }
+    VLOG(4) << "Inner map for vip_to_down_reals_map fd obtained";
+  }
+  SCOPE_EXIT {
+    close(innerMapFd);
+  };
+  uint8_t dummy = 0;
+  res = bpfAdapter_->bpfUpdateMap(innerMapFd, &realIndex, &dummy);
+  if (res != 0) {
+    LOG(ERROR)
+        << "Failed to update state for real in vip_to_down_reals_map, error: "
+        << folly::errnoStr(errno);
+    lbStats_.bpfFailedCalls++;
+    return false;
+  }
+
+  return true;
+}
+
+bool KatranLb::checkRealFromVipToDownRealsMap(
+    const VipKey& vip,
+    uint32_t realIndex) {
+  auto vipIter = vips_.find(vip);
+  if (vipIter == vips_.end()) {
+    LOG(ERROR) << "Trying to check for non-existing vip";
+    return false;
+  }
+
+  VLOG(3) << "Checking if real " << realIndex << " is down for vip "
+          << vip.address << " - " << vip.port << " - " << vip.proto;
+
+  // Get the inner map fd for the VIP
+  vip_definition vipDef = vipKeyToVipDefinition(vip);
+  uint32_t innerMapId;
+  auto res = bpfAdapter_->bpfMapLookupElement(
+      bpfAdapter_->getMapFdByName(KatranLbMaps::vip_to_down_reals_map),
+      &vipDef,
+      &innerMapId);
+
+  if (res == -ENOENT) {
+    // Inner map doesn't exist yet
+    return false;
+  }
+  if (res != 0) {
+    LOG(ERROR)
+        << "Failed to lookup inner map for vip_to_down_reals_map, error: "
+        << folly::errnoStr(errno);
+    lbStats_.bpfFailedCalls++;
+    return false;
+  }
+
+  VLOG(3) << "Inner map for vip_to_down_reals_map found";
+
+  uint32_t innerMapFd = bpfAdapter_->bpfMapGetFdById(innerMapId);
+  if (innerMapFd < 0) {
+    LOG(ERROR) << "Failed to get fd for inner map, error: "
+               << folly::errnoStr(errno);
+    lbStats_.bpfFailedCalls++;
+    return false;
+  }
+  SCOPE_EXIT {
+    close(innerMapFd);
+  };
+
+  VLOG(4) << "Inner map for vip_to_down_reals_map fd obtained";
+
+  uint8_t dummy; //
+  res = bpfAdapter_->bpfMapLookupElement(innerMapFd, &realIndex, &dummy);
+  if (res != 0) {
+    // Real not found in the map
+    return false;
+  }
+
+  VLOG(3) << "Real " << realIndex << " is down for vip ";
+
+  return true;
+}
+
+bool KatranLb::removeVipFromVipToDownRealsMap(const VipKey& vip) {
+  auto vipIter = vips_.find(vip);
+  if (vipIter == vips_.end()) {
+    LOG(ERROR) << "Trying to remove non-existing vip from state map";
+    return false;
+  }
+
+  VLOG(3) << "Removing vip " << vip.address << ":" << vip.port << " from "
+          << "vip_to_down_reals_map";
+  // Delete the VIP entry from the vip_to_down_reals_map
+  vip_definition vipDef = vipKeyToVipDefinition(vip);
+  auto res = bpfAdapter_->bpfMapDeleteElement(
+      bpfAdapter_->getMapFdByName(KatranLbMaps::vip_to_down_reals_map),
+      &vipDef);
+
+  if (res != 0 && res != -ENOENT) {
+    // ENOENT is expected if the VIP doesn't exist in the map
+    LOG(ERROR) << "Failed to delete VIP from vip_to_down_reals_map, error: "
+               << folly::errnoStr(errno);
+    lbStats_.bpfFailedCalls++;
+    return false;
+  }
+
+  VLOG(4) << "Removed vip " << vip.address << ":" << vip.port << " from "
+          << "vip_to_down_reals_map";
+
+  return true;
+}
+
+bool KatranLb::removeRealFromVipToDownRealsMap(
+    const VipKey& vip,
+    uint32_t realIndex) {
+  VLOG(3) << "Removing real " << realIndex << " from vip " << vip.address << ":"
+          << vip.port << " vip proto: " << vip.proto << " from "
+          << "vip_to_down_reals_map";
+  auto vipIter = vips_.find(vip);
+  if (vipIter == vips_.end()) {
+    LOG(ERROR) << "Trying to remove real from non-existing vip";
+    return false;
+  }
+
+  // Get the inner map fd for the VIP
+  vip_definition vipDef = vipKeyToVipDefinition(vip);
+
+  uint32_t innerMapId;
+  auto res = bpfAdapter_->bpfMapLookupElement(
+      bpfAdapter_->getMapFdByName(KatranLbMaps::vip_to_down_reals_map),
+      &vipDef,
+      &innerMapId);
+
+  if (res == -ENOENT) {
+    return true; // VIP doesn't exist in the map, nothing to remove
+  }
+
+  if (res != 0 && res != -ENOENT) {
+    LOG(ERROR)
+        << "Failed to lookup inner map for vip_to_down_reals_map, error: "
+        << folly::errnoStr(errno);
+    lbStats_.bpfFailedCalls++;
+    return false;
+  }
+
+  uint32_t innerMapFd = bpfAdapter_->bpfMapGetFdById(innerMapId);
+  if (innerMapFd < 0) {
+    LOG(ERROR) << "Failed to get fd for inner map, error: "
+               << folly::errnoStr(errno);
+    lbStats_.bpfFailedCalls++;
+    return false;
+  }
+  SCOPE_EXIT {
+    close(innerMapFd);
+  };
+
+  res = bpfAdapter_->bpfMapDeleteElement(innerMapFd, &realIndex);
+  if (res != 0 && res != -ENOENT) {
+    LOG(ERROR) << "Failed to delete real from inner map, error: "
+               << folly::errnoStr(-res);
+    lbStats_.bpfFailedCalls++;
+    return false;
+  }
+
+  return true;
 }
 
 bool KatranLb::initSimulator() {

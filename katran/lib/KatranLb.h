@@ -120,6 +120,7 @@ constexpr auto server_id_map = "server_id_map";
 constexpr auto stats = "stats";
 constexpr auto vip_map = "vip_map";
 constexpr auto vip_miss_stats = "vip_miss_stats";
+constexpr auto vip_to_down_reals_map = "vip_to_down_reals_map";
 } // namespace KatranLbMaps
 
 namespace {
@@ -992,6 +993,42 @@ class KatranLb {
    * in the server id map
    */
   void revalidateServerIds(const std::vector<QuicReal>& quicReals);
+
+  /**
+   * @param VipKey vip to modify
+   * @param std::string real address to modify state for
+   * @return true on success
+   *
+   * Adds a real as down to the real state map for a specific VIP.
+   */
+  bool addDownRealToVipToDownRealsMap(const VipKey& vip, uint32_t realIndex);
+
+  /**
+   * @param VipKey vip to query
+   * @param uint32_t real index to get state for
+   * @return bool if real is in the map for given vip
+   *
+   * helper function to check if real is down for a specific VIP
+   */
+  bool checkRealFromVipToDownRealsMap(const VipKey& vip, uint32_t realIndex);
+
+  /**
+   * @param VipKey vip to remove from the state map
+   * @return true on success
+   *
+   * helper function to remove a VIP from the vip_to_down_reals_map
+   */
+  bool removeVipFromVipToDownRealsMap(const VipKey& vip);
+
+  /**
+   * @param VipKey vip to modify
+   * @param uint32_t real index to remove from the state map
+   * @return true on success
+   *
+   * helper function to remove a real from a specific VIP in the
+   * vip_to_down_reals_map
+   */
+  bool removeRealFromVipToDownRealsMap(const VipKey& vip, uint32_t realIndex);
 
  private:
   /**
