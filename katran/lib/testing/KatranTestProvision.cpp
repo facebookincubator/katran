@@ -477,6 +477,12 @@ uint64_t KatranTestParam::expectedInlineDecapPkts() noexcept {
 uint64_t KatranTestParam::expectedXPopDecapSuccessful() noexcept {
   return _lookup_counter(KatranTestCounters::XPOP_DECAP_SUCCESSFUL);
 }
+uint64_t KatranTestParam::expectedXPopDecapSuccessfulV4() noexcept {
+  return _lookup_counter(KatranTestCounters::XPOP_DECAP_SUCCESSFUL_V4);
+}
+uint64_t KatranTestParam::expectedXPopDecapSuccessfulV6() noexcept {
+  return _lookup_counter(KatranTestCounters::XPOP_DECAP_SUCCESSFUL_V6);
+}
 uint64_t KatranTestParam::expectedUdpFlowMigrationInvalidation() noexcept {
   return _lookup_counter(KatranTestCounters::UDP_FLOW_MIGRATION_STATS);
 }

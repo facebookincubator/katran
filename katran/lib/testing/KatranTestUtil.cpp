@@ -220,6 +220,8 @@ KatranTestParam createXPopDecapTestParam() {
           {
               {KatranTestCounters::INLINE_DECAP_PKTS, 5},
               {KatranTestCounters::XPOP_DECAP_SUCCESSFUL, 3},
+              {KatranTestCounters::XPOP_DECAP_SUCCESSFUL_V4, 2},
+              {KatranTestCounters::XPOP_DECAP_SUCCESSFUL_V6, 1},
           },
       .perVipCounters = {{vip, std::pair<uint64_t, uint64_t>(4, 244)}}};
   return testParam;
@@ -342,12 +344,28 @@ bool testXPopDecapCounters(katran::KatranLb& lb, KatranTestParam& testParam) {
     counters_ok = false;
   }
 
-  // Check successful xpop decap counter
   auto successfulStats = lb.getXPopDecapSuccessfulStats();
-  if (successfulStats.v1 != testParam.expectedXPopDecapSuccessful()) {
-    VLOG(2) << "xpop decap successful: " << successfulStats.v1;
+  uint64_t totalSuccessful = successfulStats.v1 + successfulStats.v2;
+  if (totalSuccessful != testParam.expectedXPopDecapSuccessful()) {
+    VLOG(2) << "xpop decap successful total: " << totalSuccessful;
     LOG(INFO) << "xpop decap successful counter is incorrect: "
-              << successfulStats.v1;
+              << totalSuccessful;
+    counters_ok = false;
+  }
+
+  if (successfulStats.v1 != testParam.expectedXPopDecapSuccessfulV4()) {
+    VLOG(2) << "xpop decap successful V4: " << successfulStats.v1;
+    LOG(INFO) << "xpop decap successful V4 counter is incorrect: "
+              << successfulStats.v1
+              << " expected: " << testParam.expectedXPopDecapSuccessfulV4();
+    counters_ok = false;
+  }
+
+  if (successfulStats.v2 != testParam.expectedXPopDecapSuccessfulV6()) {
+    VLOG(2) << "xpop decap successful V6: " << successfulStats.v2;
+    LOG(INFO) << "xpop decap successful V6 counter is incorrect: "
+              << successfulStats.v2
+              << " expected: " << testParam.expectedXPopDecapSuccessfulV6();
     counters_ok = false;
   }
 

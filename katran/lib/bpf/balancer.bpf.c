@@ -355,11 +355,17 @@ __attribute__((__always_inline__)) static inline int process_encaped_ipip_pckt(
     // pass packet to kernel after decapsulation
     return XDP_PASS;
   } else {
-    // Increment XPOP_DECAP_SUCCESSFUL counter if pass is false
-    __u32 stats_key = MAX_VIPS + XPOP_DECAP_SUCCESSFUL;
-    struct lb_stats* stats_data = bpf_map_lookup_elem(&stats, &stats_key);
-    if (stats_data) {
-      stats_data->v1 += 1;
+    // Increment XPop decap success counters based on inner packet type
+    bool inner_ipv6 = (*protocol == IPPROTO_IPV6);
+    __u32 xpop_stats_key = MAX_VIPS + XPOP_DECAP_SUCCESSFUL;
+    struct lb_stats* xpop_stats_data =
+        bpf_map_lookup_elem(&stats, &xpop_stats_key);
+    if (xpop_stats_data) {
+      if (inner_ipv6) {
+        xpop_stats_data->v2 += 1; // IPv6 inner packets
+      } else {
+        xpop_stats_data->v1 += 1; // IPv4 inner packets
+      }
     }
   }
   return recirculate(xdp);
@@ -489,11 +495,16 @@ __attribute__((__always_inline__)) static inline int process_encaped_gue_pckt(
     incr_decap_vip_stats(*data, off, *data_end, inner_ipv6);
     return XDP_PASS;
   } else {
-    // Increment XPOP_DECAP_SUCCESSFUL counter if pass is false
-    __u32 stats_key = MAX_VIPS + XPOP_DECAP_SUCCESSFUL;
-    struct lb_stats* stats_data = bpf_map_lookup_elem(&stats, &stats_key);
-    if (stats_data) {
-      stats_data->v1 += 1;
+    // Increment XPop decap success counters based on inner packet type
+    __u32 xpop_stats_key = MAX_VIPS + XPOP_DECAP_SUCCESSFUL;
+    struct lb_stats* xpop_stats_data =
+        bpf_map_lookup_elem(&stats, &xpop_stats_key);
+    if (xpop_stats_data) {
+      if (inner_ipv6) {
+        xpop_stats_data->v2 += 1; // IPv6 inner packets
+      } else {
+        xpop_stats_data->v1 += 1; // IPv4 inner packets
+      }
     }
   }
   return recirculate(xdp);

@@ -100,8 +100,10 @@ enum class KatranTestCounters : uint8_t {
   STABLE_RT_INVALID_PACKET_TYPE = 25,
   // xpop decap counters
   XPOP_DECAP_SUCCESSFUL = 26,
+  XPOP_DECAP_SUCCESSFUL_V4 = 27,
+  XPOP_DECAP_SUCCESSFUL_V6 = 28,
   // udp flow migration counters
-  UDP_FLOW_MIGRATION_STATS = 27,
+  UDP_FLOW_MIGRATION_STATS = 29
 };
 
 struct KatranTestParam {
@@ -138,6 +140,8 @@ struct KatranTestParam {
   uint64_t expectedSrcRoutingPktsRemote() noexcept;
   uint64_t expectedInlineDecapPkts() noexcept;
   uint64_t expectedXPopDecapSuccessful() noexcept;
+  uint64_t expectedXPopDecapSuccessfulV4() noexcept;
+  uint64_t expectedXPopDecapSuccessfulV6() noexcept;
   uint64_t expectedUdpFlowMigrationInvalidation() noexcept;
 
   // helper method to lookup the expected counter value
