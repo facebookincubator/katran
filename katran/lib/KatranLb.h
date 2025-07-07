@@ -56,6 +56,7 @@ constexpr int kIntrospectionGkPos = 5;
  */
 constexpr uint32_t kLruCntrOffset = 0;
 constexpr uint32_t kLruMissOffset = 1;
+constexpr uint32_t kNewConnRateOffset = 2;
 constexpr uint32_t kLruFallbackOffset = 3;
 constexpr uint32_t kIcmpTooBigOffset = 4;
 constexpr uint32_t kLpmSrcOffset = 5;
@@ -92,6 +93,12 @@ constexpr uint32_t kSrcV6Pos = 1;
 constexpr uint32_t kRecirculationIndex = 0;
 constexpr uint32_t kHcSrcMacPos = 0;
 constexpr uint32_t kHcDstMacPos = 1;
+
+/*
+ * Constants for Underflood check
+ */
+constexpr uint64_t kOneSecNanos = 1000000000;
+constexpr uint32_t kMaxConnectionCount = 125000;
 
 namespace KatranLbMaps {
 constexpr auto ch_rings = "ch_rings";
@@ -614,6 +621,14 @@ class KatranLb {
    * to UDP flow migration.
    */
   lb_stats getUdpFlowMigrationStats();
+
+  /**
+   * @return bool true if the system is currently under flood conditions
+   *
+   * helper function which checks if the system is currently under flood
+   * conditions by examining connection rate statistics.
+   */
+  bool isUnderFlood();
 
   /**
    * @return struct lb_stats w/ src global lru statistics

@@ -2086,6 +2086,48 @@ lb_stats KatranLb::getUdpFlowMigrationStats() {
   return getLbStats(config_.maxVips + kUdpFlowMigrationInvalidationOffset);
 }
 
+bool KatranLb::isUnderFlood() {
+  if (config_.testing) {
+    return false;
+  }
+
+  uint32_t conn_rate_key = config_.maxVips + kNewConnRateOffset;
+
+  unsigned int nr_cpus = BpfAdapter::getPossibleCpus();
+  if (nr_cpus < 0) {
+    LOG(ERROR) << "Error while getting number of possible cpus";
+    return false;
+  }
+
+  lb_stats stats[nr_cpus];
+  auto res = bpfAdapter_->bpfMapLookupElement(
+      bpfAdapter_->getMapFdByName(KatranLbMaps::stats), &conn_rate_key, stats);
+
+  if (res != 0) {
+    LOG(ERROR) << "Failed to read connection rate stats";
+    lbStats_.bpfFailedCalls++;
+    return false;
+  }
+
+  int64_t current_time = BpfAdapter::getKtimeNs();
+  for (int i = 0; i < nr_cpus; i++) {
+    // v1 contains the last update time, v2 contains the connection count
+    int64_t last_update_time = stats[i].v1;
+    uint64_t conn_count = stats[i].v2;
+
+    // If we have a recent update (within the last second) we check if
+    // connection rate exceeds the threshold
+    if (last_update_time > 0 &&
+        (current_time - last_update_time) <= kOneSecNanos) {
+      if (conn_count > kMaxConnectionCount) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
 lb_stats KatranLb::getGlobalLruStats() {
   return getLbStats(config_.maxVips + kGlobalLruOffset);
 }
