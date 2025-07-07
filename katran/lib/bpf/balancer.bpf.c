@@ -654,8 +654,9 @@ __attribute__((__always_inline__)) static inline int check_udp_flow_migration(
     struct packet_description* pckt,
     struct vip_meta* vip_info,
     struct vip_definition* vip) {
+  __u64 cur_time;
   if (dst && pckt->flow.proto == IPPROTO_UDP &&
-      vip_info->flags & F_UDP_FLOW_MIGRATION) {
+      vip_info->flags & F_UDP_FLOW_MIGRATION && !is_under_flood(&cur_time)) {
     // Check if the real is down using the vip_to_down_reals_map
     void* down_reals_map = bpf_map_lookup_elem(&vip_to_down_reals_map, vip);
     if (down_reals_map) {
