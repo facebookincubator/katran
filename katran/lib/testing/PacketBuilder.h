@@ -276,6 +276,9 @@ class PayloadHeader : public HeaderEntry {
  */
 class PacketBuilder {
  public:
+  static constexpr uint8_t STABLE_UDP_TYPE = 0x52;
+  static constexpr auto STABLE_UDP_HEADER_SIZE = 8;
+
   struct PacketResult {
     std::string base64Packet;
     std::string scapyCommand;
@@ -319,6 +322,10 @@ class PacketBuilder {
   PacketBuilder& payload(const std::string& data);
 
   PacketBuilder& payload(const std::vector<uint8_t>& data);
+
+  PacketBuilder& stableRoutingPayload(
+      const std::vector<uint8_t>& connectionId,
+      const std::string& payload);
 
   PacketResult build();
 

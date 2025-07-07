@@ -152,6 +152,28 @@ PacketBuilder& PacketBuilder::payload(const std::vector<uint8_t>& data) {
   return *this;
 }
 
+PacketBuilder& PacketBuilder::stableRoutingPayload(
+    const std::vector<uint8_t>& connectionId,
+    const std::string& payload) {
+  if (connectionId.size() > STABLE_UDP_HEADER_SIZE - 1) {
+    throw std::invalid_argument(
+        "Connection ID cannot exceed " +
+        std::to_string(STABLE_UDP_HEADER_SIZE - 1) + " bytes");
+  }
+
+  std::vector<uint8_t> stablePayload;
+
+  stablePayload.push_back(STABLE_UDP_TYPE);
+  for (size_t i = 0; i < STABLE_UDP_HEADER_SIZE - 1; ++i) {
+    stablePayload.push_back(i < connectionId.size() ? connectionId[i] : 0x00);
+  }
+
+  stablePayload.insert(stablePayload.end(), payload.begin(), payload.end());
+
+  headerStack_.push_back(std::make_shared<PayloadHeader>(stablePayload));
+  return *this;
+}
+
 PacketBuilder::PacketResult PacketBuilder::build() {
   auto binaryPacket = buildBinaryPacket();
 
