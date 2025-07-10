@@ -573,12 +573,12 @@ jobs:
        path: ${{ steps.paths.outputs.libbpf_INSTALL }}
        key: ${{ steps.paths.outputs.libbpf_CACHE_KEY }}-install
     - name: Build katran
-      run: python3 build/fbcode_builder/getdeps.py build --src-dir=. katran  --project-install-prefix katran:/usr/local
+      run: python3 build/fbcode_builder/getdeps.py build --src-dir=. katran --project-install-prefix katran:/usr/local
     - name: Copy artifacts
-      run: python3 build/fbcode_builder/getdeps.py fixup-dyn-deps --strip --src-dir=. katran _artifacts/linux  --project-install-prefix katran:/usr/local --final-install-prefix /usr/local
+      run: python3 build/fbcode_builder/getdeps.py fixup-dyn-deps --strip --src-dir=. katran _artifacts/linux --project-install-prefix katran:/usr/local --final-install-prefix /usr/local
     - uses: actions/upload-artifact@v4
       with:
         name: katran
         path: _artifacts
     - name: Test katran
-      run: python3 build/fbcode_builder/getdeps.py test --src-dir=. katran  --project-install-prefix katran:/usr/local
+      run: python3 build/fbcode_builder/getdeps.py test --src-dir=. katran --project-install-prefix katran:/usr/local
