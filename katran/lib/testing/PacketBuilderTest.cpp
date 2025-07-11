@@ -301,3 +301,262 @@ TEST_F(PacketBuilderTest, StableRoutingPayloadBinaryValues) {
   EXPECT_EQ(payloadStart[10], 0x7F);
   EXPECT_EQ(payloadStart[11], 0x80);
 }
+
+// TPR Option Tests
+TEST_F(PacketBuilderTest, TcpWithTPROptionBasic) {
+  auto packet = PacketBuilder::newPacket()
+                    .Eth("0x1", "0x2")
+                    .IPv4("192.168.1.1", "10.200.1.1")
+                    .TCP(31337, 80, 0, 0, 8192, 0x10) // ACK flag
+                    .withTPR(0x0401) // TPR ID: 1025
+                    .withNOP(2)
+                    .payload("katran test pkt")
+                    .build();
+  // Ether(src="0x1",
+  // dst="0x2")/IP(src="192.168.1.1",dst="10.200.1.1")/TCP(sport=31337,
+  // dport=80, flags="A", options=[(0xb7,'\x01\x04\x00\x00'),('NOP', 0),('NOP',
+  // 0)])/"katran test pkt"
+  EXPECT_EQ(
+      packet.base64Packet,
+      "AgAAAAAAAQAAAAAACABFAAA/AAEAAEAGrUbAqAEBCsgBAXppAFAAAAAAAAAAAHAQIABO0AAAtwYBBAAAAQFrYXRyYW4gdGVzdCBwa3Q=");
+}
+
+TEST_F(PacketBuilderTest, TcpWithTPROptionSYN) {
+  auto packet = PacketBuilder::newPacket()
+                    .Eth("0x1", "0x2")
+                    .IPv4("192.168.1.1", "10.200.1.1")
+                    .TCP(31337, 80, 0, 0, 8192, TH_SYN) // SYN flag
+                    .withTPR(0x00000013) // TPR ID from test case 1
+                    .withNOP(2)
+                    .payload("katran test pkt")
+                    .build();
+  // Ether(src="0x1", dst="0x2")/IP(src="192.168.1.1",
+  // dst="10.200.1.1")/TCP(sport=31337, dport=80, flags="S", options=[(0xb7,
+  // '\x13\x00\x00\x00'),('NOP', 0),('NOP', 0)])/"katran test pkt"
+  EXPECT_EQ(
+      packet.base64Packet,
+      "AgAAAAAAAQAAAAAACABFAAA/AAEAAEAGrUbAqAEBCsgBAXppAFAAAAAAAAAAAHACIAA84gAAtwYTAAAAAQFrYXRyYW4gdGVzdCBwa3Q=");
+}
+
+TEST_F(PacketBuilderTest, TcpWithTPROptionDifferentPort) {
+  auto packet = PacketBuilder::newPacket()
+                    .Eth("0x1", "0x2")
+                    .IPv4("192.168.1.1", "10.200.1.2")
+                    .TCP(31337, 42, 0, 0, 8192, 0x10) // ACK flag, dport=42
+                    .withTPR(0x03ff) // TPR ID: 1023
+                    .payload("katran test pkt")
+                    .build();
+  // Ether(src="0x1", dst="0x2")/IP(src="192.168.1.1",
+  // dst="10.200.1.2")/TCP(sport=31337, dport=42, flags="A", options=[(0xb7,
+  // '\xff\x03\x00\x00')])/"katran test pkt"
+  EXPECT_EQ(
+      packet.base64Packet,
+      "AgAAAAAAAQAAAAAACABFAAA/AAEAAEAGrUXAqAEBCsgBAnppACoAAAAAAAAAAHAQIABR9gAAtwb/AwAAAABrYXRyYW4gdGVzdCBwa3Q=");
+}
+
+TEST_F(PacketBuilderTest, IPv6TcpWithTPROption) {
+  auto packet = PacketBuilder::newPacket()
+                    .Eth("0x1", "0x2")
+                    .IPv6("fc00:2::1", "fc00:1::1")
+                    .TCP(31337, 80, 0, 0, 8192, 0x10) // ACK flag
+                    .withTPR(0x0400) // TPR ID: 1024
+                    .payload("katran test pkt")
+                    .build();
+  // Ether(src="0x1", dst="0x2")/IPv6(src="fc00:2::1",
+  // dst="fc00:1::1")/TCP(sport=31337, dport=80,flags="A",
+  // options=[(0xB7,'\x00\x04\x00\x00')])/"katran test pkt"
+  EXPECT_EQ(
+      packet.base64Packet,
+      "AgAAAAAAAQAAAAAAht1gAAAAACsGQPwAAAIAAAAAAAAAAAAAAAH8AAABAAAAAAAAAAAAAAABemkAUAAAAAAAAAAAcBAgACY9AAC3BgAEAAAAAGthdHJhbiB0ZXN0IHBrdA==");
+}
+
+TEST_F(PacketBuilderTest, TcpHeaderLengthWithTPROption) {
+  auto packet = PacketBuilder::newPacket()
+                    .Eth("0x1", "0x2")
+                    .IPv4("192.168.1.1", "10.200.1.1")
+                    .TCP(31337, 80, 0, 0, 8192, 0x10)
+                    .withTPR(0x0400) // 6 bytes: kind(1) + length(1) + data(4)
+                    .build();
+
+  auto binaryPacket = folly::base64Decode(packet.base64Packet);
+
+  // TCP header starts at offset 34 (Ethernet 14 + IPv4 20)
+  const uint8_t* tcpHeader =
+      reinterpret_cast<const uint8_t*>(binaryPacket.data()) + 34;
+
+  // Extract data offset field (bits 4-7 of byte 12)
+  uint8_t dataOffset = (tcpHeader[12] >> 4) & 0x0F;
+
+  // Should be 7 (28 bytes): base TCP header (20) + TPR option (6) + padding (2)
+  // = 28 bytes
+  EXPECT_EQ(dataOffset, 7);
+}
+
+TEST_F(PacketBuilderTest, TcpHeaderLengthWithMultipleOptions) {
+  auto packet = PacketBuilder::newPacket()
+                    .Eth("0x1", "0x2")
+                    .IPv4("192.168.1.1", "10.200.1.3")
+                    .TCP(31337, 80, 0, 0, 8192, 0x10)
+                    .withNOP(4) // 4 bytes
+                    .withTPR(0x0402) // 6 bytes: TPR ID 1026
+                    .payload("katran test pkt")
+                    .build();
+
+  auto binaryPacket = folly::base64Decode(packet.base64Packet);
+  const uint8_t* tcpHeader =
+      reinterpret_cast<const uint8_t*>(binaryPacket.data()) + 34;
+  uint8_t dataOffset = (tcpHeader[12] >> 4) & 0x0F;
+
+  // Should be 8 (32 bytes): base TCP header (20) + NOP (4) + TPR (6) + padding
+  // (2) = 32 bytes
+  EXPECT_EQ(dataOffset, 8);
+}
+
+TEST_F(PacketBuilderTest, TPROptionFormatValidation) {
+  // Test that TPR option is formatted correctly in binary
+  auto packet = PacketBuilder::newPacket()
+                    .Eth("0x1", "0x2")
+                    .IPv4("192.168.1.1", "10.200.1.1")
+                    .TCP(31337, 80, 0, 0, 8192, 0x10)
+                    .withTPR(0x03FF) // TPR ID: 1023
+                    .build();
+
+  auto binaryPacket = folly::base64Decode(packet.base64Packet);
+  const uint8_t* tcpOptions =
+      reinterpret_cast<const uint8_t*>(binaryPacket.data()) +
+      54; // After TCP base header
+
+  // Verify TPR option format: kind(0xb7) + length(0x06) + data(4 bytes in
+  // little-endian order)
+  EXPECT_EQ(tcpOptions[0], 0xb7); // TPR option kind
+  EXPECT_EQ(tcpOptions[1], 0x06); // TPR option length
+  EXPECT_EQ(tcpOptions[2], 0xFF); // TPR ID byte 0 (LSB)
+  EXPECT_EQ(tcpOptions[3], 0x03); // TPR ID byte 1
+  EXPECT_EQ(tcpOptions[4], 0x00); // TPR ID byte 2
+  EXPECT_EQ(tcpOptions[5], 0x00); // TPR ID byte 3 (MSB)
+}
+
+TEST_F(PacketBuilderTest, NOPOptionFormatValidation) {
+  auto packet = PacketBuilder::newPacket()
+                    .Eth("0x1", "0x2")
+                    .IPv4("192.168.1.1", "10.200.1.1")
+                    .TCP(31337, 80, 0, 0, 8192, 0x10)
+                    .withNOP(3)
+                    .build();
+
+  auto binaryPacket = folly::base64Decode(packet.base64Packet);
+  const uint8_t* tcpOptions =
+      reinterpret_cast<const uint8_t*>(binaryPacket.data()) + 54;
+
+  // Verify NOP options
+  EXPECT_EQ(tcpOptions[0], 0x01);
+  EXPECT_EQ(tcpOptions[1], 0x01);
+  EXPECT_EQ(tcpOptions[2], 0x01);
+  EXPECT_EQ(tcpOptions[3], 0x00); // Padding
+}
+
+TEST_F(PacketBuilderTest, TcpChecksumWithTPROption) {
+  auto packet = PacketBuilder::newPacket()
+                    .Eth("0x1", "0x2")
+                    .IPv4("192.168.1.1", "10.200.1.1")
+                    .TCP(31337, 80, 0, 0, 8192, 0x10)
+                    .withTPR(0x0401)
+                    .payload("test")
+                    .build();
+
+  auto binaryPacket = folly::base64Decode(packet.base64Packet);
+  const uint8_t* tcpHeader =
+      reinterpret_cast<const uint8_t*>(binaryPacket.data()) + 34;
+
+  // Extract checksum from packet
+  uint16_t packetChecksum = (tcpHeader[16] << 8) | tcpHeader[17];
+
+  EXPECT_NE(packetChecksum, 0);
+
+  // Create identical packet without options for comparison
+  auto packetNoOptions = PacketBuilder::newPacket()
+                             .Eth("0x1", "0x2")
+                             .IPv4("192.168.1.1", "10.200.1.1")
+                             .TCP(31337, 80, 0, 0, 8192, 0x10)
+                             .payload("test")
+                             .build();
+
+  auto binaryPacketNoOptions =
+      folly::base64Decode(packetNoOptions.base64Packet);
+  const uint8_t* tcpHeaderNoOptions =
+      reinterpret_cast<const uint8_t*>(binaryPacketNoOptions.data()) + 34;
+  uint16_t checksumNoOptions =
+      (tcpHeaderNoOptions[16] << 8) | tcpHeaderNoOptions[17];
+
+  // Checksums should be different due to different TCP segment lengths
+  EXPECT_NE(packetChecksum, checksumNoOptions);
+}
+
+TEST_F(PacketBuilderTest, TPROptionEdgeCases) {
+  // Test TPR ID 0
+  auto packet1 = PacketBuilder::newPacket()
+                     .Eth("0x1", "0x2")
+                     .IPv4("192.168.1.1", "10.200.1.1")
+                     .TCP(31337, 80, 0, 0, 8192, 0x10)
+                     .withTPR(0x0000)
+                     .build();
+
+  EXPECT_FALSE(packet1.base64Packet.empty());
+
+  // Test maximum TPR ID
+  auto packet2 = PacketBuilder::newPacket()
+                     .Eth("0x1", "0x2")
+                     .IPv4("192.168.1.1", "10.200.1.1")
+                     .TCP(31337, 80, 0, 0, 8192, 0x10)
+                     .withTPR(0xFFFFFFFF)
+                     .build();
+
+  EXPECT_FALSE(packet2.base64Packet.empty());
+}
+
+TEST_F(PacketBuilderTest, InvalidTcpOptionChaining) {
+  EXPECT_THROW(
+      {
+        PacketBuilder::newPacket()
+            .Eth("0x1", "0x2")
+            .IPv4("192.168.1.1", "10.200.1.1")
+            .withTPR(0x0401)
+            .build();
+      },
+      std::logic_error);
+
+  // Test that calling withNOP() without TCP() throws
+  EXPECT_THROW(
+      {
+        PacketBuilder::newPacket()
+            .Eth("0x1", "0x2")
+            .IPv4("192.168.1.1", "10.200.1.1")
+            .withNOP(2)
+            .build();
+      },
+      std::logic_error);
+}
+
+TEST_F(PacketBuilderTest, LargeNumberOfNOPs) {
+  auto packet = PacketBuilder::newPacket()
+                    .Eth("0x1", "0x2")
+                    .IPv6("fc00:2::1", "fc00:1::1")
+                    .TCP(31337, 80, 0, 0, 8192, 0x10)
+                    .withNOP(14) // 14 NOPs like in test case 13
+                    .withTPR(0x0400)
+                    .payload("katran test pkt")
+                    .build();
+
+  auto binaryPacket = folly::base64Decode(packet.base64Packet);
+
+  EXPECT_FALSE(packet.base64Packet.empty());
+
+  const uint8_t* tcpHeader =
+      reinterpret_cast<const uint8_t*>(binaryPacket.data()) +
+      54; // After IPv6 + Ethernet
+  uint8_t dataOffset = (tcpHeader[12] >> 4) & 0x0F;
+
+  // Should be properly padded: base(20) + NOPs(14) + TPR(6) = 40 bytes = 10
+  // words
+  EXPECT_EQ(dataOffset, 10);
+}

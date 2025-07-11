@@ -181,6 +181,21 @@ class UDPHeader : public HeaderEntry {
 };
 
 /**
+ * TCP Option structure for custom TCP options
+ */
+struct TCPOption {
+  uint8_t kind;
+  std::vector<uint8_t>
+      data; // For options with data (excludes kind and length bytes)
+
+  explicit TCPOption(uint8_t k)
+      : kind(k) {} // For single-byte options like NOP, EOL
+  TCPOption(uint8_t k, const std::vector<uint8_t>& d) : kind(k), data(d) {}
+  TCPOption(uint8_t k, const std::string& d)
+      : kind(k), data(d.begin(), d.end()) {}
+};
+
+/**
  * TCP header implementation
  */
 class TCPHeader : public HeaderEntry {
@@ -191,7 +206,8 @@ class TCPHeader : public HeaderEntry {
       uint32_t seq = 0,
       uint32_t ackSeq = 0,
       uint16_t window = 8192,
-      uint8_t flags = (TH_ACK | TH_PUSH));
+      uint8_t flags = (TH_ACK | TH_PUSH),
+      const std::vector<TCPOption>& options = {});
   Type getType() const override {
     return TCP_HEADER;
   }
@@ -201,8 +217,13 @@ class TCPHeader : public HeaderEntry {
       std::vector<uint8_t>& packet) override;
   std::string generateScapyCommand() const override;
 
+  // Add option to existing TCP header
+  void addOption(const TCPOption& option);
+
  private:
   struct tcphdr tcp_;
+  std::vector<TCPOption> options_;
+
   void findIPHeaderForChecksum(
       size_t headerIndex,
       const std::vector<std::shared_ptr<HeaderEntry>>& headerStack,
@@ -233,6 +254,8 @@ class TCPHeader : public HeaderEntry {
       const struct tcphdr& tcpHeader,
       const struct ip6_hdr& ip6Header,
       const std::vector<uint8_t>& payload);
+  std::vector<uint8_t> buildTCPOptions() const;
+  size_t calculateTCPHeaderLength() const;
 };
 
 /**
@@ -318,6 +341,26 @@ class PacketBuilder {
       uint32_t ackSeq = 0,
       uint16_t window = 8192,
       uint8_t flags = (TH_ACK | TH_PUSH));
+
+  PacketBuilder& TCP(
+      uint16_t sport,
+      uint16_t dport,
+      uint32_t seq,
+      uint32_t ackSeq,
+      uint16_t window,
+      uint8_t flags,
+      const std::vector<TCPOption>& options);
+
+  // Method chaining for TCP options
+  PacketBuilder& withTPR(uint32_t tprId);
+  PacketBuilder& withMSS(uint16_t mss);
+  PacketBuilder& withWindowScale(uint8_t scale);
+  PacketBuilder& withTimestamp(uint32_t tsval, uint32_t tsecr = 0);
+  PacketBuilder& withSACKPermitted();
+  PacketBuilder& withNOP(int count = 1);
+  PacketBuilder& withCustomOption(
+      uint8_t kind,
+      const std::vector<uint8_t>& data = {});
 
   PacketBuilder& payload(const std::string& data);
 

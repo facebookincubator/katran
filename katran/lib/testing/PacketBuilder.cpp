@@ -41,12 +41,12 @@ static constexpr uint32_t IPV6_FLOW_LABEL_MASK = 0xFFFFF;
 
 static constexpr size_t MAC_ADDRESS_LENGTH = 6;
 static constexpr uint8_t IPV4_MIN_HEADER_LENGTH = 5; // 5 * 4 = 20 bytes
-static constexpr uint8_t TCP_MIN_HEADER_LENGTH = 5; // 5 * 4 = 20 bytes
 
 static constexpr size_t IPV4_PSEUDO_HEADER_SIZE = 12;
 static constexpr size_t IPV6_PSEUDO_HEADER_SIZE = 40;
 
 static constexpr uint16_t UDP_IPV6_ZERO_CHECKSUM_REPLACEMENT = 0xFFFF;
+static constexpr uint8_t TCP_HDR_OPT_KIND_TPR = 0xB7;
 
 PacketBuilder PacketBuilder::newPacket() {
   return PacketBuilder();
@@ -62,7 +62,7 @@ PacketBuilder& PacketBuilder::Eth(
     throw std::invalid_argument("Invalid destination MAC address: " + dst);
   }
 
-  headerStack_.push_back(std::make_shared<EthernetHeader>(src, dst));
+  headerStack_.emplace_back(std::make_shared<EthernetHeader>(src, dst));
   return *this;
 }
 
@@ -80,7 +80,7 @@ PacketBuilder& PacketBuilder::IPv4(
     throw std::invalid_argument("Invalid destination IPv4 address: " + dst);
   }
 
-  headerStack_.push_back(
+  headerStack_.emplace_back(
       std::make_shared<IPv4Header>(src, dst, ttl, tos, id, flags));
   return *this;
 }
@@ -98,7 +98,7 @@ PacketBuilder& PacketBuilder::IPv6(
     throw std::invalid_argument("Invalid destination IPv6 address: " + dst);
   }
 
-  headerStack_.push_back(std::make_shared<IPv6Header>(
+  headerStack_.emplace_back(std::make_shared<IPv6Header>(
       src, dst, hopLimit, trafficClass, flowLabel));
   return *this;
 }
@@ -113,7 +113,7 @@ PacketBuilder& PacketBuilder::UDP(uint16_t sport, uint16_t dport) {
         "Invalid destination port: " + std::to_string(dport));
   }
 
-  headerStack_.push_back(std::make_shared<UDPHeader>(sport, dport));
+  headerStack_.emplace_back(std::make_shared<UDPHeader>(sport, dport));
   return *this;
 }
 
@@ -133,8 +133,158 @@ PacketBuilder& PacketBuilder::TCP(
         "Invalid destination port: " + std::to_string(dport));
   }
 
-  headerStack_.push_back(
+  headerStack_.emplace_back(
       std::make_shared<TCPHeader>(sport, dport, seq, ackSeq, window, flags));
+  return *this;
+}
+
+PacketBuilder& PacketBuilder::TCP(
+    uint16_t sport,
+    uint16_t dport,
+    uint32_t seq,
+    uint32_t ackSeq,
+    uint16_t window,
+    uint8_t flags,
+    const std::vector<TCPOption>& options) {
+  if (!isValidPort(sport)) {
+    throw std::invalid_argument(
+        "Invalid source port: " + std::to_string(sport));
+  }
+  if (!isValidPort(dport)) {
+    throw std::invalid_argument(
+        "Invalid destination port: " + std::to_string(dport));
+  }
+
+  headerStack_.emplace_back(std::make_shared<TCPHeader>(
+      sport, dport, seq, ackSeq, window, flags, options));
+  return *this;
+}
+
+PacketBuilder& PacketBuilder::withTPR(uint32_t tprId) {
+  if (headerStack_.empty() ||
+      headerStack_.back()->getType() != HeaderEntry::TCP_HEADER) {
+    throw std::logic_error("withTPR() must be called after TCP()");
+  }
+
+  // Get the TCP header from the stack
+  auto tcpHeader = std::static_pointer_cast<TCPHeader>(headerStack_.back());
+
+  // Create TPR option with the specified ID (host byte order)
+  std::vector<uint8_t> tprData(4);
+  tprData[0] = tprId & 0xFF;
+  tprData[1] = (tprId >> 8) & 0xFF;
+  tprData[2] = (tprId >> 16) & 0xFF;
+  tprData[3] = (tprId >> 24) & 0xFF;
+
+  tcpHeader->addOption(TCPOption(TCP_HDR_OPT_KIND_TPR, tprData));
+  return *this;
+}
+
+PacketBuilder& PacketBuilder::withMSS(uint16_t mss) {
+  if (headerStack_.empty() ||
+      headerStack_.back()->getType() != HeaderEntry::TCP_HEADER) {
+    throw std::logic_error("withMSS() must be called after TCP()");
+  }
+
+  // Get the TCP header from the stack
+  auto tcpHeader = std::static_pointer_cast<TCPHeader>(headerStack_.back());
+
+  std::vector<uint8_t> mssData(2);
+  mssData[0] = (mss >> 8) & 0xFF;
+  mssData[1] = mss & 0xFF;
+
+  tcpHeader->addOption(TCPOption(0x02, mssData));
+  return *this;
+}
+
+PacketBuilder& PacketBuilder::withWindowScale(uint8_t scale) {
+  if (headerStack_.empty() ||
+      headerStack_.back()->getType() != HeaderEntry::TCP_HEADER) {
+    throw std::logic_error("withWindowScale() must be called after TCP()");
+  }
+
+  if (scale > 14) {
+    throw std::invalid_argument(
+        "Window scale must be 0-14, got: " + std::to_string(scale));
+  }
+
+  // Get the TCP header from the stack
+  auto tcpHeader = std::static_pointer_cast<TCPHeader>(headerStack_.back());
+
+  tcpHeader->addOption(TCPOption(0x03, std::vector<uint8_t>{scale}));
+  return *this;
+}
+
+PacketBuilder& PacketBuilder::withTimestamp(uint32_t tsval, uint32_t tsecr) {
+  if (headerStack_.empty() ||
+      headerStack_.back()->getType() != HeaderEntry::TCP_HEADER) {
+    throw std::logic_error("withTimestamp() must be called after TCP()");
+  }
+
+  // Get the TCP header from the stack
+  auto tcpHeader = std::static_pointer_cast<TCPHeader>(headerStack_.back());
+
+  std::vector<uint8_t> tsData(8);
+  // TSval (4 bytes)
+  tsData[0] = (tsval >> 24) & 0xFF;
+  tsData[1] = (tsval >> 16) & 0xFF;
+  tsData[2] = (tsval >> 8) & 0xFF;
+  tsData[3] = tsval & 0xFF;
+  // TSecr (4 bytes)
+  tsData[4] = (tsecr >> 24) & 0xFF;
+  tsData[5] = (tsecr >> 16) & 0xFF;
+  tsData[6] = (tsecr >> 8) & 0xFF;
+  tsData[7] = tsecr & 0xFF;
+
+  tcpHeader->addOption(TCPOption(0x08, tsData));
+  return *this;
+}
+
+PacketBuilder& PacketBuilder::withSACKPermitted() {
+  if (headerStack_.empty() ||
+      headerStack_.back()->getType() != HeaderEntry::TCP_HEADER) {
+    throw std::logic_error("withSACKPermitted() must be called after TCP()");
+  }
+
+  // Get the TCP header from the stack
+  auto tcpHeader = std::static_pointer_cast<TCPHeader>(headerStack_.back());
+
+  tcpHeader->addOption(TCPOption(0x04, std::vector<uint8_t>{}));
+  return *this;
+}
+
+PacketBuilder& PacketBuilder::withNOP(int count) {
+  if (headerStack_.empty() ||
+      headerStack_.back()->getType() != HeaderEntry::TCP_HEADER) {
+    throw std::logic_error("withNOP() must be called after TCP()");
+  }
+
+  if (count < 1) {
+    throw std::invalid_argument(
+        "NOP count must be positive, got: " + std::to_string(count));
+  }
+
+  // Get the TCP header from the stack
+  auto tcpHeader = std::static_pointer_cast<TCPHeader>(headerStack_.back());
+
+  for (int i = 0; i < count; ++i) {
+    tcpHeader->addOption(TCPOption(0x01));
+  }
+  return *this;
+}
+
+PacketBuilder& PacketBuilder::withCustomOption(
+    uint8_t kind,
+    const std::vector<uint8_t>& data) {
+  if (headerStack_.empty() ||
+      headerStack_.back()->getType() != HeaderEntry::TCP_HEADER) {
+    throw std::logic_error("withCustomOption() must be called after TCP()");
+  }
+
+  // Get the TCP header from the stack
+  auto tcpHeader = std::static_pointer_cast<TCPHeader>(headerStack_.back());
+
+  tcpHeader->addOption(TCPOption(kind, data));
   return *this;
 }
 
@@ -148,7 +298,7 @@ PacketBuilder& PacketBuilder::payload(const std::vector<uint8_t>& data) {
     LOG(INFO) << "Adding empty payload";
   }
 
-  headerStack_.push_back(std::make_shared<PayloadHeader>(data));
+  headerStack_.emplace_back(std::make_shared<PayloadHeader>(data));
   return *this;
 }
 
@@ -163,14 +313,15 @@ PacketBuilder& PacketBuilder::stableRoutingPayload(
 
   std::vector<uint8_t> stablePayload;
 
-  stablePayload.push_back(STABLE_UDP_TYPE);
+  stablePayload.emplace_back(STABLE_UDP_TYPE);
   for (size_t i = 0; i < STABLE_UDP_HEADER_SIZE - 1; ++i) {
-    stablePayload.push_back(i < connectionId.size() ? connectionId[i] : 0x00);
+    stablePayload.emplace_back(
+        i < connectionId.size() ? connectionId[i] : 0x00);
   }
 
   stablePayload.insert(stablePayload.end(), payload.begin(), payload.end());
 
-  headerStack_.push_back(std::make_shared<PayloadHeader>(stablePayload));
+  headerStack_.emplace_back(std::make_shared<PayloadHeader>(stablePayload));
   return *this;
 }
 
@@ -823,14 +974,16 @@ TCPHeader::TCPHeader(
     uint32_t seq,
     uint32_t ackSeq,
     uint16_t window,
-    uint8_t flags) {
+    uint8_t flags,
+    const std::vector<TCPOption>& options) {
   std::memset(&tcp_, 0, sizeof(tcp_));
 
   tcp_.source = htons(sport);
   tcp_.dest = htons(dport);
   tcp_.seq = htonl(seq);
   tcp_.ack_seq = htonl(ackSeq);
-  tcp_.doff = TCP_MIN_HEADER_LENGTH; // 4*5=20 bytes TCP header length
+  tcp_.doff =
+      calculateTCPHeaderLength() / 4; // TCP header length in 32-bit words
   tcp_.fin = (flags & TH_FIN) ? 1 : 0;
   tcp_.syn = (flags & TH_SYN) ? 1 : 0;
   tcp_.rst = (flags & TH_RST) ? 1 : 0;
@@ -840,6 +993,8 @@ TCPHeader::TCPHeader(
   tcp_.window = htons(window);
   tcp_.check = 0; // Will be calculated in serialize()
   tcp_.urg_ptr = 0;
+
+  options_ = options;
 }
 
 void TCPHeader::serialize(
@@ -848,23 +1003,78 @@ void TCPHeader::serialize(
     std::vector<uint8_t>& packet) {
   auto tcp = tcp_;
 
+  auto optionsBytes = buildTCPOptions();
+
+  // Update TCP header length to include options
+  tcp.doff = (sizeof(struct tcphdr) + optionsBytes.size()) / 4;
+
   // Find IP header for checksum calculation
   struct iphdr ipv4Header {};
   struct ip6_hdr ipv6Header {};
   findIPHeaderForChecksum(headerIndex, headerStack, &ipv4Header, &ipv6Header);
 
-  // Calculate checksum using the already-built payload in packet
+  // For checksum calculation, we need to include the options in the TCP length
+  std::vector<uint8_t> tcpWithOptions;
+  tcpWithOptions.reserve(
+      sizeof(struct tcphdr) + optionsBytes.size() + packet.size());
+
+  tcp.check = 0;
+  const uint8_t* tcpBytes = reinterpret_cast<const uint8_t*>(&tcp);
+  tcpWithOptions.insert(
+      tcpWithOptions.end(), tcpBytes, tcpBytes + sizeof(struct tcphdr));
+
+  tcpWithOptions.insert(
+      tcpWithOptions.end(), optionsBytes.begin(), optionsBytes.end());
+
+  tcpWithOptions.insert(tcpWithOptions.end(), packet.begin(), packet.end());
+
+  // Calculate checksum using the complete TCP segment (header + options +
+  // payload)
   if (ipv4Header.version == 4) {
-    tcp.check = htons(calculateTcpChecksum(tcp, ipv4Header, packet));
+    uint16_t tcpLength =
+        sizeof(struct tcphdr) + optionsBytes.size() + packet.size();
+    auto pseudoHeader =
+        buildIPv4PseudoHeader(ipv4Header, IPPROTO_TCP, tcpLength);
+
+    std::vector<uint8_t> checksumData;
+    checksumData.reserve(pseudoHeader.size() + tcpWithOptions.size());
+    checksumData.insert(
+        checksumData.end(), pseudoHeader.begin(), pseudoHeader.end());
+    checksumData.insert(
+        checksumData.end(), tcpWithOptions.begin(), tcpWithOptions.end());
+
+    tcp.check = htons(calculateChecksum(checksumData));
   } else if ((ntohl(ipv6Header.ip6_flow) >> 28) == 6) {
-    tcp.check = htons(calculateTcpChecksumV6(tcp, ipv6Header, packet));
+    uint16_t tcpLength =
+        sizeof(struct tcphdr) + optionsBytes.size() + packet.size();
+    auto pseudoHeader =
+        buildIPv6PseudoHeader(ipv6Header, IPPROTO_TCP, tcpLength);
+
+    std::vector<uint8_t> checksumData;
+    checksumData.reserve(pseudoHeader.size() + tcpWithOptions.size());
+    checksumData.insert(
+        checksumData.end(), pseudoHeader.begin(), pseudoHeader.end());
+    checksumData.insert(
+        checksumData.end(), tcpWithOptions.begin(), tcpWithOptions.end());
+
+    tcp.check = htons(calculateChecksum(checksumData));
   } else {
     LOG(WARNING) << "No IPv4/IPv6 header found for TCP checksum calculation, "
                  << "checksum will be 0";
   }
 
-  const uint8_t* tcpBytes = reinterpret_cast<const uint8_t*>(&tcp);
-  packet.insert(packet.begin(), tcpBytes, tcpBytes + sizeof(struct tcphdr));
+  // Insert TCP header with correct checksum
+  const uint8_t* finalTcpBytes = reinterpret_cast<const uint8_t*>(&tcp);
+  packet.insert(
+      packet.begin(), finalTcpBytes, finalTcpBytes + sizeof(struct tcphdr));
+
+  // Insert TCP options after the header
+  if (!optionsBytes.empty()) {
+    packet.insert(
+        packet.begin() + sizeof(struct tcphdr),
+        optionsBytes.begin(),
+        optionsBytes.end());
+  }
 }
 
 std::string TCPHeader::generateScapyCommand() const {
@@ -900,8 +1110,39 @@ std::string TCPHeader::generateScapyCommand() const {
     command += ", flags='" + flags + "'";
   }
 
+  if (!options_.empty()) {
+    command += ", options=[";
+    for (size_t i = 0; i < options_.size(); ++i) {
+      if (i > 0) {
+        command += ", ";
+      }
+
+      const auto& option = options_[i];
+      if (option.kind == 0x00) {
+        command += "('EOL', None)";
+      } else if (option.kind == 0x01) {
+        command += "('NOP', None)";
+      } else {
+        // Custom option with data
+        command += "(" + std::to_string(option.kind) + ", '";
+        for (uint8_t byte : option.data) {
+          std::stringstream ss;
+          ss << "\\x" << std::hex << std::setfill('0') << std::setw(2)
+             << static_cast<unsigned>(byte);
+          command += ss.str();
+        }
+        command += "')";
+      }
+    }
+    command += "]";
+  }
+
   command += ")";
   return command;
+}
+
+void TCPHeader::addOption(const TCPOption& option) {
+  options_.push_back(option);
 }
 
 void TCPHeader::findIPHeaderForChecksum(
@@ -1059,6 +1300,42 @@ uint16_t TCPHeader::calculateTransportChecksum(
   checksumData.insert(checksumData.end(), payload.begin(), payload.end());
 
   return calculateChecksum(checksumData);
+}
+
+std::vector<uint8_t> TCPHeader::buildTCPOptions() const {
+  std::vector<uint8_t> optionsBytes;
+
+  for (const auto& option : options_) {
+    optionsBytes.push_back(option.kind);
+
+    // Handle different option types
+    if (option.kind == 0x00) {
+      // EOL (End of Option List) - single byte
+      continue;
+    } else if (option.kind == 0x01) {
+      // NOP (No Operation) - single byte
+      continue;
+    } else {
+      // Options with data - add length byte and data
+      uint8_t optionLength = 2 + option.data.size(); // kind + length + data
+      optionsBytes.push_back(optionLength);
+      optionsBytes.insert(
+          optionsBytes.end(), option.data.begin(), option.data.end());
+    }
+  }
+
+  // Pad to 4-byte boundary
+  while (optionsBytes.size() % 4 != 0) {
+    optionsBytes.push_back(0x00);
+  }
+
+  return optionsBytes;
+}
+
+size_t TCPHeader::calculateTCPHeaderLength() const {
+  size_t baseHeaderLength = sizeof(struct tcphdr); // 20 bytes
+  auto optionsBytes = buildTCPOptions();
+  return baseHeaderLength + optionsBytes.size();
 }
 
 // PayloadHeader implementation
