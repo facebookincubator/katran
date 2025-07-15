@@ -23,8 +23,8 @@
 
 #include "katran/lib/BpfAdapter.h"
 #include "katran/lib/KatranLb.h"
-#include "katran/lib/testing/PacketAttributes.h"
-#include "katran/lib/testing/PcapParser.h"
+#include "katran/lib/testing/tools/PacketAttributes.h"
+#include "katran/lib/testing/tools/PcapParser.h"
 
 namespace katran {
 

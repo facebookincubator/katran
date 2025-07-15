@@ -14,14 +14,14 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#include "katran/lib/testing/KatranTestUtil.h"
-#include "katran/lib/testing/KatranGueTestFixtures.h"
-#include "katran/lib/testing/KatranIcmpTooBigTestFixtures.h"
-#include "katran/lib/testing/KatranTPRTestFixtures.h"
-#include "katran/lib/testing/KatranTestFixtures.h"
-#include "katran/lib/testing/KatranUdpFlowMigrationTestFixtures.h"
-#include "katran/lib/testing/KatranUdpStableRtTestFixtures.h"
-#include "katran/lib/testing/KatranXPopDecapTestFixtures.h"
+#include "katran/lib/testing/utils/KatranTestUtil.h"
+#include "katran/lib/testing/fixtures/KatranGueTestFixtures.h"
+#include "katran/lib/testing/fixtures/KatranIcmpTooBigTestFixtures.h"
+#include "katran/lib/testing/fixtures/KatranTPRTestFixtures.h"
+#include "katran/lib/testing/fixtures/KatranTestFixtures.h"
+#include "katran/lib/testing/fixtures/KatranUdpFlowMigrationTestFixtures.h"
+#include "katran/lib/testing/fixtures/KatranUdpStableRtTestFixtures.h"
+#include "katran/lib/testing/fixtures/KatranXPopDecapTestFixtures.h"
 
 #include <folly/File.h>
 #include <folly/FileUtil.h>

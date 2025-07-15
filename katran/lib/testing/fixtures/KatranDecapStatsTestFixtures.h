@@ -18,7 +18,7 @@
 
 #pragma once
 #include <bpf/bpf.h>
-#include <katran/lib/testing/PacketAttributes.h>
+#include <katran/lib/testing/tools/PacketAttributes.h>
 #include <string>
 #include <utility>
 #include <vector>

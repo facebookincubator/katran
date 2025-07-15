@@ -71,7 +71,7 @@ $
 We have developed a special framework for the BPF program testing. It is based on
 `bpf_prog_test_run`. This framework allow us to specify predefined test fixtures (input and expected output)
 to make sure that for a specified input, the BPF program produces expected output. Test fixtures in our case contain
-base64 encoded packets. You can check `katran/lib/testing/KatranTestFixtures.h` for examples. To run these tests
+base64 encoded packets. You can check `katran/lib/testing/fixtures/KatranTestFixtures.h` for examples. To run these tests
 you just need to run `./os_run_tester.sh` script (this script requires root privileges).
 
 ```

@@ -18,7 +18,7 @@
 
 #include <folly/io/IOBuf.h>
 
-#include "katran/lib/testing/Base64Helpers.h"
+#include "katran/lib/testing/utils/Base64Helpers.h"
 
 namespace katran {
 

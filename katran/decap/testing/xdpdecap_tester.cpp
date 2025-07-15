@@ -24,7 +24,7 @@
 #include "katran/decap/XdpDecapStructs.h"
 #include "katran/decap/testing/XdpDecapGueTestFixtures.h"
 #include "katran/decap/testing/XdpDecapTestFixtures.h"
-#include "katran/lib/testing/BpfTester.h"
+#include "katran/lib/testing/framework/BpfTester.h"
 
 DEFINE_string(pcap_input, "", "path to input pcap file");
 DEFINE_string(pcap_output, "", "path to output pcap file");

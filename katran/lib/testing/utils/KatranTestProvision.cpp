@@ -14,7 +14,7 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#include "katran/lib/testing/KatranTestProvision.h"
+#include "katran/lib/testing/utils/KatranTestProvision.h"
 
 namespace katran {
 namespace testing {

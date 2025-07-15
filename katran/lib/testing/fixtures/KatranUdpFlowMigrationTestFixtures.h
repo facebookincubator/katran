@@ -18,7 +18,7 @@
 
 #pragma once
 #include <vector>
-#include "katran/lib/testing/PacketAttributes.h"
+#include "katran/lib/testing/tools/PacketAttributes.h"
 
 namespace katran {
 namespace testing {

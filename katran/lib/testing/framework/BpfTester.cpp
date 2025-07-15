@@ -14,7 +14,7 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#include "katran/lib/testing/BpfTester.h"
+#include "katran/lib/testing/framework/BpfTester.h"
 
 #include <arpa/inet.h>
 #include <fmt/core.h>

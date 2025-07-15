@@ -19,7 +19,7 @@
 #include <vector>
 #include "katran/lib/KatranLb.h"
 #include "katran/lib/KatranLbStructs.h"
-#include "katran/lib/testing/PacketAttributes.h"
+#include "katran/lib/testing/tools/PacketAttributes.h"
 
 namespace katran {
 namespace testing {

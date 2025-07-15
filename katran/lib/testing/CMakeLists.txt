@@ -5,8 +5,8 @@ endif()
 include(KatranTest)
 
 add_library(base64_helpers STATIC
-    Base64Helpers.h
-    Base64Helpers.cpp
+    utils/Base64Helpers.h
+    utils/Base64Helpers.cpp
 )
 
 target_link_libraries(base64_helpers
@@ -24,8 +24,8 @@ target_include_directories(
 )
 
 add_library(pcap_parser STATIC
-    PcapParser.h
-    PcapParser.cpp
+    tools/PcapParser.h
+    tools/PcapParser.cpp
 )
 
 target_link_libraries(pcap_parser
@@ -37,18 +37,18 @@ target_link_libraries(pcap_parser
 )
 
 add_library(bpftester STATIC
-    BpfTester.h
-    BpfTester.cpp
-    PacketBuilder.h
-    PacketBuilder.cpp
-    KatranTestFixtures.h
-    KatranHCTestFixtures.h
-    KatranGueTestFixtures.h
-    KatranTPRTestFixtures.h
-    KatranOptionalTestFixtures.h
-    KatranIcmpTooBigTestFixtures.h
-    KatranLpmSrcLookupTestFixtures.h
-    KatranUdpFlowMigrationTestFixtures.h
+    framework/BpfTester.h
+    framework/BpfTester.cpp
+    tools/PacketBuilder.h
+    tools/PacketBuilder.cpp
+    fixtures/KatranTestFixtures.h
+    fixtures/KatranHCTestFixtures.h
+    fixtures/KatranGueTestFixtures.h
+    fixtures/KatranTPRTestFixtures.h
+    fixtures/KatranOptionalTestFixtures.h
+    fixtures/KatranIcmpTooBigTestFixtures.h
+    fixtures/KatranLpmSrcLookupTestFixtures.h
+    fixtures/KatranUdpFlowMigrationTestFixtures.h
 )
 
 target_link_libraries(bpftester
@@ -60,7 +60,7 @@ target_link_libraries(bpftester
 
 katran_add_test(TARGET base64helpers-tests
   SOURCES
-  Base64Test.cpp
+  utils/Base64Test.cpp
   DEPENDS
   base64_helpers
   katranlb
@@ -74,8 +74,8 @@ katran_add_test(TARGET base64helpers-tests
 )
 
 add_library(katran_test_provision STATIC
-    KatranTestProvision.h
-    KatranTestProvision.cpp
+    utils/KatranTestProvision.h
+    utils/KatranTestProvision.cpp
 )
 
 target_link_libraries(katran_test_provision
@@ -83,8 +83,8 @@ target_link_libraries(katran_test_provision
 )
 
 add_library(katran_test_util STATIC
-    KatranTestUtil.h
-    KatranTestUtil.cpp
+    utils/KatranTestUtil.h
+    utils/KatranTestUtil.cpp
 )
 
 target_link_libraries(katran_test_util
@@ -94,7 +94,7 @@ target_link_libraries(katran_test_util
 )
 
 # katran_tester is a 'standalone' integration test
-add_executable(katran_tester katran_tester.cpp)
+add_executable(katran_tester framework/katran_tester.cpp)
 
 target_link_libraries(katran_tester
   katranlb

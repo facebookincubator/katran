@@ -18,7 +18,7 @@
 
 #include <folly/Optional.h>
 #include <string>
-#include "katran/lib/testing/PacketBuilder.h"
+#include "katran/lib/testing/tools/PacketBuilder.h"
 
 namespace katran {
 

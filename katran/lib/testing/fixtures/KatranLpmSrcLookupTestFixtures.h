@@ -17,7 +17,7 @@
  */
 
 #pragma once
-#include "katran/lib/testing/PacketAttributes.h"
+#include "katran/lib/testing/tools/PacketAttributes.h"
 
 namespace katran {
 namespace testing {

@@ -14,7 +14,7 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#include "katran/lib/testing/PacketBuilder.h"
+#include "katran/lib/testing/tools/PacketBuilder.h"
 
 #include <arpa/inet.h>
 #include <folly/String.h>

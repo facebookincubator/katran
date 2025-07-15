@@ -18,7 +18,7 @@
 #include <string>
 #include <vector>
 #include "katran/lib/KatranLb.h"
-#include "katran/lib/testing/KatranTestProvision.h"
+#include "katran/lib/testing/utils/KatranTestProvision.h"
 
 namespace katran {
 namespace testing {

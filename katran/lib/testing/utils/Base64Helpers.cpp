@@ -14,7 +14,7 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#include "katran/lib/testing/Base64Helpers.h"
+#include "katran/lib/testing/utils/Base64Helpers.h"
 
 #include <cstring>
 

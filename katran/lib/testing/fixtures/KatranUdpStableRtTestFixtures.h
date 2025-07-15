@@ -18,8 +18,8 @@
 
 #pragma once
 #include <vector>
-#include "katran/lib/testing/PacketAttributes.h"
-#include "katran/lib/testing/PacketBuilder.h"
+#include "katran/lib/testing/tools/PacketAttributes.h"
+#include "katran/lib/testing/tools/PacketBuilder.h"
 
 /**
  * Test fixtures for UDP Stable Routing functionality.

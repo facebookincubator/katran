@@ -25,15 +25,15 @@
 #include <gflags/gflags.h>
 
 #include "katran/lib/MonitoringStructs.h"
-#include "katran/lib/testing/BpfTester.h"
-#include "katran/lib/testing/KatranHCTestFixtures.h"
-#include "katran/lib/testing/KatranIcmpTooBigTestFixtures.h"
-#include "katran/lib/testing/KatranOptionalTestFixtures.h"
-#include "katran/lib/testing/KatranTestProvision.h"
-#include "katran/lib/testing/KatranTestUtil.h"
-#include "katran/lib/testing/KatranUdpFlowMigrationTestFixtures.h"
-#include "katran/lib/testing/KatranUdpStableRtTestFixtures.h"
-#include "katran/lib/testing/KatranXPopDecapTestFixtures.h"
+#include "katran/lib/testing/fixtures/KatranHCTestFixtures.h"
+#include "katran/lib/testing/fixtures/KatranIcmpTooBigTestFixtures.h"
+#include "katran/lib/testing/fixtures/KatranOptionalTestFixtures.h"
+#include "katran/lib/testing/fixtures/KatranUdpFlowMigrationTestFixtures.h"
+#include "katran/lib/testing/fixtures/KatranUdpStableRtTestFixtures.h"
+#include "katran/lib/testing/fixtures/KatranXPopDecapTestFixtures.h"
+#include "katran/lib/testing/framework/BpfTester.h"
+#include "katran/lib/testing/utils/KatranTestProvision.h"
+#include "katran/lib/testing/utils/KatranTestUtil.h"
 
 using namespace katran::testing;
 using KatranFeatureEnum = katran::KatranFeatureEnum;
