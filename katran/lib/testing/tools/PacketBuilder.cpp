@@ -1094,18 +1094,24 @@ std::string TCPHeader::generateScapyCommand() const {
   }
 
   std::string flags;
-  if (tcp_.fin)
+  if (tcp_.fin) {
     flags += "F";
-  if (tcp_.syn)
+  }
+  if (tcp_.syn) {
     flags += "S";
-  if (tcp_.rst)
+  }
+  if (tcp_.rst) {
     flags += "R";
-  if (tcp_.psh)
+  }
+  if (tcp_.psh) {
     flags += "P";
-  if (tcp_.ack)
+  }
+  if (tcp_.ack) {
     flags += "A";
-  if (tcp_.urg)
+  }
+  if (tcp_.urg) {
     flags += "U";
+  }
   if (!flags.empty()) {
     command += ", flags='" + flags + "'";
   }
