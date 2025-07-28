@@ -16,7 +16,6 @@
 
 #include "katran/lib/testing/framework/BpfTester.h"
 
-#include <arpa/inet.h>
 #include <fmt/core.h>
 #include <folly/String.h>
 #include <folly/io/IOBuf.h>

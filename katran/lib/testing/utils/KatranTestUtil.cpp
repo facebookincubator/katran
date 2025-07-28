@@ -19,7 +19,6 @@
 #include "katran/lib/testing/fixtures/KatranIcmpTooBigTestFixtures.h"
 #include "katran/lib/testing/fixtures/KatranTPRTestFixtures.h"
 #include "katran/lib/testing/fixtures/KatranTestFixtures.h"
-#include "katran/lib/testing/fixtures/KatranUdpFlowMigrationTestFixtures.h"
 #include "katran/lib/testing/fixtures/KatranUdpStableRtTestFixtures.h"
 #include "katran/lib/testing/fixtures/KatranXPopDecapTestFixtures.h"
 
