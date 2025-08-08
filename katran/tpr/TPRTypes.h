@@ -30,6 +30,7 @@ struct tcp_opt {
 struct server_info {
   RunningMode running_mode;
   uint8_t kde_enabled;
+  uint8_t kde_zones;
   // only ipv6 is supported
   uint32_t server_id;
 };

@@ -128,12 +128,29 @@ bool TcpPktRouter::setServerIdV6(uint32_t id) {
   return true;
 }
 
+folly::Expected<folly::Unit, std::system_error> TcpPktRouter::setServerKDEZone(
+    uint8_t kdeZones) {
+  CHECK_EQ(mode_, RunningMode::SERVER);
+  LOG(INFO) << "Setting kde zone=" << kdeZones;
+
+  kdeZones_ = kdeZones;
+  if (isInitialized_) {
+    auto updateRes = updateServerInfo();
+    if (updateRes.hasError()) {
+      LOG(ERROR) << "Failed to update KDE zone: " << updateRes.error().what();
+      return updateRes;
+    }
+  }
+  return folly::Unit();
+}
+
 folly::Expected<folly::Unit, std::system_error>
 TcpPktRouter::updateServerInfo() noexcept {
   struct server_info info = {};
   if (mode_ == RunningMode::SERVER) {
     info.running_mode = RunningMode::SERVER;
     info.kde_enabled = kdeEnabled_;
+    info.kde_zones = kdeZones_;
     info.server_id = v6Id_;
     if (info.server_id == 0) {
       LOG(WARNING) << "TCP Pkt router is set but server_id is 0. Please check "

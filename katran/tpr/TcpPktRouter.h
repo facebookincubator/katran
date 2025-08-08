@@ -71,6 +71,9 @@ class TcpPktRouter {
     return v6Id_;
   }
 
+  folly::Expected<folly::Unit, std::system_error> setServerKDEZone(
+      uint8_t kdeZones);
+
   RunningMode getMode() {
     return mode_;
   }
@@ -102,6 +105,7 @@ class TcpPktRouter {
   bool isInitialized_{false};
   uint32_t v6Id_;
   bool kdeEnabled_;
+  uint8_t kdeZones_{0};
   std::optional<uint32_t> serverPort_;
   /**
    * Polls stats for packet level events periodically, and

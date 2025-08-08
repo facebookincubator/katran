@@ -15,23 +15,27 @@
 #include "tcp_pkt_router_maps.h"
 #include "tcp_pkt_router_structs.h"
 
-static inline bool kde_enabled() {
-  __u32 sinfo_key = SERVER_INFO_INDEX;
-  struct server_info* s_info = bpf_map_lookup_elem(&server_infos, &sinfo_key);
-  return (s_info && s_info->kde_enabled != 0);
-}
-
-static inline bool has_syn_with_kde_opt(struct bpf_sock_ops* skops) {
-  __u64 load_flags = BPF_LOAD_HDR_OPT_TCP_SYN;
-  struct kde_clt_tcp_opt_v2 kde_opt = {};
-  kde_opt.kind = KDE_CLT_TCP_HDR_OPT_KIND;
-  int ret = bpf_load_hdr_opt(skops, &kde_opt, sizeof(kde_opt), load_flags);
-  return (ret == KDE_CLT_TCP_HDR_OPT_LEN) ||
-      (ret == KDE_CLT_TCP_HDR_OPT_V2_LEN);
-}
+const volatile __u8 KDE_ZONE_ALL = 0xFF;
 
 static inline bool should_ignore_due_to_kde(struct bpf_sock_ops* skops) {
-  return kde_enabled() && has_syn_with_kde_opt(skops);
+  __u32 sinfo_key = SERVER_INFO_INDEX;
+  struct server_info* s_info = bpf_map_lookup_elem(&server_infos, &sinfo_key);
+  // if kde is enabled, check if zone in hdr opts is matching server zone
+  if (s_info && s_info->kde_enabled) {
+    __u64 load_flags = BPF_LOAD_HDR_OPT_TCP_SYN;
+    struct kde_clt_tcp_opt_v2 kde_opt = {};
+    kde_opt.kind = KDE_CLT_TCP_HDR_OPT_KIND;
+    int ret = bpf_load_hdr_opt(skops, &kde_opt, sizeof(kde_opt), load_flags);
+    if (ret == KDE_CLT_TCP_HDR_OPT_V2_LEN) {
+      if (s_info->kde_zones)
+        if ((s_info->kde_zones & kde_opt.zone) == kde_opt.zone) {
+          return true;
+        } else if (s_info->kde_zones == KDE_ZONE_ALL) {
+          return true;
+        }
+    }
+  }
+  return false;
 }
 
 static inline int handle_passive_parse_hdr(

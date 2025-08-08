@@ -7,6 +7,8 @@ struct server_info {
   __u8 running_mode;
   // 0 = no, otherwise yes
   __u8 kde_enabled;
+  // zones supported by kde
+  __u8 kde_zones;
   __u32 server_id;
 };
 
