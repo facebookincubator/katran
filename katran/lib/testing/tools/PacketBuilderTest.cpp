@@ -560,3 +560,39 @@ TEST_F(PacketBuilderTest, LargeNumberOfNOPs) {
   // words
   EXPECT_EQ(dataOffset, 10);
 }
+
+// UDP Flow Invalidation Tests
+
+TEST_F(PacketBuilderTest, UdpFlowInvalidationBasicPacket) {
+  auto packet = PacketBuilder::newPacket()
+                    .Eth("0x1", "0x2")
+                    .IPv4("10.0.0.1", "10.200.1.1")
+                    .UDP(31337, 80)
+                    .payload("katran test pkt")
+                    .build();
+
+  EXPECT_EQ(
+      packet.base64Packet,
+      "AgAAAAAAAQAAAAAACABFAAArAAEAAEARZPgKAAABCsgBAXppAFAAF0+Ha2F0cmFuIHRlc3QgcGt0");
+  EXPECT_EQ(
+      packet.scapyCommand,
+      "Ether(src='01:00:00:00:00:00', dst='02:00:00:00:00:00')/IP(src='10.0.0.1', dst='10.200.1.1')/UDP(sport=31337, dport=80)/'katran test pkt'");
+}
+
+TEST_F(PacketBuilderTest, UdpFlowInvalidationEncapsulatedPacket) {
+  auto packet = PacketBuilder::newPacket()
+                    .Eth("02:00:00:00:00:00", "00:00:de:ad:be:af")
+                    .IPv4("10.0.13.37", "10.0.0.2", 64, 0, 0) // Set ID to 0
+                    .UDP(27003, 9886)
+                    .IPv4("10.0.0.1", "10.200.1.1")
+                    .UDP(31337, 80)
+                    .payload("katran test pkt")
+                    .build();
+
+  EXPECT_EQ(
+      packet.base64Packet,
+      "AADerb6vAgAAAAAACABFAABHAAAAAEARWYAKAA0lCgAAAml7Jp4AM2Q6RQAAKwABAABAEWT4CgAAAQrIAQF6aQBQABdPh2thdHJhbiB0ZXN0IHBrdA==");
+  EXPECT_EQ(
+      packet.scapyCommand,
+      "Ether(src='02:00:00:00:00:00', dst='00:00:de:ad:be:af')/IP(src='10.0.13.37', dst='10.0.0.2')/UDP(sport=27003, dport=9886)/IP(src='10.0.0.1', dst='10.200.1.1')/UDP(sport=31337, dport=80)/'katran test pkt'");
+}
