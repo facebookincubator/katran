@@ -90,6 +90,7 @@ inline std::ostream& operator<<(std::ostream& os, const tcp_router_stats& s) {
      << " server_id_set=" << s.server_id_set
      << " conns_skipped=" << s.conns_skipped
      << " no_tcp_opt_hdr=" << s.no_tcp_opt_hdr
+     << " ignoring_kde=" << s.ignoring_due_to_kde
      << " error_bad_id=" << s.error_bad_id
      << " error_write_opt=" << s.error_write_opt
      << " error_sys_calls=" << s.error_sys_calls
