@@ -37,9 +37,13 @@ static inline int handle_passive_cb(
     case BPF_SOCK_OPS_HDR_OPT_LEN_CB:
       /* Reserve space for writing the header option later in
        * BPF_SOCK_OPS_WRITE_HDR_OPT_CB. */
-      if (((skops->skb_tcp_flags & TCPHDR_SYNACK) == TCPHDR_SYNACK) &&
-          !should_ignore_due_to_kde(skops)) {
+      if ((skops->skb_tcp_flags & TCPHDR_SYNACK) == TCPHDR_SYNACK) {
+        if (should_ignore_due_to_kde(skops)) {
+          stat->ignoring_due_to_kde++;
+          return SUCCESS;
+        }
         return handle_hdr_opt_len(skops, stat);
+
       } else {
         return SUCCESS;
       }
