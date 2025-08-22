@@ -131,6 +131,8 @@ target_link_libraries(pcapwriter "${PCAPWRITER_DEPS}")
 add_library(katransimulator STATIC
   KatranSimulator.h
   KatranSimulator.cpp
+  KatranSimulatorUtils.h
+  KatranSimulatorUtils.cpp
 )
 
 add_dependencies(

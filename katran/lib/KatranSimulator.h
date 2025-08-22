@@ -19,23 +19,11 @@
 #include <folly/io/IOBuf.h>
 #include <folly/io/async/ScopedEventBaseThread.h>
 #include <memory>
+#include "katran/lib/KatranSimulatorUtils.h"
+
 #include <string>
 
 namespace katran {
-
-/**
- * struct that contains all the fields that uniquely identifies a flow
- */
-struct KatranFlow {
-  // source ip address of the packet
-  std::string src;
-  // destination ip address of the packet
-  std::string dst;
-  uint16_t srcPort;
-  uint16_t dstPort;
-  // protocol number (e.g. 6 for TCP, 17 for UDP)
-  uint8_t proto;
-};
 
 /**
  * KatranSimulator allows end user to simulate what is going to happen
