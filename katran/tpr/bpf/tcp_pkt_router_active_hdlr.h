@@ -25,7 +25,7 @@ static inline int load_tpr_opt(
   err = bpf_load_hdr_opt(skops, hdr_opt, sizeof(*hdr_opt), NO_FLAGS);
   if (err >= 0) {
     // err >= 0 means we succeeded at reading the header.
-    stat->new_server_opt++;
+    stat->server_opt++;
     return err;
   }
 
