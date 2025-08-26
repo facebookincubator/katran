@@ -47,7 +47,7 @@ static inline int handle_active_parse_hdr(
     return err;
   }
   if (!hdr_opt.server_id) {
-    stat->error_bad_id++;
+    stat->error_server_id_zero++;
     TPR_PRINT(skops, "active parsed empty server id from the option");
     return PASS;
   }
@@ -102,7 +102,7 @@ static int handle_active_write_hdr_opt(
     // while storing 'hdr_opt.server_id'. Send id == 0 so that the passive
     // side can try sending back proper id in the next round.
     hdr_opt.server_id = 0;
-    stat->error_bad_id++;
+    stat->error_server_id_zero++;
     TPR_PRINT(skops, "active failed to read server id from storage");
   } else {
     hdr_opt.server_id = *existing_id;
@@ -139,7 +139,7 @@ static inline int handle_active_estab(
   }
   if (_UNLIKELY(!hdr_opt.server_id)) {
     // Received tcp-hdr-opt but no server_id recv'ed from peer.
-    stat->error_bad_id++;
+    stat->error_server_id_zero++;
     // write a server_id 0 out to tell passive side to resend its server_id
     set_write_hdr_cb_flags(skops, stat);
     // try to read in the next round

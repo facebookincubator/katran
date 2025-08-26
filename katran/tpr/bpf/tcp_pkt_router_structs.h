@@ -37,6 +37,7 @@ struct stats {
   __u64 conns_skipped;
   __u64 no_tcp_opt_hdr;
   __u64 error_bad_id;
+  __u64 error_server_id_zero;
   __u64 error_write_opt;
   __u64 error_sys_calls;
   __u64 ignoring_due_to_kde;

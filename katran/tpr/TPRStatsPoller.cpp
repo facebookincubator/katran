@@ -36,6 +36,7 @@ void TPRStatsPoller::setStatsCounters(const tcp_router_stats& stats) {
   setCounter("conns_skipped", stats.conns_skipped);
   setCounter("no_tcp_opt_hdr", stats.no_tcp_opt_hdr);
   setCounter("error_bad_id", stats.error_bad_id);
+  setCounter("error_server_id_zero", stats.error_server_id_zero);
   setCounter("error_write_opt", stats.error_write_opt);
   setCounter("error_sys_calls", stats.error_sys_calls);
   setCounter("ignoring_due_to_kde", stats.ignoring_due_to_kde);
@@ -154,6 +155,7 @@ TPRStatsPoller::collectTPRStats(int numCpus) {
     aggregateStats.conns_skipped += stat.conns_skipped;
     aggregateStats.no_tcp_opt_hdr += stat.no_tcp_opt_hdr;
     aggregateStats.error_bad_id += stat.error_bad_id;
+    aggregateStats.error_server_id_zero += stat.error_server_id_zero;
     aggregateStats.error_write_opt += stat.error_write_opt;
     aggregateStats.error_sys_calls += stat.error_sys_calls;
     aggregateStats.ignoring_due_to_kde += stat.ignoring_due_to_kde;

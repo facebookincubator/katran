@@ -55,7 +55,7 @@ static inline int handle_passive_parse_hdr(
   }
   if (!hdr_opt.server_id) {
     // no server_id received from peer.
-    stat->error_bad_id++;
+    stat->error_server_id_zero++;
     TPR_PRINT(skops, "passive received 0 server id");
     return PASS;
   }

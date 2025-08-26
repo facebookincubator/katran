@@ -42,6 +42,7 @@ struct tcp_router_stats {
   uint64_t conns_skipped{0};
   uint64_t no_tcp_opt_hdr{0};
   uint64_t error_bad_id{0};
+  uint64_t error_server_id_zero{0};
   uint64_t error_write_opt{0};
   uint64_t error_sys_calls{0};
   uint64_t ignoring_due_to_kde{0};
@@ -92,6 +93,7 @@ inline std::ostream& operator<<(std::ostream& os, const tcp_router_stats& s) {
      << " no_tcp_opt_hdr=" << s.no_tcp_opt_hdr
      << " ignoring_kde=" << s.ignoring_due_to_kde
      << " error_bad_id=" << s.error_bad_id
+     << " error_server_id_zero=" << s.error_server_id_zero
      << " error_write_opt=" << s.error_write_opt
      << " error_sys_calls=" << s.error_sys_calls
      << " legacy_server_opt=" << s.legacy_server_opt
