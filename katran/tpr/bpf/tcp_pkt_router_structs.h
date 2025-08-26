@@ -42,6 +42,5 @@ struct stats {
   __u64 error_sys_calls;
   __u64 ignoring_due_to_kde;
   // stats for the rollout of the new TPR server OPT
-  __u64 legacy_server_opt;
   __u64 new_server_opt;
 };

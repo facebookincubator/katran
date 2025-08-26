@@ -41,7 +41,6 @@ void TPRStatsPoller::setStatsCounters(const tcp_router_stats& stats) {
   setCounter("error_sys_calls", stats.error_sys_calls);
   setCounter("ignoring_due_to_kde", stats.ignoring_due_to_kde);
   setCounter("new_server_opt", stats.new_server_opt);
-  setCounter("legacy_server_opt", stats.legacy_server_opt);
 }
 
 TPRStatsPoller::TPRStatsPoller(
@@ -159,7 +158,6 @@ TPRStatsPoller::collectTPRStats(int numCpus) {
     aggregateStats.error_write_opt += stat.error_write_opt;
     aggregateStats.error_sys_calls += stat.error_sys_calls;
     aggregateStats.ignoring_due_to_kde += stat.ignoring_due_to_kde;
-    aggregateStats.legacy_server_opt += stat.legacy_server_opt;
     aggregateStats.new_server_opt += stat.new_server_opt;
   }
   return aggregateStats;
