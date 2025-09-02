@@ -27,12 +27,13 @@ static inline bool should_ignore_due_to_kde(struct bpf_sock_ops* skops) {
     kde_opt.kind = KDE_CLT_TCP_HDR_OPT_KIND;
     int ret = bpf_load_hdr_opt(skops, &kde_opt, sizeof(kde_opt), load_flags);
     if (ret == KDE_CLT_TCP_HDR_OPT_V2_LEN) {
-      if (s_info->kde_zones)
+      if (s_info->kde_zones) {
         if ((s_info->kde_zones & kde_opt.zone) == kde_opt.zone) {
           return true;
         } else if (s_info->kde_zones == KDE_ZONE_ALL) {
           return true;
         }
+      }
     }
   }
   return false;

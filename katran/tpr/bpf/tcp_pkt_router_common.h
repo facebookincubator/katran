@@ -8,9 +8,9 @@
 #include <bpf/vmlinux/vmlinux.h>
 #endif
 
+#include <bpf/bpf_endian.h>
 #include <bpf/bpf_helpers.h>
 
-#include "bpf_endian.h"
 #include "tcp_pkt_router_consts.h"
 #include "tcp_pkt_router_maps.h"
 #include "tcp_pkt_router_structs.h"
