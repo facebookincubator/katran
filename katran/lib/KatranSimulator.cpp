@@ -16,7 +16,6 @@
 
 #include "katran/lib/KatranSimulator.h"
 
-#include <folly/IPAddress.h>
 #include <glog/logging.h>
 #include <cstring>
 
