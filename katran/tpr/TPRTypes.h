@@ -33,6 +33,9 @@ struct server_info {
   uint8_t kde_zones;
   // only ipv6 is supported
   uint32_t server_id;
+  // when default server id is not available, backend uses server id v2 as
+  // fallback
+  uint32_t server_id_fallback;
 };
 
 // Tentative stats for different transport events

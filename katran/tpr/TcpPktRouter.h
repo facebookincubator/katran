@@ -68,7 +68,12 @@ class TcpPktRouter {
    * Note: only IPv6 is supported.
    */
   uint32_t getServerIdV6() const noexcept {
-    return v6Id_;
+    // in case v6Id is not available, use fallbackV6Id_ instead.
+    return v6Id_ ? v6Id_ : fallbackV6Id_;
+  }
+
+  uint32_t getFallbackServerIdV6() const noexcept {
+    return fallbackV6Id_;
   }
 
   folly::Expected<folly::Unit, std::system_error> setServerKDEZone(
@@ -103,7 +108,8 @@ class TcpPktRouter {
   folly::Expected<folly::Unit, std::system_error> updateServerInfo() noexcept;
 
   bool isInitialized_{false};
-  uint32_t v6Id_;
+  uint32_t v6Id_{0};
+  uint32_t fallbackV6Id_{0}; // Server ID v2 fallback when >= 2<<16
   bool kdeEnabled_;
   uint8_t kdeZones_{0};
   std::optional<uint32_t> serverPort_;

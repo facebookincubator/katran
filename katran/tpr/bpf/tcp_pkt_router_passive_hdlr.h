@@ -60,14 +60,17 @@ static inline int handle_passive_parse_hdr(
     TPR_PRINT(skops, "passive received 0 server id");
     return PASS;
   }
-  if (s_info->server_id != hdr_opt.server_id) {
+  // Check if incoming server_id matches either primary or fallback server_id
+  if (s_info->server_id != hdr_opt.server_id &&
+      s_info->server_id_fallback != hdr_opt.server_id) {
     // read the server_id. But not itself. Packet is misrouted.
     stat->error_bad_id++;
     TPR_PRINT(
         skops,
-        "passive received wrong server id: option=%d, server=%d",
+        "passive received wrong server id: option=%d, server=%d, fallback=%d",
         hdr_opt.server_id,
-        s_info->server_id);
+        s_info->server_id,
+        s_info->server_id_fallback);
     return PASS;
   } else {
     stat->server_id_read++;
@@ -94,7 +97,12 @@ static inline int handle_passive_write_hdr_opt(
 
   hdr_opt.kind = TCP_SRV_HDR_OPT_KIND;
   hdr_opt.len = TCP_HDR_OPT_LEN;
-  hdr_opt.server_id = s_info->server_id;
+  // If server_id is non-zero, use it; otherwise use server_id_fallback
+  if (s_info->server_id != 0) {
+    hdr_opt.server_id = s_info->server_id;
+  } else {
+    hdr_opt.server_id = s_info->server_id_fallback;
+  }
   err = bpf_store_hdr_opt(skops, &hdr_opt, sizeof(hdr_opt), NO_FLAGS);
   if (err) {
     stat->error_write_opt++;
@@ -123,15 +131,18 @@ static inline int handle_passive_estab(
     unset_parse_hdr_cb_flags(skops, stat);
     return err;
   }
-  if (s_info->server_id != hdr_opt.server_id) {
+  // Check if incoming server_id matches either primary or fallback server_id
+  if (s_info->server_id != hdr_opt.server_id &&
+      s_info->server_id_fallback != hdr_opt.server_id) {
     stat->error_bad_id++;
     // the peer sent the server_id but it is wrong.
     // keep on sending the server_id and reading peer's tcp-hdr
     TPR_PRINT(
         skops,
-        "passive estab received wrong server id: option=%d, server=%d",
+        "passive estab received wrong server id: option=%d, server=%d, fallback=%d",
         hdr_opt.server_id,
-        s_info->server_id);
+        s_info->server_id,
+        s_info->server_id_fallback);
     return set_parse_hdr_cb_flags(skops, stat);
   } else {
     stat->server_id_read++;

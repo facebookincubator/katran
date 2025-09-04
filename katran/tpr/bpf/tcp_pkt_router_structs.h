@@ -10,6 +10,9 @@ struct server_info {
   // zones supported by kde
   __u8 kde_zones;
   __u32 server_id;
+  // when default server id is not available, backend users server id v2 as
+  // fallback
+  __u32 server_id_fallback;
 };
 
 // struct that represents a header options in TCP packet

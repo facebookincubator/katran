@@ -12,7 +12,6 @@ namespace katran_tpr {
 // max 24-bit value
 constexpr uint32_t kMaxServerId = (1 << 24) - 1;
 constexpr uint32_t kServerInfoIndex = 0;
-const std::string kServerInfoMap = "server_infos";
 
 TcpPktRouter::TcpPktRouter(
     RunningMode mode,
@@ -112,11 +111,23 @@ bool TcpPktRouter::setServerIdV6(uint32_t id) {
   if (id > kMaxServerId) {
     return false;
   }
-  if (v6Id_ == id) {
-    LOG(WARNING) << "Server id is already set to " << id;
-    return true;
+
+  // Route ID to appropriate field based on server ID format
+  if (id >= (2 << 16)) {
+    // Server ID v2 format - set to fallback field
+    if (fallbackV6Id_ == id) {
+      LOG(WARNING) << "Server fallback id is already set to " << id;
+      return true;
+    }
+    fallbackV6Id_ = id;
+  } else {
+    // Regular server ID format - set to primary field
+    if (v6Id_ == id) {
+      LOG(WARNING) << "Server id is already set to " << id;
+      return true;
+    }
+    v6Id_ = id;
   }
-  v6Id_ = id;
   if (isInitialized_) {
     auto updateRes = updateServerInfo();
     if (updateRes.hasError()) {
@@ -151,21 +162,28 @@ TcpPktRouter::updateServerInfo() noexcept {
     info.running_mode = RunningMode::SERVER;
     info.kde_enabled = kdeEnabled_;
     info.kde_zones = kdeZones_;
+
+    // Use the appropriately routed server IDs
     info.server_id = v6Id_;
-    if (info.server_id == 0) {
-      LOG(WARNING) << "TCP Pkt router is set but server_id is 0. Please check "
-                      "if the id has been set properly.";
+    info.server_id_fallback = fallbackV6Id_;
+
+    if (info.server_id == 0 && info.server_id_fallback == 0) {
+      LOG(WARNING)
+          << "TCP Pkt router is set but both server_id and fallback are 0. Please check "
+             "if the id has been set properly.";
     }
   } else {
     info.running_mode = RunningMode::CLIENT;
     info.server_id = 0;
+    info.server_id_fallback = 0;
   }
   int mapFd = bpf_map__fd(skel_->maps.server_infos);
   auto updateRes = BpfUtil::updateMapElement(mapFd, kServerInfoIndex, info);
   if (updateRes.hasError()) {
     return makeError(updateRes.error(), __func__);
   }
-  LOG(INFO) << "set server_id=" << info.server_id;
+  LOG(INFO) << "set server_id=" << info.server_id
+            << " server_id_fallback=" << info.server_id_fallback;
   return folly::Unit();
 }
 
