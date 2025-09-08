@@ -17,8 +17,8 @@
 package irq_parser
 
 import (
-	"io/ioutil"
 	"log"
+	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -80,7 +80,7 @@ func parseProcIrqs(intf string) []int {
 func getMsiIrqForDevice(intf string) []int {
 	var msi_irqs []int
 	msi_dir := MSI_IRQ_DIR_PREFIX + intf + MSI_IRQ_DIR_SUFFIX
-	files, err := ioutil.ReadDir(msi_dir)
+	files, err := os.ReadDir(msi_dir)
 	if err != nil {
 		log.Fatal("cannot read directory with msi irq numbers for ", intf, err)
 	}
