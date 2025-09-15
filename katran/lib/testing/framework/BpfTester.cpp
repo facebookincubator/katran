@@ -313,6 +313,15 @@ bool BpfTester::runBpfTesterFromFixtures(
       LOG(INFO) << "Expected output packet scapy command: "
                 << expectedOutputScapyCommand;
     }
+
+    // Log base64 packets for debugging
+    if (!inputPacketBase64.empty()) {
+      LOG(INFO) << "Input packet base64: " << inputPacketBase64;
+    }
+    if (!expectedOutputPacketBase64.empty()) {
+      LOG(INFO) << "Expected output packet base64: "
+                << expectedOutputPacketBase64;
+    }
     auto res = adapter_.testXdpProg(
         progFd,
         kTestRepeatCount,

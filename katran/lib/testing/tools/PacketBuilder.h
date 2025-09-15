@@ -22,7 +22,9 @@
 #include <vector>
 
 extern "C" {
+#include <linux/icmp.h>
 #include <linux/ip.h>
+#include <netinet/icmp6.h>
 #include <netinet/if_ether.h>
 #include <netinet/ip6.h>
 #include <netinet/tcp.h>
@@ -32,12 +34,22 @@ extern "C" {
 namespace katran {
 namespace testing {
 
+class PacketBuilder;
 /**
  * Base class for all packet headers
  */
 class HeaderEntry {
  public:
-  enum Type { ETH, IPV4, IPV6, UDP_HEADER, TCP_HEADER, PAYLOAD };
+  enum Type {
+    ETH,
+    IPV4,
+    IPV6,
+    UDP_HEADER,
+    TCP_HEADER,
+    ICMP_HEADER,
+    ICMPV6_HEADER,
+    PAYLOAD
+  };
 
   virtual ~HeaderEntry() = default;
   virtual Type getType() const = 0;
@@ -279,6 +291,110 @@ class PayloadHeader : public HeaderEntry {
 };
 
 /**
+ * ICMPv4 header implementation
+ */
+class ICMPv4Header : public HeaderEntry {
+ public:
+  enum ICMPType {
+    ECHO_REPLY = 0,
+    DEST_UNREACH = 3,
+    ECHO_REQUEST = 8,
+  };
+
+  enum ICMPCode {
+    NO_CODE = 0,
+    FRAG_NEEDED = 4,
+  };
+
+  ICMPv4Header(
+      uint8_t type = ECHO_REQUEST,
+      uint8_t code = NO_CODE,
+      uint16_t id = 0,
+      uint16_t sequence = 0);
+
+  // For ICMP dest unreachable with embedded packet
+  ICMPv4Header(
+      uint8_t type,
+      uint8_t code,
+      uint16_t mtu,
+      const std::vector<uint8_t>& embeddedPacket);
+
+  // For ICMP dest unreachable with embedded packet from PacketBuilder
+  ICMPv4Header(
+      uint8_t type,
+      uint8_t code,
+      uint16_t mtu,
+      const PacketBuilder& embeddedPacket);
+
+  Type getType() const override {
+    return ICMP_HEADER;
+  }
+  void serialize(
+      size_t headerIndex,
+      const std::vector<std::shared_ptr<HeaderEntry>>& headerStack,
+      std::vector<uint8_t>& packet) override;
+  std::string generateScapyCommand() const override;
+
+ private:
+  struct icmphdr icmp_ {};
+  std::vector<uint8_t> embeddedData_;
+  uint16_t calculateChecksum(const std::vector<uint8_t>& data);
+  uint16_t
+  calculateChecksum(const std::vector<uint8_t>& data, size_t start, size_t len);
+};
+
+/**
+ * ICMPv6 header implementation
+ */
+class ICMPv6Header : public HeaderEntry {
+ public:
+  enum ICMPv6Type {
+    ECHO_REQUEST = 128,
+    ECHO_REPLY = 129,
+    PACKET_TOO_BIG = 2,
+  };
+
+  ICMPv6Header(
+      uint8_t type = ECHO_REQUEST,
+      uint8_t code = 0,
+      uint16_t id = 0,
+      uint16_t sequence = 0);
+
+  // For ICMPv6 packet too big with embedded packet from PacketBuilder
+  ICMPv6Header(
+      uint8_t type,
+      uint8_t code,
+      uint32_t mtu,
+      const PacketBuilder& embeddedPacket);
+
+  // For ICMPv6 packet too big with embedded packet
+  ICMPv6Header(
+      uint8_t type,
+      uint8_t code,
+      uint32_t mtu,
+      const std::vector<uint8_t>& embeddedPacket);
+
+  Type getType() const override {
+    return ICMPV6_HEADER;
+  }
+  void serialize(
+      size_t headerIndex,
+      const std::vector<std::shared_ptr<HeaderEntry>>& headerStack,
+      std::vector<uint8_t>& packet) override;
+  std::string generateScapyCommand() const override;
+
+ private:
+  struct icmp6_hdr icmp6_ {};
+  std::vector<uint8_t> embeddedData_;
+  uint32_t mtu_{};
+  uint16_t calculateChecksum(
+      const std::vector<uint8_t>& data,
+      const struct ip6_hdr& ip6Header,
+      size_t start = 0,
+      size_t len = 0);
+};
+
+/**
  * Usage:
  *   auto packet = PacketBuilder::newPacket()
  *       .Eth(src="01:00:00:00:00:00", dst="02:00:00:00:00:00")
@@ -370,7 +486,23 @@ class PacketBuilder {
       const std::vector<uint8_t>& connectionId,
       const std::string& payload);
 
+  // ICMP methods
+  PacketBuilder& ICMP(
+      uint8_t type = ICMPv4Header::ECHO_REQUEST,
+      uint8_t code = ICMPv4Header::NO_CODE,
+      uint16_t id = 0,
+      uint16_t sequence = 0);
+
+  // ICMPv6 methods
+  PacketBuilder& ICMPv6(
+      uint8_t type = ICMPv6Header::ECHO_REQUEST,
+      uint8_t code = 0,
+      uint16_t id = 0,
+      uint16_t sequence = 0);
+
   PacketResult build();
+
+  std::vector<uint8_t> buildAsBytes() const;
 
  private:
   std::vector<std::shared_ptr<HeaderEntry>> headerStack_;

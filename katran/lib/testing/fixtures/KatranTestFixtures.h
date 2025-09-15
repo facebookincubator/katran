@@ -19,7 +19,6 @@
 #pragma once
 #include <string>
 #include <vector>
-#include <utility>
 #include "katran/lib/testing/tools/PacketAttributes.h"
 
 namespace katran {
@@ -44,94 +43,175 @@ namespace testing {
  * to get packet from base64 string: Ether(base64.b64decode(b"..."))
  */
 const std::vector<katran::PacketAttributes> testFixtures = {
-  //1
-  {
-    // Ether(src="0x1", dst="0x2")/IP(src="192.168.1.1", dst="10.200.1.1")/UDP(sport=31337, dport=80)/"katran test pkt"
-    .inputPacket = "AgAAAAAAAQAAAAAACABFAAArAAEAAEARrU/AqAEBCsgBAXppAFAAF5fea2F0cmFuIHRlc3QgcGt0",
-    .description = "packet to UDP based v4 VIP (and v4 real)",
-    .expectedReturnValue = "XDP_TX",
-    .expectedOutputPacket = "AADerb6vAgAAAAAACABFAAA/AAAAAEAEXC2sEGh7CgAAA0UAACsAAQAAQBGtT8CoAQEKyAEBemkAUAAXl95rYXRyYW4gdGVzdCBwa3Q="
-  },
-  //2
-  {
-    //Ether(src="0x1", dst="0x2")/IP(src="192.168.1.1", dst="10.200.1.1")/TCP(sport=31337, dport=80, flags="A")/"katran test pkt"
-    .inputPacket = "AgAAAAAAAQAAAAAACABFAAA3AAEAAEAGrU7AqAEBCsgBAXppAFAAAAAAAAAAAFAQIAAn5AAAa2F0cmFuIHRlc3QgcGt0",
-    .description = "packet to TCP based v4 VIP (and v4 real)",
-    .expectedReturnValue = "XDP_TX",
-    .expectedOutputPacket = "AADerb6vAgAAAAAACABFAABLAAAAAEAEXCGsEGh7CgAAA0UAADcAAQAAQAatTsCoAQEKyAEBemkAUAAAAAAAAAAAUBAgACfkAABrYXRyYW4gdGVzdCBwa3Q="
-  },
-  // 3
-  {
-    //Ether(src="0x1", dst="0x2")/IP(src="192.168.1.1", dst="10.200.1.1", tos=0x8c)/TCP(sport=31337, dport=80, flags="A")/"katran test pkt"
-    .inputPacket = "AgAAAAAAAQAAAAAACABFjAA3AAEAAEAGrMLAqAEBCsgBAXppAFAAAAAAAAAAAFAQIAAn5AAAa2F0cmFuIHRlc3QgcGt0",
-    .description = "packet to TCP based v4 VIP (and v4 real) + ToS in IPV4",
-    .expectedReturnValue = "XDP_TX",
-    .expectedOutputPacket = "AADerb6vAgAAAAAACABFjABLAAAAAEAEW5WsEGh7CgAAA0WMADcAAQAAQAaswsCoAQEKyAEBemkAUAAAAAAAAAAAUBAgACfkAABrYXRyYW4gdGVzdCBwa3Q="
-  },
-  //4
-  {
-    //Ether(src="0x1", dst="0x2")/IP(src="192.168.1.1", dst="10.200.1.2")/TCP(sport=31337, dport=42, flags="A")/"katran test pkt"
-    .inputPacket = "AgAAAAAAAQAAAAAACABFAAA3AAEAAEAGrU3AqAEBCsgBAnppACoAAAAAAAAAAFAQIAAoCQAAa2F0cmFuIHRlc3QgcGt0",
-    .description = "packet to TCP based v4 VIP (and v4 real; any dst ports).",
-    .expectedReturnValue = "XDP_TX",
-    .expectedOutputPacket = "AADerb6vAgAAAAAACABFAABLAAAAAEAEXCKsEGh7CgAAAkUAADcAAQAAQAatTcCoAQEKyAECemkAKgAAAAAAAAAAUBAgACgJAABrYXRyYW4gdGVzdCBwa3Q="
-  },
-  //5
-  {
-    //Ether(src="0x1", dst="0x2")/IP(src="192.168.1.1", dst="10.200.1.3")/TCP(sport=31337, dport=80, flags="A")/"katran test pkt"
-    .inputPacket = "AgAAAAAAAQAAAAAACABFAAA3AAEAAEAGrUzAqAEBCsgBA3ppAFAAAAAAAAAAAFAQIAAn4gAAa2F0cmFuIHRlc3QgcGt0",
-    .description = "packet to TCP based v4 VIP (and v6 real)",
-    .expectedReturnValue = "XDP_TX",
-    .expectedOutputPacket = "AADerb6vAgAAAAAAht1gAAAAADcEQAEAAAAAAAAAAAAAALrBAQH8AAAAAAAAAAAAAAAAAAABRQAANwABAABABq1MwKgBAQrIAQN6aQBQAAAAAAAAAABQECAAJ+IAAGthdHJhbiB0ZXN0IHBrdA=="
-  },
-  //6
-  {
-    //Ether(src="0x1", dst="0x2")/IPv6(src="fc00:2::1", dst="fc00:1::1")/TCP(sport=31337, dport=80,flags="A")/"katran test pkt"
-    .inputPacket = "AgAAAAAAAQAAAAAAht1gAAAAACMGQPwAAAIAAAAAAAAAAAAAAAH8AAABAAAAAAAAAAAAAAABemkAUAAAAAAAAAAAUBAgAP1PAABrYXRyYW4gdGVzdCBwa3Q=",
-    .description = "packet to TCP based v6 VIP (and v6 real)",
-    .expectedReturnValue = "XDP_TX",
-    .expectedOutputPacket = "AADerb6vAgAAAAAAht1gAAAAAEspQAEAAAAAAAAAAAAAAHppAAH8AAAAAAAAAAAAAAAAAAADYAAAAAAjBkD8AAACAAAAAAAAAAAAAAAB/AAAAQAAAAAAAAAAAAAAAXppAFAAAAAAAAAAAFAQIAD9TwAAa2F0cmFuIHRlc3QgcGt0"
-  },
-  //7
-  {
-    // Ether(src="0x1", dst="0x2")/IPv6(src="fc00:2::1", dst="fc00:1::1", tc=0x8c)/TCP(sport=31337, dport=80,flags="A")/"katran test pkt"
-    .inputPacket = "AgAAAAAAAQAAAAAAht1owAAAACMGQPwAAAIAAAAAAAAAAAAAAAH8AAABAAAAAAAAAAAAAAABemkAUAAAAAAAAAAAUBAgAP1PAABrYXRyYW4gdGVzdCBwa3Q=",
-    .description = "packet to TCP based v6 VIP (and v6 real) with ToS / tc set",
-    .expectedReturnValue = "XDP_TX",
-    .expectedOutputPacket = "AADerb6vAgAAAAAAht1owAAAAEspQAEAAAAAAAAAAAAAAHppAAH8AAAAAAAAAAAAAAAAAAADaMAAAAAjBkD8AAACAAAAAAAAAAAAAAAB/AAAAQAAAAAAAAAAAAAAAXppAFAAAAAAAAAAAFAQIAD9TwAAa2F0cmFuIHRlc3QgcGt0"
-  },
-  //8
-  {
-    //Ether(src="0x1", dst="0x2")/IP(src="192.168.1.1", dst="10.200.1.3")/ICMP(type="echo-request")
-    .inputPacket = "AgAAAAAAAQAAAAAACABFAAAcAAEAAEABrWzAqAEBCsgBAwgA9/8AAAAA",
-    .description = "v4 ICMP echo-request",
-    .expectedReturnValue = "XDP_TX",
-    .expectedOutputPacket = "AQAAAAAAAgAAAAAACABFAAAcAAEAAEABrWwKyAEDwKgBAQAA//8AAAAA",
-  },
-  //9
-  {
-    //Ether(src="0x1", dst="0x2")/IPv6(src="fc00:2::1", dst="fc00:1::1")/ICMPv6EchoRequest()
-    .inputPacket = "AgAAAAAAAQAAAAAAht1gAAAAAAg6QPwAAAIAAAAAAAAAAAAAAAH8AAABAAAAAAAAAAAAAAABgACHtgAAAAA=",
-    .description = "v6 ICMP echo-request",
-    .expectedReturnValue = "XDP_TX",
-    .expectedOutputPacket = "AQAAAAAAAgAAAAAAht1gAAAAAAg6QPwAAAEAAAAAAAAAAAAAAAH8AAACAAAAAAAAAAAAAAABgQCGtgAAAAA=",
-  },
-  //10
-  {
-    //Ether(src="0x1", dst="0x2")/IP(src="192.168.100.1", dst="10.200.1.1")/ICMP(type="dest-unreach", code="fragmentation-needed")/IP(src="10.200.1.1", dst="192.168.1.1")/TCP(sport=80, dport=31337)/"test katran pkt"
-    .inputPacket = "AgAAAAAAAQAAAAAACABFAABTAAEAAEABSjfAqGQBCsgBAQMEypcAAAAARQAANwABAABABq1OCsgBAcCoAQEAUHppAAAAAAAAAABQAiAAGQEAAHRlc3Qga2F0cmFuIHBrdA==",
-    .description = "v4 ICMP dest-unreachabe fragmentation-needed",
-    .expectedReturnValue = "XDP_TX",
-    .expectedOutputPacket = "AADerb6vAgAAAAAACABFAABnAAAAAEAEXAWsEGh7CgAAA0UAAFMAAQAAQAFKN8CoZAEKyAEBAwTKlwAAAABFAAA3AAEAAEAGrU4KyAEBwKgBAQBQemkAAAAAAAAAAFACIAAZAQAAdGVzdCBrYXRyYW4gcGt0"
-  },
-  //11
-  {
-    //Ether(src="0x1", dst="0x2")/IPv6(src="fc00:200::1", dst="fc00:1::1")/ICMPv6PacketTooBig()/IPv6(src="fc00:1::1", dst="fc00:2::1")/TCP(sport=80,dport=31337)/"katran test packet"
-    .inputPacket = "AgAAAAAAAQAAAAAAht1gAAAAAFY6QPwAAgAAAAAAAAAAAAAAAAH8AAABAAAAAAAAAAAAAAABAgCYMAAABQBgAAAAACYGQPwAAAEAAAAAAAAAAAAAAAH8AAACAAAAAAAAAAAAAAABAFB6aQAAAAAAAAAAUAIgAKiFAABrYXRyYW4gdGVzdCBwYWNrZXQ=",
-    .description = "v6 ICMP packet-too-big",
-    .expectedReturnValue = "XDP_TX",
-    .expectedOutputPacket = "AADerb6vAgAAAAAAht1gAAAAAH4pQAEAAAAAAAAAAAAAAHppAAH8AAAAAAAAAAAAAAAAAAADYAAAAABWOkD8AAIAAAAAAAAAAAAAAAAB/AAAAQAAAAAAAAAAAAAAAQIAmDAAAAUAYAAAAAAmBkD8AAABAAAAAAAAAAAAAAAB/AAAAgAAAAAAAAAAAAAAAQBQemkAAAAAAAAAAFACIACohQAAa2F0cmFuIHRlc3QgcGFja2V0"
-  },
+    // 1
+    {.description = "packet to UDP based v4 VIP (and v4 real)",
+     .expectedReturnValue = "XDP_TX",
+     .inputPacketBuilder = katran::testing::PacketBuilder::newPacket()
+                               .Eth("0x1", "0x2")
+                               .IPv4("192.168.1.1", "10.200.1.1")
+                               .UDP(31337, 80)
+                               .payload("katran test pkt"),
+     .expectedOutputPacketBuilder =
+         katran::testing::PacketBuilder::newPacket()
+             .Eth("02:00:00:00:00:00", "00:00:de:ad:be:af")
+             .IPv4("172.16.104.123", "10.0.0.3", 64, 0, 0)
+             .IPv4("192.168.1.1", "10.200.1.1")
+             .UDP(31337, 80)
+             .payload("katran test pkt")},
+    // 2
+    {.description = "packet to TCP based v4 VIP (and v4 real)",
+     .expectedReturnValue = "XDP_TX",
+     .inputPacketBuilder = katran::testing::PacketBuilder::newPacket()
+                               .Eth("0x1", "0x2")
+                               .IPv4("192.168.1.1", "10.200.1.1")
+                               .TCP(31337, 80, 0, 0, 8192, TH_ACK)
+                               .payload("katran test pkt"),
+     .expectedOutputPacketBuilder =
+         katran::testing::PacketBuilder::newPacket()
+             .Eth("02:00:00:00:00:00", "00:00:de:ad:be:af")
+             .IPv4("172.16.104.123", "10.0.0.3", 64, 0, 0)
+             .IPv4("192.168.1.1", "10.200.1.1")
+             .TCP(31337, 80, 0, 0, 8192, TH_ACK)
+             .payload("katran test pkt")},
+    // 3
+    {.description = "packet to TCP based v4 VIP (and v4 real) + ToS in IPV4",
+     .expectedReturnValue = "XDP_TX",
+     .inputPacketBuilder = katran::testing::PacketBuilder::newPacket()
+                               .Eth("0x1", "0x2")
+                               .IPv4("192.168.1.1", "10.200.1.1", 64, 0x8c)
+                               .TCP(31337, 80, 0, 0, 8192, TH_ACK)
+                               .payload("katran test pkt"),
+     .expectedOutputPacketBuilder =
+         katran::testing::PacketBuilder::newPacket()
+             .Eth("02:00:00:00:00:00", "00:00:de:ad:be:af")
+             .IPv4("172.16.104.123", "10.0.0.3", 64, 0x8c, 0)
+             .IPv4("192.168.1.1", "10.200.1.1", 64, 0x8c)
+             .TCP(31337, 80, 0, 0, 8192, TH_ACK)
+             .payload("katran test pkt")},
+    // 4
+    {.description = "packet to TCP based v4 VIP (and v4 real; any dst ports).",
+     .expectedReturnValue = "XDP_TX",
+     .inputPacketBuilder = katran::testing::PacketBuilder::newPacket()
+                               .Eth("0x1", "0x2")
+                               .IPv4("192.168.1.1", "10.200.1.2")
+                               .TCP(31337, 42, 0, 0, 8192, TH_ACK)
+                               .payload("katran test pkt"),
+     .expectedOutputPacketBuilder =
+         katran::testing::PacketBuilder::newPacket()
+             .Eth("02:00:00:00:00:00", "00:00:de:ad:be:af")
+             .IPv4("172.16.104.123", "10.0.0.2", 64, 0, 0)
+             .IPv4("192.168.1.1", "10.200.1.2")
+             .TCP(31337, 42, 0, 0, 8192, TH_ACK)
+             .payload("katran test pkt")},
+    // 5
+    {.description = "packet to TCP based v4 VIP (and v6 real)",
+     .expectedReturnValue = "XDP_TX",
+     .inputPacketBuilder = katran::testing::PacketBuilder::newPacket()
+                               .Eth("0x1", "0x2")
+                               .IPv4("192.168.1.1", "10.200.1.3")
+                               .TCP(31337, 80, 0, 0, 8192, TH_ACK)
+                               .payload("katran test pkt"),
+     .expectedOutputPacketBuilder =
+         katran::testing::PacketBuilder::newPacket()
+             .Eth("02:00:00:00:00:00", "00:00:de:ad:be:af")
+             .IPv6("100::bac1:101", "fc00::1")
+             .IPv4("192.168.1.1", "10.200.1.3")
+             .TCP(31337, 80, 0, 0, 8192, TH_ACK)
+             .payload("katran test pkt")},
+    // 6
+    {.description = "packet to TCP based v6 VIP (and v6 real)",
+     .expectedReturnValue = "XDP_TX",
+     .inputPacketBuilder = katran::testing::PacketBuilder::newPacket()
+                               .Eth("0x1", "0x2")
+                               .IPv6("fc00:2::1", "fc00:1::1")
+                               .TCP(31337, 80, 0, 0, 8192, TH_ACK)
+                               .payload("katran test pkt"),
+     .expectedOutputPacketBuilder =
+         katran::testing::PacketBuilder::newPacket()
+             .Eth("02:00:00:00:00:00", "00:00:de:ad:be:af")
+             .IPv6("100::7a69:1", "fc00::3")
+             .IPv6("fc00:2::1", "fc00:1::1")
+             .TCP(31337, 80, 0, 0, 8192, TH_ACK)
+             .payload("katran test pkt")},
+    // 7
+    {.description =
+         "packet to TCP based v6 VIP (and v6 real) with ToS / tc set",
+     .expectedReturnValue = "XDP_TX",
+     .inputPacketBuilder = katran::testing::PacketBuilder::newPacket()
+                               .Eth("0x1", "0x2")
+                               .IPv6("fc00:2::1", "fc00:1::1", 64, 0x8c)
+                               .TCP(31337, 80, 0, 0, 8192, TH_ACK)
+                               .payload("katran test pkt"),
+     .expectedOutputPacketBuilder =
+         katran::testing::PacketBuilder::newPacket()
+             .Eth("02:00:00:00:00:00", "00:00:de:ad:be:af")
+             .IPv6("100::7a69:1", "fc00::3", 64, 0x8c)
+             .IPv6("fc00:2::1", "fc00:1::1", 64, 0x8c)
+             .TCP(31337, 80, 0, 0, 8192, TH_ACK)
+             .payload("katran test pkt")},
+    // 8
+    {.description = "v4 ICMP echo-request",
+     .expectedReturnValue = "XDP_TX",
+     .inputPacketBuilder = katran::testing::PacketBuilder::newPacket()
+                               .Eth("0x1", "0x2")
+                               .IPv4("192.168.1.1", "10.200.1.3")
+                               .ICMP(ICMPv4Header::ECHO_REQUEST),
+     .expectedOutputPacketBuilder =
+         katran::testing::PacketBuilder::newPacket()
+             .Eth("02:00:00:00:00:00", "01:00:00:00:00:00")
+             .IPv4("10.200.1.3", "192.168.1.1")
+             .ICMP(ICMPv4Header::ECHO_REPLY)},
+    // 9
+    {.description = "v6 ICMP echo-request",
+     .expectedReturnValue = "XDP_TX",
+     .inputPacketBuilder = katran::testing::PacketBuilder::newPacket()
+                               .Eth("0x1", "0x2")
+                               .IPv6("fc00:2::1", "fc00:1::1")
+                               .ICMPv6(ICMPv6Header::ECHO_REQUEST),
+     .expectedOutputPacketBuilder =
+         katran::testing::PacketBuilder::newPacket()
+             .Eth("02:00:00:00:00:00", "01:00:00:00:00:00")
+             .IPv6("fc00:1::1", "fc00:2::1")
+             .ICMPv6(ICMPv6Header::ECHO_REPLY)},
+     // 10
+    {.description = "v4 ICMP dest-unreachabe fragmentation-needed",
+     .expectedReturnValue = "XDP_TX",
+     .inputPacketBuilder =
+         katran::testing::PacketBuilder::newPacket()
+             .Eth("0x1", "0x2")
+             .IPv4("192.168.100.1", "10.200.1.1")
+             .ICMP(ICMPv4Header::DEST_UNREACH, ICMPv4Header::FRAG_NEEDED, 0, 0)
+             .IPv4("10.200.1.1", "192.168.1.1")
+             .TCP(80, 31337, 0, 0, 8192, TH_SYN)
+             .payload("test katran pkt"),
+     .expectedOutputPacketBuilder =
+         katran::testing::PacketBuilder::newPacket()
+             .Eth("02:00:00:00:00:00", "00:00:de:ad:be:af")
+             .IPv4("172.16.104.123", "10.0.0.3", 64, 0, 0)
+             .IPv4("192.168.100.1", "10.200.1.1")
+             .ICMP(ICMPv4Header::DEST_UNREACH, ICMPv4Header::FRAG_NEEDED, 0, 0)
+             .IPv4("10.200.1.1", "192.168.1.1")
+             .TCP(80, 31337, 0, 0, 8192, TH_SYN)
+             .payload("test katran pkt")},
+    // 11
+    {.description = "v6 ICMP packet-too-big",
+     .expectedReturnValue = "XDP_TX",
+     .inputPacketBuilder = katran::testing::PacketBuilder::newPacket()
+                               .Eth("0x1", "0x2")
+                               .IPv6("fc00:200::1", "fc00:1::1")
+                               .ICMPv6(ICMPv6Header::PACKET_TOO_BIG, 0, 0, 1280)
+                               .IPv6("fc00:1::1", "fc00:2::1")
+                               .TCP(80, 31337, 0, 0, 8192, TH_SYN)
+                               .payload("katran test packet"),
+     .expectedOutputPacketBuilder =
+         katran::testing::PacketBuilder::newPacket()
+             .Eth("02:00:00:00:00:00", "00:00:de:ad:be:af")
+             .IPv6("100::7a69:1", "fc00::3")
+             .IPv6("fc00:200::1", "fc00:1::1")
+             .ICMPv6(ICMPv6Header::PACKET_TOO_BIG, 0, 0, 1280)
+             .IPv6("fc00:1::1", "fc00:2::1")
+             .TCP(80, 31337, 0, 0, 8192, TH_SYN)
+             .payload("katran test packet")},
   //12
   {
     //Ether(src="0x1", dst="0x2")/IP(src="192.168.1.1", dst="10.200.1.1",ihl=6)/TCP(sport=31337, dport=80,flags="A")/"katran test pkt"

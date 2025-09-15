@@ -21,7 +21,6 @@
 #include <folly/base64.h>
 #include <glog/logging.h>
 #include <linux/if_ether.h>
-#include <linux/ip.h>
 #include <netinet/in.h>
 #include <netinet/ip6.h>
 #include <netinet/tcp.h>
@@ -325,6 +324,30 @@ PacketBuilder& PacketBuilder::stableRoutingPayload(
   return *this;
 }
 
+PacketBuilder& PacketBuilder::ICMP(
+    uint8_t type,
+    uint8_t code,
+    uint16_t id,
+    uint16_t sequence) {
+  headerStack_.emplace_back(
+      std::make_shared<ICMPv4Header>(type, code, id, sequence));
+  return *this;
+}
+
+PacketBuilder& PacketBuilder::ICMPv6(
+    uint8_t type,
+    uint8_t code,
+    uint16_t id,
+    uint16_t sequence) {
+  headerStack_.emplace_back(
+      std::make_shared<ICMPv6Header>(type, code, id, sequence));
+  return *this;
+}
+
+std::vector<uint8_t> PacketBuilder::buildAsBytes() const {
+  return const_cast<PacketBuilder*>(this)->buildBinaryPacket();
+}
+
 PacketBuilder::PacketResult PacketBuilder::build() {
   auto binaryPacket = buildBinaryPacket();
 
@@ -353,7 +376,8 @@ std::vector<uint8_t> PacketBuilder::buildBinaryPacket() {
     }
   }
 
-  // Build packet from the end (payload first) to calculate lengths correctly
+  // Build packet from the end (payload first) to calculate lengths
+  // correctly
   for (int i = static_cast<int>(headerStack_.size()) - 1; i >= 0; --i) {
     headerStack_[i]->serialize(static_cast<size_t>(i), headerStack_, packet);
   }
@@ -428,7 +452,8 @@ bool PacketBuilder::isValidPort(uint16_t port) {
     LOG(WARNING) << "Using port 0 which is reserved";
   }
 
-  // All other ports (1-65535) are valid since uint16_t constrains the range
+  // All other ports (1-65535) are valid since uint16_t constrains the
+  // range
   return true;
 }
 
@@ -581,7 +606,8 @@ void IPv4Header::serialize(
     std::vector<uint8_t>& packet) {
   auto ip = ip_;
 
-  // Set total length based on current packet size (which contains the payload)
+  // Set total length based on current packet size (which contains the
+  // payload)
   ip.tot_len = htons(sizeof(struct iphdr) + packet.size());
 
   // Calculate checksum
@@ -623,6 +649,9 @@ void IPv4Header::updateForNextHeader(Type nextHeaderType) {
       break;
     case TCP_HEADER:
       ip_.protocol = IPPROTO_TCP;
+      break;
+    case ICMP_HEADER:
+      ip_.protocol = IPPROTO_ICMP;
       break;
     case IPV6:
       ip_.protocol = IPPROTO_IPV6;
@@ -745,6 +774,9 @@ void IPv6Header::updateForNextHeader(Type nextHeaderType) {
     case TCP_HEADER:
       ip6_.ip6_nxt = IPPROTO_TCP;
       break;
+    case ICMPV6_HEADER:
+      ip6_.ip6_nxt = IPPROTO_ICMPV6;
+      break;
     case IPV6:
       ip6_.ip6_nxt = IPPROTO_IPV6; // IPv6-in-IPv6 tunneling
       break;
@@ -773,7 +805,8 @@ void UDPHeader::serialize(
     std::vector<uint8_t>& packet) {
   auto udp = udp_;
 
-  // Set UDP length based on current packet size (which contains the payload)
+  // Set UDP length based on current packet size (which contains the
+  // payload)
   udp.len = htons(sizeof(struct udphdr) + packet.size());
 
   // Find IP header for checksum calculation
@@ -1013,7 +1046,8 @@ void TCPHeader::serialize(
   struct ip6_hdr ipv6Header {};
   findIPHeaderForChecksum(headerIndex, headerStack, &ipv4Header, &ipv6Header);
 
-  // For checksum calculation, we need to include the options in the TCP length
+  // For checksum calculation, we need to include the options in the TCP
+  // length
   std::vector<uint8_t> tcpWithOptions;
   tcpWithOptions.reserve(
       sizeof(struct tcphdr) + optionsBytes.size() + packet.size());
@@ -1363,6 +1397,364 @@ void PayloadHeader::serialize(
 std::string PayloadHeader::generateScapyCommand() const {
   std::string payloadStr(payload_.begin(), payload_.end());
   return "'" + payloadStr + "'";
+}
+
+// ICMPv4Header implementation
+ICMPv4Header::ICMPv4Header(
+    uint8_t type,
+    uint8_t code,
+    uint16_t id,
+    uint16_t sequence) {
+  std::memset(&icmp_, 0, sizeof(icmp_));
+  icmp_.type = type;
+  icmp_.code = code;
+  icmp_.checksum = 0; // Will be calculated in serialize()
+  icmp_.un.echo.id = htons(id);
+  icmp_.un.echo.sequence = htons(sequence);
+}
+
+ICMPv4Header::ICMPv4Header(
+    uint8_t type,
+    uint8_t code,
+    uint16_t mtu,
+    const std::vector<uint8_t>& embeddedPacket) {
+  std::memset(&icmp_, 0, sizeof(icmp_));
+  icmp_.type = type;
+  icmp_.code = code;
+  icmp_.checksum = 0; // Will be calculated in serialize()
+
+  // For fragmentation needed messages, set the MTU properly
+  if (type == DEST_UNREACH && code == FRAG_NEEDED) {
+    // In ICMP "fragmentation needed" messages, the MTU field is in the
+    // icmp_nextmtu field (RFC 1191)
+    icmp_.un.frag.mtu = htons(mtu);
+  } else {
+    icmp_.un.frag.mtu = htons(mtu);
+  }
+
+  embeddedData_ = embeddedPacket;
+}
+
+ICMPv4Header::ICMPv4Header(
+    uint8_t type,
+    uint8_t code,
+    uint16_t mtu,
+    const PacketBuilder& embeddedPacket) {
+  std::memset(&icmp_, 0, sizeof(icmp_));
+  icmp_.type = type;
+  icmp_.code = code;
+  icmp_.checksum = 0; // Will be calculated in serialize()
+
+  // For fragmentation needed messages, set the MTU properly
+  if (type == DEST_UNREACH && code == FRAG_NEEDED) {
+    // In ICMP "fragmentation needed" messages, the MTU field is in the
+    // icmp_nextmtu field (RFC 1191)
+    icmp_.un.frag.mtu = htons(mtu);
+  } else {
+    icmp_.un.frag.mtu = htons(mtu);
+  }
+
+  embeddedData_ = embeddedPacket.buildAsBytes();
+}
+
+void ICMPv4Header::serialize(
+    [[maybe_unused]] size_t headerIndex,
+    [[maybe_unused]] const std::vector<std::shared_ptr<HeaderEntry>>&
+        headerStack,
+    std::vector<uint8_t>& packet) {
+  auto icmp = icmp_;
+
+  // Build complete ICMP packet for checksum calculation
+  // Set checksum to 0 for calculation (critical!)
+  icmp.checksum = 0;
+  std::vector<uint8_t> icmpPacket;
+  const uint8_t* icmpBytes = reinterpret_cast<const uint8_t*>(&icmp);
+  icmpPacket.insert(
+      icmpPacket.end(), icmpBytes, icmpBytes + sizeof(struct icmphdr));
+
+  // Add embedded packet data if present
+  if (!embeddedData_.empty()) {
+    icmpPacket.insert(
+        icmpPacket.end(), embeddedData_.begin(), embeddedData_.end());
+  }
+
+  // Calculate checksum
+  icmp.checksum = htons(calculateChecksum(icmpPacket));
+
+  // Insert updated ICMP header
+  const uint8_t* finalIcmpBytes = reinterpret_cast<const uint8_t*>(&icmp);
+  packet.insert(
+      packet.begin(), finalIcmpBytes, finalIcmpBytes + sizeof(struct icmphdr));
+
+  // Add embedded data
+  if (!embeddedData_.empty()) {
+    packet.insert(
+        packet.begin() + sizeof(struct icmphdr),
+        embeddedData_.begin(),
+        embeddedData_.end());
+  }
+}
+
+std::string ICMPv4Header::generateScapyCommand() const {
+  std::string command;
+  if (icmp_.type == ECHO_REQUEST) {
+    command = "ICMP(type='echo-request')";
+  } else if (icmp_.type == DEST_UNREACH) {
+    command = "ICMP(type='dest-unreach'";
+    if (icmp_.code == FRAG_NEEDED) {
+      command += ", code='fragmentation-needed'";
+    }
+    command += ")";
+  } else {
+    command = "ICMP(type=" + std::to_string(icmp_.type) + ")";
+  }
+  return command;
+}
+
+uint16_t ICMPv4Header::calculateChecksum(const std::vector<uint8_t>& data) {
+  return calculateChecksum(data, 0, 0);
+}
+
+uint16_t ICMPv4Header::calculateChecksum(
+    const std::vector<uint8_t>& data,
+    size_t start,
+    size_t len) {
+  if (len == 0) {
+    len = data.size() - start;
+  }
+
+  // Katran BPF uses specific size limits for ICMP destination unreachable
+  // ICMP_TOOBIG_PAYLOAD_SIZE = 92 bytes (from balancer_consts.h)
+  const size_t ICMP_TOOBIG_PAYLOAD_SIZE = 92;
+
+  // For ICMP destination unreachable messages, limit to Katran's size
+  if (icmp_.type == DEST_UNREACH && icmp_.code == FRAG_NEEDED) {
+    len = std::min(len, ICMP_TOOBIG_PAYLOAD_SIZE);
+  }
+
+  // Exactly mimic Katran's ipv4_csum function:
+  // 1. checksum field is already set to 0 in the data
+  // 2. bpf_csum_diff(0, 0, data_start, data_size, 0)
+  // 3. csum_fold_helper(result)
+
+  uint64_t sum = 0; // This is the initial seed value (same as BPF *csum = 0)
+
+  // BPF bpf_csum_diff computes standard Internet checksum
+  // Sum all 16-bit words in network byte order
+  for (size_t i = start; i < start + len - 1; i += 2) {
+    // Read as network byte order (big-endian)
+    uint16_t word = (static_cast<uint16_t>(data[i]) << 8) |
+        static_cast<uint16_t>(data[i + 1]);
+    sum += word;
+  }
+
+  // Handle odd byte (pad with zero on right)
+  if (len % 2 == 1) {
+    sum += static_cast<uint16_t>(data[start + len - 1]) << 8;
+  }
+
+  // Katran's csum_fold_helper: fold carry bits (max 4 iterations)
+  for (int i = 0; i < 4; i++) {
+    if (sum >> 16) {
+      sum = (sum & 0xFFFF) + (sum >> 16);
+    }
+  }
+
+  // Return one's complement (same as BPF ~csum)
+  return static_cast<uint16_t>(~sum);
+}
+
+// ICMPv6Header implementation
+ICMPv6Header::ICMPv6Header(
+    uint8_t type,
+    uint8_t code,
+    uint16_t id,
+    uint16_t sequence) {
+  std::memset(&icmp6_, 0, sizeof(icmp6_));
+  icmp6_.icmp6_type = type;
+  icmp6_.icmp6_code = code;
+  icmp6_.icmp6_cksum = 0; // Will be calculated in serialize()
+  icmp6_.icmp6_id = htons(id);
+  icmp6_.icmp6_seq = htons(sequence);
+}
+
+ICMPv6Header::ICMPv6Header(
+    uint8_t type,
+    uint8_t code,
+    uint32_t mtu,
+    const PacketBuilder& embeddedPacket) {
+  std::memset(&icmp6_, 0, sizeof(icmp6_));
+  icmp6_.icmp6_type = type;
+  icmp6_.icmp6_code = code;
+  icmp6_.icmp6_cksum = 0; // Will be calculated in serialize()
+  mtu_ = mtu;
+  embeddedData_ = embeddedPacket.buildAsBytes();
+}
+
+ICMPv6Header::ICMPv6Header(
+    uint8_t type,
+    uint8_t code,
+    uint32_t mtu,
+    const std::vector<uint8_t>& embeddedPacket) {
+  std::memset(&icmp6_, 0, sizeof(icmp6_));
+  icmp6_.icmp6_type = type;
+  icmp6_.icmp6_code = code;
+  icmp6_.icmp6_cksum = 0;
+  mtu_ = mtu;
+  icmp6_.icmp6_cksum = 0; // Will be calculated in serialize()
+  mtu_ = mtu;
+  embeddedData_ = embeddedPacket;
+}
+
+void ICMPv6Header::serialize(
+    size_t headerIndex,
+    const std::vector<std::shared_ptr<HeaderEntry>>& headerStack,
+    std::vector<uint8_t>& packet) {
+  auto icmp6 = icmp6_;
+
+  // For packet too big, set MTU in the data field
+  if (icmp6_.icmp6_type == PACKET_TOO_BIG) {
+    icmp6.icmp6_mtu = htonl(mtu_);
+  }
+
+  // Build complete ICMPv6 packet for checksum calculation
+  std::vector<uint8_t> icmpv6Packet;
+  const uint8_t* icmpBytes = reinterpret_cast<const uint8_t*>(&icmp6);
+  icmpv6Packet.insert(
+      icmpv6Packet.end(), icmpBytes, icmpBytes + sizeof(struct icmp6_hdr));
+
+  // Add embedded packet data if present
+  if (!embeddedData_.empty()) {
+    icmpv6Packet.insert(
+        icmpv6Packet.end(), embeddedData_.begin(), embeddedData_.end());
+  }
+
+  // Find IPv6 header for pseudo header calculation
+  struct ip6_hdr ipv6Header {};
+  for (int i = static_cast<int>(headerIndex) - 1; i >= 0; --i) {
+    const auto& entry = headerStack[i];
+    if (entry->getType() == HeaderEntry::IPV6) {
+      auto* ipv6 = static_cast<const IPv6Header*>(entry.get());
+      ipv6Header = ipv6->getHeader();
+      break;
+    }
+  }
+
+  // Calculate checksum with IPv6 pseudo header
+  if ((ntohl(ipv6Header.ip6_flow) >> 28) == 6) {
+    icmp6.icmp6_cksum = htons(calculateChecksum(icmpv6Packet, ipv6Header));
+  } else {
+    LOG(WARNING) << "No IPv6 header found for ICMPv6 checksum calculation";
+    icmp6.icmp6_cksum = htons(
+        calculateChecksum(icmpv6Packet, ipv6Header, 0, icmpv6Packet.size()));
+  }
+
+  // Insert updated ICMPv6 header
+  const uint8_t* finalIcmpBytes = reinterpret_cast<const uint8_t*>(&icmp6);
+  packet.insert(
+      packet.begin(),
+      finalIcmpBytes,
+      finalIcmpBytes + sizeof(struct icmp6_hdr));
+
+  // Add embedded data
+  if (!embeddedData_.empty()) {
+    packet.insert(
+        packet.begin() + sizeof(struct icmp6_hdr),
+        embeddedData_.begin(),
+        embeddedData_.end());
+  }
+}
+
+std::string ICMPv6Header::generateScapyCommand() const {
+  std::string command;
+  if (icmp6_.icmp6_type == ECHO_REQUEST) {
+    command = "ICMPv6EchoRequest()";
+  } else if (icmp6_.icmp6_type == PACKET_TOO_BIG) {
+    command = "ICMPv6PacketTooBig()";
+  } else {
+    command = "ICMPv6(type=" + std::to_string(icmp6_.icmp6_type) + ")";
+  }
+  return command;
+}
+
+uint16_t ICMPv6Header::calculateChecksum(
+    const std::vector<uint8_t>& data,
+    const struct ip6_hdr& ip6Header,
+    size_t start,
+    size_t len) {
+  if (len == 0) {
+    len = data.size() - start;
+  }
+
+  // Katran BPF uses specific size limits for ICMPv6 packet-too-big
+  // ICMP6_TOOBIG_PAYLOAD_SIZE = 256 bytes (from balancer_consts.h)
+  const size_t ICMP6_TOOBIG_PAYLOAD_SIZE = 256;
+
+  // For ICMPv6 packet-too-big messages, limit to Katran's size
+  if (icmp6_.icmp6_type == PACKET_TOO_BIG) {
+    len = std::min(len, ICMP6_TOOBIG_PAYLOAD_SIZE);
+  }
+
+  // Exactly mimic Katran's ipv6_csum function:
+  // Multiple bpf_csum_diff calls + csum_fold_helper
+  uint64_t sum = 0; // Initial seed value
+
+  // Each bpf_csum_diff call adds to the running checksum
+  // 1. Source address (16 bytes)
+  const uint8_t* srcAddr = reinterpret_cast<const uint8_t*>(&ip6Header.ip6_src);
+  for (size_t i = 0; i < 16; i += 2) {
+    uint16_t word = (static_cast<uint16_t>(srcAddr[i]) << 8) |
+        static_cast<uint16_t>(srcAddr[i + 1]);
+    sum += word;
+  }
+
+  // 2. Destination address (16 bytes)
+  const uint8_t* dstAddr = reinterpret_cast<const uint8_t*>(&ip6Header.ip6_dst);
+  for (size_t i = 0; i < 16; i += 2) {
+    uint16_t word = (static_cast<uint16_t>(dstAddr[i]) << 8) |
+        static_cast<uint16_t>(dstAddr[i + 1]);
+    sum += word;
+  }
+
+  // 3. Payload length (4 bytes) - network byte order
+  uint32_t payloadLen = htonl(static_cast<uint32_t>(len));
+  const uint8_t* lenBytes = reinterpret_cast<const uint8_t*>(&payloadLen);
+  for (size_t i = 0; i < 4; i += 2) {
+    uint16_t word = (static_cast<uint16_t>(lenBytes[i]) << 8) |
+        static_cast<uint16_t>(lenBytes[i + 1]);
+    sum += word;
+  }
+
+  // 4. Next header (4 bytes: 0x00 0x00 0x00 0x3A for ICMPv6)
+  uint32_t nextHeader = htonl(static_cast<uint32_t>(IPPROTO_ICMPV6));
+  const uint8_t* nhBytes = reinterpret_cast<const uint8_t*>(&nextHeader);
+  for (size_t i = 0; i < 4; i += 2) {
+    uint16_t word = (static_cast<uint16_t>(nhBytes[i]) << 8) |
+        static_cast<uint16_t>(nhBytes[i + 1]);
+    sum += word;
+  }
+
+  // 5. ICMPv6 payload data (checksum field already 0)
+  for (size_t i = start; i < start + len - 1; i += 2) {
+    uint16_t word = (static_cast<uint16_t>(data[i]) << 8) |
+        static_cast<uint16_t>(data[i + 1]);
+    sum += word;
+  }
+
+  // Handle odd byte in payload
+  if (len % 2 == 1) {
+    sum += static_cast<uint16_t>(data[start + len - 1]) << 8;
+  }
+
+  // Katran's csum_fold_helper: fold carry bits (max 4 iterations)
+  for (int i = 0; i < 4; i++) {
+    if (sum >> 16) {
+      sum = (sum & 0xFFFF) + (sum >> 16);
+    }
+  }
+
+  // Return one's complement (same as BPF ~csum)
+  return static_cast<uint16_t>(~sum);
 }
 
 } // namespace testing
