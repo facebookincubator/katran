@@ -173,7 +173,7 @@ const std::vector<katran::PacketAttributes> testFixtures = {
              .Eth("02:00:00:00:00:00", "01:00:00:00:00:00")
              .IPv6("fc00:1::1", "fc00:2::1")
              .ICMPv6(ICMPv6Header::ECHO_REPLY)},
-     // 10
+    // 10
     {.description = "v4 ICMP dest-unreachabe fragmentation-needed",
      .expectedReturnValue = "XDP_TX",
      .inputPacketBuilder =
@@ -212,47 +212,76 @@ const std::vector<katran::PacketAttributes> testFixtures = {
              .IPv6("fc00:1::1", "fc00:2::1")
              .TCP(80, 31337, 0, 0, 8192, TH_SYN)
              .payload("katran test packet")},
-  //12
-  {
-    //Ether(src="0x1", dst="0x2")/IP(src="192.168.1.1", dst="10.200.1.1",ihl=6)/TCP(sport=31337, dport=80,flags="A")/"katran test pkt"
-    .inputPacket = "AgAAAAAAAQAAAAAACABGAAA3AAEAAEAGrE7AqAEBCsgBAXppAFAAAAAAAAAAAFAQIAAn5AAAa2F0cmFuIHRlc3QgcGt0",
-    .description = "drop of IPv4 packet w/ options",
-    .expectedReturnValue = "XDP_DROP",
-    .expectedOutputPacket = "AgAAAAAAAQAAAAAACABGAAA3AAEAAEAGrE7AqAEBCsgBAXppAFAAAAAAAAAAAFAQIAAn5AAAa2F0cmFuIHRlc3QgcGt0"
-  },
-  //13
-  {
-    //Ether(src="0x1", dst="0x2")/IP(src="192.168.1.1", dst="10.200.1.1",ihl=5,flags="MF")/TCP(sport=31337, dport=80,flags="A")/"katran test pkt"
-    .inputPacket = "AgAAAAAAAQAAAAAACABFAAA3AAEgAEAGjU7AqAEBCsgBAXppAFAAAAAAAAAAAFAQIAAn5AAAa2F0cmFuIHRlc3QgcGt0",
-    .description = "drop of IPv4 fragmented packet",
-    .expectedReturnValue = "XDP_DROP",
-    .expectedOutputPacket = "AgAAAAAAAQAAAAAACABFAAA3AAEgAEAGjU7AqAEBCsgBAXppAFAAAAAAAAAAAFAQIAAn5AAAa2F0cmFuIHRlc3QgcGt0"
-  },
-  //14
-  {
-    //Ether(src="0x1", dst="0x2")/IPv6(src="fc00:2::1", dst="fc00:1::1",nh=44)/TCP(sport=31337, dport=80,flags="A")/"katran test pkt"
-    .inputPacket = "AgAAAAAAAQAAAAAAht1gAAAAACMsQPwAAAIAAAAAAAAAAAAAAAH8AAABAAAAAAAAAAAAAAABemkAUAAAAAAAAAAAUBAgAP1PAABrYXRyYW4gdGVzdCBwa3Q=",
-    .description = "drop of IPv6 fragmented packet",
-    .expectedReturnValue = "XDP_DROP",
-    .expectedOutputPacket = "AgAAAAAAAQAAAAAAht1gAAAAACMsQPwAAAIAAAAAAAAAAAAAAAH8AAABAAAAAAAAAAAAAAABemkAUAAAAAAAAAAAUBAgAP1PAABrYXRyYW4gdGVzdCBwa3Q="
-  },
-  //15
-  {
-    //Ether(src="0x1", dst="0x2")/IP(src="192.168.1.1", dst="10.200.1.1",ihl=5)/TCP(sport=31337, dport=82,flags="A")/"katran test pkt"
-    .inputPacket = "AgAAAAAAAQAAAAAACABFAAA3AAEAAEAGrU7AqAEBCsgBAXppAFIAAAAAAAAAAFAQIAAn4gAAa2F0cmFuIHRlc3QgcGt0",
-    .description = "pass of v4 packet with dst not equal to any configured VIP",
-    .expectedReturnValue = "XDP_PASS",
-    .expectedOutputPacket = "AgAAAAAAAQAAAAAACABFAAA3AAEAAEAGrU7AqAEBCsgBAXppAFIAAAAAAAAAAFAQIAAn4gAAa2F0cmFuIHRlc3QgcGt0"
-  },
-  //16
-  {
-    //Ether(src="0x1", dst="0x2")/IPv6(src="fc00:2::1", dst="fc00:1::1")/TCP(sport=31337, dport=82,flags="A")/"katran test pkt"
-    .inputPacket = "AgAAAAAAAQAAAAAAht1gAAAAACMGQPwAAAIAAAAAAAAAAAAAAAH8AAABAAAAAAAAAAAAAAABemkAUgAAAAAAAAAAUBAgAP1NAABrYXRyYW4gdGVzdCBwa3Q=",
-    .description = "pass of v6 packet with dst not equal to any configured VIP",
-    .expectedReturnValue = "XDP_PASS",
-    .expectedOutputPacket = "AgAAAAAAAQAAAAAAht1gAAAAACMGQPwAAAIAAAAAAAAAAAAAAAH8AAABAAAAAAAAAAAAAAABemkAUgAAAAAAAAAAUBAgAP1NAABrYXRyYW4gdGVzdCBwa3Q="
-  },
-  //17
+    // 12
+    {.description = "drop of IPv4 packet w/ options",
+     .expectedReturnValue = "XDP_DROP",
+     .inputPacketBuilder =
+         katran::testing::PacketBuilder::newPacket()
+             .Eth("0x1", "0x2")
+             .IPv4("192.168.1.1", "10.200.1.1", 64, 0, 1, 0, 6)
+             .TCP(31337, 80, 0, 0, 8192, TH_ACK)
+             .payload("katran test pkt"),
+     .expectedOutputPacketBuilder =
+         katran::testing::PacketBuilder::newPacket()
+             .Eth("0x1", "0x2")
+             .IPv4("192.168.1.1", "10.200.1.1", 64, 0, 1, 0, 6)
+             .TCP(31337, 80, 0, 0, 8192, TH_ACK)
+             .payload("katran test pkt")},
+    // 13
+    {.description = "drop of IPv4 fragmented packet",
+     .expectedReturnValue = "XDP_DROP",
+     .inputPacketBuilder = PacketBuilder::newPacket()
+                               .Eth("0x1", "0x2")
+                               .IPv4("192.168.1.1","10.200.1.1",64,0,1,PacketBuilder::IP_FLAG_MF)
+                               .TCP(31337, 80, 0, 0, 8192, TH_ACK)
+                               .payload("katran test pkt"),
+     .expectedOutputPacketBuilder = PacketBuilder::newPacket()
+                                        .Eth("0x1", "0x2")
+                                        .IPv4("192.168.1.1","10.200.1.1",64,0,1,PacketBuilder::IP_FLAG_MF)
+                                        .TCP(31337, 80, 0, 0, 8192, TH_ACK)
+                                        .payload("katran test pkt")},
+    // 14
+    {.description = "drop of IPv6 fragmented packet",
+     .expectedReturnValue = "XDP_DROP",
+     .inputPacketBuilder = PacketBuilder::newPacket()
+                               .Eth("0x1", "0x2")
+                               .IPv6("fc00:2::1","fc00:1::1",64,0,0,PacketBuilder::IPV6_NH_FRAGMENT)
+                               .TCP(31337, 80, 0, 0, 8192, TH_ACK)
+                               .payload("katran test pkt"),
+     .expectedOutputPacketBuilder = PacketBuilder::newPacket()
+                                        .Eth("0x1", "0x2")
+                                        .IPv6("fc00:2::1","fc00:1::1",64,0,0,PacketBuilder::IPV6_NH_FRAGMENT)
+                                        .TCP(31337, 80, 0, 0, 8192, TH_ACK)
+                                        .payload("katran test pkt")},
+    // 15
+    {.description =
+         "pass of v4 packet with dst not equal to any configured VIP",
+     .expectedReturnValue = "XDP_PASS",
+     .inputPacketBuilder = katran::testing::PacketBuilder::newPacket()
+                               .Eth("0x1", "0x2")
+                               .IPv4("192.168.1.1", "10.200.1.1")
+                               .TCP(31337, 82, 0, 0, 8192, TH_ACK)
+                               .payload("katran test pkt"),
+     .expectedOutputPacketBuilder = katran::testing::PacketBuilder::newPacket()
+                                        .Eth("0x1", "0x2")
+                                        .IPv4("192.168.1.1", "10.200.1.1")
+                                        .TCP(31337, 82, 0, 0, 8192, TH_ACK)
+                                        .payload("katran test pkt")},
+    // 16
+    {.description =
+         "pass of v6 packet with dst not equal to any configured VIP",
+     .expectedReturnValue = "XDP_PASS",
+     .inputPacketBuilder = katran::testing::PacketBuilder::newPacket()
+                               .Eth("0x1", "0x2")
+                               .IPv6("fc00:2::1", "fc00:1::1")
+                               .TCP(31337, 82, 0, 0, 8192, TH_ACK)
+                               .payload("katran test pkt"),
+     .expectedOutputPacketBuilder = katran::testing::PacketBuilder::newPacket()
+                                        .Eth("0x1", "0x2")
+                                        .IPv6("fc00:2::1", "fc00:1::1")
+                                        .TCP(31337, 82, 0, 0, 8192, TH_ACK)
+                                        .payload("katran test pkt")},
+    //17
   {
     //Ether(src="0x1", dst="0x2")/ARP()
     .inputPacket = "AgAAAAAAAQAAAAAACAYAAQgABgQAAQAAAAAAAAAAAAAAAAAAAAAAAAAA",

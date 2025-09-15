@@ -93,7 +93,8 @@ class IPv4Header : public HeaderEntry {
       uint8_t ttl = 64,
       uint8_t tos = 0,
       uint16_t id = 1,
-      uint16_t flags = 0);
+      uint16_t flags = 0,
+      uint8_t ihl = 5);
   Type getType() const override {
     return IPV4;
   }
@@ -125,7 +126,8 @@ class IPv6Header : public HeaderEntry {
       const std::string& dst,
       uint8_t hopLimit = 64,
       uint8_t trafficClass = 0,
-      uint32_t flowLabel = 0);
+      uint32_t flowLabel = 0,
+      uint8_t nextHeader = 0);
   Type getType() const override {
     return IPV6;
   }
@@ -418,6 +420,13 @@ class PacketBuilder {
   static constexpr uint8_t STABLE_UDP_TYPE = 0x52;
   static constexpr auto STABLE_UDP_HEADER_SIZE = 8;
 
+  // IPv4 fragmentation flags
+  static constexpr uint16_t IP_FLAG_MF = 0x20; // More Fragments (bit 13)
+  static constexpr uint16_t IP_FLAG_DF = 0x40; // Don't Fragment (bit 14)
+
+  // IPv6 next header values
+  static constexpr uint8_t IPV6_NH_FRAGMENT = 44; // IPv6 Fragment header
+
   struct PacketResult {
     std::string base64Packet;
     std::string scapyCommand;
@@ -439,14 +448,16 @@ class PacketBuilder {
       uint8_t ttl = 64,
       uint8_t tos = 0,
       uint16_t id = 1,
-      uint16_t flags = 0);
+      uint16_t flags = 0,
+      uint8_t ihl = 5);
 
   PacketBuilder& IPv6(
       const std::string& src,
       const std::string& dst,
       uint8_t hopLimit = 64,
       uint8_t trafficClass = 0,
-      uint32_t flowLabel = 0);
+      uint32_t flowLabel = 0,
+      uint8_t nextHeader = 0);
 
   PacketBuilder& UDP(uint16_t sport, uint16_t dport);
 
@@ -500,7 +511,7 @@ class PacketBuilder {
       uint16_t id = 0,
       uint16_t sequence = 0);
 
-  PacketResult build();
+  PacketResult build() const;
 
   std::vector<uint8_t> buildAsBytes() const;
 
@@ -509,7 +520,7 @@ class PacketBuilder {
 
   std::vector<uint8_t> buildBinaryPacket();
   std::string generateScapyCommand();
-  std::string bytesToBase64(const std::vector<uint8_t>& bytes);
+  std::string bytesToBase64(const std::vector<uint8_t>& bytes) const;
   static bool isValidMacAddress(const std::string& mac);
   static bool isValidIPv4Address(const std::string& ip);
   static bool isValidIPv6Address(const std::string& ip);

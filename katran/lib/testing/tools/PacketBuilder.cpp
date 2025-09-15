@@ -71,7 +71,8 @@ PacketBuilder& PacketBuilder::IPv4(
     uint8_t ttl,
     uint8_t tos,
     uint16_t id,
-    uint16_t flags) {
+    uint16_t flags,
+    uint8_t ihl) {
   if (!isValidIPv4Address(src)) {
     throw std::invalid_argument("Invalid source IPv4 address: " + src);
   }
@@ -80,7 +81,7 @@ PacketBuilder& PacketBuilder::IPv4(
   }
 
   headerStack_.emplace_back(
-      std::make_shared<IPv4Header>(src, dst, ttl, tos, id, flags));
+      std::make_shared<IPv4Header>(src, dst, ttl, tos, id, flags, ihl));
   return *this;
 }
 
@@ -89,7 +90,8 @@ PacketBuilder& PacketBuilder::IPv6(
     const std::string& dst,
     uint8_t hopLimit,
     uint8_t trafficClass,
-    uint32_t flowLabel) {
+    uint32_t flowLabel,
+    uint8_t nextHeader) {
   if (!isValidIPv6Address(src)) {
     throw std::invalid_argument("Invalid source IPv6 address: " + src);
   }
@@ -98,7 +100,7 @@ PacketBuilder& PacketBuilder::IPv6(
   }
 
   headerStack_.emplace_back(std::make_shared<IPv6Header>(
-      src, dst, hopLimit, trafficClass, flowLabel));
+      src, dst, hopLimit, trafficClass, flowLabel, nextHeader));
   return *this;
 }
 
@@ -348,12 +350,13 @@ std::vector<uint8_t> PacketBuilder::buildAsBytes() const {
   return const_cast<PacketBuilder*>(this)->buildBinaryPacket();
 }
 
-PacketBuilder::PacketResult PacketBuilder::build() {
-  auto binaryPacket = buildBinaryPacket();
+PacketBuilder::PacketResult PacketBuilder::build() const {
+  auto binaryPacket = const_cast<PacketBuilder*>(this)->buildBinaryPacket();
 
   PacketResult result;
   result.base64Packet = bytesToBase64(binaryPacket);
-  result.scapyCommand = generateScapyCommand();
+  result.scapyCommand =
+      const_cast<PacketBuilder*>(this)->generateScapyCommand();
   result.packetSize = binaryPacket.size();
 
   return result;
@@ -398,7 +401,8 @@ std::string PacketBuilder::generateScapyCommand() {
   return command;
 }
 
-std::string PacketBuilder::bytesToBase64(const std::vector<uint8_t>& bytes) {
+std::string PacketBuilder::bytesToBase64(
+    const std::vector<uint8_t>& bytes) const {
   return folly::base64Encode(folly::StringPiece(
       reinterpret_cast<const char*>(bytes.data()), bytes.size()));
 }
@@ -570,7 +574,8 @@ IPv4Header::IPv4Header(
     uint8_t ttl,
     uint8_t tos,
     uint16_t id,
-    uint16_t flags) {
+    uint16_t flags,
+    uint8_t ihl) {
   static_assert(
       sizeof(ip_.saddr) == 4, "IPv4 source address field size mismatch");
   static_assert(
@@ -588,7 +593,7 @@ IPv4Header::IPv4Header(
   }
 
   ip_.version = 4;
-  ip_.ihl = IPV4_MIN_HEADER_LENGTH; // 4*5=20 bytes IP header length
+  ip_.ihl = ihl; // Set IHL as specified, default is 5 (20 bytes)
   ip_.tos = tos;
   ip_.tot_len = 0; // Will be calculated in serialize()
   ip_.id = htons(id);
@@ -609,17 +614,39 @@ void IPv4Header::serialize(
   // Set total length based on current packet size (which contains the
   // payload)
   ip.tot_len = htons(sizeof(struct iphdr) + packet.size());
+  // Calculate actual header length including options
+  size_t actualHeaderLength = ip_.ihl * 4;
 
-  // Calculate checksum
+  // Set total length based on current packet size plus actual header length
+  ip.tot_len = htons(actualHeaderLength + packet.size());
+
+  // Build header with options (if any)
+  std::vector<uint8_t> ipHeaderWithOptions;
+  ipHeaderWithOptions.resize(actualHeaderLength, 0);
+
+  // Copy the basic IPv4 header
+  std::memcpy(ipHeaderWithOptions.data(), &ip, sizeof(struct iphdr));
+
+  // If IHL > 5, fill options area with zeros (dummy options for testing)
+  // This creates the required space but doesn't implement specific options
+  if (actualHeaderLength > sizeof(struct iphdr)) {
+    // Options area is already zero-filled from resize() above
+    // In a real implementation, actual IPv4 options would be added here
+  }
+
+  // Calculate checksum over the complete header (including options)
   ip.check = 0;
-  const uint8_t* ipBytes = reinterpret_cast<const uint8_t*>(&ip);
-  std::vector<uint8_t> ipForChecksum(ipBytes, ipBytes + sizeof(struct iphdr));
-  uint16_t checksum = calculateChecksum(ipForChecksum);
+  std::memcpy(ipHeaderWithOptions.data(), &ip, sizeof(struct iphdr));
+  uint16_t checksum =
+      calculateChecksum(ipHeaderWithOptions, 0, actualHeaderLength);
   ip.check = htons(checksum);
 
-  const uint8_t* finalIpBytes = reinterpret_cast<const uint8_t*>(&ip);
+  // Update the header with the correct checksum
+  std::memcpy(ipHeaderWithOptions.data(), &ip, sizeof(struct iphdr));
+
+  // Insert the complete header (with options) at the beginning of the packet
   packet.insert(
-      packet.begin(), finalIpBytes, finalIpBytes + sizeof(struct iphdr));
+      packet.begin(), ipHeaderWithOptions.begin(), ipHeaderWithOptions.end());
 }
 
 std::string IPv4Header::generateScapyCommand() const {
@@ -636,6 +663,36 @@ std::string IPv4Header::generateScapyCommand() const {
   // Add ToS if non-zero
   if (ip_.tos != 0) {
     command += ", tos=" + std::to_string(ip_.tos);
+  }
+
+  // Add IHL if not the default value of 5
+  if (ip_.ihl != IPV4_MIN_HEADER_LENGTH) {
+    command += ", ihl=" + std::to_string(ip_.ihl);
+  }
+
+  // Add flags if non-zero
+  uint16_t flags =
+      ntohs(ip_.frag_off) & 0xE000; // Extract flag bits (bits 13-15)
+  if (flags != 0) {
+    std::string flagsStr;
+    if (flags & 0x2000) { // More Fragments (MF) - bit 13
+      flagsStr += "MF";
+    }
+    if (flags & 0x4000) { // Don't Fragment (DF) - bit 14
+      if (!flagsStr.empty()) {
+        flagsStr += "+";
+      }
+      flagsStr += "DF";
+    }
+    if (flags & 0x8000) { // Reserved flag - bit 15
+      if (!flagsStr.empty()) {
+        flagsStr += "+";
+      }
+      flagsStr += "RF";
+    }
+    if (!flagsStr.empty()) {
+      command += ", flags='" + flagsStr + "'";
+    }
   }
 
   command += ")";
@@ -702,7 +759,8 @@ IPv6Header::IPv6Header(
     const std::string& dst,
     uint8_t hopLimit,
     uint8_t trafficClass,
-    uint32_t flowLabel) {
+    uint32_t flowLabel,
+    uint8_t nextHeader) {
   static_assert(
       sizeof(ip6_.ip6_src) == 16, "IPv6 source address field size mismatch");
   static_assert(
@@ -722,7 +780,8 @@ IPv6Header::IPv6Header(
       (flowLabel & IPV6_FLOW_LABEL_MASK);
   ip6_.ip6_flow = htonl(version_tc_fl);
   ip6_.ip6_plen = 0; // Will be calculated in serialize()
-  ip6_.ip6_nxt = 0; // Will be updated based on next header
+  ip6_.ip6_nxt = nextHeader; // Set custom next header or will be updated based
+                             // on next header
   ip6_.ip6_hlim = hopLimit;
 
   struct in6_addr src_addr {
@@ -762,11 +821,19 @@ std::string IPv6Header::generateScapyCommand() const {
   if (ip6_.ip6_hlim != DEFAULT_IPV6_HOP_LIMIT) {
     command += ", hlim=" + std::to_string(ip6_.ip6_hlim);
   }
+  // Add next header if it's set to a specific value (non-zero)
+  if (ip6_.ip6_nxt != 0) {
+    command += ", nh=" + std::to_string(ip6_.ip6_nxt);
+  }
   command += ")";
   return command;
 }
 
 void IPv6Header::updateForNextHeader(Type nextHeaderType) {
+  if (ip6_.ip6_nxt != 0) {
+    return;
+  }
+
   switch (nextHeaderType) {
     case UDP_HEADER:
       ip6_.ip6_nxt = IPPROTO_UDP;
