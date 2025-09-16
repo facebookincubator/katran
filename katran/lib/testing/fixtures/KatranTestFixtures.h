@@ -281,15 +281,14 @@ const std::vector<katran::PacketAttributes> testFixtures = {
                                         .IPv6("fc00:2::1", "fc00:1::1")
                                         .TCP(31337, 82, 0, 0, 8192, TH_ACK)
                                         .payload("katran test pkt")},
-    //17
-  {
-    //Ether(src="0x1", dst="0x2")/ARP()
-    .inputPacket = "AgAAAAAAAQAAAAAACAYAAQgABgQAAQAAAAAAAAAAAAAAAAAAAAAAAAAA",
-    .description = "pass of arp packet",
-    .expectedReturnValue = "XDP_PASS",
-    .expectedOutputPacket = "AgAAAAAAAQAAAAAACAYAAQgABgQAAQAAAAAAAAAAAAAAAAAAAAAAAAAA",
-  },
-  //18
+    // 17
+    {.description = "pass of arp packet",
+     .expectedReturnValue = "XDP_PASS",
+     .inputPacketBuilder =
+         katran::testing::PacketBuilder::newPacket().Eth("0x1", "0x2").ARP(),
+     .expectedOutputPacketBuilder =
+         katran::testing::PacketBuilder::newPacket().Eth("0x1", "0x2").ARP()},
+      //18
   {
     //Ether(src="0x1", dst="0x2")/IP(src="192.168.1.1", dst="10.200.1.1")/TCP(sport=31337, dport=80, flags="A")/"katran test pkt"
     .inputPacket = "AgAAAAAAAQAAAAAACABFAAA3AAEAAEAGrU7AqAEBCsgBAXppAFAAAAAAAAAAAFAQIAAn5AAAa2F0cmFuIHRlc3QgcGt0",

@@ -48,6 +48,7 @@ class HeaderEntry {
     TCP_HEADER,
     ICMP_HEADER,
     ICMPV6_HEADER,
+    ARP_HEADER,
     PAYLOAD
   };
 
@@ -397,6 +398,51 @@ class ICMPv6Header : public HeaderEntry {
 };
 
 /**
+ * ARP header implementation
+ */
+class ARPHeader : public HeaderEntry {
+ public:
+  enum ARPOpcode { ARP_REQUEST = 1, ARP_REPLY = 2 };
+
+  ARPHeader(
+      uint16_t hardwareType = 1, // Ethernet = 1
+      uint16_t protocolType = 0x0800, // IPv4 = 0x0800
+      uint8_t hardwareLength = 6, // Ethernet = 6
+      uint8_t protocolLength = 4, // IPv4 = 4
+      uint16_t opcode = ARP_REQUEST,
+      const std::string& senderHardwareAddr = "00:00:00:00:00:00",
+      const std::string& senderProtocolAddr = "0.0.0.0",
+      const std::string& targetHardwareAddr = "00:00:00:00:00:00",
+      const std::string& targetProtocolAddr = "0.0.0.0");
+
+  Type getType() const override {
+    return ARP_HEADER;
+  }
+  void serialize(
+      size_t headerIndex,
+      const std::vector<std::shared_ptr<HeaderEntry>>& headerStack,
+      std::vector<uint8_t>& packet) override;
+  std::string generateScapyCommand() const override;
+
+ private:
+  struct arphdr {
+    uint16_t ar_hrd; // Hardware type
+    uint16_t ar_pro; // Protocol type
+    uint8_t ar_hln; // Hardware address length
+    uint8_t ar_pln; // Protocol address length
+    uint16_t ar_op; // Operation code
+    uint8_t ar_sha[6]; // Sender hardware address
+    uint32_t ar_spa; // Sender protocol address
+    uint8_t ar_tha[6]; // Target hardware address
+    uint32_t ar_tpa; // Target protocol address
+  } __attribute__((packed));
+
+  struct arphdr arp_ {};
+  std::vector<uint8_t> macStringToBytes(const std::string& macStr);
+  uint32_t ipStringToBytes(const std::string& ipStr);
+};
+
+/**
  * Usage:
  *   auto packet = PacketBuilder::newPacket()
  *       .Eth(src="01:00:00:00:00:00", dst="02:00:00:00:00:00")
@@ -510,6 +556,14 @@ class PacketBuilder {
       uint8_t code = 0,
       uint16_t id = 0,
       uint16_t sequence = 0);
+
+  // ARP methods
+  PacketBuilder& ARP(
+      uint16_t opcode = ARPHeader::ARP_REQUEST,
+      const std::string& senderHardwareAddr = "00:00:00:00:00:00",
+      const std::string& senderProtocolAddr = "0.0.0.0",
+      const std::string& targetHardwareAddr = "00:00:00:00:00:00",
+      const std::string& targetProtocolAddr = "0.0.0.0");
 
   PacketResult build() const;
 

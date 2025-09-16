@@ -346,6 +346,25 @@ PacketBuilder& PacketBuilder::ICMPv6(
   return *this;
 }
 
+PacketBuilder& PacketBuilder::ARP(
+    uint16_t opcode,
+    const std::string& senderHardwareAddr,
+    const std::string& senderProtocolAddr,
+    const std::string& targetHardwareAddr,
+    const std::string& targetProtocolAddr) {
+  headerStack_.emplace_back(std::make_shared<ARPHeader>(
+      1, // Hardware type: Ethernet
+      0x0800, // Protocol type: IPv4
+      6, // Hardware length: Ethernet
+      4, // Protocol length: IPv4
+      opcode,
+      senderHardwareAddr,
+      senderProtocolAddr,
+      targetHardwareAddr,
+      targetProtocolAddr));
+  return *this;
+}
+
 std::vector<uint8_t> PacketBuilder::buildAsBytes() const {
   return const_cast<PacketBuilder*>(this)->buildBinaryPacket();
 }
@@ -517,6 +536,9 @@ void EthernetHeader::updateForNextHeader(Type nextHeaderType) {
       break;
     case IPV6:
       eth_.h_proto = htons(ETH_P_IPV6);
+      break;
+    case ARP_HEADER:
+      eth_.h_proto = htons(ETH_P_ARP);
       break;
     default:
       VLOG(2) << "Unhandled next header type: "
@@ -1822,6 +1844,155 @@ uint16_t ICMPv6Header::calculateChecksum(
 
   // Return one's complement (same as BPF ~csum)
   return static_cast<uint16_t>(~sum);
+}
+
+// ARPHeader implementation
+ARPHeader::ARPHeader(
+    uint16_t hardwareType,
+    uint16_t protocolType,
+    uint8_t hardwareLength,
+    uint8_t protocolLength,
+    uint16_t opcode,
+    const std::string& senderHardwareAddr,
+    const std::string& senderProtocolAddr,
+    const std::string& targetHardwareAddr,
+    const std::string& targetProtocolAddr) {
+  std::memset(&arp_, 0, sizeof(arp_));
+
+  arp_.ar_hrd = htons(hardwareType);
+  arp_.ar_pro = htons(protocolType);
+  arp_.ar_hln = hardwareLength;
+  arp_.ar_pln = protocolLength;
+  arp_.ar_op = htons(opcode);
+
+  // Set sender hardware address
+  auto senderHwBytes = macStringToBytes(senderHardwareAddr);
+  if (senderHwBytes.size() == 6) {
+    std::memcpy(arp_.ar_sha, senderHwBytes.data(), 6);
+  }
+
+  // Set sender protocol address
+  arp_.ar_spa = htonl(ipStringToBytes(senderProtocolAddr));
+
+  // Set target hardware address
+  auto targetHwBytes = macStringToBytes(targetHardwareAddr);
+  if (targetHwBytes.size() == 6) {
+    std::memcpy(arp_.ar_tha, targetHwBytes.data(), 6);
+  }
+
+  // Set target protocol address
+  arp_.ar_tpa = htonl(ipStringToBytes(targetProtocolAddr));
+}
+
+void ARPHeader::serialize(
+    [[maybe_unused]] size_t headerIndex,
+    [[maybe_unused]] const std::vector<std::shared_ptr<HeaderEntry>>&
+        headerStack,
+    std::vector<uint8_t>& packet) {
+  const uint8_t* arpBytes = reinterpret_cast<const uint8_t*>(&arp_);
+  packet.insert(packet.begin(), arpBytes, arpBytes + sizeof(struct arphdr));
+}
+
+std::string ARPHeader::generateScapyCommand() const {
+  std::stringstream senderHw, targetHw;
+  senderHw << std::hex << std::setfill('0');
+  targetHw << std::hex << std::setfill('0');
+
+  for (int i = 0; i < 6; ++i) {
+    if (i > 0) {
+      senderHw << ":";
+      targetHw << ":";
+    }
+    senderHw << std::setw(2) << static_cast<unsigned>(arp_.ar_sha[i]);
+    targetHw << std::setw(2) << static_cast<unsigned>(arp_.ar_tha[i]);
+  }
+
+  // Convert IP addresses
+  struct in_addr senderAddr {
+  }, targetAddr{};
+  senderAddr.s_addr = arp_.ar_spa;
+  targetAddr.s_addr = arp_.ar_tpa;
+
+  std::string command = "ARP(";
+  if (ntohs(arp_.ar_op) == ARP_REQUEST) {
+    command += "op='who-has'";
+  } else if (ntohs(arp_.ar_op) == ARP_REPLY) {
+    command += "op='is-at'";
+  } else {
+    command += "op=" + std::to_string(ntohs(arp_.ar_op));
+  }
+
+  // Only add non-default values to keep command clean
+  if (ntohl(arp_.ar_spa) != 0) {
+    command += ", psrc='" + std::string(inet_ntoa(senderAddr)) + "'";
+  }
+  if (ntohl(arp_.ar_tpa) != 0) {
+    command += ", pdst='" + std::string(inet_ntoa(targetAddr)) + "'";
+  }
+
+  // Check if hardware addresses are non-zero
+  bool senderHwNonZero = false, targetHwNonZero = false;
+  for (int i = 0; i < 6; ++i) {
+    if (arp_.ar_sha[i] != 0) {
+      senderHwNonZero = true;
+    }
+    if (arp_.ar_tha[i] != 0) {
+      targetHwNonZero = true;
+    }
+  }
+
+  if (senderHwNonZero) {
+    command += ", hwsrc='" + senderHw.str() + "'";
+  }
+  if (targetHwNonZero) {
+    command += ", hwdst='" + targetHw.str() + "'";
+  }
+
+  command += ")";
+  return command;
+}
+
+std::vector<uint8_t> ARPHeader::macStringToBytes(const std::string& macStr) {
+  std::vector<uint8_t> bytes(6, 0);
+
+  // Handle simple format like "0x1" -> 01:00:00:00:00:00
+  if (macStr.find("0x") == 0) {
+    try {
+      uint64_t macVal = std::stoull(macStr, nullptr, 16);
+      bytes[0] = macVal & 0xFF;
+      bytes[1] = (macVal >> 8) & 0xFF;
+      bytes[2] = (macVal >> 16) & 0xFF;
+      bytes[3] = (macVal >> 24) & 0xFF;
+      bytes[4] = (macVal >> 32) & 0xFF;
+      bytes[5] = (macVal >> 40) & 0xFF;
+    } catch (...) {
+      // Keep all zeros
+    }
+  } else if (macStr.find(':') != std::string::npos) {
+    // Handle standard MAC format like "01:02:03:04:05:06"
+    std::vector<folly::StringPiece> parts;
+    folly::split(':', macStr, parts);
+    if (parts.size() == 6) {
+      try {
+        for (size_t i = 0; i < 6; ++i) {
+          bytes[i] =
+              static_cast<uint8_t>(std::stoul(parts[i].str(), nullptr, 16));
+        }
+      } catch (...) {
+        // Keep all zeros
+      }
+    }
+  }
+
+  return bytes;
+}
+
+uint32_t ARPHeader::ipStringToBytes(const std::string& ipStr) {
+  struct in_addr addr {};
+  if (inet_aton(ipStr.c_str(), &addr) != 0) {
+    return ntohl(addr.s_addr); // Return in host byte order
+  }
+  return 0; // Invalid IP, return 0.0.0.0
 }
 
 } // namespace testing
