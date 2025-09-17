@@ -128,7 +128,7 @@ TEST_F(PacketBuilderTest, StableRoutingPayloadEmptyConnectionId) {
                     .stableRoutingPayload({}, "test")
                     .build();
 
-  auto binaryPacket = folly::base64Decode(packet.base64Packet);
+  auto binaryPacket = packet.binaryPacket;
 
   // Find the payload section (after UDP header)
   // Ethernet (14) + IPv4 (20) + UDP (8) = 42 bytes before payload
@@ -160,7 +160,7 @@ TEST_F(PacketBuilderTest, StableRoutingPayloadShortConnectionId) {
                     .stableRoutingPayload({0x01, 0x02, 0x03}, "data")
                     .build();
 
-  auto binaryPacket = folly::base64Decode(packet.base64Packet);
+  auto binaryPacket = packet.binaryPacket;
 
   // Find the payload section (after UDP header)
   ASSERT_GE(
@@ -196,7 +196,7 @@ TEST_F(PacketBuilderTest, StableRoutingPayloadFullConnectionId) {
           .stableRoutingPayload({0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07}, "x")
           .build();
 
-  auto binaryPacket = folly::base64Decode(packet.base64Packet);
+  auto binaryPacket = packet.binaryPacket;
 
   // Find the payload section (after UDP header)
   ASSERT_GE(
@@ -228,7 +228,7 @@ TEST_F(PacketBuilderTest, StableRoutingPayloadEmptyPayload) {
                     .stableRoutingPayload({0xAA, 0xBB}, "")
                     .build();
 
-  auto binaryPacket = folly::base64Decode(packet.base64Packet);
+  auto binaryPacket = packet.binaryPacket;
 
   // Find the payload section (after UDP header)
   ASSERT_GE(
@@ -278,7 +278,7 @@ TEST_F(PacketBuilderTest, StableRoutingPayloadBinaryValues) {
                     .stableRoutingPayload({0xFF}, binaryPayload)
                     .build();
 
-  auto binaryPacket = folly::base64Decode(packet.base64Packet);
+  auto binaryPacket = packet.binaryPacket;
 
   // Find the payload section (after UDP header)
   // Calculate expected size: STABLE_UDP_HEADER_SIZE
@@ -378,7 +378,7 @@ TEST_F(PacketBuilderTest, TcpHeaderLengthWithTPROption) {
                     .withTPR(0x0400) // 6 bytes: kind(1) + length(1) + data(4)
                     .build();
 
-  auto binaryPacket = folly::base64Decode(packet.base64Packet);
+  auto binaryPacket = packet.binaryPacket;
 
   // TCP header starts at offset 34 (Ethernet 14 + IPv4 20)
   const uint8_t* tcpHeader =
@@ -402,7 +402,7 @@ TEST_F(PacketBuilderTest, TcpHeaderLengthWithMultipleOptions) {
                     .payload("katran test pkt")
                     .build();
 
-  auto binaryPacket = folly::base64Decode(packet.base64Packet);
+  auto binaryPacket = packet.binaryPacket;
   const uint8_t* tcpHeader =
       reinterpret_cast<const uint8_t*>(binaryPacket.data()) + 34;
   uint8_t dataOffset = (tcpHeader[12] >> 4) & 0x0F;
@@ -421,7 +421,7 @@ TEST_F(PacketBuilderTest, TPROptionFormatValidation) {
                     .withTPR(0x03FF) // TPR ID: 1023
                     .build();
 
-  auto binaryPacket = folly::base64Decode(packet.base64Packet);
+  auto binaryPacket = packet.binaryPacket;
   const uint8_t* tcpOptions =
       reinterpret_cast<const uint8_t*>(binaryPacket.data()) +
       54; // After TCP base header
@@ -444,7 +444,7 @@ TEST_F(PacketBuilderTest, NOPOptionFormatValidation) {
                     .withNOP(3)
                     .build();
 
-  auto binaryPacket = folly::base64Decode(packet.base64Packet);
+  auto binaryPacket = packet.binaryPacket;
   const uint8_t* tcpOptions =
       reinterpret_cast<const uint8_t*>(binaryPacket.data()) + 54;
 
@@ -464,7 +464,7 @@ TEST_F(PacketBuilderTest, TcpChecksumWithTPROption) {
                     .payload("test")
                     .build();
 
-  auto binaryPacket = folly::base64Decode(packet.base64Packet);
+  auto binaryPacket = packet.binaryPacket;
   const uint8_t* tcpHeader =
       reinterpret_cast<const uint8_t*>(binaryPacket.data()) + 34;
 
@@ -547,7 +547,7 @@ TEST_F(PacketBuilderTest, LargeNumberOfNOPs) {
                     .payload("katran test pkt")
                     .build();
 
-  auto binaryPacket = folly::base64Decode(packet.base64Packet);
+  auto binaryPacket = packet.binaryPacket;
 
   EXPECT_FALSE(packet.base64Packet.empty());
 

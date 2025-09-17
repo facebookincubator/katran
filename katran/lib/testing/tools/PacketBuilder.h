@@ -477,6 +477,7 @@ class PacketBuilder {
     std::string base64Packet;
     std::string scapyCommand;
     size_t packetSize;
+    std::vector<uint8_t> binaryPacket;
   };
 
   // Default constructor

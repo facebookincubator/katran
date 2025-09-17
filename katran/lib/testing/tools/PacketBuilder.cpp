@@ -377,6 +377,7 @@ PacketBuilder::PacketResult PacketBuilder::build() const {
   result.scapyCommand =
       const_cast<PacketBuilder*>(this)->generateScapyCommand();
   result.packetSize = binaryPacket.size();
+  result.binaryPacket = std::move(binaryPacket); // ← Store the raw binary data!
 
   return result;
 }
