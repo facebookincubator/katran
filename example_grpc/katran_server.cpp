@@ -106,7 +106,7 @@ void RunServer(
 }
 
 int main(int argc, char** argv) {
-  folly::init(&argc, &argv);
+  const folly::Init init(&argc, &argv);
   FLAGS_logtostderr = 1;
 
   auto forwardingCores = parseIntLine(FLAGS_forwarding_cores);
