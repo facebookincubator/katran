@@ -50,6 +50,8 @@ constexpr unsigned int kBpfMapTypeHashOfMaps = 13;
 
 class BaseBpfAdapter {
  public:
+  static constexpr const char* kBpfTokenPathEnvVar = "LIBBPF_BPF_TOKEN_PATH";
+
   BaseBpfAdapter(bool set_limits, bool enableBatchOpsIfSupported);
 
   virtual ~BaseBpfAdapter() {}
@@ -672,6 +674,20 @@ class BaseBpfAdapter {
 
   bool isBatchOpsEnabled() const;
 
+  /**
+   * @param const char* path Path to the BPF filesystem directory
+   * @return int 0 on success, -1 on failure
+   *
+   * Creates a BPF token from the specified filesystem path and sets it
+   * for use with BPF operations. The BPF token enables unprivileged access
+   * to BPF functionality when running in restricted environments like
+   * user namespaces or containers.
+   *
+   * Once set, the token will be automatically used when creating BPF maps
+   * and other BPF objects to enable operations in restricted contexts.
+   */
+  int setBpfTokenFromFilePath(const char* path);
+
  protected:
   /**
    * helper function to modify (add/delete/replace) tc's bpf prog.
@@ -729,6 +745,8 @@ class BaseBpfAdapter {
    * enabled and supported.
    */
   bool batchOpsEnabled_{false};
+
+  static int64_t bpfTokenFd_;
 };
 
 } // namespace katran

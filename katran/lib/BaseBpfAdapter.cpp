@@ -240,6 +240,11 @@ int BaseBpfAdapter::createNamedBpfMap(
       .map_flags = map_flags | (numa_node >= 0 ? BPF_F_NUMA_NODE : 0),
       .numa_node = (__u32)numa_node);
 
+  if (bpfTokenFd_ >= 0) {
+    opts.token_fd = bpfTokenFd_;
+    opts.map_flags |= BPF_F_TOKEN_FD;
+  }
+
   return bpf_map_create(
       static_cast<enum bpf_map_type>(type),
       name_ptr,
@@ -597,7 +602,7 @@ int BaseBpfAdapter::addClsActQD(const unsigned int ifindex) {
 }
 
 int BaseBpfAdapter::getDirFd(const std::string& path) {
-  return ::open(path.c_str(), O_DIRECTORY, O_RDONLY);
+  return ::open(path.c_str(), O_DIRECTORY | O_RDONLY);
 }
 
 int BaseBpfAdapter::attachCgroupProg(
@@ -920,5 +925,27 @@ int64_t BaseBpfAdapter::getKtimeNs() {
 bool BaseBpfAdapter::isBatchOpsEnabled() const {
   return batchOpsEnabled_;
 }
+
+int BaseBpfAdapter::setBpfTokenFromFilePath(const char* path) {
+  LOG(INFO) << "bpf token path: " << path;
+  auto bpfFsFd = getDirFd(path);
+  if (bpfFsFd < 0) {
+    LOG(ERROR) << "failed to open bpf token path: " << path
+               << " error: " << folly::errnoStr(errno);
+    return -1;
+  }
+  auto tokenFd = bpf_token_create(bpfFsFd, nullptr);
+  close(bpfFsFd);
+  if (tokenFd < 0) {
+    LOG(ERROR) << "failed to create bpf token from path: " << path
+               << " error: " << folly::errnoStr(errno);
+    return -1;
+  }
+  bpfTokenFd_ = tokenFd;
+  LOG(INFO) << "Successfully created BPF token with fd: " << tokenFd;
+  return 0;
+}
+
+int64_t BaseBpfAdapter::bpfTokenFd_ = -1;
 
 } // namespace katran

@@ -487,10 +487,8 @@ void KatranLb::initLrus(bool flowDebug, bool globalLru) {
       int lru_fd =
           createLruMap(per_core_lru_size, lru_map_flags, numa_node, core);
       if (lru_fd < 0) {
-        LOG(FATAL) << "can't creat lru for core: " << core;
-        throw std::runtime_error(fmt::format(
-            "can't create LRU for forwarding core, error: {}",
-            folly::errnoStr(errno)));
+        LOG(FATAL) << "can't creat lru for core: " << core
+                   << ", error: " << folly::errnoStr(errno);
       }
       lruMapsFd_[core] = lru_fd;
       if (flowDebug) {
