@@ -1,4 +1,4 @@
-// @nolint
+// clang-format off
 
 /* Copyright (C) 2018-present, Facebook, Inc.
  *
@@ -17,58 +17,100 @@
  */
 
 #pragma once
-#include <bpf/bpf.h>
-#include <katran/lib/testing/tools/PacketAttributes.h>
-#include <string>
-#include <utility>
 #include <vector>
+#include "katran/lib/testing/tools/PacketAttributes.h"
+#include "katran/lib/testing/tools/PacketBuilder.h"
+
+extern "C" {
+#include <netinet/tcp.h>
+}
+
+/**
+ * Test fixtures for VIP decapsulation statistics functionality.
+ * 
+ * Each test case is generated using PacketBuilder and contains:
+ * - inputPacketBuilder: PacketBuilder object for input packet
+ * - expectedOutputPacketBuilder: PacketBuilder object for expected output packet
+ * - description: Test case description
+ * - expectedReturnValue: Expected BPF program return code (XDP_TX, XDP_DROP, XDP_PASS)
+ *
+ * PacketBuilder Usage:
+ *   PacketBuilder::newPacket()
+ *       .Eth("01:00:00:00:00:00", "02:00:00:00:00:00")
+ *       .IPv4("192.168.1.1", "10.200.1.1")
+ *       .UDP(31337, 80)
+ *       .payload("katran test pkt")
+ *
+ * For GUE encapsulation:
+ *   PacketBuilder::newPacket()
+ *       .Eth("01:00:00:00:00:00", "02:00:00:00:00:00")
+ *       .IPv6("100::64", "fc00:1::1")        // outer IPv6 - to VIP
+ *       .UDP(31337, 9886)                    // outer UDP (GUE)
+ *       .IPv4("192.168.1.1", "10.200.1.1")  // inner IPv4 - client to VIP
+ *       .UDP(31337, 80)                      // inner UDP
+ *       .payload("katran test pkt")
+ *
+ * Requirements:
+ * - INLINE_DECAP_GUE feature must be enabled for decap tests
+ * - Tests cover scenarios where GUE packets hit configured VIPs
+ * - VIP decap stats counters should be incremented for successful decaps
+ */
 
 namespace katran {
 namespace testing {
-/**
- * Input packets has been generated with scapy.
- *
- * Format of the input data: <string, string>; 1st string is a base64 encoded
- * packet. 2nd string is test's description
- *
- * Format of the output data: <string, string>; 1st string is a base64 encoded
- * packet which we are expecting to see after bpf program's run.
- * 2nd string = bpf's program return code.
- *
- * to create pcap w/ scapy:
- * 1) create packets
- * 2) pckts = [ <created packets from above> ]
- * 3) wrpcap(<path_to_file>, pckts)
- */
 
 const std::vector<PacketAttributes> DecapTestFixtures = {
-    // gue ip6 in ip6 inline decap. out dst is host primary addr fc00:2307::1337
-    {// Ether(src="0x1", dst="0x2")/IPv6(src="100::64",dst="fc00:2307::1337")/UDP(sport=31337,dport=9886)/IPv6(src="fc00:2307:1::2", dst="fc00:1::1")/TCP(sport=31337,dport=80,flags="A")/"katran test pkt"
-     .inputPacket =
-         "AgAAAAAAAQAAAAAAht1gAAAAAFMRQAEAAAAAAAAAAAAAAAAAAGT8ACMHAAAAAAAAAAAAABM3emkmngBTxGNgAAAAACMGQPwAIwcAAQAAAAAAAAAAAAL8AAABAAAAAAAAAAAAAAABemkAUAAAAAAAAAAAUBAgANpIAABrYXRyYW4gdGVzdCBwa3Q=",
-     .description = "gue ip6ip6 inline decap. INLINE_DECAP_GUE is required",
-     .expectedReturnValue = "XDP_PASS",
-     .expectedOutputPacket =
-         "AgAAAAAAAQAAAAAAht1gAAAAACMGP/wAIwcAAQAAAAAAAAAAAAL8AAABAAAAAAAAAAAAAAABemkAUAAAAAAAAAAAUBAgANpIAABrYXRyYW4gdGVzdCBwa3Q="},
-    // gue ip4 in ip6 inline decap. out dst is host primary addr fc00:2307::1337
-    {// Ether(src="0x1", dst="0x2")/IPv6(src="100::64",dst="fc00:2307::1337")/UDP(sport=31337,dport=9886)/IP(src="192.168.1.3", dst="10.200.1.1")/UDP(sport=31337,dport=80)/"katran test pkt"
-     .inputPacket =
-         "AgAAAAAAAQAAAAAAht1gAAAAADMRQAEAAAAAAAAAAAAAAAAAAGT8ACMHAAAAAAAAAAAAABM3emkmngAz+HpFAAArAAEAAEARrU3AqAEDCsgBAXppAFAAF5fca2F0cmFuIHRlc3QgcGt0",
-     .description = "gue ip4 in ip6 inline decap. INLINE_DECAP_GUE is required",
-     .expectedReturnValue = "XDP_PASS",
-     // Ether(src="0x1", dst="0x2")/IP(src="192.168.1.3",dst="10.200.1.1")/UDP(sport=31337, dport=80)/"katran test pkt"
-     .expectedOutputPacket =
-         "AgAAAAAAAQAAAAAACABFAAArAAEAAD8Rrk3AqAEDCsgBAXppAFAAF5fca2F0cmFuIHRlc3QgcGt0"},
-    // ip6 packet for vip - this should not get decaped, so won't be added to decap vip stats
-    {// Ether(src="0x1", dst="0x2")/IPv6(src="100::64",dst="fc00:1::1")/TCP(sport=31337, dport=80,flags="A")/"katran test pkt"
-     .inputPacket =
-         "AgAAAAAAAQAAAAAAht1gAAAAACMGQAEAAAAAAAAAAAAAAAAAAGT8AAABAAAAAAAAAAAAAAABemkAUAAAAAAAAAAAUBAgAPfvAABrYXRyYW4gdGVzdCBwa3Q=",
-     .description = "vip traffic",
-     .expectedReturnValue = "XDP_TX",
-     // Ether(dst="00:00:de:ad:be:af",src="02:00:00:00:00:00")/IPv6(src="fc00:2307::1337",dst="fc00::2")/UDP(sport=31337, dport=9886)/IPv6(src="100::64",dst="fc00:1::1")/TCP(sport=31337, dport=80,flags="A")/"katran test pkt"
-     .expectedOutputPacket =
-         "AADerb6vAgAAAAAAht1gAAAAAFMRQPwAIwcAAAAAAAAAAAAAEzf8AAAAAAAAAAAAAAAAAAACemkmngBTycRgAAAAACMGQAEAAAAAAAAAAAAAAAAAAGT8AAABAAAAAAAAAAAAAAABemkAUAAAAAAAAAAAUBAgAPfvAABrYXRyYW4gdGVzdCBwa3Q="},
-
+  //1
+  {
+    .description = "GUE IPv6-in-IPv6 decap for IPv6 VIP fc00:1::1 port 80",
+    .expectedReturnValue = "XDP_PASS",
+    .inputPacketBuilder = katran::testing::PacketBuilder::newPacket()
+        .Eth("0x1", "0x2")
+        .IPv6("100::64", "fc00:2307::1337")    // outer IPv6 - destination is Katran source for inline decap
+        .UDP(31337, 9886)                      // GUE encapsulation port 9886
+        .IPv6("fc00:2307:1::2", "fc00:1::1")   // inner IPv6 - from client to VIP
+        .TCP(31337, 80, 0, 0, 8192, TH_ACK)
+        .payload("katran test pkt"),
+    .expectedOutputPacketBuilder = katran::testing::PacketBuilder::newPacket()
+        .Eth("0x1", "0x2")
+        .IPv6("fc00:2307:1::2", "fc00:1::1", 63)  // inner packet after decap, hop limit decremented
+        .TCP(31337, 80, 0, 0, 8192, TH_ACK)       // inner TCP
+        .payload("katran test pkt")
+  },
+  //2
+  {
+    .description = "GUE IPv4-in-IPv6 decap for IPv4 VIP 10.200.1.1 port 80",
+    .expectedReturnValue = "XDP_PASS",
+    .inputPacketBuilder = katran::testing::PacketBuilder::newPacket()
+        .Eth("0x1", "0x2")
+        .IPv6("100::64", "fc00:2307::1337")      // outer IPv6 - destination is Katran source for inline decap
+        .UDP(31337, 9886)                        // GUE encapsulation port 9886
+        .IPv4("192.168.1.3", "10.200.1.1")      // inner IPv4 - from client to VIP
+        .UDP(31337, 80)
+        .payload("katran test pkt"),
+    .expectedOutputPacketBuilder = katran::testing::PacketBuilder::newPacket()
+        .Eth("0x1", "0x2")
+        .IPv4("192.168.1.3", "10.200.1.1", 63, 0, 1)    // inner packet after decap, TTL decremented, ID=1
+        .UDP(31337, 80)                                   // inner UDP
+        .payload("katran test pkt")
+  },
+  //3
+  {
+    .description = "Regular IPv6 VIP traffic (not decap) to fc00:1::1",
+    .expectedReturnValue = "XDP_TX",
+    .inputPacketBuilder = katran::testing::PacketBuilder::newPacket()
+        .Eth("0x1", "0x2")
+        .IPv6("100::64", "fc00:1::1")
+        .TCP(31337, 80, 0, 0, 8192, TH_ACK)
+        .payload("katran test pkt"),
+    .expectedOutputPacketBuilder = katran::testing::PacketBuilder::newPacket()
+        .Eth("02:00:00:00:00:00", "00:00:de:ad:be:af")
+        .IPv6("fc00:2307::1337", "fc00::2")   // encapsulated to IPv6 backend
+        .UDP(31337, 9886)
+        .IPv6("100::64", "fc00:1::1")
+        .TCP(31337, 80, 0, 0, 8192, TH_ACK)
+        .payload("katran test pkt")
+  }
 };
 
 } // namespace testing
