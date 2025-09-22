@@ -100,6 +100,7 @@ void BpfTester::testPcktsFromPcap() {
       VLOG(2) << "we have read all the packets from pcap file";
       break;
     }
+
     auto res = adapter_.testXdpProg(
         config_.bpfProgFd,
         kTestRepeatCount,
@@ -413,13 +414,11 @@ void BpfTester::resetTestFixtures(const std::vector<PacketAttributes>& data) {
   config_.testData = data;
 }
 
-void BpfTester::testPerfFromFixture(uint32_t repeat, const int position) {
+std::vector<TestResult> BpfTester::testPerfFromFixture(
+    uint32_t repeat,
+    const int position) {
   // for inputData format is <pckt_base64, test description>
   int first_index{0}, last_index{0};
-  uint32_t duration{0};
-  uint64_t pckt_num{1};
-  std::string ret_val_str;
-  std::string test_result;
   if (position < 0 || position >= config_.testData.size()) {
     first_index = 0;
     last_index = config_.testData.size();
@@ -427,36 +426,67 @@ void BpfTester::testPerfFromFixture(uint32_t repeat, const int position) {
     first_index = position;
     last_index = first_index + 1;
   }
+
+  std::vector<TestResult> results;
+
+  // Run all tests and collect results
   for (int i = first_index; i < last_index; i++) {
-    auto buf = folly::IOBuf::create(kMaxXdpPcktSize);
-    auto input_pckt =
-        parser_.getPacketFromBase64(config_.testData[i].inputPacket);
+    auto single_results = runXdpProgPerf(
+        config_.testData[i].inputPacket,
+        config_.testData[i].description,
+        repeat);
+    results.insert(results.end(), single_results.begin(), single_results.end());
+  }
+  return results;
+}
+
+std::vector<TestResult> BpfTester::runXdpProgPerf(
+    const std::string& input_packet,
+    const std::string& description,
+    uint32_t repeat) {
+  std::vector<TestResult> results;
+  results.reserve(repeat); // Pre-allocate capacity
+
+  auto buf = folly::IOBuf::create(kMaxXdpPcktSize);
+  uint32_t output_pckt_size{0};
+
+  auto input_pckt = parser_.getPacketFromBase64(input_packet);
+
+  // Passing repeat directly to testXdpProg() will cause the input_pckt to be
+  // modified with the first run and the subsequent runs will see the encaped
+  // packet. For more acurate perf runs, we call testXdpProg() repeatedly with
+  // repeat = 1
+
+  uint32_t total_duration = 0;
+  for (uint32_t run = 0; run < repeat; ++run) {
+    uint32_t duration{0};
     auto res = adapter_.testXdpProg(
         config_.bpfProgFd,
-        repeat,
+        1, // repeat = 1
         input_pckt->writableData(),
         input_pckt->length(),
         buf->writableData(),
-        nullptr, // output pckt size
+        &output_pckt_size,
         nullptr, // retval
         &duration);
+
     if (res < 0) {
-      LOG(INFO) << "failed to run bpf test on pckt #" << pckt_num;
-      ++pckt_num;
-      continue;
+      LOG(ERROR) << "failed to run bpf test on run #" << run;
+      break;
     }
-    VLOG(2) << "pckt #" << pckt_num;
+    total_duration += duration;
+
     if (duration == 0) {
       duration = 1;
     }
-    auto pps = kNanosecInSec / duration;
-    LOG(INFO) << fmt::format(
-        "Test: {:60} duration: {:10} ns/pckt or {} pps",
-        config_.testData[i].description,
-        duration,
-        pps);
-    ++pckt_num;
   }
+  if (repeat > 0) {
+    auto avgDuration = total_duration / repeat;
+    auto pps = kNanosecInSec / avgDuration;
+    auto pps_millions = static_cast<double>(pps) / 1000000.0;
+    results.push_back({description, avgDuration, pps_millions});
+  }
+  return results;
 }
 
 uint64_t BpfTester::getGlobalLruRoutedPackets() {

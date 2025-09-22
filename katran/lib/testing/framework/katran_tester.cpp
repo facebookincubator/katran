@@ -248,6 +248,78 @@ KatranTestParam getTestParam() {
   }
 }
 
+// Function to print performance test results in a formatted table
+// sorted by duration in descending order
+void printPerfResults(std::vector<katran::TestResult>& results) {
+  if (results.empty()) {
+    std::cout << "No performance test results to display." << std::endl;
+    return;
+  }
+  // Sort results by duration in descending order (largest on top)
+  std::sort(
+      results.begin(),
+      results.end(),
+      [](const katran::TestResult& a, const katran::TestResult& b) {
+        return a.duration > b.duration;
+      });
+
+  // Calculate dynamic column widths
+  constexpr int duration_width = 12;
+  constexpr int pps_width = 12;
+  constexpr int min_desc_width = 40;
+  constexpr int max_desc_width = 80;
+
+  // Find the longest description to determine optimal width
+  int max_desc_len = 0;
+  for (const auto& result : results) {
+    max_desc_len =
+        std::max(max_desc_len, static_cast<int>(result.description.length()));
+  }
+
+  int desc_width =
+      std::max(min_desc_width, std::min(max_desc_width, max_desc_len));
+
+  // Print table header
+  std::cout << "+" << std::string(desc_width + 2, '-') << "+"
+            << std::string(duration_width + 2, '-') << "+"
+            << std::string(pps_width + 2, '-') << "+" << std::endl;
+  std::cout << fmt::format(
+                   "| {:<{}} | {:>{}} | {:>{}} |",
+                   "Test Description",
+                   desc_width,
+                   "Duration",
+                   duration_width,
+                   "PPS",
+                   pps_width)
+            << std::endl;
+  std::cout << "+" << std::string(desc_width + 2, '-') << "+"
+            << std::string(duration_width + 2, '-') << "+"
+            << std::string(pps_width + 2, '-') << "+" << std::endl;
+
+  // Print sorted results
+  for (const auto& result : results) {
+    // Truncate description if it's too long
+    std::string desc = result.description;
+    if (desc.length() > desc_width) {
+      desc = desc.substr(0, desc_width - 3) + "...";
+    }
+
+    std::cout << fmt::format(
+                     "| {:<{}} | {:>{}} ns | {:>8.2f} Mpps |",
+                     desc,
+                     desc_width,
+                     result.duration,
+                     duration_width - 3,
+                     result.pps_millions)
+              << std::endl;
+  }
+
+  // Print table footer
+  std::cout << "+" << std::string(desc_width + 2, '-') << "+"
+            << std::string(duration_width + 2, '-') << "+"
+            << std::string(pps_width + 2, '-') << "+" << std::endl;
+}
+
 int main(int argc, char** argv) {
   gflags::ParseCommandLineFlags(&argc, &argv, true);
   google::InitGoogleLogging(argv[0]);
@@ -321,14 +393,15 @@ int main(int argc, char** argv) {
     }
     return 0;
   }
-  prepareLbData(*lb);
+  prepareLbData(*lb, FLAGS_perf_testing);
   if (!FLAGS_pcap_input.empty()) {
     tester.testPcktsFromPcap();
     return 0;
   } else if (FLAGS_perf_testing) {
     // for perf tests to work katran must be compiled w -DINLINE_DECAP
     preparePerfTestingLbData(*lb);
-    tester.testPerfFromFixture(FLAGS_repeat, FLAGS_position);
+    auto results = tester.testPerfFromFixture(FLAGS_repeat, FLAGS_position);
+    printPerfResults(results);
   }
   return 0;
 }

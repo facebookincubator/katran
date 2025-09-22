@@ -105,7 +105,7 @@ void addQuicMappings(katran::KatranLb& lb) {
   lb.modifyQuicRealsMapping(action, qreals);
 }
 
-void prepareLbData(katran::KatranLb& lb) {
+void prepareLbData(katran::KatranLb& lb, bool skipLru) {
   lb.restartKatranMonitor(kMonitorLimit);
   katran::VipKey vip;
   // adding udp vip for tests
@@ -113,6 +113,10 @@ void prepareLbData(katran::KatranLb& lb) {
   vip.port = kVipPort;
   vip.proto = kUdp;
   lb.addVip(vip);
+  if (skipLru) {
+    LOG(INFO) << "Skipping LRU lookup for vip " << vip.address;
+    lb.modifyVip(vip, kBypassLruLookup);
+  }
   // adding few reals to test
   std::vector<std::string> reals = {"10.0.0.1", "10.0.0.2", "10.0.0.3"};
   std::vector<std::string> reals6 = {"fc00::1", "fc00::2", "fc00::3"};
@@ -120,17 +124,26 @@ void prepareLbData(katran::KatranLb& lb) {
   // adding tcp vip for tests
   vip.proto = kTcp;
   lb.addVip(vip);
+  if (skipLru) {
+    lb.modifyVip(vip, kBypassLruLookup);
+  }
   // adding few reals to test
   addReals(lb, vip, reals);
   // vip which ignores dst_port (testing for TURN-like services)
   vip.address = "10.200.1.2";
   vip.port = 0;
   lb.addVip(vip);
+  if (skipLru) {
+    lb.modifyVip(vip, kBypassLruLookup);
+  }
   // adding few reals to test
   addReals(lb, vip, reals);
   // vip which is using only dst port to pick up real
   vip.address = "10.200.1.4";
   lb.addVip(vip);
+  if (skipLru) {
+    lb.modifyVip(vip, kBypassLruLookup);
+  }
   // adding few reals to test
   addReals(lb, vip, reals);
   lb.modifyVip(vip, kDportHash);
@@ -143,6 +156,9 @@ void prepareLbData(katran::KatranLb& lb) {
   // v6inv6 vip. tcp
   vip.address = "fc00:1::1";
   lb.addVip(vip);
+  if (skipLru) {
+    lb.modifyVip(vip, kBypassLruLookup);
+  }
   // adding few reals to test
   addReals(lb, vip, reals6);
   // adding mappings for quic.
@@ -152,11 +168,17 @@ void prepareLbData(katran::KatranLb& lb) {
   vip.port = 443;
   vip.address = "10.200.1.5";
   lb.addVip(vip);
+  if (skipLru) {
+    lb.modifyVip(vip, kBypassLruLookup);
+  }
   lb.modifyVip(vip, kQuicVip);
   addReals(lb, vip, reals);
   // adding quic v6 vip.
   vip.address = "fc00:1::2";
   lb.addVip(vip);
+  if (skipLru) {
+    lb.modifyVip(vip, kBypassLruLookup);
+  }
   lb.modifyVip(vip, kQuicVip);
   addReals(lb, vip, reals6);
   // adding udp with flow migration vip for tests
@@ -164,6 +186,9 @@ void prepareLbData(katran::KatranLb& lb) {
   vip.port = kVipPort;
   vip.proto = kUdp;
   lb.addVip(vip);
+  if (skipLru) {
+    lb.modifyVip(vip, kBypassLruLookup);
+  }
   lb.modifyVip(vip, kUdpFlowMigration);
   addReals(lb, vip, reals);
   // setting a real to be down

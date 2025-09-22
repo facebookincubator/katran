@@ -44,6 +44,9 @@ constexpr uint32_t kDefaultWeight = 1;
 // Flags from katran/lib/bpf/balancer_consts.h
 // real is specified as local (1 << 1)
 constexpr uint8_t kLocalReal = 2;
+
+// F_LRU_BYPASS
+constexpr uint32_t kBypassLruLookup = 2; // (1 << 1)
 // use quic's connection id for the hash calculation (1 << 2)
 constexpr uint32_t kQuicVip = 4;
 // use only dst port for the hash calculation (1 << 3)
@@ -166,7 +169,7 @@ void deleteReals(
 
 void addQuicMappings(katran::KatranLb& lb);
 
-void prepareLbData(katran::KatranLb& lb);
+void prepareLbData(katran::KatranLb& lb, bool skipLru = false);
 
 void prepareOptionalLbData(katran::KatranLb& lb);
 

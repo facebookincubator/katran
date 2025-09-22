@@ -28,6 +28,13 @@
 
 namespace katran {
 
+// Structure to hold test results for perf testing runs
+struct TestResult {
+  std::string description;
+  uint32_t duration;
+  double pps_millions;
+};
+
 /**
  * structure with config params for BpfTester.
  */
@@ -151,8 +158,11 @@ class BpfTester {
    * @param int position    of the packet if fixtures vector.
    * helper function to run perf test on specified packet from test fixtures
    * if position is negative - run perf tests on every packet in fixtures
+   * @return std::vector<TestResult> results from the performance tests
    */
-  void testPerfFromFixture(uint32_t repeat, const int position = -1);
+  std::vector<TestResult> testPerfFromFixture(
+      uint32_t repeat,
+      const int position = -1);
 
   /**
    * @param IOBuf with packet data to write.
@@ -183,6 +193,18 @@ class BpfTester {
   bool compareGuePackets(
       const std::string& actualPacket,
       const std::string& expectedPacket);
+
+  /**
+   * @param const std::string& input_packet base64 encoded input packet
+   * @param const std::string& description test description for the results
+   * @param uint32_t repeat how many times to repeat the test
+   * helper function to run performance tests in a loop with repeat=1 and return
+   * results
+   */
+  std::vector<struct TestResult> runXdpProgPerf(
+      const std::string& input_packet,
+      const std::string& description,
+      uint32_t repeat);
 
   TesterConfig config_;
   PcapParser parser_;
