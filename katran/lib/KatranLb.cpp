@@ -1948,6 +1948,22 @@ lb_stats KatranLb::getLruStats() {
   return getLbStats(config_.maxVips + kLruCntrOffset);
 }
 
+lb_stats KatranLb::getXdpTotalStats() {
+  return getLbStats(config_.maxVips + kXdpTotalOffset);
+}
+
+lb_stats KatranLb::getXdpTxStats() {
+  return getLbStats(config_.maxVips + kXdpTxOffset);
+}
+
+lb_stats KatranLb::getXdpDropStats() {
+  return getLbStats(config_.maxVips + kXdpDropOffset);
+}
+
+lb_stats KatranLb::getXdpPassStats() {
+  return getLbStats(config_.maxVips + kXdpPassOffset);
+}
+
 lb_stats KatranLb::getLruMissStats() {
   return getLbStats(config_.maxVips + kLruMissOffset);
 }

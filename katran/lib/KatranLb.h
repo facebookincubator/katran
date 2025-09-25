@@ -69,6 +69,10 @@ constexpr uint32_t kIcmpPtbV6Offset = 12;
 constexpr uint32_t kIcmpPtbV4Offset = 13;
 constexpr uint32_t kXPopDecapSuccessfulOffset = 14;
 constexpr uint32_t kUdpFlowMigrationInvalidationOffset = 15;
+constexpr uint32_t kXdpTotalOffset = 16;
+constexpr uint32_t kXdpTxOffset = 17;
+constexpr uint32_t kXdpDropOffset = 18;
+constexpr uint32_t kXdpPassOffset = 19;
 
 /**
  * LRU map related constants
@@ -524,6 +528,38 @@ class KatranLb {
    * connection table)
    */
   lb_stats getLruStats();
+
+  /**
+   * @return struct lb_stats w/ statistics
+   * for packets + bytes "touched" by lb
+   *
+   * helper function which returns total amount
+   */
+  lb_stats getXdpTotalStats();
+
+  /**
+   * @return struct lb_stats w/ statistics
+   * for packets + bytes forwarded to vip backends
+   *
+   * helper function which returns total amount
+   */
+  lb_stats getXdpTxStats();
+
+  /**
+   * @return struct lb_stats w/ statistics
+   * for packets + bytes dropped by lb
+   *
+   * helper function which returns total amount
+   */
+  lb_stats getXdpDropStats();
+
+  /**
+   * @return struct lb_stats w/ statistics
+   * for packets + bytes passed up to the kernel
+   *
+   * helper function which returns total amount
+   */
+  lb_stats getXdpPassStats();
 
   /**
    * @return struct lb_stats w/ statistic of the reasons for lru misses
