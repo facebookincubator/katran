@@ -254,7 +254,11 @@
 #define NO_FLAGS 0
 
 // offset of the lru cache hit related counters
+/* v1 tracks total vip packets (no longer used for lru calculations)
+v2 tracks lru misses */
 #define LRU_CNTRS 0
+/* v1 tracks misses for TCP syns
+v2 tracks misses for TCP non syns */
 #define LRU_MISS_CNTR 1
 #define NEW_CONN_RATE_CNTR 2
 #define FALLBACK_LRU_CNTR 3
@@ -281,6 +285,10 @@
 #define XPOP_DECAP_SUCCESSFUL 14
 // Tracks packets dst invalidated due to UDP flow migration
 #define UDP_FLOW_MIGRATION_STATS 15
+#define XDP_TOTAL_CNTR 16 // total packets "touched" by katran
+#define XDP_TX_CNTR 17 // total packets sent to backend
+#define XDP_DROP_CNTR 18 // total packets dropped by katran
+#define XDP_PASS_CNTR 19 // packets passed up to the kernel
 
 // indice for all stats maps defined above correspond to entries in the map
 // stats starting from the index MAX_VIPS. The max_entries of stats is

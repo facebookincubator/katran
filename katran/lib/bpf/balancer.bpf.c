@@ -1077,22 +1077,50 @@ int balancer_ingress(struct xdp_md* ctx) {
   __u32 eth_proto;
   __u32 nh_off;
   nh_off = sizeof(struct ethhdr);
+  __u64 data_len = data_end - data;
+  struct lb_stats* data_stats;
+  __u32 stats_key;
 
   if (data + nh_off > data_end) {
     // bogus packet, len less than minimum ethernet frame size
     return XDP_DROP;
   }
 
+  stats_key = MAX_VIPS + XDP_TOTAL_CNTR;
+  data_stats = bpf_map_lookup_elem(&stats, &stats_key);
+  if (!data_stats) {
+    return XDP_DROP;
+  }
+  data_stats->v1 += 1;
+  data_stats->v2 += data_len;
+
   eth_proto = eth->h_proto;
 
+  int action;
   if (eth_proto == BE_ETH_P_IP) {
-    return process_packet(ctx, nh_off, false);
+    action = process_packet(ctx, nh_off, false);
   } else if (eth_proto == BE_ETH_P_IPV6) {
-    return process_packet(ctx, nh_off, true);
+    action = process_packet(ctx, nh_off, true);
   } else {
     // pass to tcp/ip stack
-    return XDP_PASS;
+    action = XDP_PASS;
   }
+
+  if (action == XDP_PASS) {
+    stats_key = MAX_VIPS + XDP_PASS_CNTR;
+  } else if (action == XDP_DROP) {
+    stats_key = MAX_VIPS + XDP_DROP_CNTR;
+  } else if (action == XDP_TX) {
+    stats_key = MAX_VIPS + XDP_TX_CNTR;
+  }
+
+  data_stats = bpf_map_lookup_elem(&stats, &stats_key);
+  if (!data_stats) {
+    return XDP_DROP;
+  }
+  data_stats->v1 += 1;
+  data_stats->v2 += data_len;
+  return action;
 }
 
 char _license[] SEC("license") = "GPL";
