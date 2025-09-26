@@ -81,6 +81,7 @@ target_link_libraries(bpfadapter
   PUBLIC
     ${BPF_LINK_LIBRARIES}
     ${LIBELF}
+    ${ZSTD_LIBRARIES}
     glog::glog
     ${PTHREAD}
     ${LIBZ}
@@ -94,6 +95,7 @@ target_include_directories(
   ${FOLLY_INCLUDE_DIR}
   ${KATRAN_INCLUDE_DIR}
   ${LIBMNL_INCLUDE_DIR}
+  ${ZSTD_INCLUDE_DIRS}
 )
 
 add_library(pcapwriter STATIC

@@ -32,6 +32,8 @@ find_package(folly CONFIG REQUIRED)
 find_package(Glog REQUIRED)
 find_package(Gflags REQUIRED)
 find_package(Threads)
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(ZSTD REQUIRED libzstd)
 
 include_directories(".")
 add_subdirectory(katran)
