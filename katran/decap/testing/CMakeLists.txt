@@ -9,5 +9,4 @@ target_link_libraries(xdpdecap_tester
     "${PTHREAD}"
     bpftester
     decap
-    zstd
 )
