@@ -44,7 +44,7 @@ constexpr int kMaxInvalidServerIds = 10000;
 
 // Limit LRU lookups when traversing entire map.
 // In case high ingress results in high LRU insertion rate, affecting traversal.
-const int kLruMaxLookups = 100 * 1000;
+const int kLruMaxLookups = 10 * 1000 * 1000;
 } // namespace
 
 KatranLb::KatranLb(
