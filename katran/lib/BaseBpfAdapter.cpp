@@ -188,7 +188,11 @@ static int NetlinkRoundtrip(const NetlinkMessage& msg) {
     ret = mnl_socket_recvfrom(nl, buf, sizeof(buf));
   }
   if (ret < 0) {
-    PLOG(ERROR) << "Error receiving netlink message";
+    if (errno == EEXIST) {
+      VLOG(1) << "Netlink operation completed with EEXIST";
+    } else {
+      PLOG(ERROR) << "Error receiving netlink message";
+    }
   }
   return ret;
 }
