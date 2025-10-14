@@ -46,6 +46,11 @@ class KatranMonitor {
 
   ~KatranMonitor();
 
+  KatranMonitor(const KatranMonitor&) = delete;
+  KatranMonitor& operator=(const KatranMonitor&) = delete;
+  KatranMonitor(KatranMonitor&&) = delete;
+  KatranMonitor& operator=(KatranMonitor&&) = delete;
+
   void stopMonitor();
 
   void restartMonitor(uint32_t limit, std::optional<PcapStorageFormat> storage);
