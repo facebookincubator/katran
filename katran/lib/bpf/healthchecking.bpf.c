@@ -30,6 +30,10 @@
 #include "katran/lib/bpf/healthchecking_maps.h"
 #include "katran/lib/bpf/healthchecking_structs.h"
 
+#ifndef HC_WITH_REDIRECT
+#define HC_WITH_REDIRECT 1
+#endif
+
 SEC("tc")
 int healthcheck_encap(struct __sk_buff* skb) {
   __u32 stats_key = GENERIC_STATS_INDEX;
@@ -70,6 +74,7 @@ int healthcheck_encap(struct __sk_buff* skb) {
   }
 #endif
 
+#if HC_WITH_REDIRECT
   __u32* intf_ifindex = bpf_map_lookup_elem(&hc_ctrl_map, &key);
   if (!intf_ifindex) {
     // we dont have ifindex for main interface
@@ -91,6 +96,7 @@ int healthcheck_encap(struct __sk_buff* skb) {
     prog_stats->pckts_dropped += 1;
     return TC_ACT_SHOT;
   }
+#endif /* HC_WITH_REDIRECT */
 
   if ((skb->data + sizeof(struct ethhdr)) > skb->data_end) {
     prog_stats->pckts_dropped += 1;
@@ -118,9 +124,11 @@ int healthcheck_encap(struct __sk_buff* skb) {
     return TC_ACT_SHOT;
   }
 
+#if HC_WITH_REDIRECT
   ethh = (void*)(long)skb->data;
   memcpy(ethh->h_source, esrc->mac, 6);
   memcpy(ethh->h_dest, edst->mac, 6);
+#endif /* HC_WITH_REDIRECT */
 
   prog_stats->pckts_processed += 1;
 
@@ -135,7 +143,11 @@ int healthcheck_encap(struct __sk_buff* skb) {
     }
   }
 
+#if HC_WITH_REDIRECT
   return bpf_redirect(*intf_ifindex, REDIRECT_EGRESS);
+#else
+  return TC_ACT_OK;
+#endif /* HC_WITH_REDIRECT */
 }
 
 char _license[] SEC("license") = "GPL";
