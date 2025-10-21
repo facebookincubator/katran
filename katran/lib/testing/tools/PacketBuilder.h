@@ -34,6 +34,8 @@ extern "C" {
 namespace katran {
 namespace testing {
 
+constexpr uint32_t QUIC_V1_WIRE_FORMAT = 0xfaceb001;
+
 class PacketBuilder;
 /**
  * Base class for all packet headers
@@ -443,6 +445,111 @@ class ARPHeader : public HeaderEntry {
 };
 
 /**
+ * QUIC header implementation
+ */
+class QUICHeader : public HeaderEntry {
+ public:
+  enum QUICType {
+    CLIENT_INITIAL = 0x00,
+    ZERO_RTT = 0x10,
+    HANDSHAKE = 0x20,
+    RETRY = 0x30,
+    SHORT_HEADER = 0x40
+  };
+
+  enum ConnectionIdVersion { CID_V1 = 1, CID_V2 = 2 };
+
+  QUICHeader(
+      QUICType type = CLIENT_INITIAL,
+      const std::vector<uint8_t>& destConnectionId = {},
+      uint32_t version = 0x01b0cefa, // QUIC version in host byte order
+      const std::vector<uint8_t>& srcConnectionId = {},
+      uint64_t packetNumber = 0,
+      const std::vector<uint8_t>& token = {},
+      ConnectionIdVersion cidVersion = CID_V1,
+      uint8_t packetNumberLength = 4);
+
+  Type getType() const override {
+    return PAYLOAD; // QUIC is treated as UDP payload
+  }
+  void serialize(
+      size_t headerIndex,
+      const std::vector<std::shared_ptr<HeaderEntry>>& headerStack,
+      std::vector<uint8_t>& packet) override;
+  std::string generateScapyCommand() const override;
+
+  // Methods to append additional QUIC data
+  void appendData(const std::vector<uint8_t>& data);
+  void appendData(const std::string& data);
+
+ private:
+  QUICType type_;
+  std::vector<uint8_t> destConnectionId_;
+  std::vector<uint8_t> srcConnectionId_;
+  uint32_t version_;
+  uint64_t packetNumber_;
+  uint8_t packetNumberLength_; // Length of packet number in bytes
+  std::vector<uint8_t> token_; // Token for Initial packets
+  ConnectionIdVersion cidVersion_; // Connection ID version (V1 or V2)
+  std::vector<uint8_t> additionalData_; // Store additional QUIC data
+
+  std::vector<uint8_t> encodeVariableLengthInteger(uint64_t value);
+  std::vector<uint8_t> encodePacketNumber(
+      uint64_t packetNumber,
+      uint8_t length);
+  uint8_t getConnectionIdLength(const std::vector<uint8_t>& connId);
+};
+
+/**
+ *
+ * Example usage:
+ *   auto packet = PacketBuilder::newPacket()
+ *       .Eth("0x1", "0x2")
+ *       .IPv4("192.168.1.42", "10.200.1.5")
+ *       .UDP(31337, 443)
+ *       .QUICInitial()
+ *           .destConnId({0x41, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x00})
+ *           .token({0x11})
+ *           .data("quic data")
+ *           .done()
+ *       .build();
+ */
+class PacketBuilder;
+
+class QUICBuilder {
+ public:
+  explicit QUICBuilder(QUICHeader::QUICType type, PacketBuilder& parentBuilder);
+
+  QUICBuilder& destConnId(const std::vector<uint8_t>& connId);
+  QUICBuilder& srcConnId(const std::vector<uint8_t>& connId);
+  QUICBuilder& version(uint32_t version);
+  QUICBuilder& token(const std::vector<uint8_t>& token);
+  QUICBuilder& packetNumber(uint64_t pn, uint8_t lengthBytes = 4);
+  QUICBuilder& cidVersion(QUICHeader::ConnectionIdVersion version);
+  QUICBuilder& data(const std::string& payload);
+  QUICBuilder& data(const std::vector<uint8_t>& payload);
+
+  // Finalize and return to parent builder
+  PacketBuilder& done();
+
+ private:
+  QUICHeader::QUICType type_;
+  PacketBuilder& parentBuilder_;
+  std::vector<uint8_t> destConnId_;
+  std::vector<uint8_t> srcConnId_;
+  uint32_t version_ = QUIC_V1_WIRE_FORMAT;
+  std::vector<uint8_t> token_;
+  uint64_t packetNumber_ = 0;
+  uint8_t packetNumberLength_ = 0;
+  QUICHeader::ConnectionIdVersion cidVersion_ = QUICHeader::CID_V1;
+  std::string payload_;
+
+  void validate() const;
+  void buildAndAddToParent();
+};
+
+/**
+ *
  * Usage:
  *   auto packet = PacketBuilder::newPacket()
  *       .Eth(src="01:00:00:00:00:00", dst="02:00:00:00:00:00")
@@ -566,11 +673,18 @@ class PacketBuilder {
       const std::string& targetHardwareAddr = "00:00:00:00:00:00",
       const std::string& targetProtocolAddr = "0.0.0.0");
 
+  QUICBuilder QUICInitial();
+  QUICBuilder QUICHandshake();
+  QUICBuilder QUICRetry();
+  QUICBuilder QUIC0RTT();
+  QUICBuilder QUICShortHeader();
+
   PacketResult build() const;
 
   std::vector<uint8_t> buildAsBytes() const;
 
  private:
+  friend class QUICBuilder;
   std::vector<std::shared_ptr<HeaderEntry>> headerStack_;
 
   std::vector<uint8_t> buildBinaryPacket();

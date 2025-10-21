@@ -232,12 +232,12 @@ const std::vector<katran::PacketAttributes> testFixtures = {
      .expectedReturnValue = "XDP_DROP",
      .inputPacketBuilder = PacketBuilder::newPacket()
                                .Eth("0x1", "0x2")
-                               .IPv4("192.168.1.1","10.200.1.1",64,0,1,PacketBuilder::IP_FLAG_MF)
+                               .IPv4("192.168.1.1", "10.200.1.1", 64, 0, 1, PacketBuilder::IP_FLAG_MF)
                                .TCP(31337, 80, 0, 0, 8192, TH_ACK)
                                .payload("katran test pkt"),
      .expectedOutputPacketBuilder = PacketBuilder::newPacket()
                                         .Eth("0x1", "0x2")
-                                        .IPv4("192.168.1.1","10.200.1.1",64,0,1,PacketBuilder::IP_FLAG_MF)
+                                        .IPv4("192.168.1.1", "10.200.1.1", 64, 0, 1, PacketBuilder::IP_FLAG_MF)
                                         .TCP(31337, 80, 0, 0, 8192, TH_ACK)
                                         .payload("katran test pkt")},
     // 14
@@ -245,12 +245,12 @@ const std::vector<katran::PacketAttributes> testFixtures = {
      .expectedReturnValue = "XDP_DROP",
      .inputPacketBuilder = PacketBuilder::newPacket()
                                .Eth("0x1", "0x2")
-                               .IPv6("fc00:2::1","fc00:1::1",64,0,0,PacketBuilder::IPV6_NH_FRAGMENT)
+                               .IPv6("fc00:2::1", "fc00:1::1", 64, 0, 0, PacketBuilder::IPV6_NH_FRAGMENT)
                                .TCP(31337, 80, 0, 0, 8192, TH_ACK)
                                .payload("katran test pkt"),
      .expectedOutputPacketBuilder = PacketBuilder::newPacket()
                                         .Eth("0x1", "0x2")
-                                        .IPv6("fc00:2::1","fc00:1::1",64,0,0,PacketBuilder::IPV6_NH_FRAGMENT)
+                                        .IPv6("fc00:2::1", "fc00:1::1", 64, 0, 0, PacketBuilder::IPV6_NH_FRAGMENT)
                                         .TCP(31337, 80, 0, 0, 8192, TH_ACK)
                                         .payload("katran test pkt")},
     // 15
@@ -288,158 +288,423 @@ const std::vector<katran::PacketAttributes> testFixtures = {
          katran::testing::PacketBuilder::newPacket().Eth("0x1", "0x2").ARP(),
      .expectedOutputPacketBuilder =
          katran::testing::PacketBuilder::newPacket().Eth("0x1", "0x2").ARP()},
-      //18
-  {
-    //Ether(src="0x1", dst="0x2")/IP(src="192.168.1.1", dst="10.200.1.1")/TCP(sport=31337, dport=80, flags="A")/"katran test pkt"
-    .inputPacket = "AgAAAAAAAQAAAAAACABFAAA3AAEAAEAGrU7AqAEBCsgBAXppAFAAAAAAAAAAAFAQIAAn5AAAa2F0cmFuIHRlc3QgcGt0",
-    .description = "LRU hit",
-    .expectedReturnValue = "XDP_TX",
-    .expectedOutputPacket = "AADerb6vAgAAAAAACABFAABLAAAAAEAEXCGsEGh7CgAAA0UAADcAAQAAQAatTsCoAQEKyAEBemkAUAAAAAAAAAAAUBAgACfkAABrYXRyYW4gdGVzdCBwa3Q="
-  },
-  //19
-  {
-    //Ether(src="0x1", dst="0x2")/IP(src="192.168.1.1", dst="10.200.1.4")/TCP(sport=31337, dport=42, flags="A")/"katran test pkt"
-    .inputPacket = "AgAAAAAAAQAAAAAACABFAAA3AAEAAEAGrUvAqAEBCsgBBHppACoAAAAAAAAAAFAQIAAoBwAAa2F0cmFuIHRlc3QgcGt0",
-    .description = "packet #1 dst port hashing only",
-    .expectedReturnValue = "XDP_TX",
-    .expectedOutputPacket = "AADerb6vAgAAAAAACABFAABLAAAAAEAEWyOsEGl6CgAAAkUAADcAAQAAQAatS8CoAQEKyAEEemkAKgAAAAAAAAAAUBAgACgHAABrYXRyYW4gdGVzdCBwa3Q="
-  },
-  //20
-  {
-    //Ether(src="0x1", dst="0x2")/IP(src="192.168.1.100", dst="10.200.1.4")/TCP(sport=1337, dport=42, flags="A")/"katran test pkt"
-    .inputPacket = "AgAAAAAAAQAAAAAACABFAAA3AAEAAEAGrOjAqAFkCsgBBAU5ACoAAAAAAAAAAFAQIACc1AAAa2F0cmFuIHRlc3QgcGt0",
-    .description = "packet #2 dst port hashing only",
-    .expectedReturnValue = "XDP_TX",
-    .expectedOutputPacket = "AADerb6vAgAAAAAACABFAABLAAAAAEAEi5isEDkFCgAAAkUAADcAAQAAQAas6MCoAWQKyAEEBTkAKgAAAAAAAAAAUBAgAJzUAABrYXRyYW4gdGVzdCBwa3Q="
-  },
-  //21
-  {
-    //Ether(src="0x1", dst="0x2")/IP(src="192.168.1.1", dst="10.200.1.4")/TCP(sport=31337, dport=42, flags="A")/"katran test pkt"
-    .inputPacket = "AgAAAAAAAQAAAAAACABFAAA/AAEAAEAEvZesEAEBrBBkAUUAACsAAQAAQBGtT8CoAQEKyAEBemkAUAAXl95rYXRyYW4gdGVzdCBwa3Q=",
-    .description = "ipinip packet",
-    .expectedReturnValue = "XDP_PASS",
-    .expectedOutputPacket = "AgAAAAAAAQAAAAAACABFAAA/AAEAAEAEvZesEAEBrBBkAUUAACsAAQAAQBGtT8CoAQEKyAEBemkAUAAXl95rYXRyYW4gdGVzdCBwa3Q="
-  },
-  //22
-  {
-    //Ether(src="0x1", dst="0x2")/IPv6(src="100::1", dst="100::2")/IPv6(src="fc00:2::1", dst="fc00:1::1")/TCP(sport=31337, dport=80,flags="A")/"katran test pkt"
-    .inputPacket = "AgAAAAAAAQAAAAAAht1gAAAAAEspQAEAAAAAAAAAAAAAAAAAAAEBAAAAAAAAAAAAAAAAAAACYAAAAAAjBkD8AAACAAAAAAAAAAAAAAAB/AAAAQAAAAAAAAAAAAAAAXppAFAAAAAAAAAAAFAQIAD9TwAAa2F0cmFuIHRlc3QgcGt0",
-    .description = "ipv6inipv6 packet",
-    .expectedReturnValue = "XDP_PASS",
-    .expectedOutputPacket = "AgAAAAAAAQAAAAAAht1gAAAAAEspQAEAAAAAAAAAAAAAAAAAAAEBAAAAAAAAAAAAAAAAAAACYAAAAAAjBkD8AAACAAAAAAAAAAAAAAAB/AAAAQAAAAAAAAAAAAAAAXppAFAAAAAAAAAAAFAQIAD9TwAAa2F0cmFuIHRlc3QgcGt0"
-  },
-  //23
-  {
-    //Ether(src="0x1", dst="0x2")/IPv6(src="100::1", dst="100::2")/IP(src="192.168.1.1", dst="10.200.1.1")/UDP(sport=31337, dport=80)/"katran test pkt"
-    .inputPacket = "AgAAAAAAAQAAAAAAht1gAAAAACsEQAEAAAAAAAAAAAAAAAAAAAEBAAAAAAAAAAAAAAAAAAACRQAAKwABAABAEa1PwKgBAQrIAQF6aQBQABeX3mthdHJhbiB0ZXN0IHBrdA==",
-    .description = "ipv4inipv6 packet",
-    .expectedReturnValue = "XDP_PASS",
-    .expectedOutputPacket = "AgAAAAAAAQAAAAAAht1gAAAAACsEQAEAAAAAAAAAAAAAAAAAAAEBAAAAAAAAAAAAAAAAAAACRQAAKwABAABAEa1PwKgBAQrIAQF6aQBQABeX3mthdHJhbiB0ZXN0IHBrdA=="
-  },
-  //24
-  {
-    // Ether(src="0x1", dst="0x2")/IP(src="192.168.1.42", dst="10.200.1.5")/UDP(sport=31337, dport=443)/'\xcf\xfa\xce\xb0\x01\x08\x41\x02\x03\x04\x05\x06\x07\x00\x00\x01\x11\x01quic data\x00@'
-    .inputPacket = "AgAAAAAAAQAAAAAACABFAAA5AAEAAEARrRTAqAEqCsgBBXppAbsAJbdsz/rOsAEIQQIDBAUGBwAAAREBcXVpYyBkYXRhAEA=",
-    .description = "QUIC: long header. Client Initial type. LRU miss",
-    .expectedReturnValue = "XDP_TX",
-    .expectedOutputPacket = "AADerb6vAgAAAAAACABFAABNAAAAAEAEXEusEGhQCgAAAkUAADkAAQAAQBGtFMCoASoKyAEFemkBuwAlt2zP+s6wAQhBAgMEBQYHAAABEQFxdWljIGRhdGEAQA=="
-  },
-  //25
-  {
-    // Ether(src="0x1", dst="0x2")/IP(src="192.168.1.42", dst="10.200.1.5")/UDP(sport=31337, dport=443)/'\xdf\xfa\xce\xb0\x01\x08\x43\xFF\x33\x44\x55\x66\x77\x88\x00\x01\x11\x01quic data\x00@'
-    .inputPacket = "AgAAAAAAAQAAAAAACABFAAA5AAEAAEARrRTAqAEqCsgBBXppAbsAJbNG3/rOsAEIQ/8zRFVmd4gAAREBcXVpYyBkYXRhAEA=",
-    .description = "QUIC: long header. 0-RTT Protected. CH. LRU hit.",
-    .expectedReturnValue = "XDP_TX",
-    .expectedOutputPacket = "AADerb6vAgAAAAAACABFAABNAAAAAEAEXEusEGhQCgAAAkUAADkAAQAAQBGtFMCoASoKyAEFemkBuwAls0bf+s6wAQhD/zNEVWZ3iAABEQFxdWljIGRhdGEAQA=="
-  },
-  //26
-  {
-    // Ether(src="0x1", dst="0x2")/IP(src="192.168.1.42", dst="10.200.1.5")/UDP(sport=31337, dport=443)/'\xef\xfa\xce\xb0\x01\x08\x41\x00\x03\x04\x05\x06\x07\x00\x00\x01\x11\x01quic data\x00@'
-    .inputPacket = "AgAAAAAAAQAAAAAACABFAAA5AAEAAEARrRTAqAEqCsgBBXppAbsAJZRt7/rOsAEIQQADBAUGBwAAAREBcXVpYyBkYXRhAEA=",
-    .description = "QUIC: long header. Handshake. v4 vip v6 real. Conn Id V1 based. server id is 1024 mapped to fc00::1.",
-    .expectedReturnValue = "XDP_TX",
-    .expectedOutputPacket = "AADerb6vAgAAAAAAht1gAAAAADkEQAEAAAAAAAAAAAAAALrBASr8AAAAAAAAAAAAAAAAAAABRQAAOQABAABAEa0UwKgBKgrIAQV6aQG7ACWUbe/6zrABCEEAAwQFBgcAAAERAXF1aWMgZGF0YQBA"
-  },
-  //27
-  {
-    // Ether(src="0x1", dst="0x2")/IP(src="192.168.1.42", dst="10.200.1.5")/UDP(sport=31337, dport=443)/'\xff\xfa\xce\xb0\x01\x08\x41\x00\x03\x04\x05\x06\x07\x00\x00\x01\x11\x01quic data\x00@'
-    .inputPacket = "AgAAAAAAAQAAAAAACABFAAA5AAEAAEARrRTAqAEqCsgBBXppAbsAJYRt//rOsAEIQQADBAUGBwAAAREBcXVpYyBkYXRhAEA=",
-    .description = "QUIC: long header. Retry. v4 vip v6 real. Conn Id V1 based. server id is 1024 mapped to fc00::1.",
-    .expectedReturnValue = "XDP_TX",
-    .expectedOutputPacket = "AADerb6vAgAAAAAAht1gAAAAADkEQAEAAAAAAAAAAAAAALrBASr8AAAAAAAAAAAAAAAAAAABRQAAOQABAABAEa0UwKgBKgrIAQV6aQG7ACWEbf/6zrABCEEAAwQFBgcAAAERAXF1aWMgZGF0YQBA"
-  },
-  //28
-  {
-    // Ether(src="0x1", dst="0x2")/IPv6(src="fc00:2::42", dst="fc00:1::2")/UDP(sport=31337, dport=443)/'\xcf\xfa\xce\xb0\x01\x08\x44\x01\x03\x04\x05\x06\x07\x00\x00\x01\x11\x01quic data\x00@'
-    .inputPacket = "AgAAAAAAAQAAAAAAht1gAAAAACURQPwAAAIAAAAAAAAAAAAAAEL8AAABAAAAAAAAAAAAAAACemkBuwAlicTP+s6wAQhEAQMEBQYHAAABEQFxdWljIGRhdGEAQA==",
-    .description = "QUIC: long header. client initial. v6 vip v6 real. LRU miss",
-    .expectedReturnValue = "XDP_TX",
-    .expectedOutputPacket = "AADerb6vAgAAAAAAht1gAAAAAE0pQAEAAAAAAAAAAAAAAHppAEL8AAAAAAAAAAAAAAAAAAABYAAAAAAlEUD8AAACAAAAAAAAAAAAAABC/AAAAQAAAAAAAAAAAAAAAnppAbsAJYnEz/rOsAEIRAEDBAUGBwAAAREBcXVpYyBkYXRhAEA="
-  },
-  //29
-  {
-    // Ether(src="0x1", dst="0x2")/IP(src="192.168.1.42", dst="10.200.1.5")/UDP(sport=31337, dport=443)/'\x00'
-    .inputPacket = "AgAAAAAAAQAAAAAACABFAAAdAAEAAEARrTDAqAEqCsgBBXppAbsACbYYAA==",
-    .description = "QUIC: short header. No connection id. LRU hit",
-    .expectedReturnValue = "XDP_TX",
-    .expectedOutputPacket = "AADerb6vAgAAAAAAht1gAAAAAB0EQAEAAAAAAAAAAAAAALrBASr8AAAAAAAAAAAAAAAAAAABRQAAHQABAABAEa0wwKgBKgrIAQV6aQG7AAm2GAA="
-  },
-  //30
-  {
-    // Ether(src="0x1", dst="0x2")/IP(src="192.168.1.42", dst="10.200.1.5")/UDP(sport=31337, dport=443)/'\x00\x41\x00\x83\x04\x05\x06\x07\x00@'
-    .inputPacket = "AgAAAAAAAQAAAAAACABFAAAmAAEAAEARrSfAqAEqCsgBBXppAbsAEqr2AEEAgwQFBgcAQA==",
-    .description = "QUIC: short header w/ connection id",
-    .expectedReturnValue = "XDP_TX",
-    .expectedOutputPacket = "AADerb6vAgAAAAAAht1gAAAAACYEQAEAAAAAAAAAAAAAALrBASr8AAAAAAAAAAAAAAAAAAACRQAAJgABAABAEa0nwKgBKgrIAQV6aQG7ABKq9gBBAIMEBQYHAEA="
-  },
-  //31
-  {
-    // Ether(src="0x1", dst="0x2")/IP(src="192.168.1.42", dst="10.200.1.5")/UDP(sport=31337, dport=443)/'\x00\x41\x11\x00\x00\x00\x00\x00\x00@'
-    .inputPacket = "AgAAAAAAAQAAAAAACABFAAAmAAEAAEARrSfAqAEqCsgBBXppAbsAEqSFAEERAAAAAAAAQA==",
-    .description = "QUIC: short header w/ connection id 1092 but non-existing mapping. LRU hit",
-    .expectedReturnValue = "XDP_TX",
-    .expectedOutputPacket = "AADerb6vAgAAAAAAht1gAAAAACYEQAEAAAAAAAAAAAAAALrBASr8AAAAAAAAAAAAAAAAAAACRQAAJgABAABAEa0nwKgBKgrIAQV6aQG7ABKkhQBBEQAAAAAAAEA="
-  },
-  //32
-  {
-    // Ether(src="0x1", dst="0x2")/IP(src="192.168.1.42", dst="10.200.1.5")/UDP(sport=31337, dport=443)/'\x00\x40\x00\x03\x04\x05\x06\x07\x00@'
-    .inputPacket = "AgAAAAAAAQAAAAAACABFAAAmAAEAAEARrSfAqAEqCsgBBXppAbsAEqt3AEAAAwQFBgcAQA==",
-    .description = "QUIC: short header w/ conn id. host id = 0. LRU hit",
-    .expectedReturnValue = "XDP_TX",
-    .expectedOutputPacket = "AADerb6vAgAAAAAAht1gAAAAACYEQAEAAAAAAAAAAAAAALrBASr8AAAAAAAAAAAAAAAAAAACRQAAJgABAABAEa0nwKgBKgrIAQV6aQG7ABKrdwBAAAMEBQYHAEA="
-  },
-  //33
-  {
-    // Ether(src="0x1", dst="0x2")/IP(src="192.168.1.1", dst="10.200.1.1")/UDP(sport=31337, dport=80)/<random payload of length 1473, forming a packet of length 1515>
-    .inputPacket = "AgAAAAAAAQAAAAAACABFAAXdAAEAAEARp53AqAEBCsgBAXppAFAFybmiNzk3ODgzMzcwMzI5NTc3MTA2MzQ0NzM4MDI1MjMwNTczNTY0OTMzMTY3MDI0ODI5Mzg4MDgxMTk5NjQ4NjEzODQwMTgxOTQ4NzUzODg0NjAzMjQ3NzczNjY5NTc2MzY3MDQ1ODE2OTA2Mjg0MjEwOTYyMDg4MjY5NDUyMTQ2OTgzMTQ2NzczMzAzNTcyNDQ1NDE0NDkzNzAwMTI2Mzc5OTQ3NTE5NTk0NjE3Mjc5MzU3OTI5Nzc3NTcwOTI5MzI1ODYwODMwMDM5MDk2MDkxMjAzNTI2MjkxMjY0ODY0NTEzNTQyOTA2NjkyNjQ1NzY5NTgyNTE5NzEwNzA4MTQ2ODA2MjExNzI0NzY2NDgyMzk0MTY0MDA1NDE2Njg4MDc5MTk3MzkxMjA2MzkwMjkxODAwMTUzNTQ3NjAzMTYxMzU3NjU3OTA1MzQ3ODM2NDM1MzYzMzYyMjU4MzUwMzMzMzI3OTY4MzAyMDQ5MTAyNzMwOTE2NDY5NjQ5NjMxNTMyODgzMzg3Mzk3NTgzOTE2MDA0NTU0MDMwODUwMTM5ODUxMzc2NDM4MzIyMjQ1NzU4OTQ2MDYwNDMwOTIxMjY0OTc3MDYxMDE1Nzc4NzQ5ODE2MjMxNDc1NTc0NjgzODE2ODM4NjE5MjU5ODA3NjU1OTMxMjIwNzk1Njk3NjgyMjg0OTU0OTA2ODgwMjYwNjMyNDU5NTAzMzgyNTM1NjczMzQ3MjMyMzQwNjcyNzEyODcyMDg1OTcwNjIxMDA5MDc2NzgyNDM3NDExNzcxNzkxNTUxMzI5ODQyNzExODIxMDc0OTkzMDA0Nzc3MTQ3ODQ2Nzc3OTY4NTk5MDY2MjExNDc2OTc0ODYyNDAwMDI1OTY1NTg5ODcxMzI1MzgwMjY5MDY2MzgzMjAxMjM2MDQ2MTk0MjI2MDk3NDEyMDE3Mzg3MDg4MzI3NTM4MTMwNTIxMTIyNDIwODI3NDA2NjgzMzcwNjczODQ0MTkzNzI0NTk1NTYzNzgzMDQ0NzE0MzA1Mjk3MTA3MTc5NDE2Njc2NzY0NTYxMDQ4ODkyODM1NzM3MTQyNzYxMTUwNTAzNzQ0MTU0OTUzOTQ2MDM1OTcyOTI0NzMxMjM4NTM5ODUwNDYxNDQ4MzE4NDk0NDk2MjY4MzczMTAwMjA2NjUzMjM1NTE2Nzc1NzE2NTI2OTM0NjMyNzI4MjYwNjAyNDgwOTc0NzY5MjU1MzQ5NTIzNzE4OTIxNjk1MDAzMzAzMjU2OTA4NzgwOTQzMDU1NzA4MzU2ODA5NTMxOTk0MzYzNzY1ODYxNzU4NDIxNjcyNTI1NzQ3MzExNzU4ODg4NTM1NTY3MjA1NzQxMjY0OTUwMTU5NzAyNDg5ODE2MzU2MjEzMTc1NDY1NzM5ODU1ODY2MTUzMDEyODUyMzE5ODM3MTMzMTY5NjA5MTA4Mzk5MDQ5NTY5MzkyNzg3MDU5MDA3MzIwMzQ4NDg1NTg3MTQwMjI1NjMwMDAxODA2NjIzOTk3MjYxNDQzMTM1MzgwNTU5MDYxNDczMjMyMzE2MzIzMjgwNTQ4NjYxNDUyODA5ODQyOTcxMDg5OTE1OTk0MTQzODk5ODUzNDI5MTE1MDA0OTQxOTU4NjI5MjI4ODk3NDY5MTczNjk1ODM2OTg2OTA5NzE3NjA1Nzg0NDcxOTk1MjI2NTc5NjgzNTAzMDAxMzQ2MjI5Njk2OTk0NTkyNDc3MDU1NzcxNDk2NDU5MzMxODgxNTE4MjMyODM3NTEzMzg1NjU4MjkwNjUxMTc5MTk4MjEzMzg3MTQwNzYyNDQ1NTAwMjgxNzExMDI3NTcxMTg1NDAwNjMxMTk0NTQ2MDA2ODU1NTgzNzQwNTk3OTQxMjQ5Njk4NzA5MDEyODM0MTIxNzY3MzQyNDU4ODYyMzExNzYwMjQ0Nzk5OTc2MzI1OTc4NTMxNjY1NTM3NjI5OTQ4NjAy",
-    .description = "UDP: big packet of length 1515. trigger PACKET TOOBIG",
-    .expectedReturnValue = "XDP_DROP",
-    .expectedOutputPacket = "AgAAAAAAAQAAAAAACABFAAXdAAEAAEARp53AqAEBCsgBAXppAFAFybmiNzk3ODgzMzcwMzI5NTc3MTA2MzQ0NzM4MDI1MjMwNTczNTY0OTMzMTY3MDI0ODI5Mzg4MDgxMTk5NjQ4NjEzODQwMTgxOTQ4NzUzODg0NjAzMjQ3NzczNjY5NTc2MzY3MDQ1ODE2OTA2Mjg0MjEwOTYyMDg4MjY5NDUyMTQ2OTgzMTQ2NzczMzAzNTcyNDQ1NDE0NDkzNzAwMTI2Mzc5OTQ3NTE5NTk0NjE3Mjc5MzU3OTI5Nzc3NTcwOTI5MzI1ODYwODMwMDM5MDk2MDkxMjAzNTI2MjkxMjY0ODY0NTEzNTQyOTA2NjkyNjQ1NzY5NTgyNTE5NzEwNzA4MTQ2ODA2MjExNzI0NzY2NDgyMzk0MTY0MDA1NDE2Njg4MDc5MTk3MzkxMjA2MzkwMjkxODAwMTUzNTQ3NjAzMTYxMzU3NjU3OTA1MzQ3ODM2NDM1MzYzMzYyMjU4MzUwMzMzMzI3OTY4MzAyMDQ5MTAyNzMwOTE2NDY5NjQ5NjMxNTMyODgzMzg3Mzk3NTgzOTE2MDA0NTU0MDMwODUwMTM5ODUxMzc2NDM4MzIyMjQ1NzU4OTQ2MDYwNDMwOTIxMjY0OTc3MDYxMDE1Nzc4NzQ5ODE2MjMxNDc1NTc0NjgzODE2ODM4NjE5MjU5ODA3NjU1OTMxMjIwNzk1Njk3NjgyMjg0OTU0OTA2ODgwMjYwNjMyNDU5NTAzMzgyNTM1NjczMzQ3MjMyMzQwNjcyNzEyODcyMDg1OTcwNjIxMDA5MDc2NzgyNDM3NDExNzcxNzkxNTUxMzI5ODQyNzExODIxMDc0OTkzMDA0Nzc3MTQ3ODQ2Nzc3OTY4NTk5MDY2MjExNDc2OTc0ODYyNDAwMDI1OTY1NTg5ODcxMzI1MzgwMjY5MDY2MzgzMjAxMjM2MDQ2MTk0MjI2MDk3NDEyMDE3Mzg3MDg4MzI3NTM4MTMwNTIxMTIyNDIwODI3NDA2NjgzMzcwNjczODQ0MTkzNzI0NTk1NTYzNzgzMDQ0NzE0MzA1Mjk3MTA3MTc5NDE2Njc2NzY0NTYxMDQ4ODkyODM1NzM3MTQyNzYxMTUwNTAzNzQ0MTU0OTUzOTQ2MDM1OTcyOTI0NzMxMjM4NTM5ODUwNDYxNDQ4MzE4NDk0NDk2MjY4MzczMTAwMjA2NjUzMjM1NTE2Nzc1NzE2NTI2OTM0NjMyNzI4MjYwNjAyNDgwOTc0NzY5MjU1MzQ5NTIzNzE4OTIxNjk1MDAzMzAzMjU2OTA4NzgwOTQzMDU1NzA4MzU2ODA5NTMxOTk0MzYzNzY1ODYxNzU4NDIxNjcyNTI1NzQ3MzExNzU4ODg4NTM1NTY3MjA1NzQxMjY0OTUwMTU5NzAyNDg5ODE2MzU2MjEzMTc1NDY1NzM5ODU1ODY2MTUzMDEyODUyMzE5ODM3MTMzMTY5NjA5MTA4Mzk5MDQ5NTY5MzkyNzg3MDU5MDA3MzIwMzQ4NDg1NTg3MTQwMjI1NjMwMDAxODA2NjIzOTk3MjYxNDQzMTM1MzgwNTU5MDYxNDczMjMyMzE2MzIzMjgwNTQ4NjYxNDUyODA5ODQyOTcxMDg5OTE1OTk0MTQzODk5ODUzNDI5MTE1MDA0OTQxOTU4NjI5MjI4ODk3NDY5MTczNjk1ODM2OTg2OTA5NzE3NjA1Nzg0NDcxOTk1MjI2NTc5NjgzNTAzMDAxMzQ2MjI5Njk2OTk0NTkyNDc3MDU1NzcxNDk2NDU5MzMxODgxNTE4MjMyODM3NTEzMzg1NjU4MjkwNjUxMTc5MTk4MjEzMzg3MTQwNzYyNDQ1NTAwMjgxNzExMDI3NTcxMTg1NDAwNjMxMTk0NTQ2MDA2ODU1NTgzNzQwNTk3OTQxMjQ5Njk4NzA5MDEyODM0MTIxNzY3MzQyNDU4ODYyMzExNzYwMjQ0Nzk5OTc2MzI1OTc4NTMxNjY1NTM3NjI5OTQ4NjAy"
-  },
-  //34
-  {
-    // Ether(src="0x1", dst="0x2")/IP(src="192.168.1.42", dst="10.200.1.5")/UDP(sport=31337, dport=443)/b'\x00\x80\x03\x04\x02\x05\x06\x07\x00@'
-    .inputPacket = "AgAAAAAAAQAAAAAACABFAAAmAAEAAEARrSfAqAEqCsgBBXppAbsAEqo2AIADBAIFBgcAQA==",
-    .description = "QUIC: short header w/ connection id. CIDv2",
-    .expectedReturnValue = "XDP_TX",
-    .expectedOutputPacket = "AADerb6vAgAAAAAAht1gAAAAACYEQAEAAAAAAAAAAAAAALrBASr8AAAAAAAAAAAAAAAAAAACRQAAJgABAABAEa0nwKgBKgrIAQV6aQG7ABKqNgCAAwQCBQYHAEA="
-  },
-  //35
-  {
-    // Ether(src="0x1", dst="0x2")/IP(src="192.168.1.42", dst="10.200.1.5")/UDP(sport=31337, dport=443)/b'\x00\x80\x03\x04\x44\x00\x00\x00\x00@'
-    .inputPacket = "AgAAAAAAAQAAAAAACABFAAAmAAEAAEARrSfAqAEqCsgBBXppAbsAEm5CAIADBEQAAAAAQA==",
-    .description = "QUIC: short header w/ connection id 197700 but non-existing mapping. CIDv2. LRU hit.",
-    .expectedReturnValue = "XDP_TX",
-    .expectedOutputPacket = "AADerb6vAgAAAAAAht1gAAAAACYEQAEAAAAAAAAAAAAAALrBASr8AAAAAAAAAAAAAAAAAAACRQAAJgABAABAEa0nwKgBKgrIAQV6aQG7ABJuQgCAAwREAAAAAEA="
-  },
-  //36
-  {
-    // Ether(src="0x1", dst="0x2")/IP(src="192.168.1.42", dst="10.200.1.6")/UDP(sport=31337, dport=80)/b'\x00\x80\x03\x04\x44\x00\x00\x00\x00@'
-    .inputPacket = "AgAAAAAAAQAAAAAACABFAAAmAAEAAEARrSbAqAEqCsgBBnppAFAAEm+sAIADBEQAAAAAQA==",
-    .description = "Packet to udp vip with udp flow migration enabled",
-    .expectedReturnValue = "XDP_TX",
-    .expectedOutputPacket = "AADerb6vAgAAAAAACABFAAA6AAAAAEAEXF2sEGhQCgAAA0UAACYAAQAAQBGtJsCoASoKyAEGemkAUAASb6wAgAMERAAAAABA"
-  },
+    // 18
+    {.description = "LRU hit",
+     .expectedReturnValue = "XDP_TX",
+     .inputPacketBuilder = katran::testing::PacketBuilder::newPacket()
+                               .Eth("0x1", "0x2")
+                               .IPv4("192.168.1.1", "10.200.1.1")
+                               .TCP(31337, 80, 0, 0, 8192, TH_ACK)
+                               .payload("katran test pkt"),
+     .expectedOutputPacketBuilder =
+         katran::testing::PacketBuilder::newPacket()
+             .Eth("02:00:00:00:00:00", "00:00:de:ad:be:af")
+             .IPv4("172.16.104.123", "10.0.0.3", 64, 0, 0)
+             .IPv4("192.168.1.1", "10.200.1.1")
+             .TCP(31337, 80, 0, 0, 8192, TH_ACK)
+             .payload("katran test pkt")},
+    // 19
+    {.description = "packet #1 dst port hashing only",
+     .expectedReturnValue = "XDP_TX",
+     .inputPacketBuilder = katran::testing::PacketBuilder::newPacket()
+                               .Eth("0x1", "0x2")
+                               .IPv4("192.168.1.1", "10.200.1.4")
+                               .TCP(31337, 42, 0, 0, 8192, TH_ACK)
+                               .payload("katran test pkt"),
+     .expectedOutputPacketBuilder =
+         katran::testing::PacketBuilder::newPacket()
+             .Eth("02:00:00:00:00:00", "00:00:de:ad:be:af")
+             .IPv4("172.16.105.122", "10.0.0.2", 64, 0, 0)
+             .IPv4("192.168.1.1", "10.200.1.4")
+             .TCP(31337, 42, 0, 0, 8192, TH_ACK)
+             .payload("katran test pkt")},
+    // 20
+    {.description = "packet #2 dst port hashing only",
+     .expectedReturnValue = "XDP_TX",
+     .inputPacketBuilder = katran::testing::PacketBuilder::newPacket()
+                               .Eth("0x1", "0x2")
+                               .IPv4("192.168.1.100", "10.200.1.4")
+                               .TCP(1337, 42, 0, 0, 8192, TH_ACK)
+                               .payload("katran test pkt"),
+     .expectedOutputPacketBuilder =
+         katran::testing::PacketBuilder::newPacket()
+             .Eth("02:00:00:00:00:00", "00:00:de:ad:be:af")
+             .IPv4("172.16.57.5", "10.0.0.2", 64, 0, 0)
+             .IPv4("192.168.1.100", "10.200.1.4")
+             .TCP(1337, 42, 0, 0, 8192, TH_ACK)
+             .payload("katran test pkt")},
+    // 21
+    {.description = "ipinip packet",
+     .expectedReturnValue = "XDP_PASS",
+     .inputPacketBuilder =
+         katran::testing::PacketBuilder::newPacket()
+             .Eth("0x1", "0x2")
+             .IPv4("172.16.1.1", "172.16.100.1", 64, 0, 1, 0, 5)
+             .IPv4("192.168.1.1", "10.200.1.1")
+             .UDP(31337, 80)
+             .payload("katran test pkt"),
+     .expectedOutputPacketBuilder =
+         katran::testing::PacketBuilder::newPacket()
+             .Eth("0x1", "0x2")
+             .IPv4("172.16.1.1", "172.16.100.1", 64, 0, 1, 0, 5)
+             .IPv4("192.168.1.1", "10.200.1.1")
+             .UDP(31337, 80)
+             .payload("katran test pkt")},
+    // 22
+    {.description = "ipv6inipv6 packet",
+     .expectedReturnValue = "XDP_PASS",
+     .inputPacketBuilder =
+         katran::testing::PacketBuilder::newPacket()
+             .Eth("0x1", "0x2")
+             .IPv6("100::1", "100::2", 64, 0, 0, 41) // nextHeader=41
+             // (IPv6)
+             .IPv6("fc00:2::1", "fc00:1::1")
+             .TCP(31337, 80, 0, 0, 8192, TH_ACK)
+             .payload("katran test pkt"),
+     .expectedOutputPacketBuilder =
+         katran::testing::PacketBuilder::newPacket()
+             .Eth("0x1", "0x2")
+             .IPv6("100::1", "100::2", 64, 0, 0, 41) // nextHeader=41
+             // (IPv6)
+             .IPv6("fc00:2::1", "fc00:1::1")
+             .TCP(31337, 80, 0, 0, 8192, TH_ACK)
+             .payload("katran test pkt")},
+    // 23
+    {.description = "ipv4inipv6 packet",
+     .expectedReturnValue = "XDP_PASS",
+     .inputPacketBuilder =
+         katran::testing::PacketBuilder::newPacket()
+             .Eth("0x1", "0x2")
+             .IPv6("100::1", "100::2", 64, 0, 0, 4) // nextHeader=4 (IPv4)
+             .IPv4("192.168.1.1", "10.200.1.1")
+             .UDP(31337, 80)
+             .payload("katran test pkt"),
+     .expectedOutputPacketBuilder =
+         katran::testing::PacketBuilder::newPacket()
+             .Eth("0x1", "0x2")
+             .IPv6("100::1", "100::2", 64, 0, 0, 4) // nextHeader=4 (IPv4)
+             .IPv4("192.168.1.1", "10.200.1.1")
+             .UDP(31337, 80)
+             .payload("katran test pkt")},
+    // 24
+    {.description = "QUIC: long header. Client Initial type. LRU miss",
+     .expectedReturnValue = "XDP_TX",
+     .inputPacketBuilder =
+         PacketBuilder::newPacket()
+             .Eth("0x1", "0x2")
+             .IPv4("192.168.1.42", "10.200.1.5")
+             .UDP(31337, 443)
+             .QUICInitial()
+             .destConnId({0x41, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x00})
+             .version(QUIC_V1_WIRE_FORMAT)
+             .token({0x11})
+             .packetNumber(0x11, 1)
+             .data("quic data\x00@")
+             .done(),
+     .expectedOutputPacketBuilder =
+         PacketBuilder::newPacket()
+             .Eth("02:00:00:00:00:00", "00:00:de:ad:be:af")
+             .IPv4("172.16.104.80", "10.0.0.2", 64, 0, 0) // Outer IPv4
+             // encapsulation
+             .IPv4("192.168.1.42", "10.200.1.5") // Inner IPv4
+             .UDP(31337, 443)
+             .QUICInitial()
+             .destConnId({0x41, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x00})
+             .version(QUIC_V1_WIRE_FORMAT)
+             .token({0x11})
+             .packetNumber(0x11, 1)
+             .data("quic data\x00@")
+             .done()},
+    // 25
+    {.description = "QUIC: long header. 0-RTT Protected. CH. LRU hit.",
+     .expectedReturnValue = "XDP_TX",
+     .inputPacketBuilder =
+         PacketBuilder::newPacket()
+             .Eth("0x1", "0x2")
+             .IPv4("192.168.1.42", "10.200.1.5")
+             .UDP(31337, 443)
+             .QUIC0RTT()
+             .destConnId({0x43, 0xFF, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88})
+             .version(QUIC_V1_WIRE_FORMAT)
+             .packetNumber(0x11, 1) // Packet number 0x11 (1 byte)
+             .data("\x01quic data") // Data after packet number
+             .done(),
+     .expectedOutputPacketBuilder =
+         PacketBuilder::newPacket()
+             .Eth("02:00:00:00:00:00", "00:00:de:ad:be:af")
+             .IPv4("172.16.104.80", "10.0.0.2", 64, 0, 0) // Outer IPv4
+             // encapsulation
+             .IPv4("192.168.1.42", "10.200.1.5") // Inner IPv4
+             .UDP(31337, 443)
+             .QUIC0RTT()
+             .destConnId({0x43, 0xFF, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88})
+             .version(QUIC_V1_WIRE_FORMAT)
+             .packetNumber(0x11, 1) // Packet number 0x11 (1 byte)
+             .data("\x01quic data") // Data after packet number
+             .done()},
+    // 26
+    {.description =
+         "QUIC: long header. Handshake. v4 vip v6 real. Conn Id V1 based. server id is 1024 mapped to fc00::1.",
+     .expectedReturnValue = "XDP_TX",
+     .inputPacketBuilder =
+         PacketBuilder::newPacket()
+             .Eth("0x1", "0x2")
+             .IPv4("192.168.1.42", "10.200.1.5")
+             .UDP(31337, 443)
+             .QUICHandshake()
+             .destConnId({0x41, 0x00, 0x03, 0x04, 0x05, 0x06, 0x07, 0x00})
+             .version(QUIC_V1_WIRE_FORMAT)
+             .packetNumber(0x11, 1)
+             .data("\x01quic data\x00@") // Data after packet number
+             .done(),
+     .expectedOutputPacketBuilder =
+         PacketBuilder::newPacket()
+             .Eth("02:00:00:00:00:00", "00:00:de:ad:be:af")
+             .IPv6("100::bac1:12a", "fc00::1") // Outer IPv6 encapsulation
+             .IPv4("192.168.1.42", "10.200.1.5") // Inner IPv4
+             .UDP(31337, 443)
+             .QUICHandshake()
+             .destConnId({0x41, 0x00, 0x03, 0x04, 0x05, 0x06, 0x07, 0x00})
+             .version(QUIC_V1_WIRE_FORMAT)
+             .packetNumber(0x11, 1)
+             .data("\x01quic data\x00@") // Data after packet number
+             .done()},
+    // 27
+    {.description =
+         "QUIC: long header. Retry. v4 vip v6 real. Conn Id V1 based. server id is 1024 mapped to fc00::1.",
+     .expectedReturnValue = "XDP_TX",
+     .inputPacketBuilder =
+         PacketBuilder::newPacket()
+             .Eth("0x1", "0x2")
+             .IPv4("192.168.1.42", "10.200.1.5")
+             .UDP(31337, 443)
+             .QUICRetry()
+             .destConnId({0x41, 0x00, 0x03, 0x04, 0x05, 0x06, 0x07, 0x00})
+             .version(QUIC_V1_WIRE_FORMAT)
+             .data("\x01\x11\x01quic data\x00@")
+             .done(),
+     .expectedOutputPacketBuilder =
+         PacketBuilder::newPacket()
+             .Eth("02:00:00:00:00:00", "00:00:de:ad:be:af")
+             .IPv6("100::bac1:12a", "fc00::1") // Outer IPv6 encapsulation
+             .IPv4("192.168.1.42", "10.200.1.5") // Inner IPv4
+             .UDP(31337, 443)
+             .QUICRetry()
+             .destConnId({0x41, 0x00, 0x03, 0x04, 0x05, 0x06, 0x07, 0x00})
+             .version(QUIC_V1_WIRE_FORMAT)
+             .data("\x01\x11\x01quic data\x00@")
+             .done()},
+    // 28
+    {.description =
+         "QUIC: long header. client initial. v6 vip v6 real. LRU miss",
+     .expectedReturnValue = "XDP_TX",
+     .inputPacketBuilder =
+         PacketBuilder::newPacket()
+             .Eth("0x1", "0x2")
+             .IPv6("fc00:2::42", "fc00:1::2")
+             .UDP(31337, 443)
+             .QUICInitial()
+             .destConnId({0x44, 0x01, 0x03, 0x04, 0x05, 0x06, 0x07, 0x00})
+             .version(QUIC_V1_WIRE_FORMAT)
+             .token({0x11})
+             .packetNumber(0x11, 1)
+             .data("\x01quic data\x00@")
+             .done(),
+     .expectedOutputPacketBuilder =
+         PacketBuilder::newPacket()
+             .Eth("02:00:00:00:00:00", "00:00:de:ad:be:af")
+             .IPv6("100::7a69:42", "fc00::1") // Outer IPv6 encapsulation
+             .IPv6("fc00:2::42", "fc00:1::2") // Inner IPv6
+             .UDP(31337, 443)
+             .QUICInitial()
+             .destConnId({0x44, 0x01, 0x03, 0x04, 0x05, 0x06, 0x07, 0x00})
+             .version(QUIC_V1_WIRE_FORMAT)
+             .token({0x11})
+             .packetNumber(0x11, 1)
+             .data("\x01quic data\x00@")
+             .done()},
+    // 29
+    {.description = "QUIC: short header. No connection id. LRU hit",
+     .expectedReturnValue = "XDP_TX",
+     .inputPacketBuilder = PacketBuilder::newPacket()
+                               .Eth("0x1", "0x2")
+                               .IPv4("192.168.1.42", "10.200.1.5")
+                               .UDP(31337, 443)
+                               .payload(std::string(
+                                   "\x00",
+                                   1)), // QUIC short header with no connection
+     // ID (explicit 1-byte payload)
+     .expectedOutputPacketBuilder =
+         PacketBuilder::newPacket()
+             .Eth("02:00:00:00:00:00", "00:00:de:ad:be:af")
+             .IPv6("100::bac1:12a", "fc00::1") // Outer IPv6 encapsulation
+             .IPv4("192.168.1.42", "10.200.1.5") // Inner IPv4
+             .UDP(31337, 443)
+             .payload(std::string("\x00", 1))},
+    // 30
+    {.description = "QUIC: short header w/ connection id",
+     .expectedReturnValue = "XDP_TX",
+     .inputPacketBuilder =
+         PacketBuilder::newPacket()
+             .Eth("0x1", "0x2")
+             .IPv4("192.168.1.42", "10.200.1.5")
+             .UDP(31337, 443)
+             .QUICShortHeader()
+             .destConnId({0x41, 0x00, 0x83, 0x04, 0x05, 0x06, 0x07, 0x00})
+             .cidVersion(QUICHeader::CID_V1)
+             .data("@")
+             .done(),
+     .expectedOutputPacketBuilder =
+         PacketBuilder::newPacket()
+             .Eth("02:00:00:00:00:00", "00:00:de:ad:be:af")
+             .IPv6("100::bac1:12a", "fc00::2") // Outer IPv6 encapsulation
+             .IPv4("192.168.1.42", "10.200.1.5") // Inner IPv4
+             .UDP(31337, 443)
+             .QUICShortHeader()
+             .destConnId({0x41, 0x00, 0x83, 0x04, 0x05, 0x06, 0x07, 0x00})
+             .cidVersion(QUICHeader::CID_V1)
+             .data("@")
+             .done()},
+    // 31
+    {.description =
+         "QUIC: short header w/ connection id 1092 but non-existing mapping. LRU hit",
+     .expectedReturnValue = "XDP_TX",
+     .inputPacketBuilder =
+         PacketBuilder::newPacket()
+             .Eth("0x1", "0x2")
+             .IPv4("192.168.1.42", "10.200.1.5")
+             .UDP(31337, 443)
+             .QUICShortHeader()
+             .destConnId({0x41, 0x11, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})
+             .cidVersion(QUICHeader::CID_V1)
+             .data("@")
+             .done(),
+     .expectedOutputPacketBuilder =
+         PacketBuilder::newPacket()
+             .Eth("02:00:00:00:00:00", "00:00:de:ad:be:af")
+             .IPv6("100::bac1:12a", "fc00::2") // Outer IPv6 encapsulation
+             .IPv4("192.168.1.42", "10.200.1.5") // Inner IPv4
+             .UDP(31337, 443)
+             .QUICShortHeader()
+             .destConnId({0x41, 0x11, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})
+             .cidVersion(QUICHeader::CID_V1)
+             .data("@")
+             .done()},
+    // 32
+    {.description = "QUIC: short header w/ conn id. host id = 0. LRU hit",
+     .expectedReturnValue = "XDP_TX",
+     .inputPacketBuilder =
+         PacketBuilder::newPacket()
+             .Eth("0x1", "0x2")
+             .IPv4("192.168.1.42", "10.200.1.5")
+             .UDP(31337, 443)
+             .QUICShortHeader()
+             .destConnId({0x40, 0x00, 0x03, 0x04, 0x05, 0x06, 0x07, 0x00})
+             .cidVersion(QUICHeader::CID_V1)
+             .data("@")
+             .done(),
+     .expectedOutputPacketBuilder =
+         PacketBuilder::newPacket()
+             .Eth("02:00:00:00:00:00", "00:00:de:ad:be:af")
+             .IPv6("100::bac1:12a", "fc00::2") // Outer IPv6 encapsulation
+             .IPv4("192.168.1.42", "10.200.1.5") // Inner IPv4
+             .UDP(31337, 443)
+             .QUICShortHeader()
+             .destConnId({0x40, 0x00, 0x03, 0x04, 0x05, 0x06, 0x07, 0x00})
+             .cidVersion(QUICHeader::CID_V1)
+             .data("@")
+             .done()},
+    // 33
+    {.description = "UDP: big packet of length 1515. trigger PACKET TOOBIG",
+     .expectedReturnValue = "XDP_DROP",
+     .inputPacketBuilder =
+         PacketBuilder::newPacket()
+             .Eth("0x1", "0x2")
+             .IPv4("192.168.1.1", "10.200.1.1")
+             .UDP(31337, 80)
+             .payload(
+                 "797883370329577106344738025230573564933167024829388081199648613840181948753884603247773669576367045816906284210962088269452146983146773303572445414493700126379947519594617279357929777570929325860830039096091203526291264864513542906692645769582519710708146806211724766482394164005416688079197391206390291800153547603161357657905347836435363362258350333327968302049102730916469649631532883387397583916004554030850139851376438322245758946060430921264977061015778749816231475574683816838619259807655931220795697682284954906880260632459503382535673347232340672712872085970621009076782437411771791551329842711821074993004777147846777968599066211476974862400025965589871325380269066383201236046194226097412017387088327538130521122420827406683370673844193724595563783044714305297107179416676764561048892835737142761150503744154953946035972924731238539850461448318494496268373100206653235516775716526934632728260602480974769255349523718921695003303256908780943055708356809531994363765861758421672525747311758888535567205741264950159702489816356213175465739855866153012852319837133169609108399049569392787059007320348485587140225630001806623997261443135380559061473232316323280548661452809842971089915994143899853429115004941958629228897469173695836986909717605784471995226579683503001346229696994592477055771496459331881518232837513385658290651179198213387140762445500281711027571185400631194546006855583740597941249698709012834121767342458862311760244799976325978531665537629948602"),
+     .expectedOutputPacketBuilder =
+         PacketBuilder::newPacket()
+             .Eth("0x1", "0x2")
+             .IPv4("192.168.1.1", "10.200.1.1")
+             .UDP(31337, 80)
+             .payload(
+                 "797883370329577106344738025230573564933167024829388081199648613840181948753884603247773669576367045816906284210962088269452146983146773303572445414493700126379947519594617279357929777570929325860830039096091203526291264864513542906692645769582519710708146806211724766482394164005416688079197391206390291800153547603161357657905347836435363362258350333327968302049102730916469649631532883387397583916004554030850139851376438322245758946060430921264977061015778749816231475574683816838619259807655931220795697682284954906880260632459503382535673347232340672712872085970621009076782437411771791551329842711821074993004777147846777968599066211476974862400025965589871325380269066383201236046194226097412017387088327538130521122420827406683370673844193724595563783044714305297107179416676764561048892835737142761150503744154953946035972924731238539850461448318494496268373100206653235516775716526934632728260602480974769255349523718921695003303256908780943055708356809531994363765861758421672525747311758888535567205741264950159702489816356213175465739855866153012852319837133169609108399049569392787059007320348485587140225630001806623997261443135380559061473232316323280548661452809842971089915994143899853429115004941958629228897469173695836986909717605784471995226579683503001346229696994592477055771496459331881518232837513385658290651179198213387140762445500281711027571185400631194546006855583740597941249698709012834121767342458862311760244799976325978531665537629948602")},
+    // 34
+    {.description = "QUIC: short header w/ connection id. CIDv2",
+     .expectedReturnValue = "XDP_TX",
+     .inputPacketBuilder =
+         PacketBuilder::newPacket()
+             .Eth("0x1", "0x2")
+             .IPv4("192.168.1.42", "10.200.1.5")
+             .UDP(31337, 443)
+             .QUICShortHeader()
+             .destConnId({0x80, 0x03, 0x04, 0x02, 0x05, 0x06, 0x07, 0x00})
+             .cidVersion(QUICHeader::CID_V2)
+             .data("@")
+             .done(),
+     .expectedOutputPacketBuilder =
+         PacketBuilder::newPacket()
+             .Eth("02:00:00:00:00:00", "00:00:de:ad:be:af")
+             .IPv6("100::bac1:12a", "fc00::2") // Outer IPv6 encapsulation
+             .IPv4("192.168.1.42", "10.200.1.5") // Inner IPv4
+             .UDP(31337, 443)
+             .QUICShortHeader()
+             .destConnId({0x80, 0x03, 0x04, 0x02, 0x05, 0x06, 0x07, 0x00})
+             .cidVersion(QUICHeader::CID_V2)
+             .data("@")
+             .done()},
+    // 35
+    {.description =
+         "QUIC: short header w/ connection id 197700 but non-existing mapping. CIDv2. LRU hit.",
+     .expectedReturnValue = "XDP_TX",
+     .inputPacketBuilder =
+         PacketBuilder::newPacket()
+             .Eth("0x1", "0x2")
+             .IPv4("192.168.1.42", "10.200.1.5")
+             .UDP(31337, 443)
+             .QUICShortHeader()
+             .destConnId({0x80, 0x03, 0x04, 0x44, 0x00, 0x00, 0x00, 0x00})
+             .cidVersion(QUICHeader::CID_V2)
+             .data("@")
+             .done(),
+     .expectedOutputPacketBuilder =
+         PacketBuilder::newPacket()
+             .Eth("02:00:00:00:00:00", "00:00:de:ad:be:af")
+             .IPv6("100::bac1:12a", "fc00::2") // Outer IPv6 encapsulation
+             .IPv4("192.168.1.42", "10.200.1.5") // Inner IPv4
+             .UDP(31337, 443)
+             .QUICShortHeader()
+             .destConnId({0x80, 0x03, 0x04, 0x44, 0x00, 0x00, 0x00, 0x00})
+             .cidVersion(QUICHeader::CID_V2)
+             .data("@")
+             .done()},
+    // 36
+    {.description = "Packet to udp vip with udp flow migration enabled",
+     .expectedReturnValue = "XDP_TX",
+     .inputPacketBuilder =
+         PacketBuilder::newPacket()
+             .Eth("0x1", "0x2")
+             .IPv4("192.168.1.42", "10.200.1.6")
+             .UDP(31337, 80)
+             .QUICShortHeader()
+             .destConnId({0x80, 0x03, 0x04, 0x44, 0x00, 0x00, 0x00, 0x00})
+             .cidVersion(QUICHeader::CID_V2)
+             .data("@")
+             .done(),
+     .expectedOutputPacketBuilder =
+         PacketBuilder::newPacket()
+             .Eth("02:00:00:00:00:00", "00:00:de:ad:be:af")
+             .IPv4("172.16.104.80", "10.0.0.3", 64, 0, 0) // Outer IPv4
+                                                          // (IPIP)
+             .IPv4("192.168.1.42", "10.200.1.6") // Inner IPv4
+             .UDP(31337, 80)
+             .QUICShortHeader()
+             .destConnId({0x80, 0x03, 0x04, 0x44, 0x00, 0x00, 0x00, 0x00})
+             .cidVersion(QUICHeader::CID_V2)
+             .data("@")
+             .done()},
 };
 
 } // namespace testing

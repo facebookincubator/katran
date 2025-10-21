@@ -26,6 +26,7 @@
 #include <netinet/tcp.h>
 #include <cstring>
 #include <iomanip>
+#include <iostream>
 #include <sstream>
 #include <stdexcept>
 
@@ -363,6 +364,130 @@ PacketBuilder& PacketBuilder::ARP(
       targetHardwareAddr,
       targetProtocolAddr));
   return *this;
+}
+
+QUICBuilder::QUICBuilder(
+    QUICHeader::QUICType type,
+    PacketBuilder& parentBuilder)
+    : type_(type), parentBuilder_(parentBuilder) {}
+
+QUICBuilder& QUICBuilder::destConnId(const std::vector<uint8_t>& connId) {
+  destConnId_ = connId;
+  return *this;
+}
+
+QUICBuilder& QUICBuilder::srcConnId(const std::vector<uint8_t>& connId) {
+  srcConnId_ = connId;
+  return *this;
+}
+
+QUICBuilder& QUICBuilder::version(uint32_t version) {
+  version_ = version;
+  return *this;
+}
+
+QUICBuilder& QUICBuilder::token(const std::vector<uint8_t>& token) {
+  token_ = token;
+  return *this;
+}
+
+QUICBuilder& QUICBuilder::packetNumber(uint64_t pn, uint8_t lengthBytes) {
+  packetNumber_ = pn;
+  packetNumberLength_ = lengthBytes;
+  return *this;
+}
+
+QUICBuilder& QUICBuilder::cidVersion(QUICHeader::ConnectionIdVersion version) {
+  cidVersion_ = version;
+  return *this;
+}
+
+QUICBuilder& QUICBuilder::data(const std::string& payload) {
+  if (type_ == QUICHeader::SHORT_HEADER) {
+    payload_ = payload;
+  } else {
+    payload_ = payload + std::string({'\0', '@'});
+  }
+  return *this;
+}
+
+QUICBuilder& QUICBuilder::data(const std::vector<uint8_t>& payload) {
+  payload_.assign(payload.begin(), payload.end());
+  return *this;
+}
+
+PacketBuilder& QUICBuilder::done() {
+  validate();
+  buildAndAddToParent();
+  return parentBuilder_;
+}
+
+void QUICBuilder::validate() const {
+  switch (type_) {
+    case QUICHeader::CLIENT_INITIAL:
+      if (destConnId_.empty()) {
+        std::cerr << "WARNING: CLIENT_INITIAL should have destConnId\n";
+      }
+      break;
+
+    case QUICHeader::HANDSHAKE:
+    case QUICHeader::ZERO_RTT:
+      if (destConnId_.empty()) {
+        std::cerr << "WARNING: HANDSHAKE/0-RTT should have destConnId\n";
+      }
+      break;
+
+    case QUICHeader::RETRY:
+      if (destConnId_.empty() || srcConnId_.empty()) {
+        std::cerr
+            << "WARNING: RETRY should have both destConnId and srcConnId\n";
+      }
+      break;
+
+    case QUICHeader::SHORT_HEADER:
+      if (destConnId_.empty()) {
+        std::cerr << "WARNING: SHORT_HEADER should have destConnId\n";
+      }
+      break;
+  }
+}
+
+void QUICBuilder::buildAndAddToParent() {
+  auto quicHeader = std::make_shared<QUICHeader>(
+      type_,
+      destConnId_,
+      version_,
+      srcConnId_,
+      packetNumber_,
+      token_,
+      cidVersion_,
+      packetNumberLength_);
+
+  if (!payload_.empty()) {
+    quicHeader->appendData(payload_);
+  }
+
+  parentBuilder_.headerStack_.push_back(quicHeader);
+}
+
+QUICBuilder PacketBuilder::QUICInitial() {
+  return QUICBuilder(QUICHeader::CLIENT_INITIAL, *this);
+}
+
+QUICBuilder PacketBuilder::QUICHandshake() {
+  return QUICBuilder(QUICHeader::HANDSHAKE, *this);
+}
+
+QUICBuilder PacketBuilder::QUICRetry() {
+  return QUICBuilder(QUICHeader::RETRY, *this);
+}
+
+QUICBuilder PacketBuilder::QUIC0RTT() {
+  return QUICBuilder(QUICHeader::ZERO_RTT, *this);
+}
+
+QUICBuilder PacketBuilder::QUICShortHeader() {
+  return QUICBuilder(QUICHeader::SHORT_HEADER, *this);
 }
 
 std::vector<uint8_t> PacketBuilder::buildAsBytes() const {
@@ -1994,6 +2119,242 @@ uint32_t ARPHeader::ipStringToBytes(const std::string& ipStr) {
     return ntohl(addr.s_addr); // Return in host byte order
   }
   return 0; // Invalid IP, return 0.0.0.0
+}
+
+QUICHeader::QUICHeader(
+    QUICType type,
+    const std::vector<uint8_t>& destConnectionId,
+    uint32_t version,
+    const std::vector<uint8_t>& srcConnectionId,
+    uint64_t packetNumber,
+    const std::vector<uint8_t>& token,
+    ConnectionIdVersion cidVersion,
+    uint8_t packetNumberLength)
+    : type_(type),
+      destConnectionId_(destConnectionId),
+      srcConnectionId_(srcConnectionId),
+      version_(version),
+      packetNumber_(packetNumber),
+      packetNumberLength_(packetNumberLength),
+      token_(token),
+      cidVersion_(cidVersion) {}
+
+void QUICHeader::appendData(const std::vector<uint8_t>& data) {
+  additionalData_.insert(additionalData_.end(), data.begin(), data.end());
+}
+
+void QUICHeader::appendData(const std::string& data) {
+  additionalData_.insert(additionalData_.end(), data.begin(), data.end());
+}
+
+void QUICHeader::serialize(
+    size_t headerIndex,
+    const std::vector<std::shared_ptr<HeaderEntry>>& headerStack,
+    std::vector<uint8_t>& packet) {
+  std::vector<uint8_t> quicHeader;
+
+  if (type_ == SHORT_HEADER) {
+    // Short header format: flags (1 byte) + connection ID (0-8 bytes)
+    quicHeader.push_back(0x00); // Short header flag
+
+    // Add destination connection ID if provided
+    if (!destConnectionId_.empty()) {
+      quicHeader.insert(
+          quicHeader.end(), destConnectionId_.begin(), destConnectionId_.end());
+    }
+
+    // Add packet number (variable length encoding)
+    if (packetNumber_ > 0) {
+      auto packetNumberBytes =
+          encodePacketNumber(packetNumber_, packetNumberLength_);
+      quicHeader.insert(
+          quicHeader.end(), packetNumberBytes.begin(), packetNumberBytes.end());
+    }
+  } else {
+    // Long header format
+    uint8_t flags;
+
+    switch (type_) {
+      case CLIENT_INITIAL:
+        flags = 0xCF;
+        break;
+      case ZERO_RTT:
+        flags = 0xDF;
+        break;
+      case HANDSHAKE:
+        flags = 0xEF;
+        break;
+      case RETRY:
+        flags = 0xFF;
+        break;
+      default:
+        throw std::runtime_error(
+            "Invalid QUIC type: " + std::to_string(static_cast<int>(type_)));
+    }
+
+    quicHeader.push_back(flags);
+
+    quicHeader.push_back((version_ >> 24) & 0xFF);
+    quicHeader.push_back((version_ >> 16) & 0xFF);
+    quicHeader.push_back((version_ >> 8) & 0xFF);
+    quicHeader.push_back(version_ & 0xFF);
+
+    uint8_t destCidLength = getConnectionIdLength(destConnectionId_);
+    quicHeader.push_back(destCidLength);
+
+    if (destCidLength > 0) {
+      // For backward compatibility, if destConnectionId_ is empty but length >
+      // 0, pad with zeros (old behavior)
+      if (destConnectionId_.empty()) {
+        std::vector<uint8_t> paddedConnId(8, 0);
+        quicHeader.insert(
+            quicHeader.end(), paddedConnId.begin(), paddedConnId.end());
+      } else {
+        // Use actual connection ID, pad to 8 bytes if needed
+        std::vector<uint8_t> paddedConnId(8, 0);
+        size_t copyLen = std::min(destConnectionId_.size(), size_t(8));
+        std::copy(
+            destConnectionId_.begin(),
+            destConnectionId_.begin() + copyLen,
+            paddedConnId.begin());
+        quicHeader.insert(
+            quicHeader.end(), paddedConnId.begin(), paddedConnId.end());
+      }
+    }
+
+    uint8_t srcCidLength = getConnectionIdLength(srcConnectionId_);
+    quicHeader.push_back(srcCidLength);
+
+    if (srcCidLength > 0 && !srcConnectionId_.empty()) {
+      // Use actual source connection ID, pad to specified length if needed
+      std::vector<uint8_t> paddedSrcConnId(srcCidLength, 0);
+      size_t copyLen = std::min(srcConnectionId_.size(), size_t(srcCidLength));
+      std::copy(
+          srcConnectionId_.begin(),
+          srcConnectionId_.begin() + copyLen,
+          paddedSrcConnId.begin());
+      quicHeader.insert(
+          quicHeader.end(), paddedSrcConnId.begin(), paddedSrcConnId.end());
+    }
+
+    // Add Token field for Initial packets
+    if (type_ == CLIENT_INITIAL) {
+      auto tokenLengthBytes = encodeVariableLengthInteger(token_.size());
+      quicHeader.insert(
+          quicHeader.end(), tokenLengthBytes.begin(), tokenLengthBytes.end());
+
+      if (!token_.empty()) {
+        quicHeader.insert(quicHeader.end(), token_.begin(), token_.end());
+      }
+    }
+
+    if (type_ != RETRY) {
+      size_t remainingLength = 0;
+      if (packetNumber_ > 0) {
+        remainingLength = packetNumberLength_;
+      } else if (!additionalData_.empty()) {
+        if (type_ == CLIENT_INITIAL) {
+          remainingLength = additionalData_.size();
+        } else {
+          // For 0-RTT, encode minimal length
+          remainingLength = additionalData_.empty() ? 0 : 1;
+        }
+      }
+      auto lengthBytes = encodeVariableLengthInteger(remainingLength);
+      quicHeader.insert(
+          quicHeader.end(), lengthBytes.begin(), lengthBytes.end());
+    }
+
+    // Add packet number for long headers (except Retry packets)
+    // Only add if packet number is explicitly non-zero
+    if (type_ != RETRY && packetNumber_ > 0) {
+      auto packetNumberBytes =
+          encodePacketNumber(packetNumber_, packetNumberLength_);
+      quicHeader.insert(
+          quicHeader.end(), packetNumberBytes.begin(), packetNumberBytes.end());
+    }
+  }
+
+  // Append additional QUIC data after the basic header
+  if (!additionalData_.empty()) {
+    quicHeader.insert(
+        quicHeader.end(), additionalData_.begin(), additionalData_.end());
+  }
+
+  // Insert complete QUIC data (header + additional data) as UDP payload
+  packet.insert(packet.end(), quicHeader.begin(), quicHeader.end());
+}
+
+std::string QUICHeader::generateScapyCommand() const {
+  // For Scapy, QUIC is represented as raw bytes in UDP payload
+  std::stringstream ss;
+  ss << "Raw(b'";
+
+  // Generate the same bytes that serialize() would create
+  std::vector<uint8_t> tempPacket;
+  const_cast<QUICHeader*>(this)->serialize(0, {}, tempPacket);
+
+  for (uint8_t byte : tempPacket) {
+    ss << "\\x" << std::hex << std::setfill('0') << std::setw(2)
+       << static_cast<unsigned>(byte);
+  }
+
+  ss << "')";
+  return ss.str();
+}
+
+// Helper methods
+std::vector<uint8_t> QUICHeader::encodeVariableLengthInteger(uint64_t value) {
+  std::vector<uint8_t> result;
+
+  if (value < 64) {
+    // Single byte: 00xxxxxx
+    result.push_back(static_cast<uint8_t>(value));
+  } else if (value < 16384) {
+    // Two bytes: 01xxxxxx xxxxxxxx
+    result.push_back(static_cast<uint8_t>(0x40 | (value >> 8)));
+    result.push_back(static_cast<uint8_t>(value & 0xFF));
+  } else if (value < 1073741824) {
+    // Four bytes: 10xxxxxx xxxxxxxx xxxxxxxx xxxxxxxx
+    result.push_back(static_cast<uint8_t>(0x80 | (value >> 24)));
+    result.push_back(static_cast<uint8_t>((value >> 16) & 0xFF));
+    result.push_back(static_cast<uint8_t>((value >> 8) & 0xFF));
+    result.push_back(static_cast<uint8_t>(value & 0xFF));
+  } else {
+    // Eight bytes: 11xxxxxx xxxxxxxx xxxxxxxx xxxxxxxx xxxxxxxx xxxxxxxx
+    // xxxxxxxx xxxxxxxx
+    result.push_back(static_cast<uint8_t>(0xC0 | (value >> 56)));
+    result.push_back(static_cast<uint8_t>((value >> 48) & 0xFF));
+    result.push_back(static_cast<uint8_t>((value >> 40) & 0xFF));
+    result.push_back(static_cast<uint8_t>((value >> 32) & 0xFF));
+    result.push_back(static_cast<uint8_t>((value >> 24) & 0xFF));
+    result.push_back(static_cast<uint8_t>((value >> 16) & 0xFF));
+    result.push_back(static_cast<uint8_t>((value >> 8) & 0xFF));
+    result.push_back(static_cast<uint8_t>(value & 0xFF));
+  }
+
+  return result;
+}
+
+std::vector<uint8_t> QUICHeader::encodePacketNumber(
+    uint64_t packetNumber,
+    uint8_t length) {
+  std::vector<uint8_t> result(length);
+
+  for (int i = length - 1; i >= 0; --i) {
+    result[i] =
+        static_cast<uint8_t>((packetNumber >> (8 * (length - 1 - i))) & 0xFF);
+  }
+
+  return result;
+}
+
+uint8_t QUICHeader::getConnectionIdLength(const std::vector<uint8_t>& connId) {
+  if (connId.empty()) {
+    return 0;
+  }
+
+  return static_cast<uint8_t>(std::min(connId.size(), size_t(8)));
 }
 
 } // namespace testing

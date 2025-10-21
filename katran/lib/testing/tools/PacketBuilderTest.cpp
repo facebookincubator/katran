@@ -596,3 +596,56 @@ TEST_F(PacketBuilderTest, UdpFlowInvalidationEncapsulatedPacket) {
       packet.scapyCommand,
       "Ether(src='02:00:00:00:00:00', dst='00:00:de:ad:be:af')/IP(src='10.0.13.37', dst='10.0.0.2')/UDP(sport=27003, dport=9886)/IP(src='10.0.0.1', dst='10.200.1.1')/UDP(sport=31337, dport=80)/'katran test pkt'");
 }
+
+// QUIC 0-RTT packet
+// Verifies PacketBuilder correctly implements QUIC long header format for 0-RTT
+// packets The QUIC long header for 0-RTT consists of:
+// - Flags (1 byte): 0xdf for 0-RTT
+// - Version (4 bytes): network byte order
+// - DCID Length (1 byte)
+// - DCID (variable)
+// - SCID Length (1 byte)
+// - SCID (variable)
+// - Length (variable-length integer) - length of remaining payload including
+// packet number
+// - Packet Number (variable, optional)
+// - Payload (variable)
+// Note: 0-RTT packets do NOT have a token field (only Initial packets have
+// tokens)
+TEST_F(PacketBuilderTest, TestCase25Input) {
+  auto packet =
+      PacketBuilder::newPacket()
+          .Eth("0x1", "0x2")
+          .IPv4("192.168.1.42", "10.200.1.5")
+          .UDP(31337, 443)
+          .QUIC0RTT()
+          .destConnId({0x43, 0xFF, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88})
+          .version(QUIC_V1_WIRE_FORMAT)
+          .packetNumber(0x11, 1) // Set packet number to 0x11 (1 byte)
+          .data("\x01quic data") // Data without the first byte (which is the
+                                 // packet number)
+          .done()
+          .build();
+
+  // Expected encoding from test fixtures
+  std::string expected =
+      "AgAAAAAAAQAAAAAACABFAAA5AAEAAEARrRTAqAEqCsgBBXppAbsAJbNG3/rOsAEIQ/8zRFVmd4gAAREBcXVpYyBkYXRhAEA=";
+  EXPECT_EQ(packet.base64Packet, expected);
+
+  // Verify packet has reasonable size (expected: 71 bytes)
+  EXPECT_EQ(packet.packetSize, 71);
+
+  // Decode and verify QUIC long header format
+  auto bytes = folly::base64Decode(packet.base64Packet);
+  size_t quicStart = 42; // Eth(14) + IPv4(20) + UDP(8)
+
+  // Verify QUIC 0-RTT flag (bit pattern 11xxxxxx with type bits for 0-RTT)
+  EXPECT_EQ(static_cast<uint8_t>(bytes[quicStart]), 0xdf);
+
+  // Verify DCID length at correct offset (after 1 byte flags + 4 bytes version)
+  EXPECT_EQ(static_cast<uint8_t>(bytes[quicStart + 5]), 0x08);
+
+  // Verify DCID bytes start at correct offset
+  EXPECT_EQ(static_cast<uint8_t>(bytes[quicStart + 6]), 0x43);
+  EXPECT_EQ(static_cast<uint8_t>(bytes[quicStart + 7]), 0xFF);
+}
