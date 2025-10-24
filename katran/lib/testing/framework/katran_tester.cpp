@@ -398,7 +398,6 @@ int main(int argc, char** argv) {
     tester.testPcktsFromPcap();
     return 0;
   } else if (FLAGS_perf_testing) {
-    // for perf tests to work katran must be compiled w -DINLINE_DECAP
     preparePerfTestingLbData(*lb);
     auto results = tester.testPerfFromFixture(FLAGS_repeat, FLAGS_position);
     printPerfResults(results);
