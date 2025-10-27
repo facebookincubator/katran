@@ -431,10 +431,15 @@ std::vector<TestResult> BpfTester::testPerfFromFixture(
 
   // Run all tests and collect results
   for (int i = first_index; i < last_index; i++) {
-    auto single_results = runXdpProgPerf(
-        config_.testData[i].inputPacket,
-        config_.testData[i].description,
-        repeat);
+    std::string input_packet;
+    if (config_.testData[i].inputPacketBuilder.has_value()) {
+      auto inputResult = config_.testData[i].inputPacketBuilder->build();
+      input_packet = inputResult.base64Packet;
+    } else {
+      input_packet = config_.testData[i].inputPacket;
+    }
+    auto single_results =
+        runXdpProgPerf(input_packet, config_.testData[i].description, repeat);
     results.insert(results.end(), single_results.begin(), single_results.end());
   }
   return results;
@@ -480,7 +485,7 @@ std::vector<TestResult> BpfTester::runXdpProgPerf(
       duration = 1;
     }
   }
-  if (repeat > 0) {
+  if (repeat > 0 && total_duration > 0) {
     auto avgDuration = total_duration / repeat;
     auto pps = kNanosecInSec / avgDuration;
     auto pps_millions = static_cast<double>(pps) / 1000000.0;
