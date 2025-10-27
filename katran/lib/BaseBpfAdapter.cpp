@@ -748,10 +748,11 @@ int BaseBpfAdapter::getBpfProgInfo(int progFd, ::bpf_prog_info& info) {
 bpf_prog_info BaseBpfAdapter::getBpfProgInfo(int progFd) {
   ::bpf_prog_info info = {};
   if (getBpfProgInfo(progFd, info)) {
-    throw std::runtime_error(fmt::format(
-        "error while looking up info on bpf program: {}, error: {}",
-        progFd,
-        folly::errnoStr(errno)));
+    throw std::runtime_error(
+        fmt::format(
+            "error while looking up info on bpf program: {}, error: {}",
+            progFd,
+            folly::errnoStr(errno)));
   }
   return info;
 }

@@ -100,8 +100,9 @@ PacketBuilder& PacketBuilder::IPv6(
     throw std::invalid_argument("Invalid destination IPv6 address: " + dst);
   }
 
-  headerStack_.emplace_back(std::make_shared<IPv6Header>(
-      src, dst, hopLimit, trafficClass, flowLabel, nextHeader));
+  headerStack_.emplace_back(
+      std::make_shared<IPv6Header>(
+          src, dst, hopLimit, trafficClass, flowLabel, nextHeader));
   return *this;
 }
 
@@ -157,8 +158,9 @@ PacketBuilder& PacketBuilder::TCP(
         "Invalid destination port: " + std::to_string(dport));
   }
 
-  headerStack_.emplace_back(std::make_shared<TCPHeader>(
-      sport, dport, seq, ackSeq, window, flags, options));
+  headerStack_.emplace_back(
+      std::make_shared<TCPHeader>(
+          sport, dport, seq, ackSeq, window, flags, options));
   return *this;
 }
 
@@ -353,16 +355,17 @@ PacketBuilder& PacketBuilder::ARP(
     const std::string& senderProtocolAddr,
     const std::string& targetHardwareAddr,
     const std::string& targetProtocolAddr) {
-  headerStack_.emplace_back(std::make_shared<ARPHeader>(
-      1, // Hardware type: Ethernet
-      0x0800, // Protocol type: IPv4
-      6, // Hardware length: Ethernet
-      4, // Protocol length: IPv4
-      opcode,
-      senderHardwareAddr,
-      senderProtocolAddr,
-      targetHardwareAddr,
-      targetProtocolAddr));
+  headerStack_.emplace_back(
+      std::make_shared<ARPHeader>(
+          1, // Hardware type: Ethernet
+          0x0800, // Protocol type: IPv4
+          6, // Hardware length: Ethernet
+          4, // Protocol length: IPv4
+          opcode,
+          senderHardwareAddr,
+          senderProtocolAddr,
+          targetHardwareAddr,
+          targetProtocolAddr));
   return *this;
 }
 
@@ -548,8 +551,9 @@ std::string PacketBuilder::generateScapyCommand() {
 
 std::string PacketBuilder::bytesToBase64(
     const std::vector<uint8_t>& bytes) const {
-  return folly::base64Encode(folly::StringPiece(
-      reinterpret_cast<const char*>(bytes.data()), bytes.size()));
+  return folly::base64Encode(
+      folly::StringPiece(
+          reinterpret_cast<const char*>(bytes.data()), bytes.size()));
 }
 
 bool PacketBuilder::isValidMacAddress(const std::string& mac) {
@@ -731,8 +735,7 @@ IPv4Header::IPv4Header(
 
   std::memset(&ip_, 0, sizeof(ip_));
 
-  struct in_addr srcAddr {
-  }, dstAddr{};
+  struct in_addr srcAddr{}, dstAddr{};
   if (inet_aton(src.c_str(), &srcAddr) == 0) {
     LOG(ERROR) << "Invalid IPv4 source address: " << src;
   }
@@ -798,8 +801,7 @@ void IPv4Header::serialize(
 }
 
 std::string IPv4Header::generateScapyCommand() const {
-  struct in_addr srcAddr {
-  }, dstAddr{};
+  struct in_addr srcAddr{}, dstAddr{};
   srcAddr.s_addr = ip_.saddr;
   dstAddr.s_addr = ip_.daddr;
 
@@ -932,8 +934,7 @@ IPv6Header::IPv6Header(
                              // on next header
   ip6_.ip6_hlim = hopLimit;
 
-  struct in6_addr src_addr {
-  }, dst_addr{};
+  struct in6_addr src_addr{}, dst_addr{};
   if (inet_pton(AF_INET6, src.c_str(), &src_addr) != 1) {
     LOG(ERROR) << "Invalid IPv6 source address: " << src;
   }
@@ -1025,8 +1026,8 @@ void UDPHeader::serialize(
   udp.len = htons(sizeof(struct udphdr) + packet.size());
 
   // Find IP header for checksum calculation
-  struct iphdr ipv4Header {};
-  struct ip6_hdr ipv6Header {};
+  struct iphdr ipv4Header{};
+  struct ip6_hdr ipv6Header{};
   findIPHeaderForChecksum(headerIndex, headerStack, &ipv4Header, &ipv6Header);
 
   // Calculate checksum using the already-built payload in packet
@@ -1257,8 +1258,8 @@ void TCPHeader::serialize(
   tcp.doff = (sizeof(struct tcphdr) + optionsBytes.size()) / 4;
 
   // Find IP header for checksum calculation
-  struct iphdr ipv4Header {};
-  struct ip6_hdr ipv6Header {};
+  struct iphdr ipv4Header{};
+  struct ip6_hdr ipv6Header{};
   findIPHeaderForChecksum(headerIndex, headerStack, &ipv4Header, &ipv6Header);
 
   // For checksum calculation, we need to include the options in the TCP
@@ -1845,7 +1846,7 @@ void ICMPv6Header::serialize(
   }
 
   // Find IPv6 header for pseudo header calculation
-  struct ip6_hdr ipv6Header {};
+  struct ip6_hdr ipv6Header{};
   for (int i = static_cast<int>(headerIndex) - 1; i >= 0; --i) {
     const auto& entry = headerStack[i];
     if (entry->getType() == HeaderEntry::IPV6) {
@@ -2034,8 +2035,7 @@ std::string ARPHeader::generateScapyCommand() const {
   }
 
   // Convert IP addresses
-  struct in_addr senderAddr {
-  }, targetAddr{};
+  struct in_addr senderAddr{}, targetAddr{};
   senderAddr.s_addr = arp_.ar_spa;
   targetAddr.s_addr = arp_.ar_tpa;
 
@@ -2114,7 +2114,7 @@ std::vector<uint8_t> ARPHeader::macStringToBytes(const std::string& macStr) {
 }
 
 uint32_t ARPHeader::ipStringToBytes(const std::string& ipStr) {
-  struct in_addr addr {};
+  struct in_addr addr{};
   if (inet_aton(ipStr.c_str(), &addr) != 0) {
     return ntohl(addr.s_addr); // Return in host byte order
   }

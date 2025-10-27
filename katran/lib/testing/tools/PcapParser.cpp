@@ -154,11 +154,14 @@ bool PcapParser::writePacket(std::unique_ptr<folly::IOBuf> pckt) {
 
   if (firstWrite_) {
     firstWrite_ = false;
-    struct pcap_hdr_s hdr {
-      .magic_number = kPcapWriterMagic, .version_major = kVersionMajor,
-      .version_minor = kVersionMinor, .thiszone = kGmt, .sigfigs = kAccuracy,
-      .snaplen = kSnapLen, .network = kEthernet
-    };
+    struct pcap_hdr_s hdr{
+        .magic_number = kPcapWriterMagic,
+        .version_major = kVersionMajor,
+        .version_minor = kVersionMinor,
+        .thiszone = kGmt,
+        .sigfigs = kAccuracy,
+        .snaplen = kSnapLen,
+        .network = kEthernet};
     auto res = folly::writeFull(fd, &hdr, sizeof(hdr));
     if (!res) {
       LOG(INFO) << "cant write generic pcap header";

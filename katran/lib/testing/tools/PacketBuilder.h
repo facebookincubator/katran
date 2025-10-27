@@ -341,7 +341,7 @@ class ICMPv4Header : public HeaderEntry {
   std::string generateScapyCommand() const override;
 
  private:
-  struct icmphdr icmp_ {};
+  struct icmphdr icmp_{};
   std::vector<uint8_t> embeddedData_;
   uint16_t calculateChecksum(const std::vector<uint8_t>& data);
   uint16_t
@@ -389,7 +389,7 @@ class ICMPv6Header : public HeaderEntry {
   std::string generateScapyCommand() const override;
 
  private:
-  struct icmp6_hdr icmp6_ {};
+  struct icmp6_hdr icmp6_{};
   std::vector<uint8_t> embeddedData_;
   uint32_t mtu_{};
   uint16_t calculateChecksum(
@@ -439,7 +439,7 @@ class ARPHeader : public HeaderEntry {
     uint32_t ar_tpa; // Target protocol address
   } __attribute__((packed));
 
-  struct arphdr arp_ {};
+  struct arphdr arp_{};
   std::vector<uint8_t> macStringToBytes(const std::string& macStr);
   uint32_t ipStringToBytes(const std::string& ipStr);
 };

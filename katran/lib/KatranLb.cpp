@@ -143,10 +143,11 @@ KatranLb::KatranLb(
       if (res == 0) {
         res = bpfAdapter_->getInterfaceIndex(config_.hcInterface);
         if (res == 0) {
-          throw std::invalid_argument(fmt::format(
-              "can't resolve ifindex for healthcheck interface {}, error: {}",
-              config_.hcInterface,
-              folly::errnoStr(errno)));
+          throw std::invalid_argument(
+              fmt::format(
+                  "can't resolve ifindex for healthcheck interface {}, error: {}",
+                  config_.hcInterface,
+                  folly::errnoStr(errno)));
         }
       }
       ctl.ifindex = res;
@@ -154,18 +155,20 @@ KatranLb::KatranLb(
       if (config_.tunnelBasedHCEncap) {
         res = bpfAdapter_->getInterfaceIndex(config_.v4TunInterface);
         if (!res) {
-          throw std::invalid_argument(fmt::format(
-              "can't resolve ifindex for v4tunel intf, error: {}",
-              folly::errnoStr(errno)));
+          throw std::invalid_argument(
+              fmt::format(
+                  "can't resolve ifindex for v4tunel intf, error: {}",
+                  folly::errnoStr(errno)));
         }
         ctl.ifindex = res;
         ctlValues_[kIpv4TunPos] = ctl;
 
         res = bpfAdapter_->getInterfaceIndex(config_.v6TunInterface);
         if (!res) {
-          throw std::invalid_argument(fmt::format(
-              "can't resolve ifindex for v6tunel intf, error: {}",
-              folly::errnoStr(errno)));
+          throw std::invalid_argument(
+              fmt::format(
+                  "can't resolve ifindex for v6tunel intf, error: {}",
+                  folly::errnoStr(errno)));
         }
         ctl.ifindex = res;
         ctlValues_[kIpv6TunPos] = ctl;
@@ -177,10 +180,11 @@ KatranLb::KatranLb(
       // attempt to resolve interface name to the interface index
       res = bpfAdapter_->getInterfaceIndex(config_.mainInterface);
       if (res == 0) {
-        throw std::invalid_argument(fmt::format(
-            "can't resolve ifindex for main intf {}, error: {}",
-            config_.mainInterface,
-            folly::errnoStr(errno)));
+        throw std::invalid_argument(
+            fmt::format(
+                "can't resolve ifindex for main intf {}, error: {}",
+                config_.mainInterface,
+                folly::errnoStr(errno)));
       }
     }
     ctl.ifindex = res;
@@ -262,19 +266,21 @@ void KatranLb::initialSanityChecking(bool flowDebug, bool globalLru) {
 
   res = getKatranProgFd();
   if (res < 0) {
-    throw std::invalid_argument(fmt::format(
-        "can't get fd for prog: {}, error: {}",
-        kBalancerProgName,
-        folly::errnoStr(errno)));
+    throw std::invalid_argument(
+        fmt::format(
+            "can't get fd for prog: {}, error: {}",
+            kBalancerProgName,
+            folly::errnoStr(errno)));
   }
 
   if (config_.enableHc) {
     res = getHealthcheckerProgFd();
     if (res < 0) {
-      throw std::invalid_argument(fmt::format(
-          "can't get fd for prog: {}, error: {}",
-          kHealthcheckerProgName,
-          folly::errnoStr(errno)));
+      throw std::invalid_argument(
+          fmt::format(
+              "can't get fd for prog: {}, error: {}",
+              kHealthcheckerProgName,
+              folly::errnoStr(errno)));
     }
     maps.push_back(KatranLbMaps::hc_ctrl_map);
     maps.push_back(KatranLbMaps::hc_reals_map);
@@ -322,9 +328,10 @@ void KatranLb::initFlowDebugMapForCore(
       numaNode);
   if (lru_fd < 0) {
     LOG(ERROR) << "can't create lru for core: " << core;
-    throw std::runtime_error(fmt::format(
-        "can't create LRU for forwarding core, error: {}",
-        folly::errnoStr(errno)));
+    throw std::runtime_error(
+        fmt::format(
+            "can't create LRU for forwarding core, error: {}",
+            folly::errnoStr(errno)));
   }
   VLOG(3) << "Created flow debug lru for core " << core;
   flowDebugMapsFd_[core] = lru_fd;
@@ -346,15 +353,17 @@ void KatranLb::initFlowDebugPrototypeMap() {
         kNoNuma);
   }
   if (flow_proto_fd < 0) {
-    throw std::runtime_error(fmt::format(
-        "can't create LRU prototype, error: {}", folly::errnoStr(errno)));
+    throw std::runtime_error(
+        fmt::format(
+            "can't create LRU prototype, error: {}", folly::errnoStr(errno)));
   }
   res = bpfAdapter_->setInnerMapPrototype(
       KatranLbMaps::flow_debug_maps, flow_proto_fd);
   if (res < 0) {
-    throw std::runtime_error(fmt::format(
-        "can't update inner_maps_fds w/ prototype for main lru, error: {}",
-        folly::errnoStr(errno)));
+    throw std::runtime_error(
+        fmt::format(
+            "can't update inner_maps_fds w/ prototype for main lru, error: {}",
+            folly::errnoStr(errno)));
   }
   VLOG(3) << "Created flow map proto";
 }
@@ -372,9 +381,10 @@ void KatranLb::attachFlowDebugLru(int core) {
       &key,
       &map_fd);
   if (res < 0) {
-    throw std::runtime_error(fmt::format(
-        "can't attach lru to forwarding core, error: {}",
-        folly::errnoStr(errno)));
+    throw std::runtime_error(
+        fmt::format(
+            "can't attach lru to forwarding core, error: {}",
+            folly::errnoStr(errno)));
   }
   VLOG(3) << "Set cpu core " << core << "flow map id to " << map_fd;
 }
@@ -397,9 +407,10 @@ void KatranLb::initGlobalLruMapForCore(
       numaNode);
   if (lru_fd < 0) {
     LOG(ERROR) << "can't create global lru for core: " << core;
-    throw std::runtime_error(fmt::format(
-        "can't create global LRU for forwarding core, error: {}",
-        folly::errnoStr(errno)));
+    throw std::runtime_error(
+        fmt::format(
+            "can't create global LRU for forwarding core, error: {}",
+            folly::errnoStr(errno)));
   }
   VLOG(3) << "Created global lru for core " << core;
   globalLruMapsFd_[core] = lru_fd;
@@ -422,16 +433,18 @@ void KatranLb::initGlobalLruPrototypeMap() {
         kNoNuma);
   }
   if (proto_fd < 0) {
-    throw std::runtime_error(fmt::format(
-        "can't create global LRU prototype, error: {}",
-        folly::errnoStr(errno)));
+    throw std::runtime_error(
+        fmt::format(
+            "can't create global LRU prototype, error: {}",
+            folly::errnoStr(errno)));
   }
   int res = bpfAdapter_->setInnerMapPrototype(
       KatranLbMaps::global_lru_maps, proto_fd);
   if (res < 0) {
-    throw std::runtime_error(fmt::format(
-        "can't update inner_maps_fds w/ prototype for global lru, error: {}",
-        folly::errnoStr(errno)));
+    throw std::runtime_error(
+        fmt::format(
+            "can't update inner_maps_fds w/ prototype for global lru, error: {}",
+            folly::errnoStr(errno)));
   }
   VLOG(1) << "Created global_lru map proto";
 }
@@ -449,9 +462,10 @@ void KatranLb::attachGlobalLru(int core) {
       &key,
       &map_fd);
   if (res < 0) {
-    throw std::runtime_error(fmt::format(
-        "can't attach global lru to forwarding core, error: {}",
-        folly::errnoStr(errno)));
+    throw std::runtime_error(
+        fmt::format(
+            "can't attach global lru to forwarding core, error: {}",
+            folly::errnoStr(errno)));
   }
   VLOG(1) << "Set cpu core " << core << "global_lru map id to " << map_fd;
 }
@@ -522,9 +536,10 @@ void KatranLb::initLrus(bool flowDebug, bool globalLru) {
   int res = bpfAdapter_->setInnerMapPrototype(
       KatranLbMaps::lru_mapping, lru_proto_fd);
   if (res < 0) {
-    throw std::runtime_error(fmt::format(
-        "can't update inner_maps_fds w/ prototype for main lru, error: {}",
-        folly::errnoStr(errno)));
+    throw std::runtime_error(
+        fmt::format(
+            "can't update inner_maps_fds w/ prototype for main lru, error: {}",
+            folly::errnoStr(errno)));
   }
 }
 
@@ -539,9 +554,10 @@ void KatranLb::attachLrus(bool flowDebug, bool globalLru) {
     res = bpfAdapter_->bpfUpdateMap(
         bpfAdapter_->getMapFdByName(KatranLbMaps::lru_mapping), &key, &map_fd);
     if (res < 0) {
-      throw std::runtime_error(fmt::format(
-          "can't attach lru to forwarding core, error: {}",
-          folly::errnoStr(errno)));
+      throw std::runtime_error(
+          fmt::format(
+              "can't attach lru to forwarding core, error: {}",
+              folly::errnoStr(errno)));
     }
     if (flowDebug) {
       attachFlowDebugLru(core);
@@ -763,9 +779,10 @@ void KatranLb::loadBpfProgs() {
   if (config_.enableHc) {
     res = bpfAdapter_->loadBpfProg(config_.healthcheckingProgPath);
     if (res) {
-      throw std::invalid_argument(fmt::format(
-          "can't load healthchecking bpf program, error: {}",
-          folly::errnoStr(errno)));
+      throw std::invalid_argument(
+          fmt::format(
+              "can't load healthchecking bpf program, error: {}",
+              folly::errnoStr(errno)));
     }
   }
 
@@ -790,9 +807,10 @@ void KatranLb::loadBpfProgs() {
         &ctlValues_[ctl_key]);
 
     if (res != 0) {
-      throw std::invalid_argument(fmt::format(
-          "can't update ctl array for main program, error: {}",
-          folly::errnoStr(errno)));
+      throw std::invalid_argument(
+          fmt::format(
+              "can't update ctl array for main program, error: {}",
+              folly::errnoStr(errno)));
     }
   }
 
@@ -809,9 +827,10 @@ void KatranLb::loadBpfProgs() {
           &ctlValues_[ctl_key].ifindex);
 
       if (res != 0) {
-        throw std::invalid_argument(fmt::format(
-            "can't update ctrl map for hc program, error: {}",
-            folly::errnoStr(errno)));
+        throw std::invalid_argument(
+            fmt::format(
+                "can't update ctrl map for hc program, error: {}",
+                folly::errnoStr(errno)));
       }
     }
     if (features_.directHealthchecking) {
@@ -889,22 +908,27 @@ void KatranLb::attachBpfProgs() {
     res = bpfAdapter_->modifyXdpProg(
         main_fd, interface_index, config_.xdpAttachFlags);
     if (res != 0) {
-      throw std::invalid_argument(fmt::format(
-          "can't attach main bpf prog "
-          "to main inteface, error: {}",
-          folly::errnoStr(errno)));
+      throw std::invalid_argument(
+          fmt::format(
+              "can't attach main bpf prog "
+              "to main inteface, error: {}",
+              folly::errnoStr(errno)));
     }
   } else if (config_.useRootMap) {
     // we are in "shared" mode and must register ourself in root xdp prog
     rootMapFd_ = bpfAdapter_->getPinnedBpfObject(config_.rootMapPath);
     if (rootMapFd_ < 0) {
-      throw std::invalid_argument(fmt::format(
-          "can't get fd of xdp's root map, error: {}", folly::errnoStr(errno)));
+      throw std::invalid_argument(
+          fmt::format(
+              "can't get fd of xdp's root map, error: {}",
+              folly::errnoStr(errno)));
     }
     res = bpfAdapter_->bpfUpdateMap(rootMapFd_, &config_.rootMapPos, &main_fd);
     if (res) {
-      throw std::invalid_argument(fmt::format(
-          "can't register in root array, error: {}", folly::errnoStr(errno)));
+      throw std::invalid_argument(
+          fmt::format(
+              "can't register in root array, error: {}",
+              folly::errnoStr(errno)));
     }
   }
 
@@ -924,11 +948,12 @@ void KatranLb::attachBpfProgs() {
       } else {
         bpfAdapter_->bpfMapDeleteElement(rootMapFd_, &config_.rootMapPos);
       }
-      throw std::invalid_argument(fmt::format(
-          "can't attach healthchecking bpf prog "
-          "to given inteface: {}, error: {}",
-          config_.hcInterface,
-          folly::errnoStr(errno)));
+      throw std::invalid_argument(
+          fmt::format(
+              "can't attach healthchecking bpf prog "
+              "to given inteface: {}, error: {}",
+              config_.hcInterface,
+              folly::errnoStr(errno)));
     }
   }
   progsAttached_ = true;
@@ -1118,8 +1143,9 @@ std::vector<VipKey> KatranLb::getAllVips() {
 uint32_t KatranLb::getVipFlags(const VipKey& vip) {
   auto vip_iter = vips_.find(vip);
   if (vip_iter == vips_.end()) {
-    throw std::invalid_argument(fmt::format(
-        "trying to get flags from non-existing vip: {}", vip.address));
+    throw std::invalid_argument(
+        fmt::format(
+            "trying to get flags from non-existing vip: {}", vip.address));
   }
   return vip_iter->second.getVipFlags();
 }
@@ -1293,8 +1319,9 @@ void KatranLb::programHashRing(
 std::vector<NewReal> KatranLb::getRealsForVip(const VipKey& vip) {
   auto vip_iter = vips_.find(vip);
   if (vip_iter == vips_.end()) {
-    throw std::invalid_argument(fmt::format(
-        "trying to get real from non-existing vip: {}", vip.address));
+    throw std::invalid_argument(
+        fmt::format(
+            "trying to get real from non-existing vip: {}", vip.address));
   }
   auto vip_reals_ids = vip_iter->second.getRealsAndWeight();
   std::vector<NewReal> reals(vip_reals_ids.size());
@@ -2265,17 +2292,21 @@ KatranBpfMapStats KatranLb::getBpfMapStats(const std::string& map) {
   KatranBpfMapStats map_stats = {0};
   int res = bpfAdapter_->getBpfMapMaxSize(map);
   if (res < 0) {
-    throw std::runtime_error(fmt::format(
-        "Failed to gather max entry count for map '{}'. res: {}", map, res));
+    throw std::runtime_error(
+        fmt::format(
+            "Failed to gather max entry count for map '{}'. res: {}",
+            map,
+            res));
   } else {
     map_stats.maxEntries = res;
   }
   res = bpfAdapter_->getBpfMapUsedSize(map);
   if (res < 0) {
-    throw std::runtime_error(fmt::format(
-        "Failed to gather current entry count for map '{}'. res: {}",
-        map,
-        res));
+    throw std::runtime_error(
+        fmt::format(
+            "Failed to gather current entry count for map '{}'. res: {}",
+            map,
+            res));
   } else {
     map_stats.currentEntries = res;
   }

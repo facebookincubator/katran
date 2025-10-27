@@ -41,7 +41,7 @@ class BpfBatchUtil {
   static int bpfMapDeleteBatch(
       int map_fd,
       const std::unordered_set<KeyT, HashT>& keys) {
-    struct bpf_map_info mapInfo {};
+    struct bpf_map_info mapInfo{};
     auto err = BaseBpfAdapter::getBpfMapInfo(map_fd, &mapInfo);
     if (err) {
       LOG(ERROR) << "Error while retrieving map metadata for fd " << map_fd
@@ -83,7 +83,7 @@ class BpfBatchUtil {
       std::unordered_map<KeyT, std::vector<ValueT>, HashT>& foundMap,
       std::uint32_t num_cpus = 1,
       std::uint32_t batch_sz = 128) {
-    struct bpf_map_info mapInfo {};
+    struct bpf_map_info mapInfo{};
     auto err = BaseBpfAdapter::getBpfMapInfo(map_fd, &mapInfo);
     if (err) {
       LOG(ERROR) << "Error while retrieving map metadata for fd " << map_fd
@@ -150,7 +150,7 @@ class BpfBatchUtil {
       std::unordered_map<KeyT, std::vector<ValueT>, HashT>& foundMap,
       std::uint32_t num_cpus = 1,
       std::uint32_t batch_sz = 128) {
-    struct bpf_map_info mapInfo {};
+    struct bpf_map_info mapInfo{};
     auto err = BaseBpfAdapter::getBpfMapInfo(map_fd, &mapInfo);
     if (err) {
       LOG(ERROR) << "Error while retrieving map metadata for fd " << map_fd

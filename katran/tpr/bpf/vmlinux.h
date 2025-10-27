@@ -37614,7 +37614,7 @@ struct filter_pred {
   short unsigned int* ops;
   struct ftrace_event_field* field;
   int offset;
-  int not ;
+  int not;
   int op;
 };
 
@@ -49723,7 +49723,7 @@ struct io_kiocb {
     struct io_mkdir mkdir;
     struct io_symlink symlink;
     struct io_hardlink hardlink;
-    struct io_completion compl ;
+    struct io_completion compl;
   };
   void* async_data;
   u8 opcode;

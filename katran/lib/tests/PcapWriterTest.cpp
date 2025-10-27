@@ -30,12 +30,14 @@ namespace katran {
 namespace {
 // These values should be in-sync with PcapWriter.cpp
 using EventId = monitoring::EventId;
-const struct pcap_hdr_s kPcapInvariant24 {
-  .magic_number = 0xa1b2c3d4, .version_major = 2, .version_minor = 4,
-  .thiszone = 0, // Gmt
-      .sigfigs = 0, // Accuracy
-      .snaplen = 2000, // No use
-      .network = 1 // Ethernet
+const struct pcap_hdr_s kPcapInvariant24{
+    .magic_number = 0xa1b2c3d4,
+    .version_major = 2,
+    .version_minor = 4,
+    .thiszone = 0, // Gmt
+    .sigfigs = 0, // Accuracy
+    .snaplen = 2000, // No use
+    .network = 1 // Ethernet
 };
 } // namespace
 

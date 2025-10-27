@@ -87,11 +87,14 @@ bool PcapWriter::writePcapHeader(EventId writerId) {
     LOG(ERROR) << "DataWriter failed to write a header. Not enough space.";
     return false;
   }
-  struct pcap_hdr_s hdr {
-    .magic_number = kPcapWriterMagic, .version_major = kVersionMajor,
-    .version_minor = kVersionMinor, .thiszone = kGmt, .sigfigs = kAccuracy,
-    .snaplen = snaplen_ ?: kMaxSnapLen, .network = kEthernet
-  };
+  struct pcap_hdr_s hdr{
+      .magic_number = kPcapWriterMagic,
+      .version_major = kVersionMajor,
+      .version_minor = kVersionMinor,
+      .thiszone = kGmt,
+      .sigfigs = kAccuracy,
+      .snaplen = snaplen_ ?: kMaxSnapLen,
+      .network = kEthernet};
   writerIt->second->writeHeader(&hdr, sizeof(hdr));
   headerExists_.insert(writerId);
   return true;

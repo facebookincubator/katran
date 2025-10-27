@@ -23,16 +23,18 @@ using SystemMaybe = folly::Expected<Value, std::system_error>;
 
 template <typename... Msg>
 [[nodiscard]] auto systemError(int err, Msg&&... msg) {
-  return folly::makeUnexpected(std::system_error(
-      err,
-      std::system_category(),
-      folly::to<std::string>(std::forward<Msg>(msg)...)));
+  return folly::makeUnexpected(
+      std::system_error(
+          err,
+          std::system_category(),
+          folly::to<std::string>(std::forward<Msg>(msg)...)));
 }
 
 template <typename... Msg>
 [[nodiscard]] auto systemError(std::error_code errCode, Msg&&... msg) {
-  return folly::makeUnexpected(std::system_error(
-      errCode, folly::to<std::string>(std::forward<Msg>(msg)...)));
+  return folly::makeUnexpected(
+      std::system_error(
+          errCode, folly::to<std::string>(std::forward<Msg>(msg)...)));
 }
 
 // Use this to add more human-readable context to an existing system_error,
@@ -52,12 +54,13 @@ template <typename... Msg>
 // design bug in `system_error`.
 template <typename... Msg>
 [[nodiscard]] auto systemError(std::system_error err, Msg&&... msg) {
-  return folly::makeUnexpected(std::system_error(
-      err.code(),
-      folly::to<std::string>(
-          folly::to<std::string>(std::forward<Msg>(msg)...),
-          " -- ",
-          err.what())));
+  return folly::makeUnexpected(
+      std::system_error(
+          err.code(),
+          folly::to<std::string>(
+              folly::to<std::string>(std::forward<Msg>(msg)...),
+              " -- ",
+              err.what())));
 }
 
 // "Success" return value for a function returning no data.

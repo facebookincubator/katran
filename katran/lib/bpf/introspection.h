@@ -36,9 +36,12 @@
 #else
 // Introspection disabled, define helpers to be noop
 #define REPORT_TCP_NONSYN_LRUMISS(...) \
-  {}
+  {                                    \
+  }
 #define REPORT_PACKET_TOOBIG(...) \
-  {}
+  {                               \
+  }
 #define REPORT_QUIC_PACKET_DROP_NO_REAL(...) \
-  {}
+  {                                          \
+  }
 #endif
