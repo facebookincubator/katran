@@ -132,6 +132,10 @@ __attribute__((__always_inline__)) static inline bool parse_tcp(
     pckt->flags |= F_SYN_SET;
   }
 
+  if (tcp->rst) {
+    pckt->flags |= F_RST_SET;
+  }
+
   if (!is_icmp) {
     pckt->flow.port16[0] = tcp->source;
     pckt->flow.port16[1] = tcp->dest;

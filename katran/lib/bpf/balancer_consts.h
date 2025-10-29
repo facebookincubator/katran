@@ -159,6 +159,8 @@
 #define F_ICMP (1 << 0)
 // tcp packet had syn flag set
 #define F_SYN_SET (1 << 1)
+// tcp packet had rst flag set
+#define F_RST_SET (1 << 2)
 
 // ttl for outer ipip packet
 #ifndef DEFAULT_TTL

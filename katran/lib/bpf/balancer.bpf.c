@@ -163,7 +163,8 @@ __attribute__((__always_inline__)) static inline bool get_packet_dst(
     increment_ch_drop_no_real();
     return false;
   }
-  if (lru_map && !(vip_info->flags & F_LRU_BYPASS) && !under_flood) {
+  if (lru_map && !(vip_info->flags & F_LRU_BYPASS) && !under_flood &&
+      !(pckt->flags & F_RST_SET)) {
     if (pckt->flow.proto == IPPROTO_UDP) {
       new_dst_lru.atime = cur_time;
     }
