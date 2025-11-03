@@ -63,8 +63,8 @@ optimization - you can omit this step, by specifying that all CPUs are using for
 (for example: on 4 CPU server just specify -forwarding_cores="0,1,2,3" flag)
 
 If you want to use memory optimization here is an example that illustrates how to achieve this:
-You need to be familiar with [RSS](https://github.com/torvalds/linux/blob/master/Documentation/networking/scaling.txt)
-and how [IRQ affinity ("pinning")](https://github.com/torvalds/linux/blob/master/Documentation/IRQ-affinity.txt) works.
+You need to be familiar with [RSS](https://github.com/torvalds/linux/blob/master/Documentation/networking/scaling.rst)
+and how [IRQ affinity ("pinning")](https://github.com/torvalds/linux/blob/master/Documentation/core-api/irq/irq-affinity.rst) works.
 
 To get a list of how many rx queues are currently configured for your interface you can run this command:
 
