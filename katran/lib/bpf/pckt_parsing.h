@@ -201,13 +201,7 @@ __attribute__((__always_inline__)) int parse_hdr_opt_raw(
       return -1;
     }
 
-    // TPR wire format is little-endian. Read the value and convert to host
-    // byte order if needed for cross-architecture compatibility.
     state->server_id = *(__u32*)&tcp_opt[2];
-#if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
-    // TODO (T244373617): Add stats for this case
-    state->server_id = __builtin_bswap32(state->server_id);
-#endif
     return 1;
   }
 
