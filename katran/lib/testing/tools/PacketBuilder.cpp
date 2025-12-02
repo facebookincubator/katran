@@ -120,6 +120,21 @@ PacketBuilder& PacketBuilder::UDP(uint16_t sport, uint16_t dport) {
   return *this;
 }
 
+PacketBuilder& PacketBuilder::UDPZeroChecksum(uint16_t sport, uint16_t dport) {
+  if (!isValidPort(sport)) {
+    throw std::invalid_argument(
+        "Invalid source port: " + std::to_string(sport));
+  }
+  if (!isValidPort(dport)) {
+    throw std::invalid_argument(
+        "Invalid destination port: " + std::to_string(dport));
+  }
+
+  headerStack_.emplace_back(
+      std::make_shared<UDPHeader>(sport, dport, true /* zeroChecksum */));
+  return *this;
+}
+
 PacketBuilder& PacketBuilder::TCP(
     uint16_t sport,
     uint16_t dport,
@@ -1082,12 +1097,14 @@ void IPv6Header::updateForNextHeader(Type nextHeaderType) {
 }
 
 // UDPHeader implementation
-UDPHeader::UDPHeader(uint16_t sport, uint16_t dport) {
+UDPHeader::UDPHeader(uint16_t sport, uint16_t dport, bool zeroChecksum)
+    : zeroChecksum_(zeroChecksum) {
   std::memset(&udp_, 0, sizeof(udp_));
   udp_.source = htons(sport);
   udp_.dest = htons(dport);
   udp_.len = 0; // Will be calculated in serialize()
-  udp_.check = 0; // Will be calculated in serialize()
+  udp_.check =
+      0; // Will be calculated in serialize() unless zeroChecksum_ is true
 }
 
 void UDPHeader::serialize(
@@ -1100,37 +1117,42 @@ void UDPHeader::serialize(
   // payload)
   udp.len = htons(sizeof(struct udphdr) + packet.size());
 
-  // Find IP header for checksum calculation
-  struct iphdr ipv4Header{};
-  struct ip6_hdr ipv6Header{};
-  findIPHeaderForChecksum(headerIndex, headerStack, &ipv4Header, &ipv6Header);
+  // If zero checksum is requested (for GUE encapsulation), skip calculation
+  if (zeroChecksum_) {
+    udp.check = 0;
+  } else {
+    // Find IP header for checksum calculation
+    struct iphdr ipv4Header{};
+    struct ip6_hdr ipv6Header{};
+    findIPHeaderForChecksum(headerIndex, headerStack, &ipv4Header, &ipv6Header);
 
-  // Check if this is GUE encapsulation (UDP port 9886) with ICMP inside
-  // BPF gue_csum() logic: For ICMP packets, it uses the embedded packet's
-  // transport checksum as the seed, then recomputes for the outer GUE headers
-  bool isGueWithIcmp = false;
-  if (ntohs(udp_.dest) == 9886) {
-    // Check if there's an ICMP header in the remaining headers
-    for (size_t i = headerIndex + 1; i < headerStack.size(); ++i) {
-      if (headerStack[i]->getType() == HeaderEntry::ICMP_HEADER ||
-          headerStack[i]->getType() == HeaderEntry::ICMPV6_HEADER) {
-        isGueWithIcmp = true;
-        break;
+    // Check if this is GUE encapsulation (UDP port 9886) with ICMP inside
+    // BPF gue_csum() logic: For ICMP packets, it uses the embedded packet's
+    // transport checksum as the seed, then recomputes for the outer GUE headers
+    bool isGueWithIcmp = false;
+    if (ntohs(udp_.dest) == 9886) {
+      // Check if there's an ICMP header in the remaining headers
+      for (size_t i = headerIndex + 1; i < headerStack.size(); ++i) {
+        if (headerStack[i]->getType() == HeaderEntry::ICMP_HEADER ||
+            headerStack[i]->getType() == HeaderEntry::ICMPV6_HEADER) {
+          isGueWithIcmp = true;
+          break;
+        }
       }
     }
-  }
 
-  // Calculate checksum using the already-built payload in packet
-  if (isGueWithIcmp) {
-    udp.check =
-        htons(calculateGueIcmpChecksum(udp, ipv4Header, ipv6Header, packet));
-  } else if (ipv4Header.version == 4) {
-    udp.check = htons(calculateUdpChecksum(udp, ipv4Header, packet));
-  } else if ((ntohl(ipv6Header.ip6_flow) >> 28) == 6) {
-    udp.check = htons(calculateUdpChecksumV6(udp, ipv6Header, packet));
-  } else {
-    LOG(WARNING) << "No IPv4/IPv6 header found for UDP checksum calculation, "
-                 << "checksum will be 0";
+    // Calculate checksum using the already-built payload in packet
+    if (isGueWithIcmp) {
+      udp.check =
+          htons(calculateGueIcmpChecksum(udp, ipv4Header, ipv6Header, packet));
+    } else if (ipv4Header.version == 4) {
+      udp.check = htons(calculateUdpChecksum(udp, ipv4Header, packet));
+    } else if ((ntohl(ipv6Header.ip6_flow) >> 28) == 6) {
+      udp.check = htons(calculateUdpChecksumV6(udp, ipv6Header, packet));
+    } else {
+      LOG(WARNING) << "No IPv4/IPv6 header found for UDP checksum calculation, "
+                   << "checksum will be 0";
+    }
   }
 
   const uint8_t* udpBytes = reinterpret_cast<const uint8_t*>(&udp);

@@ -1,4 +1,5 @@
-// @nolint
+// clang-format off
+
 /* Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -18,30 +19,22 @@
 #pragma once
 #include <bpf/bpf.h>
 #include <string>
-#include <utility>
 #include <vector>
 #include "katran/lib/testing/tools/PacketAttributes.h"
+#include "katran/lib/testing/tools/PacketBuilder.h"
 
 namespace katran {
 namespace testing {
 /**
- * input packets has been generated with scapy. above each of em you can find
- * a command which has been used to do so.
+ * Input packets generated with PacketBuilder API.
  *
- * format of the input data: <string, string>; 1st string is a base64 encoded
- * packet. 2nd string is test's description
+ * Format: PacketAttributes with inputPacketBuilder and
+ * expectedOutputPacketBuilder
  *
- * format of the output data: <string, string>; 1st string is a base64 encoded
- * packet which we are expecting to see after bpf program's run.
- * 2nd string = bpf's program return code.
- *
- * to create pcap w/ scapy:
- * 1) create packets
- * 2) pckts = [ <created packets from above> ]
- * 3) wrpcap(<path_to_file>, pckts)
+ * To get base64 packet string from PacketBuilder: builder.build().base64Packet
  */
 
-const std::vector<struct __sk_buff> getInputCtxsForHcTest() {
+inline const std::vector<struct __sk_buff> getInputCtxsForHcTest() {
   std::vector<struct __sk_buff> v;
   for (int i = 0; i < 4; i++) {
     struct __sk_buff skb = {};
@@ -51,86 +44,133 @@ const std::vector<struct __sk_buff> getInputCtxsForHcTest() {
   return v;
 };
 
-const std::vector<PacketAttributes> hcTestFixtures = {
+inline const std::vector<PacketAttributes> hcTestFixtures = {
     // 1
-    {// Ether(src="0x1", dst="0x2")/IP(src="192.168.1.1",
-     // dst="10.200.1.1")/UDP(sport=31337, dport=80)/"katran test pkt"
-     .inputPacket =
-         "AgAAAAAAAQAAAAAACABFAAArAAEAAEARrU/AqAEBCsgBAXppAFAAF5fea2F0cmFuIHRlc3QgcGt0",
-     .description = "v4 packet. no fwmark",
+    {.description = "v4 packet. no fwmark",
      .expectedReturnValue = "TC_ACT_UNSPEC",
-     .expectedOutputPacket =
-         "AgAAAAAAAQAAAAAACABFAAArAAEAAEARrU/AqAEBCsgBAXppAFAAF5fea2F0cmFuIHRlc3QgcGt0"},
+     .inputPacketBuilder = katran::testing::PacketBuilder::newPacket()
+         .Eth("0x1", "0x2")
+         .IPv4("192.168.1.1", "10.200.1.1")
+         .UDP(31337, 80)
+         .payload("katran test pkt"),
+     .expectedOutputPacketBuilder = katran::testing::PacketBuilder::newPacket()
+         .Eth("0x1", "0x2")
+         .IPv4("192.168.1.1", "10.200.1.1")
+         .UDP(31337, 80)
+         .payload("katran test pkt")
+    },
     // 2
-    {// Ether(src="0x1", dst="0x2")/IP(src="192.168.1.1",
-     // dst="10.200.1.1")/UDP(sport=31337, dport=80)/"katran test pkt"
-     .inputPacket =
-         "AgAAAAAAAQAAAAAACABFAAArAAEAAEARrU/AqAEBCsgBAXppAFAAF5fea2F0cmFuIHRlc3QgcGt0",
-     .description = "v4 packet. fwmark 1",
+    {.description = "v4 packet. fwmark 1",
      .expectedReturnValue = "TC_ACT_REDIRECT",
-     .expectedOutputPacket =
-         "AADerb6vAP/erb6vCABFAAA/AAAAAEAEWZYKAA0lCgAAAUUAACsAAQAAQBGtT8CoAQEKyAEBemkAUAAXl95rYXRyYW4gdGVzdCBwa3Q="},
-
+     .inputPacketBuilder = katran::testing::PacketBuilder::newPacket()
+         .Eth("0x1", "0x2")
+         .IPv4("192.168.1.1", "10.200.1.1")
+         .UDP(31337, 80)
+         .payload("katran test pkt"),
+     .expectedOutputPacketBuilder = katran::testing::PacketBuilder::newPacket()
+         .Eth("00:ff:de:ad:be:af", "00:00:de:ad:be:af")
+         .IPv4("10.0.13.37", "10.0.0.1", 64, 0, 0)
+         .IPv4("192.168.1.1", "10.200.1.1")
+         .UDP(31337, 80)
+         .payload("katran test pkt")
+    },
     // 3
-    {// Ether(src="0x1", dst="0x2")/IP(src="192.168.1.1",
-     // dst="10.200.1.1")/TCP(sport=31337, dport=80, flags="A")/"katran test
-     // pkt"
-     .inputPacket =
-         "AgAAAAAAAQAAAAAACABFAAA3AAEAAEAGrU7AqAEBCsgBAXppAFAAAAAAAAAAAFAQIAAn5AAAa2F0cmFuIHRlc3QgcGt0",
-     .description = "v4 packet. fwmark 2",
+    {.description = "v4 packet. fwmark 2",
      .expectedReturnValue = "TC_ACT_REDIRECT",
-     .expectedOutputPacket =
-         "AADerb6vAP/erb6vCABFAABLAAAAAEAEWYkKAA0lCgAAAkUAADcAAQAAQAatTsCoAQEKyAEBemkAUAAAAAAAAAAAUBAgACfkAABrYXRyYW4gdGVzdCBwa3Q="},
+     .inputPacketBuilder = katran::testing::PacketBuilder::newPacket()
+         .Eth("0x1", "0x2")
+         .IPv4("192.168.1.1", "10.200.1.1")
+         .TCP(31337, 80, 0, 0, 8192, TH_ACK)
+         .payload("katran test pkt"),
+     .expectedOutputPacketBuilder = katran::testing::PacketBuilder::newPacket()
+         .Eth("00:ff:de:ad:be:af", "00:00:de:ad:be:af")
+         .IPv4("10.0.13.37", "10.0.0.2", 64, 0, 0)
+         .IPv4("192.168.1.1", "10.200.1.1")
+         .TCP(31337, 80, 0, 0, 8192, TH_ACK)
+         .payload("katran test pkt")
+    },
     // 4
-    {// Ether(src="0x1", dst="0x2")/IPv6(src="fc00:2::1",
-     // dst="fc00:1::1")/TCP(sport=31337, dport=80,flags="A")/"katran test pkt"
-     .inputPacket =
-         "AgAAAAAAAQAAAAAAht1gAAAAACMGQPwAAAIAAAAAAAAAAAAAAAH8AAABAAAAAAAAAAAAAAABemkAUAAAAAAAAAAAUBAgAP1PAABrYXRyYW4gdGVzdCBwa3Q=",
-     .description = "v6 packet. fwmark 3",
+    {.description = "v6 packet. fwmark 3",
      .expectedReturnValue = "TC_ACT_REDIRECT",
-     .expectedOutputPacket =
-         "AADerb6vAP/erb6vht1gAAAAAEspQPwAIwcAAAAAAAAAAAAAEzf8AAAAAAAAAAAAAAAAAAABYAAAAAAjBkD8AAACAAAAAAAAAAAAAAAB/AAAAQAAAAAAAAAAAAAAAXppAFAAAAAAAAAAAFAQIAD9TwAAa2F0cmFuIHRlc3QgcGt0"},
+     .inputPacketBuilder = katran::testing::PacketBuilder::newPacket()
+         .Eth("0x1", "0x2")
+         .IPv6("fc00:2::1", "fc00:1::1")
+         .TCP(31337, 80, 0, 0, 8192, TH_ACK)
+         .payload("katran test pkt"),
+     .expectedOutputPacketBuilder = katran::testing::PacketBuilder::newPacket()
+         .Eth("00:ff:de:ad:be:af", "00:00:de:ad:be:af")
+         .IPv6("fc00:2307::1337", "fc00::1")
+         .IPv6("fc00:2::1", "fc00:1::1")
+         .TCP(31337, 80, 0, 0, 8192, TH_ACK)
+         .payload("katran test pkt")
+    },
 };
 
 // Test fixtures for GUE encapsulation
-const std::vector<PacketAttributes> hcGueTestFixtures = {
+// Using UDPZeroChecksum for the outer GUE UDP header because BPF sets checksum to 0
+inline const std::vector<PacketAttributes> hcGueTestFixtures = {
     // 1
-    {// Ether(src="0x1", dst="0x2")/IP(src="192.168.1.1",
-     // dst="10.200.1.1")/UDP(sport=31337, dport=80)/"katran test pkt"
-     .inputPacket =
-         "AgAAAAAAAQAAAAAACABFAAArAAEAAEARrU/AqAEBCsgBAXppAFAAF5fea2F0cmFuIHRlc3QgcGt0",
-     .description = "v4 packet. no fwmark",
+    {.description = "v4 packet. no fwmark",
      .expectedReturnValue = "TC_ACT_UNSPEC",
-     .expectedOutputPacket =
-         "AgAAAAAAAQAAAAAACABFAAArAAEAAEARrU/AqAEBCsgBAXppAFAAF5fea2F0cmFuIHRlc3QgcGt0"},
+     .inputPacketBuilder = katran::testing::PacketBuilder::newPacket()
+         .Eth("0x1", "0x2")
+         .IPv4("192.168.1.1", "10.200.1.1")
+         .UDP(31337, 80)
+         .payload("katran test pkt"),
+     .expectedOutputPacketBuilder = katran::testing::PacketBuilder::newPacket()
+         .Eth("0x1", "0x2")
+         .IPv4("192.168.1.1", "10.200.1.1")
+         .UDP(31337, 80)
+         .payload("katran test pkt")
+    },
     // 2
-    {// Ether(src="0x1", dst="0x2")/IP(src="192.168.1.1",
-     // dst="10.200.1.1")/UDP(sport=31337, dport=80)/"katran test pkt"
-     .inputPacket =
-         "AgAAAAAAAQAAAAAACABFAAArAAEAAEARrU/AqAEBCsgBAXppAFAAF5fea2F0cmFuIHRlc3QgcGt0",
-     .description = "v4 packet. fwmark 1",
+    {.description = "v4 packet. fwmark 1",
      .expectedReturnValue = "TC_ACT_REDIRECT",
-     .expectedOutputPacket =
-         "AADerb6vAP/erb6vCABFAABHAAAAAEARWYEKAA0lCgAAAfchJp4AMwAARQAAKwABAABAEa1PwKgBAQrIAQF6aQBQABeX3mthdHJhbiB0ZXN0IHBrdA=="},
+     .inputPacketBuilder = katran::testing::PacketBuilder::newPacket()
+         .Eth("0x1", "0x2")
+         .IPv4("192.168.1.1", "10.200.1.1")
+         .UDP(31337, 80)
+         .payload("katran test pkt"),
+     .expectedOutputPacketBuilder = katran::testing::PacketBuilder::newPacket()
+         .Eth("00:ff:de:ad:be:af", "00:00:de:ad:be:af")
+         .IPv4("10.0.13.37", "10.0.0.1", 64, 0, 0)
+         .UDPZeroChecksum(63265, 9886)
+         .IPv4("192.168.1.1", "10.200.1.1")
+         .UDP(31337, 80)
+         .payload("katran test pkt")
+    },
     // 3
-    {// Ether(src="0x1", dst="0x2")/IP(src="192.168.1.1",
-     // dst="10.200.1.1")/TCP(sport=31337, dport=80, flags="A")/"katran test
-     // pkt"
-     .inputPacket =
-         "AgAAAAAAAQAAAAAACABFAAA3AAEAAEAGrU7AqAEBCsgBAXppAFAAAAAAAAAAAFAQIAAn5AAAa2F0cmFuIHRlc3QgcGt0",
-     .description = "v4 packet. fwmark 2",
+    {.description = "v4 packet. fwmark 2",
      .expectedReturnValue = "TC_ACT_REDIRECT",
-     .expectedOutputPacket =
-         "AADerb6vAP/erb6vCABFAABTAAAAAEARWXQKAA0lCgAAAvchJp4APwAARQAANwABAABABq1OwKgBAQrIAQF6aQBQAAAAAAAAAABQECAAJ+QAAGthdHJhbiB0ZXN0IHBrdA=="},
+     .inputPacketBuilder = katran::testing::PacketBuilder::newPacket()
+         .Eth("0x1", "0x2")
+         .IPv4("192.168.1.1", "10.200.1.1")
+         .TCP(31337, 80, 0, 0, 8192, TH_ACK)
+         .payload("katran test pkt"),
+     .expectedOutputPacketBuilder = katran::testing::PacketBuilder::newPacket()
+         .Eth("00:ff:de:ad:be:af", "00:00:de:ad:be:af")
+         .IPv4("10.0.13.37", "10.0.0.2", 64, 0, 0)
+         .UDPZeroChecksum(63265, 9886)
+         .IPv4("192.168.1.1", "10.200.1.1")
+         .TCP(31337, 80, 0, 0, 8192, TH_ACK)
+         .payload("katran test pkt")
+    },
     // 4
-    {// Ether(src="0x1", dst="0x2")/IPv6(src="fc00:2::1",
-     // dst="fc00:1::1")/TCP(sport=31337, dport=80,flags="A")/"katran test pkt"
-     .inputPacket =
-         "AgAAAAAAAQAAAAAAht1gAAAAACMGQPwAAAIAAAAAAAAAAAAAAAH8AAABAAAAAAAAAAAAAAABemkAUAAAAAAAAAAAUBAgAP1PAABrYXRyYW4gdGVzdCBwa3Q=",
-     .description = "v6 packet. fwmark 3",
+    {.description = "v6 packet. fwmark 3",
      .expectedReturnValue = "TC_ACT_REDIRECT",
-     .expectedOutputPacket =
-         "AADerb6vAP/erb6vht1gAAAAAFMRQPwAIwcAAAAAAAAAAAAAEzf8AAAAAAAAAAAAAAAAAAAB9yEmngBTAABgAAAAACMGQPwAAAIAAAAAAAAAAAAAAAH8AAABAAAAAAAAAAAAAAABemkAUAAAAAAAAAAAUBAgAP1PAABrYXRyYW4gdGVzdCBwa3Q="},
+     .inputPacketBuilder = katran::testing::PacketBuilder::newPacket()
+         .Eth("0x1", "0x2")
+         .IPv6("fc00:2::1", "fc00:1::1")
+         .TCP(31337, 80, 0, 0, 8192, TH_ACK)
+         .payload("katran test pkt"),
+     .expectedOutputPacketBuilder = katran::testing::PacketBuilder::newPacket()
+         .Eth("00:ff:de:ad:be:af", "00:00:de:ad:be:af")
+         .IPv6("fc00:2307::1337", "fc00::1")
+         .UDPZeroChecksum(63265, 9886)
+         .IPv6("fc00:2::1", "fc00:1::1")
+         .TCP(31337, 80, 0, 0, 8192, TH_ACK)
+         .payload("katran test pkt")
+    },
 };
 
 } // namespace testing

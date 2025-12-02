@@ -153,7 +153,7 @@ class IPv6Header : public HeaderEntry {
  */
 class UDPHeader : public HeaderEntry {
  public:
-  UDPHeader(uint16_t sport, uint16_t dport);
+  UDPHeader(uint16_t sport, uint16_t dport, bool zeroChecksum = false);
   Type getType() const override {
     return UDP_HEADER;
   }
@@ -164,7 +164,8 @@ class UDPHeader : public HeaderEntry {
   std::string generateScapyCommand() const override;
 
  private:
-  struct udphdr udp_;
+  struct udphdr udp_{};
+  bool zeroChecksum_{false};
   void findIPHeaderForChecksum(
       size_t headerIndex,
       const std::vector<std::shared_ptr<HeaderEntry>>& headerStack,
@@ -674,6 +675,9 @@ class PacketBuilder {
       uint8_t nextHeader = 0);
 
   PacketBuilder& UDP(uint16_t sport, uint16_t dport);
+
+  // UDP with zero checksum (for GUE encapsulation where BPF sets checksum to 0)
+  PacketBuilder& UDPZeroChecksum(uint16_t sport, uint16_t dport);
 
   PacketBuilder& TCP(
       uint16_t sport,
