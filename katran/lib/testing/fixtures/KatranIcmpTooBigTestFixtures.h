@@ -17,86 +17,116 @@
  */
 
 #pragma once
+#include <string>
 #include "katran/lib/testing/tools/PacketAttributes.h"
 
 namespace katran {
 namespace testing {
 /**
- * see KatranTestFixtures.h on how to generate input and output data
+ * Input packets generated with PacketBuilder API.
+ *
+ * Format: PacketAttributes with inputPacketBuilder and
+ * expectedOutputPacketBuilder
+ *
+ * To get base64 packet string from PacketBuilder: builder.build().base64Packet
  */
 using TestFixture = std::vector<PacketAttributes>;
+
+// Helper to create repeated payload
+inline std::string repeatString(const std::string& str, int count) {
+  std::string result;
+  result.reserve(str.length() * count);
+  for (int i = 0; i < count; ++i) {
+    result += str;
+  }
+  return result;
+}
+
 const TestFixture icmpTooBigTestFixtures = {
-    // 1
-    {
-        // Ether(src="0x1", dst="0x2")/IP(src="192.168.1.1",
-        // dst="10.200.1.1")/UDP(sport=31337, dport=80)/("katran test pkt"*100)
-        .inputPacket =
-            "AgAAAAAAAQAAAAAACABFAAX4AAEAAEARp4LAqAEBCsgBAXppAFAF5Og2a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0",
-        .description =
-            "ICMPv4 packet too big. ICMP_TOOBIG_GENERATION and 4.17+ kernel is required",
-        .expectedReturnValue = "XDP_TX",
-        .expectedOutputPacket =
-            "AQAAAAAAAgAAAAAACABFAABwAAAAAEABrRsKyAEBwKgBAQMEboQAAAXcRQAF+AABAABAEaeCwKgBAQrIAQF6aQBQBeToNmthdHJhbiB0ZXN0IHBrdGthdHJhbiB0ZXN0IHBrdGthdHJhbiB0ZXN0IHBrdGthdHJhbiB0ZXN0"},
-    // 2
-    {// Ether(src="0x1", dst="0x2")/IPv6(src="fc00:2::1",
-     // dst="fc00:1::1")/TCP(sport=31337, dport=80,flags="A")/("katran test
-     // pkt"*100)
-     .inputPacket =
-         "AgAAAAAAAQAAAAAAht1gAAAABfAGQPwAAAIAAAAAAAAAAAAAAAH8AAABAAAAAAAAAAAAAAABemkAUAAAAAAAAAAAUBAgAFN1AABrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3Q=",
-     .description =
+    {.description =
+         "ICMPv4 packet too big. ICMP_TOOBIG_GENERATION and 4.17+ kernel is required",
+     .expectedReturnValue = "XDP_TX",
+     .inputPacketBuilder = katran::testing::PacketBuilder::newPacket()
+                               .Eth("0x1", "0x2")
+                               .IPv4("192.168.1.1", "10.200.1.1")
+                               .UDP(31337, 80)
+                               .payload(repeatString("katran test pkt", 100)),
+     .expectedOutputPacketBuilder =
+         katran::testing::PacketBuilder::newPacket()
+             .Eth("02:00:00:00:00:00", "01:00:00:00:00:00")
+             .IPv4("10.200.1.1", "192.168.1.1", 64, 0, 0)
+             .ICMPFragNeeded(
+                 1500,
+                 {.srcIP = "192.168.1.1",
+                  .dstIP = "10.200.1.1",
+                  .srcPort = 31337,
+                  .dstPort = 80,
+                  .payload = repeatString("katran test pkt", 100),
+                  .ttl = 64,
+                  .tos = 0,
+                  .id = 1})},
+    {.description =
          "ICMPv6 packet too big. ICMP_TOOBIG_GENERATION and 4.17+ kernel is required",
      .expectedReturnValue = "XDP_TX",
-     .expectedOutputPacket =
-         "AQAAAAAAAgAAAAAAht1gAAAAAQA6QPwAAAEAAAAAAAAAAAAAAAH8AAACAAAAAAAAAAAAAAABAgD3sgAABdxgAAAABfAGQPwAAAIAAAAAAAAAAAAAAAH8AAABAAAAAAAAAAAAAAABemkAUAAAAAAAAAAAUBAgAFN1AABrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdA=="},
+     .inputPacketBuilder = katran::testing::PacketBuilder::newPacket()
+                               .Eth("0x1", "0x2")
+                               .IPv6("fc00:2::1", "fc00:1::1")
+                               .TCP(31337, 80, 0, 0, 8192, TH_ACK)
+                               .payload(repeatString("katran test pkt", 100)),
+     .expectedOutputPacketBuilder =
+         katran::testing::PacketBuilder::newPacket()
+             .Eth("02:00:00:00:00:00", "01:00:00:00:00:00")
+             .IPv6("fc00:1::1", "fc00:2::1")
+             .ICMPv6PacketTooBig(
+                 1500,
+                 {.srcIP = "fc00:2::1",
+                  .dstIP = "fc00:1::1",
+                  .srcPort = 31337,
+                  .dstPort = 80,
+                  .seq = 0,
+                  .ackSeq = 0,
+                  .window = 8192,
+                  .flags = TH_ACK,
+                  .payload = repeatString("katran test pkt", 100)})},
 };
-/*
-Example difference between icmpTooBigTestFixtures (edge and fna) and
-originGueIcmpTooBigTestFixtures (origin)
->>>
-Ether(base64.b64decode(b'AQAAAAAAAgAAAAAAht1gAAAAAQA6QPwAAAEAAAAAAAAAAAAAAAH8AAACAAAAAAAAAAAAAAABAgD34gAABaxgAAAABfAGQPwAAAIAAAAAAAAAAAAAAAH8AAABAAAAAAAAAAAAAAABemkAUAAAAAAAAAAAUBAgAFN1AABrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdA=='))
-<Ether  dst=01:00:00:00:00:00 src=02:00:00:00:00:00 type=IPv6 |<IPv6  version=6
-tc=0 fl=0 plen=256 nh=ICMPv6 hlim=64 src=fc00:1::1 dst=fc00:2::1
-|<ICMPv6PacketTooBig  type=Packet too big code=0 cksum=0xf7e2 mtu=1452
-|<IPerror6  version=6 tc=0 fl=0 plen=1520 nh=TCP hlim=64 src=fc00:2::1
-dst=fc00:1::1 |<TCPerror  sport=31337 dport=http seq=0 ack=0 dataofs=5
-reserved=0 flags=A window=8192 chksum=0x5375 urgptr=0 |<Raw  load=b'katran test
-pktkatran test pktkatran test pktkatran test pktkatran test pktkatran test
-pktkatran test pktkatran test pktkatran test pktkatran test pktkatran test
-pktkatran test pktkatran t' |>>>>>>
->>>
-Ether(base64.b64decode(b'AQAAAAAAAgAAAAAAht1gAAAAAQA6QPwAAAEAAAAAAAAAAAAAAAH8AAACAAAAAAAAAAAAAAABAgD3sgAABdxgAAAABfAGQPwAAAIAAAAAAAAAAAAAAAH8AAABAAAAAAAAAAAAAAABemkAUAAAAAAAAAAAUBAgAFN1AABrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdA=='))
-<Ether  dst=01:00:00:00:00:00 src=02:00:00:00:00:00 type=IPv6 |<IPv6  version=6
-tc=0 fl=0 plen=256 nh=ICMPv6 hlim=64 src=fc00:1::1 dst=fc00:2::1
-|<ICMPv6PacketTooBig  type=Packet too big code=0 cksum=0xf7b2 mtu=1500
-|<IPerror6  version=6 tc=0 fl=0 plen=1520 nh=TCP hlim=64 src=fc00:2::1
-dst=fc00:1::1 |<TCPerror  sport=31337 dport=http seq=0 ack=0 dataofs=5
-reserved=0 flags=A window=8192 chksum=0x5375 urgptr=0 |<Raw  load=b'katran test
-pktkatran test pktkatran test pktkatran test pktkatran test pktkatran test
-pktkatran test pktkatran test pktkatran test pktkatran test pktkatran test
-pktkatran test pktkatran t' |>>>>>>
-*/
+
 const TestFixture originGueIcmpTooBigTestFixtures = {
-    // 1
-    {
-        // Ether(src="0x1", dst="0x2")/IP(src="192.168.1.1",
-        // dst="10.200.1.1")/UDP(sport=31337, dport=80)/("katran test pkt"*100)
-        .inputPacket =
-            "AgAAAAAAAQAAAAAACABFAAX4AAEAAEARp4LAqAEBCsgBAXppAFAF5Og2a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0a2F0cmFuIHRlc3QgcGt0",
-        .description =
-            "ICMPv4 packet too big. ICMP_TOOBIG_GENERATION and 4.17+ kernel is required",
-        .expectedReturnValue = "XDP_TX",
-        .expectedOutputPacket =
-            "AQAAAAAAAgAAAAAACABFAABwAAAAAEABrRsKyAEBwKgBAQMEbrQAAAWsRQAF+AABAABAEaeCwKgBAQrIAQF6aQBQBeToNmthdHJhbiB0ZXN0IHBrdGthdHJhbiB0ZXN0IHBrdGthdHJhbiB0ZXN0IHBrdGthdHJhbiB0ZXN0"},
-    // 2
-    {// Ether(src="0x1", dst="0x2")/IPv6(src="fc00:2::1",
-     // dst="fc00:1::1")/UDP(sport=31337, dport=80)/("katran test pkt"*100)
-     .inputPacket =
-         "AgAAAAAAAQAAAAAAht1gAAAABfAGQPwAAAIAAAAAAAAAAAAAAAH8AAABAAAAAAAAAAAAAAABemkAUAAAAAAAAAAAUBAgAFN1AABrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3Q=",
-     .description =
+    {.description =
+         "ICMPv4 packet too big. ICMP_TOOBIG_GENERATION and 4.17+ kernel is required",
+     .expectedReturnValue = "XDP_TX",
+     .inputPacketBuilder = katran::testing::PacketBuilder::newPacket()
+                               .Eth("0x1", "0x2")
+                               .IPv4("192.168.1.1", "10.200.1.1")
+                               .UDP(31337, 80)
+                               .payload(repeatString("katran test pkt", 100)),
+     .expectedOutputPacketBuilder =
+         katran::testing::PacketBuilder::newPacket()
+             .Eth("02:00:00:00:00:00", "01:00:00:00:00:00")
+             .IPv4("10.200.1.1", "192.168.1.1", 64, 0, 1)
+             .ICMP(
+                 ICMPv4Header::DEST_UNREACH,
+                 ICMPv4Header::FRAG_NEEDED,
+                 0,
+                 1452)
+             .IPv4("192.168.1.1", "10.200.1.1", 64, 0, 1)
+             .UDP(31337, 80)
+             .payload(repeatString("katran test pkt", 4))},
+    {.description =
          "ICMPv6 packet too big for Origin GUE. ICMP_TOOBIG_GENERATION and 4.17+ kernel is required",
      .expectedReturnValue = "XDP_TX",
-     .expectedOutputPacket =
-         "AQAAAAAAAgAAAAAAht1gAAAAAQA6QPwAAAEAAAAAAAAAAAAAAAH8AAACAAAAAAAAAAAAAAABAgD34gAABaxgAAAABfAGQPwAAAIAAAAAAAAAAAAAAAH8AAABAAAAAAAAAAAAAAABemkAUAAAAAAAAAAAUBAgAFN1AABrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdGVzdCBwa3RrYXRyYW4gdA=="},
+     .inputPacketBuilder = katran::testing::PacketBuilder::newPacket()
+                               .Eth("0x1", "0x2")
+                               .IPv6("fc00:2::1", "fc00:1::1")
+                               .TCP(31337, 80, 0, 0, 8192, TH_ACK)
+                               .payload(repeatString("katran test pkt", 100)),
+     .expectedOutputPacketBuilder =
+         katran::testing::PacketBuilder::newPacket()
+             .Eth("02:00:00:00:00:00", "01:00:00:00:00:00")
+             .IPv6("fc00:1::1", "fc00:2::1")
+             .ICMPv6(ICMPv6Header::PACKET_TOO_BIG, 0, 0, 0)
+             .IPv6("fc00:2::1", "fc00:1::1")
+             .TCP(31337, 80, 0, 0, 8192, TH_ACK)
+             .payload(repeatString("katran test pkt", 13))},
 };
 
 } // namespace testing

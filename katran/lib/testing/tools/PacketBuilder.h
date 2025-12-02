@@ -559,6 +559,56 @@ class QUICBuilder {
 };
 
 /**
+ * Helper struct for creating user-friendly ICMPv6 Packet Too Big messages
+ * with embedded IPv6 + TCP packets.
+ *
+ * Example usage:
+ *   .ICMPv6PacketTooBig(1500, {
+ *       .srcIP = "fc00:2::1",
+ *       .dstIP = "fc00:1::1",
+ *       .srcPort = 31337,
+ *       .dstPort = 80,
+ *       .flags = TH_ACK,
+ *       .payload = "test packet"
+ *   })
+ */
+struct EmbeddedIPv6TCPPacket {
+  std::string srcIP;
+  std::string dstIP;
+  uint16_t srcPort;
+  uint16_t dstPort;
+  uint32_t seq = 0;
+  uint32_t ackSeq = 0;
+  uint16_t window = 8192;
+  uint8_t flags = TH_ACK;
+  std::string payload;
+};
+
+/**
+ * Helper struct for creating user-friendly ICMPv4 Fragmentation Needed messages
+ * with embedded IPv4 + UDP packets.
+ *
+ * Example usage:
+ *   .ICMPFragNeeded(1500, {
+ *       .srcIP = "192.168.1.1",
+ *       .dstIP = "10.200.1.1",
+ *       .srcPort = 31337,
+ *       .dstPort = 80,
+ *       .payload = "test packet"
+ *   })
+ */
+struct EmbeddedIPv4UDPPacket {
+  std::string srcIP;
+  std::string dstIP;
+  uint16_t srcPort;
+  uint16_t dstPort;
+  std::string payload;
+  uint8_t ttl = 64;
+  uint8_t tos = 0;
+  uint16_t id = 1;
+};
+
+/**
  *
  * Usage:
  *   auto packet = PacketBuilder::newPacket()
@@ -668,12 +718,42 @@ class PacketBuilder {
       uint16_t id = 0,
       uint16_t sequence = 0);
 
+  // ICMP with MTU and embedded packet (for error messages like Frag Needed)
+  PacketBuilder& ICMP(
+      uint8_t type,
+      uint8_t code,
+      uint16_t mtu,
+      const PacketBuilder& embeddedPacket);
+
   // ICMPv6 methods
   PacketBuilder& ICMPv6(
       uint8_t type = ICMPv6Header::ECHO_REQUEST,
       uint8_t code = 0,
       uint16_t id = 0,
       uint16_t sequence = 0);
+
+  // ICMPv6 with MTU and embedded packet (for error messages like Packet Too
+  // Big)
+  PacketBuilder& ICMPv6(
+      uint8_t type,
+      uint8_t code,
+      uint32_t mtu,
+      const PacketBuilder& embeddedPacket);
+
+  // ICMPv6 Packet Too Big with embedded packet (for error messages)
+  PacketBuilder& ICMPv6PacketTooBig(
+      uint32_t mtu,
+      const PacketBuilder& embeddedPacket);
+
+  // User-friendly ICMPv6 Packet Too Big with embedded IPv6 + TCP packet
+  PacketBuilder& ICMPv6PacketTooBig(
+      uint32_t mtu,
+      const EmbeddedIPv6TCPPacket& embeddedPacket);
+
+  // User-friendly ICMP Fragmentation Needed with embedded IPv4 + UDP packet
+  PacketBuilder& ICMPFragNeeded(
+      uint16_t mtu,
+      const EmbeddedIPv4UDPPacket& embeddedPacket);
 
   // ARP methods
   PacketBuilder& ARP(

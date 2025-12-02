@@ -339,6 +339,16 @@ PacketBuilder& PacketBuilder::ICMP(
   return *this;
 }
 
+PacketBuilder& PacketBuilder::ICMP(
+    uint8_t type,
+    uint8_t code,
+    uint16_t mtu,
+    const PacketBuilder& embeddedPacket) {
+  headerStack_.emplace_back(
+      std::make_shared<ICMPv4Header>(type, code, mtu, embeddedPacket));
+  return *this;
+}
+
 PacketBuilder& PacketBuilder::ICMPv6(
     uint8_t type,
     uint8_t code,
@@ -346,6 +356,71 @@ PacketBuilder& PacketBuilder::ICMPv6(
     uint16_t sequence) {
   headerStack_.emplace_back(
       std::make_shared<ICMPv6Header>(type, code, id, sequence));
+  return *this;
+}
+
+PacketBuilder& PacketBuilder::ICMPv6(
+    uint8_t type,
+    uint8_t code,
+    uint32_t mtu,
+    const PacketBuilder& embeddedPacket) {
+  headerStack_.emplace_back(
+      std::make_shared<ICMPv6Header>(type, code, mtu, embeddedPacket));
+  return *this;
+}
+
+PacketBuilder& PacketBuilder::ICMPv6PacketTooBig(
+    uint32_t mtu,
+    const PacketBuilder& embeddedPacket) {
+  headerStack_.emplace_back(
+      std::make_shared<ICMPv6Header>(
+          ICMPv6Header::PACKET_TOO_BIG, 0, mtu, embeddedPacket));
+  return *this;
+}
+
+// User-friendly ICMPv6 Packet Too Big with embedded IPv6 + TCP packet
+PacketBuilder& PacketBuilder::ICMPv6PacketTooBig(
+    uint32_t mtu,
+    const EmbeddedIPv6TCPPacket& embeddedPacket) {
+  // Build the embedded packet
+  auto embedded = PacketBuilder::newPacket()
+                      .IPv6(embeddedPacket.srcIP, embeddedPacket.dstIP)
+                      .TCP(
+                          embeddedPacket.srcPort,
+                          embeddedPacket.dstPort,
+                          embeddedPacket.seq,
+                          embeddedPacket.ackSeq,
+                          embeddedPacket.window,
+                          embeddedPacket.flags)
+                      .payload(embeddedPacket.payload);
+
+  headerStack_.emplace_back(
+      std::make_shared<ICMPv6Header>(
+          ICMPv6Header::PACKET_TOO_BIG, 0, mtu, embedded));
+  return *this;
+}
+
+// User-friendly ICMP Fragmentation Needed with embedded IPv4 + UDP packet
+PacketBuilder& PacketBuilder::ICMPFragNeeded(
+    uint16_t mtu,
+    const EmbeddedIPv4UDPPacket& embeddedPacket) {
+  // Build the embedded packet
+  auto embedded = PacketBuilder::newPacket()
+                      .IPv4(
+                          embeddedPacket.srcIP,
+                          embeddedPacket.dstIP,
+                          embeddedPacket.ttl,
+                          embeddedPacket.tos,
+                          embeddedPacket.id)
+                      .UDP(embeddedPacket.srcPort, embeddedPacket.dstPort)
+                      .payload(embeddedPacket.payload);
+
+  headerStack_.emplace_back(
+      std::make_shared<ICMPv4Header>(
+          ICMPv4Header::DEST_UNREACH,
+          ICMPv4Header::FRAG_NEEDED,
+          mtu,
+          embedded));
   return *this;
 }
 
@@ -2007,8 +2082,18 @@ ICMPv4Header::ICMPv4Header(
   icmp_.type = type;
   icmp_.code = code;
   icmp_.checksum = 0; // Will be calculated in serialize()
-  icmp_.un.echo.id = htons(id);
-  icmp_.un.echo.sequence = htons(sequence);
+
+  // For fragmentation needed messages, the sequence parameter is actually the
+  // MTU
+  if (type == DEST_UNREACH && code == FRAG_NEEDED) {
+    // In ICMP "fragmentation needed" messages, the MTU field is in the
+    // icmp_nextmtu field (RFC 1191)
+    // First 2 bytes unused (set to 0 via id), last 2 bytes are MTU
+    icmp_.un.frag.mtu = htons(sequence);
+  } else {
+    icmp_.un.echo.id = htons(id);
+    icmp_.un.echo.sequence = htons(sequence);
+  }
 }
 
 ICMPv4Header::ICMPv4Header(
@@ -2072,8 +2157,25 @@ void ICMPv4Header::serialize(
 
   // Add embedded packet data if present
   if (!embeddedData_.empty()) {
+    // Katran BPF uses specific size limits for ICMP destination unreachable
+    // ICMP_TOOBIG_PAYLOAD_SIZE = 92 bytes TOTAL (from balancer_consts.h)
+    // This includes the 8-byte ICMP header, so embedded data is limited to 84
+    // bytes
+    const size_t ICMP_TOOBIG_TOTAL_SIZE = 92;
+    const size_t ICMP_HEADER_SIZE = sizeof(struct icmphdr); // 8 bytes
+    const size_t ICMP_TOOBIG_EMBEDDED_SIZE =
+        ICMP_TOOBIG_TOTAL_SIZE - ICMP_HEADER_SIZE; // 84 bytes
+    size_t embeddedSize = embeddedData_.size();
+
+    // For ICMP Frag Needed messages, limit embedded data to match Katran's size
+    if (icmp.type == DEST_UNREACH && icmp.code == FRAG_NEEDED) {
+      embeddedSize = std::min(embeddedSize, ICMP_TOOBIG_EMBEDDED_SIZE);
+    }
+
     icmpPacket.insert(
-        icmpPacket.end(), embeddedData_.begin(), embeddedData_.end());
+        icmpPacket.end(),
+        embeddedData_.begin(),
+        embeddedData_.begin() + embeddedSize);
   } else if (!packet.empty()) {
     icmpPacket.insert(icmpPacket.end(), packet.begin(), packet.end());
   }
@@ -2088,10 +2190,25 @@ void ICMPv4Header::serialize(
 
   // Add embedded data
   if (!embeddedData_.empty()) {
+    // Katran BPF uses specific size limits for ICMP destination unreachable
+    // ICMP_TOOBIG_PAYLOAD_SIZE = 92 bytes TOTAL (from balancer_consts.h)
+    // This includes the 8-byte ICMP header, so embedded data is limited to 84
+    // bytes
+    const size_t ICMP_TOOBIG_TOTAL_SIZE = 92;
+    const size_t ICMP_HEADER_SIZE = sizeof(struct icmphdr); // 8 bytes
+    const size_t ICMP_TOOBIG_EMBEDDED_SIZE =
+        ICMP_TOOBIG_TOTAL_SIZE - ICMP_HEADER_SIZE; // 84 bytes
+    size_t embeddedSize = embeddedData_.size();
+
+    // For ICMP Frag Needed messages, limit embedded data to match Katran's size
+    if (icmp_.type == DEST_UNREACH && icmp_.code == FRAG_NEEDED) {
+      embeddedSize = std::min(embeddedSize, ICMP_TOOBIG_EMBEDDED_SIZE);
+    }
+
     packet.insert(
         packet.begin() + sizeof(struct icmphdr),
         embeddedData_.begin(),
-        embeddedData_.end());
+        embeddedData_.begin() + embeddedSize);
   }
 }
 
@@ -2174,8 +2291,15 @@ ICMPv6Header::ICMPv6Header(
   icmp6_.icmp6_type = type;
   icmp6_.icmp6_code = code;
   icmp6_.icmp6_cksum = 0; // Will be calculated in serialize()
-  icmp6_.icmp6_id = htons(id);
-  icmp6_.icmp6_seq = htons(sequence);
+
+  // For packet too big messages, the sequence parameter is actually the MTU
+  if (type == PACKET_TOO_BIG) {
+    // MTU is stored separately and serialized as part of the ICMP payload
+    mtu_ = sequence;
+  } else {
+    icmp6_.icmp6_id = htons(id);
+    icmp6_.icmp6_seq = htons(sequence);
+  }
 }
 
 ICMPv6Header::ICMPv6Header(
@@ -2225,8 +2349,25 @@ void ICMPv6Header::serialize(
 
   // Add embedded packet data if present
   if (!embeddedData_.empty()) {
+    // Katran BPF uses specific size limits for ICMPv6 packet-too-big
+    // ICMP6_TOOBIG_PAYLOAD_SIZE = 256 bytes TOTAL (from balancer_consts.h)
+    // This includes the 8-byte ICMPv6 header, so embedded data is limited to
+    // 248 bytes
+    const size_t ICMP6_TOOBIG_TOTAL_SIZE = 256;
+    const size_t ICMP6_HEADER_SIZE = sizeof(struct icmp6_hdr); // 8 bytes
+    const size_t ICMP6_TOOBIG_EMBEDDED_SIZE =
+        ICMP6_TOOBIG_TOTAL_SIZE - ICMP6_HEADER_SIZE; // 248 bytes
+    size_t embeddedSize = embeddedData_.size();
+
+    // For PACKET_TOO_BIG messages, limit embedded data to match Katran's size
+    if (icmp6_.icmp6_type == PACKET_TOO_BIG) {
+      embeddedSize = std::min(embeddedSize, ICMP6_TOOBIG_EMBEDDED_SIZE);
+    }
+
     icmpv6Packet.insert(
-        icmpv6Packet.end(), embeddedData_.begin(), embeddedData_.end());
+        icmpv6Packet.end(),
+        embeddedData_.begin(),
+        embeddedData_.begin() + embeddedSize);
   }
 
   // Find IPv6 header for pseudo header calculation
@@ -2258,10 +2399,25 @@ void ICMPv6Header::serialize(
 
   // Add embedded data
   if (!embeddedData_.empty()) {
+    // Katran BPF uses specific size limits for ICMPv6 packet-too-big
+    // ICMP6_TOOBIG_PAYLOAD_SIZE = 256 bytes TOTAL (from balancer_consts.h)
+    // This includes the 8-byte ICMPv6 header, so embedded data is limited to
+    // 248 bytes
+    const size_t ICMP6_TOOBIG_TOTAL_SIZE = 256;
+    const size_t ICMP6_HEADER_SIZE = sizeof(struct icmp6_hdr); // 8 bytes
+    const size_t ICMP6_TOOBIG_EMBEDDED_SIZE =
+        ICMP6_TOOBIG_TOTAL_SIZE - ICMP6_HEADER_SIZE; // 248 bytes
+    size_t embeddedSize = embeddedData_.size();
+
+    // For PACKET_TOO_BIG messages, limit embedded data to match Katran's size
+    if (icmp6_.icmp6_type == PACKET_TOO_BIG) {
+      embeddedSize = std::min(embeddedSize, ICMP6_TOOBIG_EMBEDDED_SIZE);
+    }
+
     packet.insert(
         packet.begin() + sizeof(struct icmp6_hdr),
         embeddedData_.begin(),
-        embeddedData_.end());
+        embeddedData_.begin() + embeddedSize);
   }
 }
 
