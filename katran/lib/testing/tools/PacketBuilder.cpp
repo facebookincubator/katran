@@ -1030,8 +1030,26 @@ void UDPHeader::serialize(
   struct ip6_hdr ipv6Header{};
   findIPHeaderForChecksum(headerIndex, headerStack, &ipv4Header, &ipv6Header);
 
+  // Check if this is GUE encapsulation (UDP port 9886) with ICMP inside
+  // BPF gue_csum() logic: For ICMP packets, it uses the embedded packet's
+  // transport checksum as the seed, then recomputes for the outer GUE headers
+  bool isGueWithIcmp = false;
+  if (ntohs(udp_.dest) == 9886) {
+    // Check if there's an ICMP header in the remaining headers
+    for (size_t i = headerIndex + 1; i < headerStack.size(); ++i) {
+      if (headerStack[i]->getType() == HeaderEntry::ICMP_HEADER ||
+          headerStack[i]->getType() == HeaderEntry::ICMPV6_HEADER) {
+        isGueWithIcmp = true;
+        break;
+      }
+    }
+  }
+
   // Calculate checksum using the already-built payload in packet
-  if (ipv4Header.version == 4) {
+  if (isGueWithIcmp) {
+    udp.check =
+        htons(calculateGueIcmpChecksum(udp, ipv4Header, ipv6Header, packet));
+  } else if (ipv4Header.version == 4) {
     udp.check = htons(calculateUdpChecksum(udp, ipv4Header, packet));
   } else if ((ntohl(ipv6Header.ip6_flow) >> 28) == 6) {
     udp.check = htons(calculateUdpChecksumV6(udp, ipv6Header, packet));
@@ -1214,6 +1232,370 @@ uint16_t UDPHeader::calculateTransportChecksum(
   checksumData.insert(checksumData.end(), payload.begin(), payload.end());
 
   return calculateChecksum(checksumData);
+}
+
+uint16_t UDPHeader::calculateGueIcmpChecksum(
+    const struct udphdr& udpHeader,
+    const struct iphdr& ipv4Header,
+    const struct ip6_hdr& ipv6Header,
+    const std::vector<uint8_t>& payload) {
+  // The payload contains: [Inner IP header] [ICMP/ICMPv6 header] [Embedded IP]
+  // [Embedded Transport] [Data]
+  if (payload.size() < 1) {
+    return 0;
+  }
+
+  uint8_t innerIpVersion = (payload[0] >> 4) & 0x0F;
+  bool innerV6 = (innerIpVersion == 6);
+
+  if (innerV6) {
+    // IPv6 inner packet with ICMPv6
+    return calculateGueIcmpChecksumV6(
+        udpHeader, ipv4Header, ipv6Header, payload);
+  }
+
+  // IPv4 inner packet with ICMP
+  if (payload.size() < sizeof(struct iphdr)) {
+    return 0;
+  }
+
+  const uint8_t* innerIpPtr = payload.data();
+  struct iphdr innerIp;
+  std::memcpy(&innerIp, innerIpPtr, sizeof(struct iphdr));
+  size_t innerIpHeaderSize = innerIp.ihl * 4;
+
+  // ICMP header comes after the inner IP header
+  size_t icmpHeaderOffset = innerIpHeaderSize;
+  const size_t icmpHeaderSize = 8;
+
+  if (payload.size() < icmpHeaderOffset + icmpHeaderSize) {
+    return 0;
+  }
+
+  size_t embeddedIpOffset = icmpHeaderOffset + icmpHeaderSize;
+  if (payload.size() < embeddedIpOffset + sizeof(struct iphdr)) {
+    return 0;
+  }
+
+  const uint8_t* embeddedIpPtr = payload.data() + embeddedIpOffset;
+  struct iphdr embeddedIp;
+  std::memcpy(&embeddedIp, embeddedIpPtr, sizeof(struct iphdr));
+  size_t embeddedIpHeaderSize = embeddedIp.ihl * 4;
+
+  // Embedded transport header comes after embedded IP
+  size_t embeddedTransportOffset = embeddedIpOffset + embeddedIpHeaderSize;
+
+  if (payload.size() < embeddedTransportOffset + 4) {
+    return 0;
+  }
+
+  // Extract embedded transport checksum based on protocol
+  uint16_t embeddedChecksum = 0;
+  if (embeddedIp.protocol == IPPROTO_TCP) {
+    if (payload.size() >= embeddedTransportOffset + 18) {
+      embeddedChecksum = (payload[embeddedTransportOffset + 16] << 8) |
+          payload[embeddedTransportOffset + 17];
+    }
+  } else if (embeddedIp.protocol == IPPROTO_UDP) {
+    if (payload.size() >= embeddedTransportOffset + 8) {
+      embeddedChecksum = (payload[embeddedTransportOffset + 6] << 8) |
+          payload[embeddedTransportOffset + 7];
+    }
+  } else {
+    return 0;
+  }
+
+  // Implement BPF gue_csum_v4 algorithm:
+  // 1. seed = ~(embeddedChecksum) & 0xFFFF
+  // 2. Add orig_csum (embeddedChecksum) via bpf_csum_diff
+  // 3. Remove embedded IP pseudo-header
+  // 4. Add inner IP header bytes
+  // 5. Add outer UDP header bytes
+  // 6. Add outer IP pseudo-header
+  // 7. Fold and return
+
+  uint32_t seed = (~embeddedChecksum) & 0xFFFF;
+  uint64_t csum = seed;
+
+  csum += embeddedChecksum;
+  csum += 0; // Second word is always 0x0000
+
+  size_t inner_saddr_offset = 12; // Offset within innerIp header
+  uint16_t saddr_word1 = (innerIpPtr[inner_saddr_offset] << 8) |
+      innerIpPtr[inner_saddr_offset + 1];
+  uint16_t saddr_word2 = (innerIpPtr[inner_saddr_offset + 2] << 8) |
+      innerIpPtr[inner_saddr_offset + 3];
+  csum += (~saddr_word1) & 0xFFFF;
+  csum += (~saddr_word2) & 0xFFFF;
+  size_t inner_daddr_offset = 16; // Offset within innerIp header
+  uint16_t daddr_word1 = (innerIpPtr[inner_daddr_offset] << 8) |
+      innerIpPtr[inner_daddr_offset + 1];
+  uint16_t daddr_word2 = (innerIpPtr[inner_daddr_offset + 2] << 8) |
+      innerIpPtr[inner_daddr_offset + 3];
+  csum += (~daddr_word1) & 0xFFFF;
+  csum += (~daddr_word2) & 0xFFFF;
+
+  uint16_t inner_payload_len = ntohs(innerIp.tot_len) - innerIpHeaderSize;
+  uint32_t len_32 = htonl(static_cast<uint32_t>(inner_payload_len));
+  const uint8_t* len_bytes = reinterpret_cast<const uint8_t*>(&len_32);
+  uint16_t len_word1 = (len_bytes[0] << 8) | len_bytes[1];
+  uint16_t len_word2 = (len_bytes[2] << 8) | len_bytes[3];
+  csum += (~len_word1) & 0xFFFF;
+  csum += (~len_word2) & 0xFFFF;
+
+  uint32_t proto_32 = htonl(static_cast<uint32_t>(innerIp.protocol));
+  const uint8_t* proto_bytes = reinterpret_cast<const uint8_t*>(&proto_32);
+  uint16_t proto_word1 = (proto_bytes[0] << 8) | proto_bytes[1];
+  uint16_t proto_word2 = (proto_bytes[2] << 8) | proto_bytes[3];
+  csum += (~proto_word1) & 0xFFFF;
+  csum += (~proto_word2) & 0xFFFF;
+
+  for (size_t i = 0; i < innerIpHeaderSize; i += 2) {
+    uint16_t word = (static_cast<uint16_t>(innerIpPtr[i]) << 8) |
+        static_cast<uint16_t>(innerIpPtr[i + 1]);
+    csum += word;
+  }
+
+  struct udphdr udpForChecksum = udpHeader;
+  udpForChecksum.check = 0;
+  const uint8_t* udpBytes = reinterpret_cast<const uint8_t*>(&udpForChecksum);
+  for (size_t i = 0; i < sizeof(struct udphdr); i += 2) {
+    uint16_t word = (static_cast<uint16_t>(udpBytes[i]) << 8) |
+        static_cast<uint16_t>(udpBytes[i + 1]);
+    csum += word;
+  }
+
+  const uint8_t* outer_saddr_bytes =
+      reinterpret_cast<const uint8_t*>(&ipv4Header.saddr);
+  uint16_t outer_saddr_word1 =
+      (outer_saddr_bytes[0] << 8) | outer_saddr_bytes[1];
+  uint16_t outer_saddr_word2 =
+      (outer_saddr_bytes[2] << 8) | outer_saddr_bytes[3];
+  csum += outer_saddr_word1;
+  csum += outer_saddr_word2;
+
+  const uint8_t* outer_daddr_bytes =
+      reinterpret_cast<const uint8_t*>(&ipv4Header.daddr);
+  uint16_t outer_daddr_word1 =
+      (outer_daddr_bytes[0] << 8) | outer_daddr_bytes[1];
+  uint16_t outer_daddr_word2 =
+      (outer_daddr_bytes[2] << 8) | outer_daddr_bytes[3];
+  csum += outer_daddr_word1;
+  csum += outer_daddr_word2;
+
+  uint16_t outer_udp_len = sizeof(struct udphdr) + payload.size();
+  uint32_t outer_len_32 = htonl(static_cast<uint32_t>(outer_udp_len));
+  const uint8_t* outer_len_bytes =
+      reinterpret_cast<const uint8_t*>(&outer_len_32);
+  uint16_t outer_len_word1 = (outer_len_bytes[0] << 8) | outer_len_bytes[1];
+  uint16_t outer_len_word2 = (outer_len_bytes[2] << 8) | outer_len_bytes[3];
+  csum += outer_len_word1;
+  csum += outer_len_word2;
+
+  uint32_t outer_proto_32 = htonl(static_cast<uint32_t>(IPPROTO_UDP));
+  const uint8_t* outer_proto_bytes =
+      reinterpret_cast<const uint8_t*>(&outer_proto_32);
+  uint16_t outer_proto_word1 =
+      (outer_proto_bytes[0] << 8) | outer_proto_bytes[1];
+  uint16_t outer_proto_word2 =
+      (outer_proto_bytes[2] << 8) | outer_proto_bytes[3];
+  csum += outer_proto_word1;
+  csum += outer_proto_word2;
+
+  for (int i = 0; i < 4; i++) {
+    if (csum >> 16) {
+      csum = (csum & 0xFFFF) + (csum >> 16);
+    }
+  }
+
+  return static_cast<uint16_t>(~csum);
+}
+
+uint16_t UDPHeader::calculateGueIcmpChecksumV6(
+    const struct udphdr& udpHeader,
+    const struct iphdr& ipv4Header,
+    const struct ip6_hdr& ipv6Header,
+    const std::vector<uint8_t>& payload) {
+  // Implement BPF gue_csum_v6 or gue_csum_v4_in_v6 algorithm for ICMPv6 packets
+  // The payload contains: [Inner IPv6 header] [ICMPv6 header] [Embedded IPv6]
+  // [Embedded Transport] [Data]
+
+  // Determine if outer IP is v4 or v6
+  bool outerV6 = (ipv4Header.version != 4);
+
+  // Parse the inner IPv6 header
+  if (payload.size() < sizeof(struct ip6_hdr)) {
+    return 0;
+  }
+
+  const uint8_t* innerIp6Ptr = payload.data();
+  struct ip6_hdr innerIp6;
+  std::memcpy(&innerIp6, innerIp6Ptr, sizeof(struct ip6_hdr));
+  size_t innerIp6HeaderSize = sizeof(struct ip6_hdr);
+
+  // ICMPv6 header comes after the inner IPv6 header
+  size_t icmpv6HeaderOffset = innerIp6HeaderSize;
+  const size_t icmpv6HeaderSize = 8;
+
+  if (payload.size() < icmpv6HeaderOffset + icmpv6HeaderSize) {
+    return 0;
+  }
+
+  size_t embeddedIp6Offset = icmpv6HeaderOffset + icmpv6HeaderSize;
+  if (payload.size() < embeddedIp6Offset + sizeof(struct ip6_hdr)) {
+    return 0;
+  }
+
+  const uint8_t* embeddedIp6Ptr = payload.data() + embeddedIp6Offset;
+  struct ip6_hdr embeddedIp6;
+  std::memcpy(&embeddedIp6, embeddedIp6Ptr, sizeof(struct ip6_hdr));
+  size_t embeddedIp6HeaderSize = sizeof(struct ip6_hdr);
+
+  size_t embeddedTransportOffset = embeddedIp6Offset + embeddedIp6HeaderSize;
+
+  if (payload.size() < embeddedTransportOffset + 4) {
+    return 0;
+  }
+
+  uint16_t embeddedChecksum = 0;
+  if (embeddedIp6.ip6_nxt == IPPROTO_TCP) {
+    if (payload.size() >= embeddedTransportOffset + 18) {
+      embeddedChecksum = (payload[embeddedTransportOffset + 16] << 8) |
+          payload[embeddedTransportOffset + 17];
+    }
+  } else if (embeddedIp6.ip6_nxt == IPPROTO_UDP) {
+    if (payload.size() >= embeddedTransportOffset + 8) {
+      embeddedChecksum = (payload[embeddedTransportOffset + 6] << 8) |
+          payload[embeddedTransportOffset + 7];
+    }
+  } else {
+    return 0;
+  }
+
+  uint32_t seed = (~embeddedChecksum) & 0xFFFF;
+  uint64_t csum = seed;
+  csum += embeddedChecksum;
+  csum += 0;
+
+  for (size_t i = 0; i < 16; i += 2) {
+    uint16_t word = (innerIp6Ptr[8 + i] << 8) |
+        innerIp6Ptr[8 + i + 1]; // saddr starts at offset 8
+    csum += (~word) & 0xFFFF;
+  }
+
+  for (size_t i = 0; i < 16; i += 2) {
+    uint16_t word = (innerIp6Ptr[24 + i] << 8) |
+        innerIp6Ptr[24 + i + 1]; // daddr starts at offset 24
+    csum += (~word) & 0xFFFF;
+  }
+
+  uint16_t inner_payload_len = ntohs(innerIp6.ip6_plen);
+  uint32_t len_32 = htonl(static_cast<uint32_t>(inner_payload_len));
+  const uint8_t* len_bytes = reinterpret_cast<const uint8_t*>(&len_32);
+  for (size_t i = 0; i < 4; i += 2) {
+    uint16_t word = (len_bytes[i] << 8) | len_bytes[i + 1];
+    csum += (~word) & 0xFFFF;
+  }
+
+  uint32_t proto_32 = htonl(static_cast<uint32_t>(innerIp6.ip6_nxt));
+  const uint8_t* proto_bytes = reinterpret_cast<const uint8_t*>(&proto_32);
+  for (size_t i = 0; i < 4; i += 2) {
+    uint16_t word = (proto_bytes[i] << 8) | proto_bytes[i + 1];
+    csum += (~word) & 0xFFFF;
+  }
+
+  for (size_t i = 0; i < innerIp6HeaderSize; i += 2) {
+    uint16_t word = (static_cast<uint16_t>(innerIp6Ptr[i]) << 8) |
+        static_cast<uint16_t>(innerIp6Ptr[i + 1]);
+    csum += word;
+  }
+
+  struct udphdr udpForChecksum = udpHeader;
+  udpForChecksum.check = 0;
+  const uint8_t* udpBytes = reinterpret_cast<const uint8_t*>(&udpForChecksum);
+  for (size_t i = 0; i < sizeof(struct udphdr); i += 2) {
+    uint16_t word = (static_cast<uint16_t>(udpBytes[i]) << 8) |
+        static_cast<uint16_t>(udpBytes[i + 1]);
+    csum += word;
+  }
+
+  if (outerV6) {
+    const uint8_t* outer_saddr =
+        reinterpret_cast<const uint8_t*>(&ipv6Header.ip6_src);
+    for (size_t i = 0; i < 16; i += 2) {
+      uint16_t word = (outer_saddr[i] << 8) | outer_saddr[i + 1];
+      csum += word;
+    }
+
+    const uint8_t* outer_daddr =
+        reinterpret_cast<const uint8_t*>(&ipv6Header.ip6_dst);
+    for (size_t i = 0; i < 16; i += 2) {
+      uint16_t word = (outer_daddr[i] << 8) | outer_daddr[i + 1];
+      csum += word;
+    }
+
+    uint16_t outer_udp_len = sizeof(struct udphdr) + payload.size();
+    uint32_t outer_len_32 = htonl(static_cast<uint32_t>(outer_udp_len));
+    const uint8_t* outer_len_bytes =
+        reinterpret_cast<const uint8_t*>(&outer_len_32);
+    for (size_t i = 0; i < 4; i += 2) {
+      uint16_t word = (outer_len_bytes[i] << 8) | outer_len_bytes[i + 1];
+      csum += word;
+    }
+
+    uint32_t outer_proto_32 = htonl(static_cast<uint32_t>(IPPROTO_UDP));
+    const uint8_t* outer_proto_bytes =
+        reinterpret_cast<const uint8_t*>(&outer_proto_32);
+    for (size_t i = 0; i < 4; i += 2) {
+      uint16_t word = (outer_proto_bytes[i] << 8) | outer_proto_bytes[i + 1];
+      csum += word;
+    }
+  } else {
+    const uint8_t* outer_saddr_bytes =
+        reinterpret_cast<const uint8_t*>(&ipv4Header.saddr);
+    uint16_t outer_saddr_word1 =
+        (outer_saddr_bytes[0] << 8) | outer_saddr_bytes[1];
+    uint16_t outer_saddr_word2 =
+        (outer_saddr_bytes[2] << 8) | outer_saddr_bytes[3];
+    csum += outer_saddr_word1;
+    csum += outer_saddr_word2;
+
+    const uint8_t* outer_daddr_bytes =
+        reinterpret_cast<const uint8_t*>(&ipv4Header.daddr);
+    uint16_t outer_daddr_word1 =
+        (outer_daddr_bytes[0] << 8) | outer_daddr_bytes[1];
+    uint16_t outer_daddr_word2 =
+        (outer_daddr_bytes[2] << 8) | outer_daddr_bytes[3];
+    csum += outer_daddr_word1;
+    csum += outer_daddr_word2;
+
+    uint16_t outer_udp_len = ntohs(ipv4Header.tot_len) - sizeof(struct iphdr);
+    uint32_t outer_len_32 = htonl(static_cast<uint32_t>(outer_udp_len));
+    const uint8_t* outer_len_bytes =
+        reinterpret_cast<const uint8_t*>(&outer_len_32);
+    uint16_t outer_len_word1 = (outer_len_bytes[0] << 8) | outer_len_bytes[1];
+    uint16_t outer_len_word2 = (outer_len_bytes[2] << 8) | outer_len_bytes[3];
+    csum += outer_len_word1;
+    csum += outer_len_word2;
+
+    uint32_t outer_proto_32 = htonl(static_cast<uint32_t>(IPPROTO_UDP));
+    const uint8_t* outer_proto_bytes =
+        reinterpret_cast<const uint8_t*>(&outer_proto_32);
+    uint16_t outer_proto_word1 =
+        (outer_proto_bytes[0] << 8) | outer_proto_bytes[1];
+    uint16_t outer_proto_word2 =
+        (outer_proto_bytes[2] << 8) | outer_proto_bytes[3];
+    csum += outer_proto_word1;
+    csum += outer_proto_word2;
+  }
+
+  for (int i = 0; i < 4; i++) {
+    if (csum >> 16) {
+      csum = (csum & 0xFFFF) + (csum >> 16);
+    }
+  }
+
+  return static_cast<uint16_t>(~csum);
 }
 
 // TCPHeader implementation
@@ -1692,6 +2074,8 @@ void ICMPv4Header::serialize(
   if (!embeddedData_.empty()) {
     icmpPacket.insert(
         icmpPacket.end(), embeddedData_.begin(), embeddedData_.end());
+  } else if (!packet.empty()) {
+    icmpPacket.insert(icmpPacket.end(), packet.begin(), packet.end());
   }
 
   // Calculate checksum

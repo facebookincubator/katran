@@ -195,6 +195,16 @@ class UDPHeader : public HeaderEntry {
       const struct udphdr& udpHeader,
       const struct ip6_hdr& ip6Header,
       const std::vector<uint8_t>& payload);
+  uint16_t calculateGueIcmpChecksum(
+      const struct udphdr& udpHeader,
+      const struct iphdr& ipv4Header,
+      const struct ip6_hdr& ipv6Header,
+      const std::vector<uint8_t>& payload);
+  uint16_t calculateGueIcmpChecksumV6(
+      const struct udphdr& udpHeader,
+      const struct iphdr& ipv4Header,
+      const struct ip6_hdr& ipv6Header,
+      const std::vector<uint8_t>& payload);
 };
 
 /**
