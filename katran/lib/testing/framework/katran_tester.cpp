@@ -27,7 +27,7 @@
 #include "katran/lib/MonitoringStructs.h"
 #include "katran/lib/testing/fixtures/KatranHCTestFixtures.h"
 #include "katran/lib/testing/fixtures/KatranIcmpTooBigTestFixtures.h"
-#include "katran/lib/testing/fixtures/KatranOptionalTestFixtures.h"
+#include "katran/lib/testing/fixtures/KatranLpmSrcLookupTestFixtures.h"
 #include "katran/lib/testing/fixtures/KatranUdpFlowMigrationTestFixtures.h"
 #include "katran/lib/testing/fixtures/KatranUdpStableRtTestFixtures.h"
 #include "katran/lib/testing/fixtures/KatranXPopDecapTestFixtures.h"
@@ -152,11 +152,19 @@ void runTestsFromFixture(
     prepareOptionalLbData(lb);
     LOG(INFO) << "Running optional tests. they could fail if requirements "
               << "are not satisfied";
+    // Run ICMP Too Big tests (requires ICMP_TOOBIG_GENERATION and kernel 4.17+)
     if (FLAGS_gue) {
-      tester.resetTestFixtures(katran::testing::icmpTooBigTestFixtures);
+      LOG(INFO) << "Running ICMP Too Big tests for Origin GUE";
+      tester.resetTestFixtures(
+          katran::testing::originGueIcmpTooBigTestFixtures);
     } else {
-      tester.resetTestFixtures(katran::testing::optionalTestFixtures);
+      LOG(INFO) << "Running ICMP Too Big tests";
+      tester.resetTestFixtures(katran::testing::icmpTooBigTestFixtures);
     }
+    tester.testFromFixture();
+    // Run LPM source lookup tests (requires LPM_SRC_LOOKUP)
+    LOG(INFO) << "Running LPM source lookup tests";
+    tester.resetTestFixtures(katran::testing::lpmSrcLookupTestFixtures);
     tester.testFromFixture();
     testOptionalLbCounters(lb, testParam);
   }

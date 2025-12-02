@@ -45,7 +45,6 @@ add_library(bpftester STATIC
     fixtures/KatranHCTestFixtures.h
     fixtures/KatranGueTestFixtures.h
     fixtures/KatranTPRTestFixtures.h
-    fixtures/KatranOptionalTestFixtures.h
     fixtures/KatranIcmpTooBigTestFixtures.h
     fixtures/KatranLpmSrcLookupTestFixtures.h
     fixtures/KatranUdpFlowMigrationTestFixtures.h
