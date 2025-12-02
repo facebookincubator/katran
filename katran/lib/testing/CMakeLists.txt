@@ -41,7 +41,7 @@ add_library(bpftester STATIC
     framework/BpfTester.cpp
     tools/PacketBuilder.h
     tools/PacketBuilder.cpp
-    fixtures/KatranTestFixtures.h
+    fixtures/KatranBaseTestFixtures.h
     fixtures/KatranHCTestFixtures.h
     fixtures/KatranGueTestFixtures.h
     fixtures/KatranTPRTestFixtures.h

@@ -9,7 +9,7 @@ BPF forwarding plane and cpp library to control it.
 
 We are using clang-format for C++ code formatting. Please make sure that code is properly
 formatted before sending PR. You can format it with `clang-format -i <path/to/file>`
-(if your linux distribution does not have clang-format installed, you can use one from the 
+(if your linux distribution does not have clang-format installed, you can use one from the
 deps folder: `./deps/clang/clang+llvm-5.0.0-linux-x86_64-ubuntu16.04/bin/clang-format`)
 
 ### Build and compile.
@@ -71,7 +71,7 @@ $
 We have developed a special framework for the BPF program testing. It is based on
 `bpf_prog_test_run`. This framework allow us to specify predefined test fixtures (input and expected output)
 to make sure that for a specified input, the BPF program produces expected output. Test fixtures in our case contain
-base64 encoded packets. You can check `katran/lib/testing/fixtures/KatranTestFixtures.h` for examples. To run these tests
+base64 encoded packets. You can check `katran/lib/testing/fixtures/KatranBaseTestFixtures.h` for examples. To run these tests
 you just need to run `./os_run_tester.sh` script (this script requires root privileges).
 
 ```
