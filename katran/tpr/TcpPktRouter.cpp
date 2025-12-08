@@ -31,6 +31,14 @@ TcpPktRouter::~TcpPktRouter() {
 folly::Expected<folly::Unit, std::system_error> TcpPktRouter::init(
     bool pollStats) {
   CHECK(!isInitialized_);
+
+#if defined(__BYTE_ORDER__) && __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+  static_assert(
+      false,
+      "TPR cannot run on big-endian architecture due to server_id byte-order "
+      "requirements");
+#endif
+
   auto res = BpfUtil::init();
   if (res.hasError()) {
     return makeError(res.error(), __func__);
