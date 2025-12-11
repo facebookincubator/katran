@@ -245,23 +245,23 @@ void KatranLb::initialSanityChecking(bool flowDebug, bool globalLru) {
 
   std::vector<std::string> maps;
 
-  maps.push_back(KatranLbMaps::ctl_array);
-  maps.push_back(KatranLbMaps::vip_map);
-  maps.push_back(KatranLbMaps::ch_rings);
-  maps.push_back(KatranLbMaps::reals);
-  maps.push_back(KatranLbMaps::stats);
-  maps.push_back(KatranLbMaps::lru_mapping);
-  maps.push_back(KatranLbMaps::server_id_map);
-  maps.push_back(KatranLbMaps::lru_miss_stats);
-  maps.push_back(KatranLbMaps::vip_miss_stats);
-  maps.push_back(KatranLbMaps::vip_to_down_reals_map);
+  maps.emplace_back(KatranLbMaps::ctl_array);
+  maps.emplace_back(KatranLbMaps::vip_map);
+  maps.emplace_back(KatranLbMaps::ch_rings);
+  maps.emplace_back(KatranLbMaps::reals);
+  maps.emplace_back(KatranLbMaps::stats);
+  maps.emplace_back(KatranLbMaps::lru_mapping);
+  maps.emplace_back(KatranLbMaps::server_id_map);
+  maps.emplace_back(KatranLbMaps::lru_miss_stats);
+  maps.emplace_back(KatranLbMaps::vip_miss_stats);
+  maps.emplace_back(KatranLbMaps::vip_to_down_reals_map);
 
   if (flowDebug) {
-    maps.push_back(KatranLbMaps::flow_debug_maps);
+    maps.emplace_back(KatranLbMaps::flow_debug_maps);
   }
 
   if (globalLru) {
-    maps.push_back(KatranLbMaps::global_lru_maps);
+    maps.emplace_back(KatranLbMaps::global_lru_maps);
   }
 
   res = getKatranProgFd();
@@ -282,9 +282,9 @@ void KatranLb::initialSanityChecking(bool flowDebug, bool globalLru) {
               kHealthcheckerProgName,
               folly::errnoStr(errno)));
     }
-    maps.push_back(KatranLbMaps::hc_ctrl_map);
-    maps.push_back(KatranLbMaps::hc_reals_map);
-    maps.push_back(KatranLbMaps::hc_stats_map);
+    maps.emplace_back(KatranLbMaps::hc_ctrl_map);
+    maps.emplace_back(KatranLbMaps::hc_reals_map);
+    maps.emplace_back(KatranLbMaps::hc_stats_map);
   }
 
   // some sanity checking. we will check that all maps exists, so in later
@@ -2816,7 +2816,7 @@ std::vector<std::string> KatranLb::deleteLru(
   if (fallbackMapFd > 0) {
     int res = bpfAdapter_->bpfMapDeleteElement(fallbackMapFd, &key);
     if (res == 0) {
-      mapsWithDeletions.push_back("fallback");
+      mapsWithDeletions.emplace_back("fallback");
     } else {
       if (errno != ENOENT) {
         // ENOENT is expected in case there is no entry in the lru map

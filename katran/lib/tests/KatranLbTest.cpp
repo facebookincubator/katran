@@ -438,8 +438,8 @@ TEST_F(KatranLbTest, addFewInvalidNets) {
     auto prefix = fmt::format("10.0.{}.0/24", i);
     srcs.push_back(prefix);
   }
-  srcs.push_back("aaa");
-  srcs.push_back("bbb");
+  srcs.emplace_back("aaa");
+  srcs.emplace_back("bbb");
   auto res = lb->addSrcRoutingRule(srcs, "fc00::1");
   ASSERT_EQ(res, 2);
   ASSERT_EQ(lb->getSrcRoutingRuleSize(), 7);

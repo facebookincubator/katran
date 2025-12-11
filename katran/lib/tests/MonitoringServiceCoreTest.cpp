@@ -138,7 +138,7 @@ TEST_F(TestMonitoringServiceCore, RacingClients) {
   std::vector<std::thread> threads;
   folly::Synchronized<std::vector<uint32_t>> cids;
   for (int i = 0; i < 30; i++) {
-    threads.push_back(std::thread([&]() mutable {
+    threads.emplace_back([&]() mutable {
       ClientId cid;
       if (folly::Random::rand32() % 2 == 0) {
         auto res = core->acceptSubscription(group1EventIds);
@@ -157,7 +157,7 @@ TEST_F(TestMonitoringServiceCore, RacingClients) {
       }
       auto cids_ = cids.wlock();
       cids_->push_back(cid);
-    }));
+    });
   }
   for (int i = 0; i < 30; i++) {
     threads[i].join();
