@@ -1290,6 +1290,7 @@ class KatranLb {
   /**
    * helper function to change state of katran monitor's forwarding
    */
+  // NOLINTNEXTLINE(clang-diagnostic-unused-member-function)
   bool changeKatranMonitorForwardingState(KatranMonitorState state);
 
   /*
