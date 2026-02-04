@@ -383,14 +383,6 @@ v2 tracks misses for TCP non syns */
  * LOCAL_DELIVERY_OPTIMIZATION - allow to do optimization on local traffic,
  * where vip and real address are specified the same machine
  */
-#ifdef LPM_SRC_LOOKUP
-#ifndef INLINE_DECAP
-#ifndef INLINE_DECAP_GUE
-#define INLINE_DECAP
-#endif // of INLINE_DECAP_GUE
-#endif // of INLINE_DECAP
-#endif // of LPM_SRC_LOOKUP
-
 #ifdef INLINE_DECAP
 #ifndef INLINE_DECAP_IPIP
 #define INLINE_DECAP_IPIP
