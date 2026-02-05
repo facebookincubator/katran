@@ -59,7 +59,7 @@ extern "C" {
 namespace katran {
 namespace testing {
 
-const std::vector<PacketAttributes> DecapTestFixtures = {
+const std::vector<PacketAttributes> GUEDecapTestFixtures = {
   //1
   {
     .description = "GUE IPv6-in-IPv6 decap for IPv6 VIP fc00:1::1 port 80",
