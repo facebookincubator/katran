@@ -76,6 +76,56 @@ set_hc_key(const struct __sk_buff* skb, struct hc_key* hckey, bool is_ipv6) {
   return true;
 }
 
+#ifdef HC_DST_MATCH
+__attribute__((__always_inline__)) static inline bool set_hc_dst_key(
+    const struct __sk_buff* skb,
+    struct hc_dst_key* key,
+    bool is_ipv6) {
+  void* iphdr = (void*)(long)skb->data + sizeof(struct ethhdr);
+  void* transport_hdr;
+  __u8 proto;
+
+  if (is_ipv6) {
+    struct ipv6hdr* ip6h = iphdr;
+    if (ip6h + 1 > (void*)(long)skb->data_end) {
+      return false;
+    }
+    transport_hdr = iphdr + sizeof(struct ipv6hdr);
+    memcpy(key->addrv6, ip6h->daddr.s6_addr32, 16);
+    key->flags = V6DADDR;
+    proto = ip6h->nexthdr;
+  } else {
+    struct iphdr* iph = iphdr;
+    if (iph + 1 > (void*)(long)skb->data_end) {
+      return false;
+    }
+    transport_hdr = iphdr + sizeof(struct iphdr);
+    key->addr = iph->daddr;
+    key->flags = 0;
+    proto = iph->protocol;
+  }
+
+  if (proto == IPPROTO_TCP) {
+    struct tcphdr* tcp = transport_hdr;
+    if (tcp + 1 > (void*)(long)skb->data_end) {
+      return false;
+    }
+    key->port = tcp->dest;
+  } else if (proto == IPPROTO_UDP) {
+    struct udphdr* udp = transport_hdr;
+    if (udp + 1 > (void*)(long)skb->data_end) {
+      return false;
+    }
+    key->port = udp->dest;
+  } else {
+    key->port = 0;
+  }
+
+  key->pad = 0;
+  return true;
+}
+#endif // HC_DST_MATCH
+
 __attribute__((__always_inline__)) static inline bool hc_encap_ipip(
     struct __sk_buff* skb,
     struct hc_real_definition* real,

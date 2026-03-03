@@ -2282,6 +2282,7 @@ HealthCheckProgStats KatranLb::getStatsForHealthCheckProgram() {
         total_stats.packetsSkipped += perCpuStat.packetsSkipped;
         total_stats.packetsDropped += perCpuStat.packetsDropped;
         total_stats.packetsTooBig += perCpuStat.packetsTooBig;
+        total_stats.packetsDstMatched += perCpuStat.packetsDstMatched;
       }
     }
   }

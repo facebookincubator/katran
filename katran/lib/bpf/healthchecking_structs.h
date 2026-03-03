@@ -31,6 +31,7 @@ struct hc_stats {
   __u64 pckts_dropped;
   __u64 pckts_skipped;
   __u64 pckts_too_big;
+  __u64 pckts_dst_matched;
 };
 
 // hc_key's definition
@@ -47,5 +48,19 @@ struct hc_key {
 struct hc_mac {
   __u8 mac[6];
 };
+
+#ifdef HC_DST_MATCH
+// Key for destination-based healthcheck matching
+struct hc_dst_key {
+  union {
+    __be32 addr;
+    __be32 addrv6[4];
+  };
+  __be16 port; // destination port in network byte order;
+               // 0 = wildcard (match any port)
+  __u8 flags; // V6DADDR if IPv6
+  __u8 pad;
+};
+#endif // HC_DST_MATCH
 
 #endif // of __HEALTHCHECKING_STRUCTS_H

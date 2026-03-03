@@ -79,4 +79,14 @@ struct {
   __uint(map_flags, NO_FLAGS);
 } hc_key_map SEC(".maps");
 
+#ifdef HC_DST_MATCH
+struct {
+  __uint(type, BPF_MAP_TYPE_HASH);
+  __type(key, struct hc_dst_key);
+  __type(value, struct hc_real_definition);
+  __uint(max_entries, HC_MAX_DST);
+  __uint(map_flags, NO_FLAGS);
+} hc_dst_reals_map SEC(".maps");
+#endif // HC_DST_MATCH
+
 #endif // of __HEALTHCHECKING_MAPS_H

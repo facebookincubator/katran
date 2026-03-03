@@ -53,14 +53,38 @@ int healthcheck_encap(struct __sk_buff* skb) {
     return TC_ACT_UNSPEC;
   }
 
-  if (somark == 0) {
-    prog_stats->pckts_skipped += 1;
-    return TC_ACT_UNSPEC;
+  if ((skb->data + sizeof(struct ethhdr)) > skb->data_end) {
+    prog_stats->pckts_dropped += 1;
+    return TC_ACT_SHOT;
   }
 
-  struct hc_real_definition* real = bpf_map_lookup_elem(&hc_reals_map, &somark);
+  ethh = (void*)(long)skb->data;
+  if (ethh->h_proto == BE_ETH_P_IPV6) {
+    is_ipv6 = true;
+  }
+
+  struct hc_real_definition* real = NULL;
+  if (somark != 0) {
+    real = bpf_map_lookup_elem(&hc_reals_map, &somark);
+  }
+
+#ifdef HC_DST_MATCH
   if (!real) {
-    // some strange (w/ fwmark; but not a healthcheck) local packet
+    struct hc_dst_key dst_key = {};
+    if (set_hc_dst_key(skb, &dst_key, is_ipv6)) {
+      real = bpf_map_lookup_elem(&hc_dst_reals_map, &dst_key);
+      if (!real && dst_key.port != 0) {
+        dst_key.port = 0;
+        real = bpf_map_lookup_elem(&hc_dst_reals_map, &dst_key);
+      }
+      if (real) {
+        prog_stats->pckts_dst_matched += 1;
+      }
+    }
+  }
+#endif // HC_DST_MATCH
+
+  if (!real) {
     prog_stats->pckts_skipped += 1;
     return TC_ACT_UNSPEC;
   }
@@ -97,16 +121,6 @@ int healthcheck_encap(struct __sk_buff* skb) {
     return TC_ACT_SHOT;
   }
 #endif /* HC_WITH_REDIRECT */
-
-  if ((skb->data + sizeof(struct ethhdr)) > skb->data_end) {
-    prog_stats->pckts_dropped += 1;
-    return TC_ACT_SHOT;
-  }
-
-  ethh = (void*)(long)skb->data;
-  if (ethh->h_proto == BE_ETH_P_IPV6) {
-    is_ipv6 = true;
-  }
 
   struct hc_key hckey = {};
   bool hc_key_parseable = set_hc_key(skb, &hckey, is_ipv6);

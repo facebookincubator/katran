@@ -53,4 +53,6 @@
 #define HC_SRC_MAC_POS 0
 #define HC_DST_MAC_POS 1
 
+#define HC_MAX_DST 100
+
 #endif // of __HEALTHCHECKING_CONSTS_H
