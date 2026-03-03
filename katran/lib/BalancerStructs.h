@@ -36,6 +36,17 @@ struct hc_mac {
   uint8_t mac[6];
 };
 
+// key for destination-based healthcheck matching
+struct hc_dst_key {
+  union {
+    uint32_t addr; // big-endian (__be32)
+    uint32_t addrv6[4]; // big-endian (__be32)
+  };
+  uint16_t port; // big-endian (__be16); 0 = wildcard
+  uint8_t flags; // V6DADDR if IPv6
+  uint8_t pad;
+};
+
 // vip's definition for lookup
 // also used for hc_keys
 struct vip_definition {
