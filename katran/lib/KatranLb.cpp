@@ -2111,6 +2111,10 @@ lb_stats KatranLb::getChDropStats() {
   return getLbStats(config_.maxVips + kChDropOffset);
 }
 
+lb_stats KatranLb::getEncapFailStats() {
+  return getLbStats(config_.maxVips + kEncapFailOffset);
+}
+
 lb_stats KatranLb::getSrcRoutingStats() {
   return getLbStats(config_.maxVips + kLpmSrcOffset);
 }

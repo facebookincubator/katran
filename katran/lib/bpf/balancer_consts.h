@@ -270,7 +270,8 @@ v2 tracks misses for TCP non syns */
 #define LPM_SRC_CNTRS 5
 // offset of remote encaped packets counters
 #define REMOTE_ENCAP_CNTRS 6
-// 7 is free for future use
+// offset of stats for encapsulation failures (e.g. xdp_adjust_head)
+#define ENCAP_FAIL_CNTR 7
 // offset of stats for global LRU
 #define GLOBAL_LRU_CNTR 8
 // offset of stats for packets dropped during consistent hashing

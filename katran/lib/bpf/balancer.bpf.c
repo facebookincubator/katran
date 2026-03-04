@@ -1059,10 +1059,20 @@ process_packet(struct xdp_md* xdp, __u64 nh_off, bool is_ipv6) {
   pckt.flow.port16[0] = original_sport;
   if (dst->flags & F_IPV6) {
     if (!PCKT_ENCAP_V6(xdp, cval, is_ipv6, &pckt, dst, pkt_bytes)) {
+      __u32 encap_fail_key = MAX_VIPS + ENCAP_FAIL_CNTR;
+      data_stats = bpf_map_lookup_elem(&stats, &encap_fail_key);
+      if (data_stats) {
+        data_stats->v2 += 1;
+      }
       return XDP_DROP;
     }
   } else {
     if (!PCKT_ENCAP_V4(xdp, cval, &pckt, dst, pkt_bytes)) {
+      __u32 encap_fail_key = MAX_VIPS + ENCAP_FAIL_CNTR;
+      data_stats = bpf_map_lookup_elem(&stats, &encap_fail_key);
+      if (data_stats) {
+        data_stats->v1 += 1;
+      }
       return XDP_DROP;
     }
   }

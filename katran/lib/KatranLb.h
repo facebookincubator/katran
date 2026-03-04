@@ -61,6 +61,7 @@ constexpr uint32_t kLruFallbackOffset = 3;
 constexpr uint32_t kIcmpTooBigOffset = 4;
 constexpr uint32_t kLpmSrcOffset = 5;
 constexpr uint32_t kInlineDecapOffset = 6;
+constexpr uint32_t kEncapFailOffset = 7;
 constexpr uint32_t kGlobalLruOffset = 8;
 constexpr uint32_t kChDropOffset = 9;
 constexpr uint32_t kDecapCounterOffset = 10;
@@ -606,6 +607,14 @@ class KatranLb {
    * v2 - packets routed to real #0, which we don't map any real to
    */
   lb_stats getChDropStats();
+
+  /**
+   * @return struct lb_stats w/ encapsulation failure statistics.
+   *
+   * v1 - packets that failed IPv4 destination encapsulation
+   * v2 - packets that failed IPv6 destination encapsulation
+   */
+  lb_stats getEncapFailStats();
 
   /**
    * @return struct lb_tpr_packets_stats w/ statistic of server_id based routing
