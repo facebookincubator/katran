@@ -74,7 +74,7 @@ class PcapWriter {
    * @param shared_ptr<MPMCQueue<PcapMsg>> queue where we receive msg to write
    *
    * helper function which starts PcapWriter. it reads from MPMCQueue in a loop
-   * and calls writePacket on each received message from the queue untill we
+   * and calls writePacket on each received message from the queue until we
    * receive "marker" message (message with nullptr instead of pointer to IOBuf)
    * which stops the iteratation.
    */
@@ -96,7 +96,7 @@ class PcapWriter {
    * helper function which starts PcapWriter in multiWriter form.
    * it reads from MPMCQueue in a loop and depends on metadata in the message,
    * calls writePacket w/ specific for such event writer
-   * on each received message from the queue untill we
+   * on each received message from the queue until we
    * receive "marker" message (message with nullptr instead of pointer to IOBuf)
    * which stops the iteratation.
    */
