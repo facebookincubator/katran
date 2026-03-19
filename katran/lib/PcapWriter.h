@@ -36,7 +36,7 @@ struct PcapWriterStats {
 namespace katran {
 
 /**
- * helper class wich implements a pcap writer. it writes packets to a file or
+ * helper class which implements a pcap writer. it writes packets to a file or
  * buffer in pcap format. so they could be read with a existing tools, like
  * wireshark or tcpdump.
  */
