@@ -29,6 +29,17 @@
 #include "katran/lib/linux_includes/bpf.h"
 #include "katran/lib/linux_includes/bpf_helpers.h"
 
+#ifndef TC_DECAP_SKB_MARK
+#define TC_DECAP_SKB_MARK 0xDEC
+#endif
+
+#ifdef ENABLE_DECAP_MARK
+__attribute__((__always_inline__)) static inline void set_decap_skb_mark(
+    struct __sk_buff* skb) {
+  skb->mark = TC_DECAP_SKB_MARK;
+}
+#endif
+
 __attribute__((__always_inline__)) static inline bool tc_decap_v6(
     struct __sk_buff* skb,
     void** data,

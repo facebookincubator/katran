@@ -111,6 +111,9 @@ __attribute__((__always_inline__)) static inline int process_packet(
       if (action >= 0) {
         return action;
       }
+#ifdef ENABLE_DECAP_MARK
+      set_decap_skb_mark(skb);
+#endif
     }
   }
   return TC_ACT_UNSPEC;
