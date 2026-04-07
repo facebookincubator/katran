@@ -89,4 +89,14 @@ struct {
 } hc_dst_reals_map SEC(".maps");
 #endif // HC_DST_MATCH
 
+#ifdef HC_SRC_MATCH
+struct {
+  __uint(type, BPF_MAP_TYPE_HASH);
+  __type(key, struct hc_src_key);
+  __type(value, struct hc_real_definition);
+  __uint(max_entries, HC_MAX_DST);
+  __uint(map_flags, NO_FLAGS);
+} hc_src_reals_map SEC(".maps");
+#endif // HC_SRC_MATCH
+
 #endif // of __HEALTHCHECKING_MAPS_H

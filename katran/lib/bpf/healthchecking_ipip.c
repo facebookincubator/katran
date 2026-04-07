@@ -61,6 +61,7 @@ struct hc_stats {
   __u64 pckts_skipped;
   __u64 pckts_too_big;
   __u64 pckts_dst_matched;
+  __u64 pckts_src_matched;
 };
 
 struct {

@@ -276,6 +276,7 @@ struct HealthCheckProgStats {
   uint64_t packetsSkipped{0};
   uint64_t packetsTooBig{0};
   uint64_t packetsDstMatched{0};
+  uint64_t packetsSrcMatched{0};
 };
 
 /**

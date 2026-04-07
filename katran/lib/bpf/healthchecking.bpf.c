@@ -84,6 +84,22 @@ int healthcheck_encap(struct __sk_buff* skb) {
   }
 #endif // HC_DST_MATCH
 
+#ifdef HC_SRC_MATCH
+  if (!real) {
+    struct hc_src_key src_key = {};
+    if (set_hc_src_key(skb, &src_key, is_ipv6)) {
+      real = bpf_map_lookup_elem(&hc_src_reals_map, &src_key);
+      if (!real && src_key.port != 0) {
+        src_key.port = 0;
+        real = bpf_map_lookup_elem(&hc_src_reals_map, &src_key);
+      }
+      if (real) {
+        prog_stats->pckts_src_matched += 1;
+      }
+    }
+  }
+#endif // HC_SRC_MATCH
+
   if (!real) {
     prog_stats->pckts_skipped += 1;
     return TC_ACT_UNSPEC;

@@ -32,6 +32,7 @@ struct hc_stats {
   __u64 pckts_skipped;
   __u64 pckts_too_big;
   __u64 pckts_dst_matched;
+  __u64 pckts_src_matched;
 };
 
 // hc_key's definition
@@ -62,5 +63,19 @@ struct hc_dst_key {
   __u8 pad;
 };
 #endif // HC_DST_MATCH
+
+#ifdef HC_SRC_MATCH
+// Key for source-based healthcheck matching (used for DSR encapsulation)
+struct hc_src_key {
+  union {
+    __be32 addr;
+    __be32 addrv6[4];
+  };
+  __be16 port; // source port in network byte order;
+               // 0 = wildcard (match any port)
+  __u8 flags; // V6DADDR if IPv6
+  __u8 pad;
+};
+#endif // HC_SRC_MATCH
 
 #endif // of __HEALTHCHECKING_STRUCTS_H
