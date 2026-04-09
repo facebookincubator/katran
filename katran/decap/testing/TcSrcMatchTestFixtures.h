@@ -29,11 +29,10 @@ namespace katran {
 namespace testing {
 
 inline std::vector<PacketAttributes> buildTcSrcMatchFixtures() {
-  // shivless packet (9887 gue encapped, ipv6, tcp)
   auto before = PacketBuilder::newPacket()
       .Eth("00:00:00:00:00:01", "00:00:00:00:00:02")
       .IPv6("2001:db8::1", "2001:db8::2")
-      .UDP(1234, 9887)
+      .UDP(1234, 9886)
       .IPv6("2001:db8::99", "2001:db8::3")
       .TCP(80, 443)
       .payload("test")
@@ -41,8 +40,25 @@ inline std::vector<PacketAttributes> buildTcSrcMatchFixtures() {
   auto after = PacketBuilder::newPacket()
       .Eth("00:00:00:00:00:01", "00:00:00:00:00:02")
       .IPv6("2001:db8::1", "2001:db8::2")
-      .UDP(1234, 9887)
+      .UDP(1234, 9886)
       .IPv6("2001:db8::1", "2001:db8::3")
+      .TCP(80, 443)
+      .payload("test")
+      .build();
+
+  auto beforePlainGue = PacketBuilder::newPacket()
+      .Eth("00:00:00:00:00:01", "00:00:00:00:00:02")
+      .IPv6("2001:db8::1", "2001:db8::2")
+      .UDP(1234, 9887)
+      .IPv6("2001:db8::99", "2001:db8::3")
+      .TCP(80, 443)
+      .payload("test")
+      .build();
+  auto afterPlainGue = PacketBuilder::newPacket()
+      .Eth("00:00:00:00:00:01", "00:00:00:00:00:02")
+      .IPv6("2001:db8::1", "2001:db8::2")
+      .UDP(1234, 9887)
+      .IPv6("2001:db8::99", "2001:db8::3")
       .TCP(80, 443)
       .payload("test")
       .build();
@@ -75,6 +91,12 @@ inline std::vector<PacketAttributes> buildTcSrcMatchFixtures() {
           .description = "GUE IPv6-in-IPv6: rewrite inner src to match outer",
           .expectedReturnValue = "TC_ACT_PIPE",
           .expectedOutputPacket = after.base64Packet,
+      },
+      {
+          .inputPacket = beforePlainGue.base64Packet,
+          .description = "Non Kde GUE IPv6-in-IPv6: do not overwrite packets",
+          .expectedReturnValue = "TC_ACT_PIPE",
+          .expectedOutputPacket = afterPlainGue.base64Packet,
       },
       {
           .inputPacket = plainIpv4.base64Packet,
