@@ -255,6 +255,9 @@
 
 #define NO_FLAGS 0
 
+// flag for egress decap destinations (XDP_TX after decap, no recirculate)
+#define DECAP_EGRESS 0x2
+
 // offset of the lru cache hit related counters
 /* v1 tracks total vip packets (no longer used for lru calculations)
 v2 tracks lru misses */
@@ -292,6 +295,8 @@ v2 tracks misses for TCP non syns */
 #define XDP_TX_CNTR 17 // total packets sent to backend
 #define XDP_DROP_CNTR 18 // total packets dropped by katran
 #define XDP_PASS_CNTR 19 // packets passed up to the kernel
+// Tracks successful egress decap packets (XDP_TX after GUE decap)
+#define EGRESS_DECAP_CNTR 20
 
 // indice for all stats maps defined above correspond to entries in the map
 // stats starting from the index MAX_VIPS. The max_entries of stats is

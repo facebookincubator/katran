@@ -74,6 +74,10 @@ constexpr uint32_t kXdpTotalOffset = 16;
 constexpr uint32_t kXdpTxOffset = 17;
 constexpr uint32_t kXdpDropOffset = 18;
 constexpr uint32_t kXdpPassOffset = 19;
+constexpr uint32_t kEgressDecapOffset = 20;
+
+// Flag value for egress decap destinations (must match DECAP_EGRESS in BPF)
+constexpr uint32_t kDecapEgress = 0x2;
 
 /**
  * LRU map related constants
@@ -432,6 +436,17 @@ class KatranLb {
   bool addInlineDecapDst(const std::string& dst);
 
   /**
+   * @param string address for egress decap (XDP_TX after GUE decap)
+   * @return bool true on success
+   *
+   * helper function to add address for egress decapsulation.
+   * packets arriving at this destination are GUE-decapped and
+   * XDP_TX'd directly (no recirculation), used for DSR egress
+   * from cloud backends.
+   */
+  bool addEgressDecapDst(const std::string& dst);
+
+  /**
    * @param string address for inline decapsulation
    * @return bool true on success
    *
@@ -658,6 +673,14 @@ class KatranLb {
    * decapsulated
    */
   lb_stats getXPopDecapSuccessfulStats();
+
+  /**
+   * @return struct lb_stats w/ statistics of egress decap packets
+   *
+   * helper function which returns how many packets were successfully
+   * egress-decapped (GUE decap + XDP_TX)
+   */
+  lb_stats getEgressDecapStats();
 
   /**
    * @return struct lb_stats w/ statistics of total invalidated dst

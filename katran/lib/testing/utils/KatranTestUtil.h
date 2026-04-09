@@ -28,6 +28,7 @@ KatranTestParam createDefaultTestParam(TestMode testMode);
 KatranTestParam createTPRTestParam();
 KatranTestParam createUdpStableRtTestParam();
 KatranTestParam createXPopDecapTestParam();
+KatranTestParam createEgressDecapTestParam();
 KatranTestParam createUdpFlowMigrationTestParam(
     const std::vector<::katran::PacketAttributes>& fixture,
     uint8_t totalInvalidations);
@@ -47,6 +48,7 @@ void postTestOptionalLbCounters(
     const std::string& healthcheckingProg);
 bool testLbCounters(katran::KatranLb& lb, KatranTestParam& testParam);
 bool testXPopDecapCounters(katran::KatranLb& lb, KatranTestParam& testParam);
+bool testEgressDecapCounters(katran::KatranLb& lb, KatranTestParam& testParam);
 bool testUdpFlowMigrationCounters(
     katran::KatranLb& lb,
     KatranTestParam& testParam);

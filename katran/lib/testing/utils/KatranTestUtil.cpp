@@ -16,6 +16,7 @@
 
 #include "katran/lib/testing/utils/KatranTestUtil.h"
 #include "katran/lib/testing/fixtures/KatranBaseTestFixtures.h"
+#include "katran/lib/testing/fixtures/KatranEgressDecapTestFixtures.h"
 #include "katran/lib/testing/fixtures/KatranGueTestFixtures.h"
 #include "katran/lib/testing/fixtures/KatranIcmpTooBigTestFixtures.h"
 #include "katran/lib/testing/fixtures/KatranTPRTestFixtures.h"
@@ -233,6 +234,22 @@ KatranTestParam createXPopDecapTestParam() {
   return testParam;
 }
 
+KatranTestParam createEgressDecapTestParam() {
+  KatranTestParam testParam = {
+      .mode = TestMode::GUE,
+      .testData = katran::testing::egressDecapTestFixtures,
+      .expectedCounters =
+          {
+              // 2 successful egress decap packets (test 1 + test 2),
+              // test 3 is TTL expired (dropped before egress path)
+              {KatranTestCounters::EGRESS_DECAP_PKTS, 2},
+              {KatranTestCounters::EGRESS_DECAP_PKTS_V4, 1},
+              {KatranTestCounters::EGRESS_DECAP_PKTS_V6, 1},
+          },
+  };
+  return testParam;
+}
+
 KatranTestParam createUdpFlowMigrationTestParam(
     const std::vector<::katran::PacketAttributes>& fixture,
     uint8_t totalInvalidations) {
@@ -376,6 +393,34 @@ bool testXPopDecapCounters(katran::KatranLb& lb, KatranTestParam& testParam) {
   }
 
   LOG(INFO) << "Testing of cross pop decapsulation counters is complete";
+  return counters_ok;
+}
+
+bool testEgressDecapCounters(katran::KatranLb& lb, KatranTestParam& testParam) {
+  LOG(INFO) << "Testing egress decapsulation counters";
+  bool counters_ok = true;
+
+  auto stats = lb.getEgressDecapStats();
+  uint64_t totalEgressDecap = stats.v1 + stats.v2;
+  if (totalEgressDecap != testParam.expectedEgressDecapPkts()) {
+    LOG(INFO) << "egress decap total counter is incorrect: " << totalEgressDecap
+              << " expected: " << testParam.expectedEgressDecapPkts();
+    counters_ok = false;
+  }
+
+  if (stats.v1 != testParam.expectedEgressDecapPktsV4()) {
+    LOG(INFO) << "egress decap V4 counter is incorrect: " << stats.v1
+              << " expected: " << testParam.expectedEgressDecapPktsV4();
+    counters_ok = false;
+  }
+
+  if (stats.v2 != testParam.expectedEgressDecapPktsV6()) {
+    LOG(INFO) << "egress decap V6 counter is incorrect: " << stats.v2
+              << " expected: " << testParam.expectedEgressDecapPktsV6();
+    counters_ok = false;
+  }
+
+  LOG(INFO) << "Testing of egress decapsulation counters is complete";
   return counters_ok;
 }
 

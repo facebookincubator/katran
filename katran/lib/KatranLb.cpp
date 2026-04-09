@@ -1666,6 +1666,32 @@ bool KatranLb::addInlineDecapDst(const std::string& dst) {
   return true;
 }
 
+bool KatranLb::addEgressDecapDst(const std::string& dst) {
+  if (!features_.inlineDecap && !config_.testing) {
+    LOG(ERROR) << "inline decap is not enabled in forwarding plane";
+    return false;
+  }
+  if (validateAddress(dst) == AddressType::INVALID) {
+    LOG(ERROR) << "invalid egress decap destination address: " << dst;
+    return false;
+  }
+  folly::IPAddress daddr(dst);
+  if (decapDsts_.find(daddr) != decapDsts_.end()) {
+    LOG(ERROR) << "trying to add already existing egress decap dst";
+    return false;
+  }
+  if (decapDsts_.size() + 1 > config_.maxDecapDst) {
+    LOG(ERROR) << "size of decap destinations map is exhausted";
+    return false;
+  }
+  VLOG(2) << "adding egress decap dst " << dst;
+  decapDsts_.insert(daddr);
+  if (!config_.testing) {
+    modifyDecapDst(ModifyAction::ADD, daddr, kDecapEgress);
+  }
+  return true;
+}
+
 bool KatranLb::delInlineDecapDst(const std::string& dst) {
   if (!features_.inlineDecap && !config_.testing) {
     LOG(ERROR) << "source based routing is not enabled in forwarding plane";
@@ -2125,6 +2151,10 @@ lb_stats KatranLb::getInlineDecapStats() {
 
 lb_stats KatranLb::getXPopDecapSuccessfulStats() {
   return getLbStats(config_.maxVips + kXPopDecapSuccessfulOffset);
+}
+
+lb_stats KatranLb::getEgressDecapStats() {
+  return getLbStats(config_.maxVips + kEgressDecapOffset);
 }
 
 lb_stats KatranLb::getUdpFlowMigrationStats() {

@@ -106,7 +106,11 @@ enum class KatranTestCounters : uint8_t {
   XPOP_DECAP_SUCCESSFUL_V4 = 27,
   XPOP_DECAP_SUCCESSFUL_V6 = 28,
   // udp flow migration counters
-  UDP_FLOW_MIGRATION_STATS = 29
+  UDP_FLOW_MIGRATION_STATS = 29,
+  // egress decap counters
+  EGRESS_DECAP_PKTS = 30,
+  EGRESS_DECAP_PKTS_V4 = 31,
+  EGRESS_DECAP_PKTS_V6 = 32
 };
 
 struct KatranTestParam {
@@ -146,6 +150,9 @@ struct KatranTestParam {
   uint64_t expectedXPopDecapSuccessfulV4() noexcept;
   uint64_t expectedXPopDecapSuccessfulV6() noexcept;
   uint64_t expectedUdpFlowMigrationInvalidation() noexcept;
+  uint64_t expectedEgressDecapPkts() noexcept;
+  uint64_t expectedEgressDecapPktsV4() noexcept;
+  uint64_t expectedEgressDecapPktsV6() noexcept;
 
   // helper method to lookup the expected counter value
   uint64_t _lookup_counter(KatranTestCounters counter) noexcept;
@@ -182,6 +189,8 @@ void prepareVipUninitializedLbData(katran::KatranLb& lb);
 void preparePerfTestingLbData(katran::KatranLb& lb);
 
 void prepareUdpFlowMigrationTestData(katran::KatranLb& lb);
+
+void prepareLbDataEgressDecap(katran::KatranLb& lb);
 
 void setDownHostForUdpFlowMigration(katran::KatranLb& lb);
 } // namespace testing

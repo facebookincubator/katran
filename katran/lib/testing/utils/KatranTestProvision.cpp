@@ -327,6 +327,12 @@ void prepareLbDataXpopDecap(katran::KatranLb& lb) {
   lb.addHealthcheckerDst(3, "fc00::1");
 }
 
+void prepareLbDataEgressDecap(katran::KatranLb& lb) {
+  // Use the same VIPs as xpop (already set up by prepareLbDataXpopDecap).
+  // Add an egress decap destination with DECAP_EGRESS flag.
+  lb.addEgressDecapDst("fc00:1405::1");
+}
+
 void prepareUdpFlowMigrationTestData(katran::KatranLb& lb) {
   lb.restartKatranMonitor(kMonitorLimit);
 
@@ -510,6 +516,15 @@ uint64_t KatranTestParam::expectedXPopDecapSuccessfulV6() noexcept {
 }
 uint64_t KatranTestParam::expectedUdpFlowMigrationInvalidation() noexcept {
   return _lookup_counter(KatranTestCounters::UDP_FLOW_MIGRATION_STATS);
+}
+uint64_t KatranTestParam::expectedEgressDecapPkts() noexcept {
+  return _lookup_counter(KatranTestCounters::EGRESS_DECAP_PKTS);
+}
+uint64_t KatranTestParam::expectedEgressDecapPktsV4() noexcept {
+  return _lookup_counter(KatranTestCounters::EGRESS_DECAP_PKTS_V4);
+}
+uint64_t KatranTestParam::expectedEgressDecapPktsV6() noexcept {
+  return _lookup_counter(KatranTestCounters::EGRESS_DECAP_PKTS_V6);
 }
 uint64_t KatranTestParam::_lookup_counter(KatranTestCounters counter) noexcept {
   if (!expectedCounters.contains(counter)) {

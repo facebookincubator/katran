@@ -25,6 +25,7 @@
 #include <gflags/gflags.h>
 
 #include "katran/lib/MonitoringStructs.h"
+#include "katran/lib/testing/fixtures/KatranEgressDecapTestFixtures.h"
 #include "katran/lib/testing/fixtures/KatranHCTestFixtures.h"
 #include "katran/lib/testing/fixtures/KatranIcmpTooBigTestFixtures.h"
 #include "katran/lib/testing/fixtures/KatranLpmSrcLookupTestFixtures.h"
@@ -65,6 +66,7 @@ DEFINE_bool(
 DEFINE_bool(gue, false, "run GUE tests instead of IPIP ones");
 DEFINE_bool(stable_rt, false, "run UDP Stable Routing tests");
 DEFINE_bool(xpop_decap, false, "run cross pop decap tests");
+DEFINE_bool(egress_decap, false, "run egress decap tests");
 DEFINE_bool(udp_flow_migration, false, "run UDP flow migration tests");
 DEFINE_bool(
     tpr,
@@ -181,6 +183,14 @@ void runTestsFromFixture(
     tester.testFromFixture();
     auto xpopTestParams = createXPopDecapTestParam();
     testXPopDecapCounters(lb, xpopTestParams);
+  }
+  if (FLAGS_egress_decap) {
+    prepareLbDataXpopDecap(lb);
+    prepareLbDataEgressDecap(lb);
+    tester.resetTestFixtures(katran::testing::egressDecapTestFixtures);
+    tester.testFromFixture();
+    auto egressTestParams = createEgressDecapTestParam();
+    testEgressDecapCounters(lb, egressTestParams);
   }
   if (FLAGS_udp_flow_migration) {
     prepareUdpFlowMigrationTestData(lb);

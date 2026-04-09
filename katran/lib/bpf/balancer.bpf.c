@@ -200,8 +200,11 @@ __attribute__((__always_inline__)) static inline void connection_table_lookup(
 }
 
 #ifdef INLINE_DECAP_GENERIC
-__attribute__((__always_inline__)) static inline int
-check_decap_dst(struct packet_description* pckt, bool is_ipv6, bool* pass) {
+__attribute__((__always_inline__)) static inline int check_decap_dst(
+    struct packet_description* pckt,
+    bool is_ipv6,
+    bool* pass,
+    __u32* out_decap_flags) {
   struct address dst_addr = {};
   struct lb_stats* data_stats;
 
@@ -215,6 +218,7 @@ check_decap_dst(struct packet_description* pckt, bool is_ipv6, bool* pass) {
 
   if (decap_dst_flags) {
     *pass = false;
+    *out_decap_flags = *decap_dst_flags;
     __u32 stats_key = MAX_VIPS + REMOTE_ENCAP_CNTRS;
     data_stats = bpf_map_lookup_elem(&stats, &stats_key);
     if (!data_stats) {
@@ -435,7 +439,8 @@ __attribute__((__always_inline__)) static inline int process_encaped_gue_pckt(
     struct xdp_md* xdp,
     __u64 off,
     bool is_ipv6,
-    bool pass) {
+    bool pass,
+    __u32 decap_flags) {
   int offset = 0;
   int action;
   bool inner_ipv6 = false;
@@ -489,6 +494,35 @@ __attribute__((__always_inline__)) static inline int process_encaped_gue_pckt(
 
   if (action >= 0) {
     return action;
+  }
+  if (!pass && (decap_flags & DECAP_EGRESS)) {
+    // Egress decap: decap complete, XDP_TX the inner packet directly.
+    // The inner packet is a DSR response (src=VIP, dst=client) that needs
+    // to be sent out the NIC toward the router for forwarding to the client.
+    void* eth_data = (void*)(long)xdp->data;
+    void* eth_data_end = (void*)(long)xdp->data_end;
+    struct ethhdr* eth = eth_data;
+    if ((void*)(eth + 1) > eth_data_end) {
+      return XDP_DROP;
+    }
+    // Swap MAC addresses: incoming packet has router MAC as src,
+    // our NIC MAC as dst. Swap so packet goes back to the router.
+    __u8 tmp_mac[ETH_ALEN];
+    __builtin_memcpy(tmp_mac, eth->h_dest, ETH_ALEN);
+    __builtin_memcpy(eth->h_dest, eth->h_source, ETH_ALEN);
+    __builtin_memcpy(eth->h_source, tmp_mac, ETH_ALEN);
+
+    __u32 egress_stats_key = MAX_VIPS + EGRESS_DECAP_CNTR;
+    struct lb_stats* egress_stats =
+        bpf_map_lookup_elem(&stats, &egress_stats_key);
+    if (egress_stats) {
+      if (inner_ipv6) {
+        egress_stats->v2 += 1;
+      } else {
+        egress_stats->v1 += 1;
+      }
+    }
+    return XDP_TX;
   }
   if (pass) {
     // pass packet to kernel after decapsulation
@@ -735,7 +769,8 @@ process_packet(struct xdp_md* xdp, __u64 nh_off, bool is_ipv6) {
    */
   if (protocol == IPPROTO_IPIP) {
     bool pass = true;
-    action = check_decap_dst(&pckt, is_ipv6, &pass);
+    __u32 decap_flags = 0;
+    action = check_decap_dst(&pckt, is_ipv6, &pass, &decap_flags);
     if (action >= 0) {
       return action;
     }
@@ -743,7 +778,8 @@ process_packet(struct xdp_md* xdp, __u64 nh_off, bool is_ipv6) {
         &data, &data_end, xdp, &is_ipv6, &protocol, pass);
   } else if (protocol == IPPROTO_IPV6) {
     bool pass = true;
-    action = check_decap_dst(&pckt, is_ipv6, &pass);
+    __u32 decap_flags = 0;
+    action = check_decap_dst(&pckt, is_ipv6, &pass, &decap_flags);
     if (action >= 0) {
       return action;
     }
@@ -763,12 +799,13 @@ process_packet(struct xdp_md* xdp, __u64 nh_off, bool is_ipv6) {
 #ifdef INLINE_DECAP_GUE
     if (pckt.flow.port16[1] == bpf_htons(GUE_DPORT)) {
       bool pass = true;
-      action = check_decap_dst(&pckt, is_ipv6, &pass);
+      __u32 decap_flags = 0;
+      action = check_decap_dst(&pckt, is_ipv6, &pass, &decap_flags);
       if (action >= 0) {
         return action;
       }
       return process_encaped_gue_pckt(
-          &data, &data_end, xdp, nh_off, is_ipv6, pass);
+          &data, &data_end, xdp, nh_off, is_ipv6, pass, decap_flags);
     }
 #endif // of INLINE_DECAP_GUE
   } else {

@@ -475,4 +475,42 @@ TEST_F(KatranLbTest, addMaxDecapDst) {
   ASSERT_EQ(lb->getInlineDecapDst().size(), 4);
 }
 
+// Egress decap tests
+
+TEST_F(KatranLbTest, addValidEgressDecapDst) {
+  ASSERT_TRUE(lb->addEgressDecapDst("fc00::1"));
+}
+
+TEST_F(KatranLbTest, addInvalidEgressDecapDst) {
+  ASSERT_FALSE(lb->addEgressDecapDst("asd"));
+}
+
+TEST_F(KatranLbTest, addDuplicateEgressDecapDst) {
+  ASSERT_TRUE(lb->addEgressDecapDst("fc00::1"));
+  ASSERT_FALSE(lb->addEgressDecapDst("fc00::1"));
+}
+
+TEST_F(KatranLbTest, addEgressDecapDstSameAsInline) {
+  // An IP added as inline cannot be added as egress (shared decapDsts_ set)
+  ASSERT_TRUE(lb->addInlineDecapDst("fc00::1"));
+  ASSERT_FALSE(lb->addEgressDecapDst("fc00::1"));
+}
+
+TEST_F(KatranLbTest, addMaxDecapDstMixed) {
+  // Inline and egress share the same capacity limit
+  ASSERT_TRUE(lb->addInlineDecapDst("fc00::1"));
+  ASSERT_TRUE(lb->addEgressDecapDst("fc00::2"));
+  ASSERT_TRUE(lb->addInlineDecapDst("fc00::3"));
+  ASSERT_TRUE(lb->addEgressDecapDst("fc00::4"));
+  ASSERT_FALSE(lb->addEgressDecapDst("fc00::5"));
+  ASSERT_EQ(lb->getInlineDecapDst().size(), 4);
+}
+
+TEST_F(KatranLbTest, delInlineAfterAddingEgress) {
+  // delInlineDecapDst can remove an egress-added entry (key-only delete)
+  ASSERT_TRUE(lb->addEgressDecapDst("fc00::1"));
+  ASSERT_TRUE(lb->delInlineDecapDst("fc00::1"));
+  ASSERT_EQ(lb->getInlineDecapDst().size(), 0);
+}
+
 } // namespace katran
