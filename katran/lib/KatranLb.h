@@ -135,6 +135,7 @@ constexpr auto per_hckey_stats = "per_hckey_stats";
 constexpr auto reals = "reals";
 constexpr auto server_id_map = "server_id_map";
 constexpr auto stats = "stats";
+constexpr auto vip_lpm_map = "vip_lpm_map";
 constexpr auto vip_map = "vip_map";
 constexpr auto vip_miss_stats = "vip_miss_stats";
 constexpr auto vip_to_down_reals_map = "vip_to_down_reals_map";
@@ -1127,6 +1128,14 @@ class KatranLb {
    * update vipmap(add or remove vip) in forwarding plane
    */
   bool updateVipMap(
+      const ModifyAction action,
+      const VipKey& vip,
+      vip_meta* meta = nullptr);
+
+  /**
+   * update vip_lpm_map (add or remove prefix VIP) in forwarding plane
+   */
+  bool updateVipLpmMap(
       const ModifyAction action,
       const VipKey& vip,
       vip_meta* meta = nullptr);

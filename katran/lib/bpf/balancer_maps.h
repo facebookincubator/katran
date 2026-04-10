@@ -37,6 +37,19 @@ struct {
   __uint(map_flags, NO_FLAGS);
 } vip_map SEC(".maps");
 
+#ifdef CIDR_VIP
+// map for prefix-based VIP lookup (IPv6 /96 prefix VIPs).
+// packets whose destination IPv6 address matches a prefix in this map
+// are load-balanced the same as exact-match VIPs.
+struct {
+  __uint(type, BPF_MAP_TYPE_LPM_TRIE);
+  __type(key, struct v6_lpm_key);
+  __type(value, struct vip_meta);
+  __uint(max_entries, MAX_CIDR_VIPS);
+  __uint(map_flags, BPF_F_NO_PREALLOC);
+} vip_lpm_map SEC(".maps");
+#endif // CIDR_VIP
+
 // fallback lru. we should never hit this one outside of unittests
 struct {
   __uint(type, BPF_MAP_TYPE_LRU_HASH);

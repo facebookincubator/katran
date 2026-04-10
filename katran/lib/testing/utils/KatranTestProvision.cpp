@@ -229,6 +229,17 @@ void prepareOptionalLbData(katran::KatranLb& lb) {
   lb.modifyReal("10.0.0.6", kLocalReal);
 }
 
+void prepareCidrVipLbData(katran::KatranLb& lb) {
+  katran::VipKey vip;
+  // adding a /96 CIDR VIP for testing prefix-based VIP matching
+  vip.address = "fc00:1::";
+  vip.port = 0;
+  vip.proto = kTcp;
+  vip.cidrVipPrefixLen = 96;
+  lb.addVip(vip);
+  addReals(lb, vip, {"fc00::1", "fc00::2"});
+}
+
 void prepareLbDataStableRt(katran::KatranLb& lb) {
   lb.restartKatranMonitor(kMonitorLimit);
   katran::VipKey vip;

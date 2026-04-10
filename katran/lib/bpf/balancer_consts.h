@@ -54,6 +54,19 @@
 #define MAX_VIPS 512
 #endif
 
+#ifndef MAX_CIDR_VIPS
+// MAX_CIDR_VIPS is the size of lpm trie map we use to sore meta info of cidr
+// vips while MAX_VIPS is used as the size of the regular vip_map for non-cidr
+// vips.
+// For now, we still use MAX_VIPS for the total max number of vips
+// including both non-cidr and cidr vips. CH_RING and stats maps are
+// still using MAX_VIPS as the max size used by both cidr and non-cidr vips
+// meanwhile.
+// TODO: we need a separate macro for the size of non-cidr vips to avoid
+// the confusion while MAX_VIP is the sum of non-cidr and cidr vips.
+#define MAX_CIDR_VIPS 256
+#endif
+
 // 1 real is equal to 1 ip address. so server w/ v4 and v6 would most likely
 // consume 2 spots
 #ifndef MAX_REALS
@@ -297,6 +310,7 @@ v2 tracks misses for TCP non syns */
 #define XDP_PASS_CNTR 19 // packets passed up to the kernel
 // Tracks successful egress decap packets (XDP_TX after GUE decap)
 #define EGRESS_DECAP_CNTR 20
+#define LPM_VIP_CNTR 21 // packets matched via LPM prefix VIP lookup
 
 // indice for all stats maps defined above correspond to entries in the map
 // stats starting from the index MAX_VIPS. The max_entries of stats is

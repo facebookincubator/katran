@@ -325,6 +325,11 @@ class VipKey {
   std::string address;
   uint16_t port;
   uint8_t proto;
+  // 0 = exact-match VIP (default). >0 = CIDR prefix VIP (e.g., 96 for /96).
+  // IPv6 only today. Must be greater than min_v6_prefix (currently 64).
+  // Not included in hash/equality — (address, port, proto) uniquely identifies
+  // a VIP. cidrVipPrefixLen is metadata carried alongside.
+  uint8_t cidrVipPrefixLen{0};
 
   bool operator==(const VipKey& other) const {
     return (

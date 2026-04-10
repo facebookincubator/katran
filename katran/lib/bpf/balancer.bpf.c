@@ -826,7 +826,19 @@ process_packet(struct xdp_md* xdp, __u64 nh_off, bool is_ipv6) {
     vip.port = 0;
     vip_info = bpf_map_lookup_elem(&vip_map, &vip);
     if (!vip_info) {
-      return XDP_PASS;
+#ifdef CIDR_VIP
+      // Fallback to LPM prefix-based VIP lookup (IPv6 only).
+      // LPM key has no port/proto, so one lookup is sufficient.
+      if (is_ipv6) {
+        struct v6_lpm_key lpm_key = {};
+        lpm_key.prefixlen = 128;
+        memcpy(lpm_key.addr, pckt.flow.dstv6, 16);
+        vip_info = bpf_map_lookup_elem(&vip_lpm_map, &lpm_key);
+      }
+#endif // CIDR_VIP
+      if (!vip_info) {
+        return XDP_PASS;
+      }
     }
 
     if (!(vip_info->flags & F_HASH_DPORT_ONLY) &&

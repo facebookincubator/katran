@@ -180,6 +180,8 @@ void prepareLbData(katran::KatranLb& lb, bool skipLru = false);
 
 void prepareOptionalLbData(katran::KatranLb& lb);
 
+void prepareCidrVipLbData(katran::KatranLb& lb);
+
 void prepareLbDataStableRt(katran::KatranLb& lb);
 
 void prepareLbDataXpopDecap(katran::KatranLb& lb);

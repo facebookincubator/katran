@@ -1021,6 +1021,13 @@ bool KatranLb::addVip(const VipKey& vip, const uint32_t flags) {
     LOG(ERROR) << "Invalid Vip address: " << vip.address;
     return false;
   }
+  if (vip.cidrVipPrefixLen > 0) {
+    if (!folly::IPAddress::validate(vip.address) ||
+        !folly::IPAddress(vip.address).isV6()) {
+      LOG(ERROR) << "CIDR VIP only supported for IPv6, got: " << vip.address;
+      return false;
+    }
+  }
   VLOG(1) << fmt::format(
       "adding new vip: {}:{}:{}", vip.address, vip.port, vip.proto);
 
@@ -1040,7 +1047,11 @@ bool KatranLb::addVip(const VipKey& vip, const uint32_t flags) {
     vip_meta meta;
     meta.vip_num = vip_num;
     meta.flags = flags;
-    updateVipMap(ModifyAction::ADD, vip, &meta);
+    if (vip.cidrVipPrefixLen > 0) {
+      updateVipLpmMap(ModifyAction::ADD, vip, &meta);
+    } else {
+      updateVipMap(ModifyAction::ADD, vip, &meta);
+    }
   }
   return true;
 }
@@ -1102,7 +1113,13 @@ bool KatranLb::delVip(const VipKey& vip) {
   }
   vipNums_.push_back(vip_iter->second.getVipNum());
   if (!config_.testing) {
-    updateVipMap(ModifyAction::DEL, vip);
+    // Use the stored key which has cidrVipPrefixLen from addVip
+    const auto& storedVipKey = vip_iter->first;
+    if (storedVipKey.cidrVipPrefixLen > 0) {
+      updateVipLpmMap(ModifyAction::DEL, storedVipKey);
+    } else {
+      updateVipMap(ModifyAction::DEL, storedVipKey);
+    }
   }
   vips_.erase(vip_iter);
   return true;
@@ -1169,7 +1186,11 @@ bool KatranLb::modifyVip(const VipKey& vip, uint32_t flag, bool set) {
     vip_meta meta;
     meta.vip_num = vip_iter->second.getVipNum();
     meta.flags = vip_iter->second.getVipFlags();
-    return updateVipMap(ModifyAction::ADD, vip, &meta);
+    const auto& storedVipKey = vip_iter->first;
+    if (storedVipKey.cidrVipPrefixLen > 0) {
+      return updateVipLpmMap(ModifyAction::ADD, storedVipKey, &meta);
+    }
+    return updateVipMap(ModifyAction::ADD, storedVipKey, &meta);
   }
   return true;
 }
@@ -3070,6 +3091,42 @@ bool KatranLb::updateVipMap(
         bpfAdapter_->getMapFdByName(KatranLbMaps::vip_map), &vip_def);
     if (res != 0) {
       LOG(ERROR) << "can't delete element from vip_map, error: "
+                 << folly::errnoStr(errno);
+      lbStats_.bpfFailedCalls++;
+      return false;
+    }
+  }
+  return true;
+}
+
+bool KatranLb::updateVipLpmMap(
+    const ModifyAction action,
+    const VipKey& vip,
+    vip_meta* meta) {
+  auto vip_addr = IpHelpers::parseAddrToBe(vip.address);
+  if ((vip_addr.flags & V6DADDR) == 0) {
+    LOG(ERROR) << "LPM VIP only supported for IPv6, got: " << vip.address;
+    lbStats_.bpfFailedCalls++;
+    return false;
+  }
+  v6_lpm_key lpm_key = {};
+  lpm_key.prefixlen = vip.cidrVipPrefixLen;
+  std::memcpy(lpm_key.addr, vip_addr.v6daddr, 16);
+
+  if (action == ModifyAction::ADD) {
+    auto res = bpfAdapter_->bpfUpdateMap(
+        bpfAdapter_->getMapFdByName(KatranLbMaps::vip_lpm_map), &lpm_key, meta);
+    if (res != 0) {
+      LOG(ERROR) << "can't add element to vip_lpm_map, error: "
+                 << folly::errnoStr(errno);
+      lbStats_.bpfFailedCalls++;
+      return false;
+    }
+  } else {
+    auto res = bpfAdapter_->bpfMapDeleteElement(
+        bpfAdapter_->getMapFdByName(KatranLbMaps::vip_lpm_map), &lpm_key);
+    if (res != 0) {
+      LOG(ERROR) << "can't delete element from vip_lpm_map, error: "
                  << folly::errnoStr(errno);
       lbStats_.bpfFailedCalls++;
       return false;

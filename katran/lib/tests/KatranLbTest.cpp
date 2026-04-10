@@ -159,6 +159,40 @@ TEST_F(KatranLbTest, testAddingInvalidVip) {
   ASSERT_FALSE(lb->addVip(v));
 };
 
+TEST_F(KatranLbTest, testCidrVipAddDelete) {
+  VipKey v;
+  v.address = "fc00::1";
+  v.port = 0;
+  v.proto = 6;
+  v.cidrVipPrefixLen = 96;
+  // adding and deleting a CIDR VIP
+  ASSERT_TRUE(lb->addVip(v));
+  ASSERT_TRUE(lb->delVip(v));
+};
+
+TEST_F(KatranLbTest, testCidrVipInvalidIpv4) {
+  VipKey v;
+  v.address = "192.168.1.1";
+  v.port = 0;
+  v.proto = 6;
+  v.cidrVipPrefixLen = 96;
+  // CIDR VIP with IPv4 address should fail
+  ASSERT_FALSE(lb->addVip(v));
+};
+
+TEST_F(KatranLbTest, testCidrVipModify) {
+  VipKey v;
+  v.address = "fc00::1";
+  v.port = 0;
+  v.proto = 6;
+  v.cidrVipPrefixLen = 96;
+  ASSERT_TRUE(lb->addVip(v));
+  // modifying flags on a CIDR VIP
+  ASSERT_TRUE(lb->modifyVip(v, 1, true));
+  ASSERT_EQ(lb->getVipFlags(v), 1);
+  ASSERT_TRUE(lb->delVip(v));
+};
+
 TEST_F(KatranLbTest, testRealHelpers) {
   lb->addVip(v1);
 
