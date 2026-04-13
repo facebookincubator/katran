@@ -76,7 +76,7 @@ class MonitoringServiceCore
    * @param sub_cb The subscription callback used for doing cancellation and
    * rest of accountings
    */
-  typedef struct SubscriptionResult {
+  struct SubscriptionResult {
     ResponseStatus status;
     std::optional<ClientId> cid;
     std::optional<EventIds> subscribed_events;
@@ -99,7 +99,7 @@ class MonitoringServiceCore
           cid(cid_in),
           subscribed_events(subscribed_events_in),
           sub_cb(sub_cb_in) {}
-  } SubscriptionResult;
+  };
 
   /**
    * Try to accept a client subscription.
