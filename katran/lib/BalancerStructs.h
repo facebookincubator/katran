@@ -144,6 +144,20 @@ struct v6_lpm_key {
   uint32_t addr[4];
 };
 
+// key for CIDR VIP lpm lookups.
+// port and proto are placed before addr so that LPM matching
+// applies to the IP prefix portion. Total data bits = 160.
+// port must be stored in network byte order (big-endian) to match
+// the BPF datapath which reads ports from packet headers (__be16).
+// Use folly::Endian::big() when setting port from userspace.
+struct vip_lpm_key {
+  uint32_t prefixlen;
+  uint16_t port; // big-endian
+  uint8_t proto;
+  uint8_t pad;
+  uint32_t addr[4]; // big-endian
+};
+
 // Route information saved during inline decapsulation of GUE packets
 struct flow_debug_info {
   union {

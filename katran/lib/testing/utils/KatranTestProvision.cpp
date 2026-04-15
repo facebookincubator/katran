@@ -231,13 +231,40 @@ void prepareOptionalLbData(katran::KatranLb& lb) {
 
 void prepareCidrVipLbData(katran::KatranLb& lb) {
   katran::VipKey vip;
-  // adding a /96 CIDR VIP for testing prefix-based VIP matching
+  // adding a /96 CIDR VIP with port=0 (all ports), proto=TCP
   vip.address = "fc00:1::";
   vip.port = 0;
   vip.proto = kTcp;
   vip.cidrVipPrefixLen = 96;
   lb.addVip(vip);
   addReals(lb, vip, {"fc00::1", "fc00::2"});
+
+  // adding a /96 CIDR VIP with port=443, proto=TCP (port-specific)
+  katran::VipKey vip443;
+  vip443.address = "fc00:2::";
+  vip443.port = 443;
+  vip443.proto = kTcp;
+  vip443.cidrVipPrefixLen = 96;
+  lb.addVip(vip443);
+  addReals(lb, vip443, {"fc00::3", "fc00::4"});
+
+  // adding a /96 CIDR VIP with port=0, proto=UDP
+  katran::VipKey vipUdp;
+  vipUdp.address = "fc00:3::";
+  vipUdp.port = 0;
+  vipUdp.proto = kUdp;
+  vipUdp.cidrVipPrefixLen = 96;
+  lb.addVip(vipUdp);
+  addReals(lb, vipUdp, {"fc00::5", "fc00::6"});
+
+  // adding a /96 CIDR VIP with port=443, proto=UDP (port-specific)
+  katran::VipKey vipUdp443;
+  vipUdp443.address = "fc00:4::";
+  vipUdp443.port = 443;
+  vipUdp443.proto = kUdp;
+  vipUdp443.cidrVipPrefixLen = 96;
+  lb.addVip(vipUdp443);
+  addReals(lb, vipUdp443, {"fc00::7", "fc00::8"});
 }
 
 void prepareLbDataStableRt(katran::KatranLb& lb) {

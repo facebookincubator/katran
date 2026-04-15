@@ -107,6 +107,23 @@ struct v6_lpm_key {
   __be32 addr[4];
 };
 
+// key for CIDR VIP lpm lookups.
+// port and proto are placed before addr so that LPM matching
+// applies to the IP prefix portion. Total data bits = 160.
+// port is __be16 to match the kernel structs (udphdr.dest, tcphdr.dest)
+// which store ports in network byte order. In the BPF datapath, port
+// comes directly from pckt.flow.port16[1] which is assigned from
+// udp->dest / tcp->dest (__be16). In userspace, port is set with
+// folly::Endian::big(). This differs from vip_definition which uses
+// __u16 for historical reasons, but the actual byte order is the same.
+struct vip_lpm_key {
+  __u32 prefixlen;
+  __be16 port;
+  __u8 proto;
+  __u8 pad;
+  __be32 addr[4];
+};
+
 struct address {
   union {
     __be32 addr;

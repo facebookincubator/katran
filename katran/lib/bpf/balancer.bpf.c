@@ -823,21 +823,32 @@ process_packet(struct xdp_md* xdp, __u64 nh_off, bool is_ipv6) {
   vip.proto = pckt.flow.proto;
   vip_info = bpf_map_lookup_elem(&vip_map, &vip);
   if (!vip_info) {
-    vip.port = 0;
-    vip_info = bpf_map_lookup_elem(&vip_map, &vip);
-    if (!vip_info) {
 #ifdef CIDR_VIP
-      // Fallback to LPM prefix-based VIP lookup (IPv6 only).
-      // LPM key has no port/proto, so one lookup is sufficient.
-      if (is_ipv6) {
-        struct v6_lpm_key lpm_key = {};
-        lpm_key.prefixlen = 128;
-        memcpy(lpm_key.addr, pckt.flow.dstv6, 16);
-        vip_info = bpf_map_lookup_elem(&vip_lpm_map, &lpm_key);
-      }
+    // Try LPM prefix-based VIP lookup with original port+proto (IPv6 only).
+    struct vip_lpm_key lpm_key = {};
+    if (is_ipv6) {
+      lpm_key.prefixlen = 160;
+      lpm_key.port = pckt.flow.port16[1];
+      lpm_key.proto = pckt.flow.proto;
+      lpm_key.pad = 0;
+      memcpy(lpm_key.addr, pckt.flow.dstv6, 16);
+      vip_info = bpf_map_lookup_elem(&vip_lpm_map, &lpm_key);
+    }
 #endif // CIDR_VIP
+    if (!vip_info) {
+      vip.port = 0;
+      vip_info = bpf_map_lookup_elem(&vip_map, &vip);
       if (!vip_info) {
-        return XDP_PASS;
+#ifdef CIDR_VIP
+        // Try LPM with port=0 wildcard (IPv6 only).
+        if (is_ipv6) {
+          lpm_key.port = 0;
+          vip_info = bpf_map_lookup_elem(&vip_lpm_map, &lpm_key);
+        }
+#endif // CIDR_VIP
+        if (!vip_info) {
+          return XDP_PASS;
+        }
       }
     }
 

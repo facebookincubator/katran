@@ -3109,8 +3109,12 @@ bool KatranLb::updateVipLpmMap(
     lbStats_.bpfFailedCalls++;
     return false;
   }
-  v6_lpm_key lpm_key = {};
-  lpm_key.prefixlen = vip.cidrVipPrefixLen;
+  vip_lpm_key lpm_key = {};
+  // prefixlen covers port(16) + proto(8) + pad(8) + IP prefix bits
+  lpm_key.prefixlen = 32 + vip.cidrVipPrefixLen;
+  lpm_key.port = folly::Endian::big(vip.port);
+  lpm_key.proto = vip.proto;
+  lpm_key.pad = 0;
   std::memcpy(lpm_key.addr, vip_addr.v6daddr, 16);
 
   if (action == ModifyAction::ADD) {

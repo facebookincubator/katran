@@ -38,12 +38,13 @@ struct {
 } vip_map SEC(".maps");
 
 #ifdef CIDR_VIP
-// map for prefix-based VIP lookup (IPv6 /96 prefix VIPs).
-// packets whose destination IPv6 address matches a prefix in this map
-// are load-balanced the same as exact-match VIPs.
+// map for prefix-based VIP lookup (CIDR VIPs).
+// Key includes port, proto, and IPv6 address. LPM matching applies
+// to the IP prefix portion. Supports port-specific and port-wildcard VIPs
+// via two-phase lookup (same pattern as vip_map).
 struct {
   __uint(type, BPF_MAP_TYPE_LPM_TRIE);
-  __type(key, struct v6_lpm_key);
+  __type(key, struct vip_lpm_key);
   __type(value, struct vip_meta);
   __uint(max_entries, MAX_CIDR_VIPS);
   __uint(map_flags, BPF_F_NO_PREALLOC);
