@@ -44,9 +44,44 @@
  * NON invasive = does not terminate progs. Chain and run before a tc decap
  * prog.
  */
+struct tc_srcmatch_map {
+  __u64 packets_seen;
+  __u64 packets_need_pull;
+  __u64 packets_acted;
+};
+
+struct {
+  __uint(type, BPF_MAP_TYPE_PERCPU_ARRAY);
+  __type(key, __u32);
+  __type(value, struct tc_srcmatch_map);
+  __uint(max_entries, 1);
+  __uint(map_flags, 0);
+} tc_srcmatch_map SEC(".maps");
+
 SEC("tc") int tc_srcmatch(struct __sk_buff* skb) {
   void* data = (void*)(long)skb->data;
   void* data_end = (void*)(long)skb->data_end;
+  __u32 key = 0;
+  struct tc_srcmatch_map* dbg = NULL;
+
+  __u32 hdr_len = sizeof(struct ethhdr) + sizeof(struct ipv6hdr) +
+      sizeof(struct udphdr) + sizeof(struct ipv6hdr) + sizeof(struct tcphdr);
+
+  dbg = bpf_map_lookup_elem(&tc_srcmatch_map, &key);
+  if (!dbg) {
+    return TC_ACT_PIPE;
+  }
+
+  dbg->packets_seen++;
+  if ((__u64)data_end - (__u64)data < hdr_len) {
+    dbg->packets_need_pull++;
+    int err = bpf_skb_pull_data(skb, hdr_len);
+    if (err) {
+      return TC_ACT_PIPE;
+    }
+    data = (void*)(long)skb->data;
+    data_end = (void*)(long)skb->data_end;
+  }
 
   if (data + sizeof(struct ethhdr) > data_end) {
     return TC_ACT_SHOT;
@@ -99,7 +134,6 @@ SEC("tc") int tc_srcmatch(struct __sk_buff* skb) {
 
   __u64 i_ip6hdr_src_offset = sizeof(struct ethhdr) + sizeof(struct ipv6hdr) +
       sizeof(struct udphdr) + offsetof(struct ipv6hdr, saddr);
-
   bpf_skb_store_bytes(
       /*skb=*/skb,
       /*offset=*/i_ip6hdr_src_offset,
@@ -108,6 +142,7 @@ SEC("tc") int tc_srcmatch(struct __sk_buff* skb) {
       /*flags=*/BPF_F_RECOMPUTE_CSUM // as we change src
   );
 
+  dbg->packets_acted++;
   return TC_ACT_PIPE;
 }
 
