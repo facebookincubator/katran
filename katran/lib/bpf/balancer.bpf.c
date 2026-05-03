@@ -630,7 +630,7 @@ __attribute__((__always_inline__)) static inline int update_vip_lru_miss_stats(
                          lru_miss_stat_vip->vipv6[3] == vip->vipv6[3])) ||
       (!is_ipv6 && lru_miss_stat_vip->vip == vip->vip);
   bool port_match = lru_miss_stat_vip->port == vip->port;
-  bool proto_match = lru_miss_stat_vip->proto = vip->proto;
+  bool proto_match = lru_miss_stat_vip->proto == vip->proto;
   bool vip_match = address_match && port_match && proto_match;
   if (vip_match) {
     __u32 lru_stats_key = pckt->real_index;
