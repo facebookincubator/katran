@@ -20,7 +20,7 @@ std::string toString(const EventId& eventId) {
     case (EventId::QUIC_PACKET_DROP_NO_REAL):
       return "QUIC_PACKET_DROP_NO_REAL";
     default:
-      return "UNKOWN";
+      return "UNKNOWN";
   }
 }
 
