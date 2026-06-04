@@ -2837,6 +2837,9 @@ enum bpf_func_id {
 };
 #undef __BPF_ENUM_FN
 
+// Helper IDs added after katran's vendored __BPF_FUNC_MAPPER (kernel 5.17+)
+#define BPF_FUNC_xdp_get_buff_len 188
+
 /* All flags used by eBPF helper functions, placed here. */
 
 /* BPF_FUNC_skb_store_bytes flags. */

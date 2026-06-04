@@ -181,6 +181,15 @@
 #define PROG_SEC_NAME "xdp"
 #endif
 
+#ifdef KATRAN_XDP_HAS_FRAGS
+static __u64 (*bpf_xdp_get_buff_len)(struct xdp_md* xdp_md) = (void*)
+    BPF_FUNC_xdp_get_buff_len;
+#define PCKT_DATA_LEN(xdp) bpf_xdp_get_buff_len(xdp)
+#else
+#define PCKT_DATA_LEN(xdp) \
+  ((__u64)((void*)(long)(xdp)->data_end - (void*)(long)(xdp)->data))
+#endif
+
 // QUIC invariants from draft-ietf-quic-transport-22 and
 // draft-ietf-quic-invariants-06
 #define QUIC_LONG_HEADER 0x80

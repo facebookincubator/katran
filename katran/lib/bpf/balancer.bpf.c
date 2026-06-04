@@ -860,8 +860,9 @@ process_packet(struct xdp_md* xdp, __u64 nh_off, bool is_ipv6) {
     }
   }
 
-  if (data_end - data > MAX_PCKT_SIZE) {
-    REPORT_PACKET_TOOBIG(xdp, data, data_end - data, false);
+  __u64 pkt_data_len = PCKT_DATA_LEN(xdp);
+  if (pkt_data_len > MAX_PCKT_SIZE) {
+    REPORT_PACKET_TOOBIG(xdp, data, pkt_data_len, false);
 #ifdef ICMP_TOOBIG_GENERATION
     __u32 stats_key = MAX_VIPS + ICMP_TOOBIG_CNTRS;
     data_stats = bpf_map_lookup_elem(&stats, &stats_key);
@@ -873,7 +874,7 @@ process_packet(struct xdp_md* xdp, __u64 nh_off, bool is_ipv6) {
     } else {
       data_stats->v1 += 1;
     }
-    return send_icmp_too_big(xdp, is_ipv6, data_end - data);
+    return send_icmp_too_big(xdp, is_ipv6, pkt_data_len);
 #else
     return XDP_DROP;
 #endif
@@ -959,8 +960,7 @@ process_packet(struct xdp_md* xdp, __u64 nh_off, bool is_ipv6) {
             if (!dst) {
               // fail to find a real server with the real pos, drop the packet
               quic_packets_stats->cid_unknown_real_dropped += 1;
-              REPORT_QUIC_PACKET_DROP_NO_REAL(
-                  xdp, data, data_end - data, false);
+              REPORT_QUIC_PACKET_DROP_NO_REAL(xdp, data, pkt_data_len, false);
               return XDP_DROP;
             }
             int res = check_and_update_real_index_in_lru(&pckt, lru_map);
@@ -1072,7 +1072,7 @@ process_packet(struct xdp_md* xdp, __u64 nh_off, bool is_ipv6) {
           // miss of non-syn tcp packet. could be either because of LRU
           // trashing or because another katran is restarting and all the
           // sessions have been reshuffled
-          REPORT_TCP_NONSYN_LRUMISS(xdp, data, data_end - data, false);
+          REPORT_TCP_NONSYN_LRUMISS(xdp, data, pkt_data_len, false);
           lru_stats->v2 += 1;
         }
       }
@@ -1148,7 +1148,7 @@ int balancer_ingress(struct xdp_md* ctx) {
   __u32 eth_proto;
   __u32 nh_off;
   nh_off = sizeof(struct ethhdr);
-  __u64 data_len = data_end - data;
+  __u64 data_len = PCKT_DATA_LEN(ctx);
   struct lb_stats* data_stats;
   __u32 stats_key;
 
