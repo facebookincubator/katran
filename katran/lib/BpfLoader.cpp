@@ -18,6 +18,7 @@
 #include "BpfLoader.h"
 #include <glog/logging.h>
 #include <array>
+#include <cstdlib>
 
 namespace katran {
 
@@ -47,6 +48,22 @@ std::string libBpfErrMsg(int err) {
 }
 
 } // namespace
+
+bool BpfLoader::shouldEnableXdpHasFrags() {
+  const auto* env = std::getenv(kXdpHasFragsEnvVar);
+  return env != nullptr && std::string(env) == kXdpHasFragsEnabledValue;
+}
+
+void BpfLoader::maybeSetXdpHasFragsFlag(::bpf_program* prog, bool xdpHasFrags) {
+  if (xdpHasFrags &&
+      (bpf_program__type(prog) == BPF_PROG_TYPE_XDP ||
+       bpf_program__type(prog) == BPF_PROG_TYPE_EXT)) {
+    bpf_program__set_flags(
+        prog, bpf_program__flags(prog) | BPF_F_XDP_HAS_FRAGS);
+    LOG(WARNING) << "Setting BPF_F_XDP_HAS_FRAGS on program: "
+                 << ::bpf_program__name(prog);
+  }
+}
 
 BpfLoader::BpfLoader() {
   VLOG(1) << "Enabled libbpf strict mode";
@@ -170,6 +187,8 @@ int BpfLoader::reloadBpfObject(
   std::set<std::string> loadedProgNames;
   std::set<std::string> loadedMapNames;
 
+  const bool xdpHasFrags = shouldEnableXdpHasFrags();
+
   bpf_object__for_each_program(prog, obj) {
     // reload bpf program only if we have loaded it already. we distinct bpf
     // programs by their name
@@ -178,6 +197,7 @@ int BpfLoader::reloadBpfObject(
                  << ::bpf_program__name(prog);
       return closeBpfObject(obj);
     }
+    maybeSetXdpHasFragsFlag(prog, xdpHasFrags);
   }
 
   bpf_map__for_each(map, obj) {
@@ -279,8 +299,11 @@ int BpfLoader::loadBpfObject(
   std::set<std::string> loadedProgNames;
   std::set<std::string> loadedMapNames;
 
+  const bool xdpHasFrags = shouldEnableXdpHasFrags();
+
   bpf_object__for_each_program(prog, obj) {
     bpf_program__set_log_level(prog, 4);
+    maybeSetXdpHasFragsFlag(prog, xdpHasFrags);
     if (progs_.find(::bpf_program__name(prog)) != progs_.end()) {
       LOG(ERROR) << "bpf's program name collision: "
                  << ::bpf_program__name(prog);

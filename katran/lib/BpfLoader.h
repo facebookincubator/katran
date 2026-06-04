@@ -32,6 +32,20 @@ namespace katran {
  */
 class BpfLoader {
  public:
+  static constexpr const char* kXdpHasFragsEnvVar = "XDP_HAS_FRAGS";
+  static constexpr const char* kXdpHasFragsEnabledValue = "1";
+
+  /**
+   * Returns true if the XDP_HAS_FRAGS env var is set to "1".
+   */
+  static bool shouldEnableXdpHasFrags();
+
+  /**
+   * If xdpHasFrags is true and prog is XDP or EXT type, OR in
+   * BPF_F_XDP_HAS_FRAGS on the program's flags.
+   */
+  static void maybeSetXdpHasFragsFlag(::bpf_program* prog, bool xdpHasFrags);
+
   explicit BpfLoader();
 
   ~BpfLoader();
