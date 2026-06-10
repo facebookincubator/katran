@@ -94,3 +94,60 @@ TEST_F(PipeWriterTest, WriteAfterStop) {
   EXPECT_EQ(pipeWriter.getWrites(), 1);
   EXPECT_EQ(pipeWriter.getErrs(), 0);
 }
+
+// writeHeader stores internally; it must NOT trigger a pipe write.
+TEST_F(PipeWriterTest, WriteHeaderDoesNotWriteToPipe) {
+  katran::PipeWriter pipeWriter;
+  std::string hdr = "pcap_header_data";
+  reader_->setReadCB(&readCallback_);
+  pipeWriter.setWriterDestination(writer_);
+  pipeWriter.writeHeader(hdr.c_str(), hdr.size());
+  evb_.loopOnce();
+  EXPECT_EQ(pipeWriter.getWrites(), 0);
+  EXPECT_EQ(pipeWriter.getErrs(), 0);
+  EXPECT_FALSE(readCallback_.error_);
+}
+
+// writeHeader must not touch pipe_; calling it without a destination is safe.
+TEST(PipeWriterStandaloneTest, WriteHeaderWithoutDestination) {
+  katran::PipeWriter pipeWriter;
+  std::string hdr = "pcap_header_data";
+  pipeWriter.writeHeader(hdr.c_str(), hdr.size());
+  EXPECT_EQ(pipeWriter.getWrites(), 0);
+  EXPECT_EQ(pipeWriter.getErrs(), 0);
+}
+
+// stop() silences writes; restart() re-enables them.
+TEST_F(PipeWriterTest, RestartResumesDelivery) {
+  katran::PipeWriter pipeWriter;
+  reader_->setReadCB(&readCallback_);
+  pipeWriter.setWriterDestination(writer_);
+  std::string first = "ramen";
+  std::string dropped = "soba";
+  std::string third = "udon";
+  pipeWriter.writeData(first.c_str(), first.size());
+  pipeWriter.stop();
+  pipeWriter.writeData(dropped.c_str(), dropped.size());
+  pipeWriter.restart();
+  pipeWriter.writeData(third.c_str(), third.size());
+  evb_.loopOnce();
+  EXPECT_EQ(readCallback_.getData(), "ramenudon");
+  EXPECT_EQ(pipeWriter.getWrites(), 2);
+  EXPECT_EQ(pipeWriter.getErrs(), 0);
+}
+
+// After stop + unsetWriterDestination, writes are silently discarded.
+TEST_F(PipeWriterTest, UnsetDestinationDropsSubsequentWrites) {
+  katran::PipeWriter pipeWriter;
+  reader_->setReadCB(&readCallback_);
+  pipeWriter.setWriterDestination(writer_);
+  std::string buf = "ramen";
+  pipeWriter.writeData(buf.c_str(), buf.size());
+  evb_.loopOnce();
+  EXPECT_EQ(pipeWriter.getWrites(), 1);
+  pipeWriter.stop();
+  pipeWriter.unsetWriterDestination();
+  pipeWriter.writeData(buf.c_str(), buf.size());
+  EXPECT_EQ(pipeWriter.getWrites(), 1);
+  EXPECT_EQ(pipeWriter.getErrs(), 0);
+}
