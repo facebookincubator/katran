@@ -501,7 +501,8 @@ class QUICHeader : public HeaderEntry {
   uint64_t packetNumber_;
   uint8_t packetNumberLength_; // Length of packet number in bytes
   std::vector<uint8_t> token_; // Token for Initial packets
-  ConnectionIdVersion cidVersion_; // Connection ID version (V1 or V2)
+  [[maybe_unused]] ConnectionIdVersion
+      cidVersion_; // Connection ID version (V1 or V2)
   std::vector<uint8_t> additionalData_; // Store additional QUIC data
 
   std::vector<uint8_t> encodeVariableLengthInteger(uint64_t value);
