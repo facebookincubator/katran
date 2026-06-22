@@ -133,4 +133,93 @@ TEST_F(VipTestF, testGetReals) {
   ASSERT_EQ(delta.size(), 0);
 }
 
+TEST(VipTest, VipFlagsSetUnsetClear) {
+  Vip vip(1, 0);
+  EXPECT_EQ(vip.getVipFlags(), 0u);
+
+  vip.setVipFlags(0b0011);
+  EXPECT_EQ(vip.getVipFlags(), 0b0011u);
+
+  vip.setVipFlags(0b0100);
+  EXPECT_EQ(vip.getVipFlags(), 0b0111u);
+
+  vip.unsetVipFlags(0b0010);
+  EXPECT_EQ(vip.getVipFlags(), 0b0101u);
+
+  vip.clearVipFlags();
+  EXPECT_EQ(vip.getVipFlags(), 0u);
+}
+
+TEST(VipTest, ZeroWeightRealExcludedFromHashRing) {
+  Vip vip(1);
+  UpdateReal add0{}, add1{};
+
+  add0.action = ModifyAction::ADD;
+  add0.updatedReal.num = 0;
+  add0.updatedReal.weight = 5;
+  add0.updatedReal.hash = 0;
+
+  add1.action = ModifyAction::ADD;
+  add1.updatedReal.num = 1;
+  add1.updatedReal.weight = 5;
+  add1.updatedReal.hash = 1;
+
+  std::vector<UpdateReal> both = {add0, add1};
+  vip.batchRealsUpdate(both);
+
+  UpdateReal zeroWeight{};
+  zeroWeight.action = ModifyAction::ADD;
+  zeroWeight.updatedReal.num = 0;
+  zeroWeight.updatedReal.weight = 0;
+  zeroWeight.updatedReal.hash = 0;
+
+  std::vector<UpdateReal> update = {zeroWeight};
+  auto delta = vip.batchRealsUpdate(update);
+
+  // Real 0 weight dropped to 0 — excluded from ring, positions redistributed to
+  // real 1
+  EXPECT_GT(delta.size(), 0u);
+  // Both entries still tracked in reals_ map
+  EXPECT_EQ(vip.getReals().size(), 2u);
+}
+
+TEST(VipTest, MixedAddDelInSingleBatch) {
+  Vip vip(1);
+  UpdateReal ureal{};
+  ureal.action = ModifyAction::ADD;
+  std::vector<UpdateReal> adds;
+  for (int i = 0; i < 3; i++) {
+    ureal.updatedReal.num = i;
+    ureal.updatedReal.weight = 1;
+    ureal.updatedReal.hash = i;
+    adds.push_back(ureal);
+  }
+  vip.batchRealsUpdate(adds);
+
+  UpdateReal addNew{}, delOld{};
+  addNew.action = ModifyAction::ADD;
+  addNew.updatedReal.num = 3;
+  addNew.updatedReal.weight = 1;
+  addNew.updatedReal.hash = 3;
+  delOld.action = ModifyAction::DEL;
+  delOld.updatedReal.num = 1;
+
+  std::vector<UpdateReal> mixed = {addNew, delOld};
+  auto delta = vip.batchRealsUpdate(mixed);
+  EXPECT_GT(delta.size(), 0u);
+
+  auto reals = vip.getReals();
+  EXPECT_EQ(reals.size(), 3u);
+  EXPECT_EQ(std::count(reals.begin(), reals.end(), 1u), 0);
+  EXPECT_EQ(std::count(reals.begin(), reals.end(), 3u), 1);
+}
+
+TEST(VipTest, ConstructorWithFlagsAndCustomRingSize) {
+  const uint32_t ringSize = 97;
+  Vip vip(42, 0b1010u, ringSize);
+  EXPECT_EQ(vip.getVipNum(), 42u);
+  EXPECT_EQ(vip.getVipFlags(), 0b1010u);
+  EXPECT_EQ(vip.getChRingSize(), ringSize);
+}
+
 } // namespace katran
