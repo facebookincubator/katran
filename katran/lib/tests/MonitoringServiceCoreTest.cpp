@@ -50,6 +50,10 @@ class MockMonitoringServiceCore : public MonitoringServiceCore {
     return true;
   }
 
+  ClientSubscriptionMap getSubMapForEvent(EventId eventId) {
+    return getSubscriptionMapForEvent(eventId);
+  }
+
  private:
   std::unordered_map<
       EventId,
@@ -189,4 +193,87 @@ TEST_F(TestMonitoringServiceCore, SubscribeAndCancel) {
   EXPECT_TRUE(core->has_client(cid));
   res.sub_cb.value()->onClientCanceled(cid);
   EXPECT_FALSE(core->has_client(cid));
+}
+
+TEST_F(TestMonitoringServiceCore, CancelNonexistentClient) {
+  // cancelSubscription error path: CID not in client_to_event_ids_ → should not
+  // crash
+  ClientId fake_cid = 999;
+  EXPECT_FALSE(core->has_client(fake_cid));
+  core->onClientCanceled(fake_cid);
+  EXPECT_FALSE(core->has_client(fake_cid));
+}
+
+TEST_F(TestMonitoringServiceCore, GetSubscriptionMapForEventFilters) {
+  // Two clients on different events; per-event map returns only the matching
+  // client
+  EventIds eventsA = {EventId::TCP_NONSYN_LRUMISS};
+  EventIds eventsB = {EventId::PACKET_TOOBIG};
+  auto subA = std::make_shared<MockClientSubscription>();
+  auto subB = std::make_shared<MockClientSubscription>();
+
+  auto resA = core->acceptSubscription(eventsA);
+  ASSERT_EQ(resA.status, ResponseStatus::OK);
+  auto cidA = *resA.cid;
+  ASSERT_TRUE(resA.sub_cb.value()->onClientSubscribed(cidA, subA, eventsA));
+
+  auto resB = core->acceptSubscription(eventsB);
+  ASSERT_EQ(resB.status, ResponseStatus::OK);
+  auto cidB = *resB.cid;
+  ASSERT_TRUE(resB.sub_cb.value()->onClientSubscribed(cidB, subB, eventsB));
+
+  auto tcpMap = core->getSubMapForEvent(EventId::TCP_NONSYN_LRUMISS);
+  EXPECT_EQ(tcpMap.size(), 1u);
+  EXPECT_NE(tcpMap.find(cidA), tcpMap.end());
+  EXPECT_EQ(tcpMap.find(cidB), tcpMap.end());
+
+  auto ptbMap = core->getSubMapForEvent(EventId::PACKET_TOOBIG);
+  EXPECT_EQ(ptbMap.size(), 1u);
+  EXPECT_EQ(ptbMap.find(cidA), ptbMap.end());
+  EXPECT_NE(ptbMap.find(cidB), ptbMap.end());
+}
+
+TEST_F(TestMonitoringServiceCore, GetSubscriptionMapForEventBothClients) {
+  // Both clients subscribed to the same event → per-event map returns both
+  EventIds events = {EventId::TCP_NONSYN_LRUMISS};
+  auto subA = std::make_shared<MockClientSubscription>();
+  auto subB = std::make_shared<MockClientSubscription>();
+
+  auto resA = core->acceptSubscription(events);
+  ASSERT_EQ(resA.status, ResponseStatus::OK);
+  auto cidA = *resA.cid;
+  ASSERT_TRUE(resA.sub_cb.value()->onClientSubscribed(cidA, subA, events));
+
+  auto resB = core->acceptSubscription(events);
+  ASSERT_EQ(resB.status, ResponseStatus::OK);
+  auto cidB = *resB.cid;
+  ASSERT_TRUE(resB.sub_cb.value()->onClientSubscribed(cidB, subB, events));
+
+  auto tcpMap = core->getSubMapForEvent(EventId::TCP_NONSYN_LRUMISS);
+  EXPECT_EQ(tcpMap.size(), 2u);
+  EXPECT_NE(tcpMap.find(cidA), tcpMap.end());
+  EXPECT_NE(tcpMap.find(cidB), tcpMap.end());
+}
+
+TEST_F(TestMonitoringServiceCore, GetSubscriptionMapForEventAfterCancel) {
+  // Client removed from per-event map after cancellation
+  EventIds events = {EventId::TCP_NONSYN_LRUMISS};
+  auto submock = std::make_shared<MockClientSubscription>();
+
+  auto res = core->acceptSubscription(events);
+  ASSERT_EQ(res.status, ResponseStatus::OK);
+  auto cid = *res.cid;
+  ASSERT_TRUE(res.sub_cb.value()->onClientSubscribed(cid, submock, events));
+
+  EXPECT_EQ(core->getSubMapForEvent(EventId::TCP_NONSYN_LRUMISS).size(), 1u);
+  res.sub_cb.value()->onClientCanceled(cid);
+  EXPECT_EQ(core->getSubMapForEvent(EventId::TCP_NONSYN_LRUMISS).size(), 0u);
+}
+
+TEST_F(TestMonitoringServiceCore, AddSubscriptionFailsForUnknownEvent) {
+  // onClientSubscribed returns false when the event is not in event_pipe_cbs_
+  auto submock = std::make_shared<MockClientSubscription>();
+  EventIds unknownEvents = {EventId::UNKNOWN};
+  EXPECT_FALSE(core->onClientSubscribed(0, submock, unknownEvents));
+  EXPECT_FALSE(core->has_client(0));
 }
