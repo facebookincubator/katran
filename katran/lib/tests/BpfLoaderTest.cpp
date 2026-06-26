@@ -27,40 +27,7 @@
 
 using katran::BpfLoader;
 
-class XdpHasFragsTest : public ::testing::Test {
- protected:
-  void SetUp() override {
-    ::unsetenv(BpfLoader::kXdpHasFragsEnvVar);
-  }
-
-  void TearDown() override {
-    ::unsetenv(BpfLoader::kXdpHasFragsEnvVar);
-  }
-};
-
-TEST_F(XdpHasFragsTest, ShouldEnableReturnsTrueWhenEnvVarIsOne) {
-  ::setenv(
-      BpfLoader::kXdpHasFragsEnvVar,
-      BpfLoader::kXdpHasFragsEnabledValue,
-      /*replace=*/1);
-  EXPECT_TRUE(BpfLoader::shouldEnableXdpHasFrags());
-}
-
-TEST_F(XdpHasFragsTest, ShouldEnableReturnsFalseWhenEnvVarUnset) {
-  EXPECT_FALSE(BpfLoader::shouldEnableXdpHasFrags());
-}
-
-TEST_F(XdpHasFragsTest, ShouldEnableReturnsFalseWhenEnvVarIsZero) {
-  ::setenv(BpfLoader::kXdpHasFragsEnvVar, "0", /*replace=*/1);
-  EXPECT_FALSE(BpfLoader::shouldEnableXdpHasFrags());
-}
-
-TEST_F(XdpHasFragsTest, ShouldEnableReturnsFalseWhenEnvVarIsArbitrary) {
-  ::setenv(BpfLoader::kXdpHasFragsEnvVar, "yes", /*replace=*/1);
-  EXPECT_FALSE(BpfLoader::shouldEnableXdpHasFrags());
-}
-
-TEST_F(XdpHasFragsTest, MaybeSetFlagSetsOnXdpProg) {
+TEST(XdpHasFragsTest, MaybeSetFlagSetsOnXdpProg) {
   auto* skel = balancer_kern_test__open();
   ASSERT_NE(skel, nullptr);
 
@@ -82,7 +49,7 @@ TEST_F(XdpHasFragsTest, MaybeSetFlagSetsOnXdpProg) {
   balancer_kern_test__destroy(skel);
 }
 
-TEST_F(XdpHasFragsTest, MaybeSetFlagSkipsWhenDisabled) {
+TEST(XdpHasFragsTest, MaybeSetFlagSkipsWhenDisabled) {
   auto* skel = balancer_kern_test__open();
   ASSERT_NE(skel, nullptr);
 
@@ -96,7 +63,7 @@ TEST_F(XdpHasFragsTest, MaybeSetFlagSkipsWhenDisabled) {
   balancer_kern_test__destroy(skel);
 }
 
-TEST_F(XdpHasFragsTest, MaybeSetFlagSetsOnExtProg) {
+TEST(XdpHasFragsTest, MaybeSetFlagSetsOnExtProg) {
   auto* skel = balancer_kern_origin_gue_xdpchainer__open();
   ASSERT_NE(skel, nullptr);
 
@@ -119,7 +86,7 @@ TEST_F(XdpHasFragsTest, MaybeSetFlagSetsOnExtProg) {
   balancer_kern_origin_gue_xdpchainer__destroy(skel);
 }
 
-TEST_F(XdpHasFragsTest, MaybeSetFlagPreservesExistingFlags) {
+TEST(XdpHasFragsTest, MaybeSetFlagPreservesExistingFlags) {
   auto* skel = balancer_kern_test__open();
   ASSERT_NE(skel, nullptr);
 

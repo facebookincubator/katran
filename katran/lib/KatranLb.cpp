@@ -760,6 +760,7 @@ void KatranLb::loadBpfProgs() {
   bool flowDebugInProg = false;
   bool globalLruInProg = false;
 
+  bpfAdapter_->setXdpHasFrags(config_.xdpHasFrags);
   flowDebugInProg = bpfAdapter_->isMapInBpfObject(
       config_.balancerProgPath, KatranLbMaps::flow_debug_maps);
   globalLruInProg = bpfAdapter_->isMapInBpfObject(

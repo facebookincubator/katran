@@ -68,6 +68,8 @@ class BpfAdapter : public BaseBpfAdapter {
 
   int updateSharedMap(const std::string& name, int fd) override;
 
+  void setXdpHasFrags(bool enabled) override;
+
  private:
   BpfLoader loader_;
 };

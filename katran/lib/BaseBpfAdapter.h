@@ -56,6 +56,8 @@ class BaseBpfAdapter {
 
   virtual ~BaseBpfAdapter() {}
 
+  virtual void setXdpHasFrags(bool enabled) = 0;
+
   /**
    * @param string bpf_prog path to bpf program
    * @param bpf_prog_type type of bpf prog to load

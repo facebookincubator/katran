@@ -68,4 +68,8 @@ int BpfAdapter::updateSharedMap(const std::string& name, int fd) {
   return loader_.updateSharedMap(name, fd);
 }
 
+void BpfAdapter::setXdpHasFrags(bool enabled) {
+  loader_.setXdpHasFrags(enabled);
+}
+
 } // namespace katran

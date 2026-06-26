@@ -32,14 +32,6 @@ namespace katran {
  */
 class BpfLoader {
  public:
-  static constexpr const char* kXdpHasFragsEnvVar = "XDP_HAS_FRAGS";
-  static constexpr const char* kXdpHasFragsEnabledValue = "1";
-
-  /**
-   * Returns true if the XDP_HAS_FRAGS env var is set to "1".
-   */
-  static bool shouldEnableXdpHasFrags();
-
   /**
    * If xdpHasFrags is true and prog is XDP or EXT type, OR in
    * BPF_F_XDP_HAS_FRAGS on the program's flags.
@@ -49,6 +41,10 @@ class BpfLoader {
   explicit BpfLoader();
 
   ~BpfLoader();
+
+  void setXdpHasFrags(bool enabled) {
+    xdpHasFrags_ = enabled;
+  }
 
   /**
    * @param char* ptr to buffer with elf object
@@ -199,6 +195,8 @@ class BpfLoader {
    * TODO: may need to change to prefix match in future
    */
   const std::set<std::string> knownDuplicateMaps_ = {".rodata.str1.1"};
+
+  bool xdpHasFrags_{false};
 };
 
 } // namespace katran
