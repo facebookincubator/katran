@@ -199,7 +199,7 @@ class BpfBatchUtil {
       for (uint32_t i = 0; i < count; ++i) {
         const KeyT& k = key_buf[i];
         auto it = keys.find(key_buf[i]);
-        if (keys.find(k) == keys.end()) {
+        if (!keys.contains(k)) {
           continue;
         }
         if (foundMap.contains(k)) {
