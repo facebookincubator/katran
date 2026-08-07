@@ -44,13 +44,12 @@ std::string convertMacToString(std::vector<uint8_t> mac) {
   if (mac.size() != 6) {
     return "unknown";
   }
-  uint16_t mac_part;
-  std::string mac_part_string;
   std::string mac_string;
-  for (auto m : mac) {
-    mac_part = m;
-    mac_part_string = fmt::format("{0:02x}:", mac_part);
-    mac_string += mac_part_string;
+  for (size_t i = 0; i < mac.size(); i++) {
+    if (i > 0) {
+      mac_string += ":";
+    }
+    mac_string += fmt::format("{0:02x}", static_cast<uint16_t>(mac[i]));
   }
   return mac_string;
 }

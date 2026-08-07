@@ -50,17 +50,17 @@ TEST(MacHelpersTests, convertMacToUintTooShortReturnsZeroes) {
 
 TEST(MacHelpersTests, convertMacToStringValid) {
   const std::vector<uint8_t> mac{0x00, 0x11, 0x22, 0xaa, 0xbb, 0xcc};
-  EXPECT_EQ(convertMacToString(mac), "00:11:22:aa:bb:cc:");
+  EXPECT_EQ(convertMacToString(mac), "00:11:22:aa:bb:cc");
 }
 
 TEST(MacHelpersTests, convertMacToStringAllZeroes) {
   const std::vector<uint8_t> mac(6, 0);
-  EXPECT_EQ(convertMacToString(mac), "00:00:00:00:00:00:");
+  EXPECT_EQ(convertMacToString(mac), "00:00:00:00:00:00");
 }
 
 TEST(MacHelpersTests, convertMacToStringAllMax) {
   const std::vector<uint8_t> mac(6, 0xff);
-  EXPECT_EQ(convertMacToString(mac), "ff:ff:ff:ff:ff:ff:");
+  EXPECT_EQ(convertMacToString(mac), "ff:ff:ff:ff:ff:ff");
 }
 
 TEST(MacHelpersTests, convertMacToStringWrongSizeReturnsUnknown) {
@@ -75,15 +75,13 @@ TEST(MacHelpersTests, convertMacToStringEmptyReturnsUnknown) {
 }
 
 TEST(MacHelpersTests, stringToUintRoundTrip) {
-  // The string->uint direction is reversible (modulo the trailing colon
-  // that convertMacToString appends). Verifying the byte vector survives
-  // a string->uint->string->uint round-trip catches any silent corruption.
+  // Verifies the byte vector survives a string->uint->string->uint
+  // round-trip, catching any silent corruption.
   const std::string input = "01:23:45:67:89:ab";
   const auto bytes = convertMacToUint(input);
   const auto reformatted = convertMacToString(bytes);
-  EXPECT_EQ(reformatted, input + ":");
-  EXPECT_EQ(
-      convertMacToUint(reformatted.substr(0, reformatted.size() - 1)), bytes);
+  EXPECT_EQ(reformatted, input);
+  EXPECT_EQ(convertMacToUint(reformatted), bytes);
 }
 
 } // namespace katran
