@@ -51,7 +51,7 @@ std::string convertMacToString(std::vector<uint8_t> mac) {
     }
     mac_string += fmt::format("{0:02x}", static_cast<uint16_t>(mac[i]));
   }
-  return mac_string;
+  return mac_string.substr(0, mac_string.size() - 1);
 }
 
 } // namespace katran
