@@ -20,7 +20,15 @@
  * This file contains definition of all balancer specific constants
  */
 
+#if __has_include("common/bpf/bpf_net_helpers.h")
 #include "common/bpf/bpf_net_helpers.h"
+#else
+// OSS build: common/bpf is internal-only and not mirrored. katran needs just
+// these two: we dont want to do htons for each packet, so this is ETH_P_IPV6
+// and ETH_P_IP in be format.
+#define BE_ETH_P_IP 8
+#define BE_ETH_P_IPV6 56710
+#endif
 
 // GUE variant 1 using first four bits of inner packet as a pseudo header
 // we are using last two of this four bits to distinct v4 vs v6. see RFC for
