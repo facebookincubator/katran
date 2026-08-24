@@ -14,7 +14,6 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 #include "katran/lib/PcapMsgMeta.h"
-#include <fmt/core.h>
 
 namespace katran {
 
@@ -48,12 +47,7 @@ PcapMsg& PcapMsgMeta::getPcapMsg() {
 }
 
 EventId PcapMsgMeta::getEventId() {
-  try {
-    return static_cast<EventId>(event_);
-  } catch (const std::exception& e) {
-    LOG(ERROR) << fmt::format("invalid event {}: {}", event_, e.what());
-    return EventId::UNKNOWN;
-  }
+  return monitoring::eventIdFromRaw(event_);
 }
 
 } // namespace katran

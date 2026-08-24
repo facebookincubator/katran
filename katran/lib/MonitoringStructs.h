@@ -12,9 +12,10 @@ namespace monitoring {
 
 constexpr auto kDefaultClientLimit = 10;
 
-// This is the internal enum for event id. Protocol specific types will need to
-// be casted to/from this type. One can take advantage of the UNKNOWN event id
-// for handling casting exception.
+// This is the internal enum for event id. Protocol specific types will need
+// to be converted to/from this type via eventIdFromRaw() below (do not
+// static_cast raw values directly -- that can produce an out-of-range enum
+// value). Use the UNKNOWN event id to represent an unrecognized value.
 enum class EventId : uint8_t {
   TCP_NONSYN_LRUMISS = 0,
   PACKET_TOOBIG = 1,
@@ -35,6 +36,13 @@ enum ResponseStatus {
 
 // Helper function converting event to string
 std::string toString(const EventId& eventId);
+
+// Helper function converting a raw event id (e.g. received over the wire)
+// to the associated EventId. Returns EventId::UNKNOWN for any value that
+// does not match one of the named enumerators above, so callers never need
+// to (unsafely) static_cast a raw value into this enum themselves. Kept
+// alongside the enum definition so it is updated whenever EventId is.
+EventId eventIdFromRaw(uint32_t rawEventId);
 
 // Helper operator definition that makes logging easier
 std::ostream& operator<<(std::ostream& os, const EventId& eventId);

@@ -116,6 +116,29 @@ TEST(PcapMsgMetaTest, FlagSetters_Roundtrip) {
   EXPECT_EQ(meta.getLimit(), 42u);
 }
 
+TEST(PcapMsgMetaTest, GetEventId_ReturnsUnknownForUnnamedValueInRange) {
+  const char data[] = "pkt";
+  PcapMsg msg(data, 3, 3);
+  // 99 is not one of the named EventId enumerators (0, 1, 2, 255) but is
+  // still representable in the enum's fixed uint8_t underlying type, so
+  // constructing it is well-defined (no UB) and exercises the "unnamed but
+  // in-range" branch of the fallback.
+  PcapMsgMeta meta(std::move(msg), 99);
+  EXPECT_EQ(meta.getEventId(), monitoring::EventId::UNKNOWN);
+}
+
+TEST(
+    PcapMsgMetaTest,
+    GetEventId_ReturnsUnknownForValueExceedingUnderlyingType) {
+  const char data[] = "pkt";
+  PcapMsg msg(data, 3, 3);
+  // event_ is a uint32_t, so it can hold values that don't fit in EventId's
+  // uint8_t underlying type at all. Directly static_cast-ing such a value to
+  // EventId would be undefined behavior; getEventId() must reject it instead.
+  PcapMsgMeta meta(std::move(msg), 100000);
+  EXPECT_EQ(meta.getEventId(), monitoring::EventId::UNKNOWN);
+}
+
 TEST(PcapMsgMetaTest, MoveConstructor_TransfersAllState) {
   const char data[] = "pkt";
   PcapMsg msg(data, 3, 3);
