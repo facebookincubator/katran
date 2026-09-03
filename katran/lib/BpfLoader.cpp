@@ -75,6 +75,26 @@ int BpfLoader::closeBpfObject(::bpf_object* obj) {
   return kError;
 }
 
+int BpfLoader::checkReusedMapSize(const ::bpf_map* map, int fd) {
+  struct bpf_map_info info{};
+  uint32_t info_size = sizeof(info);
+  if (::bpf_obj_get_info_by_fd(fd, &info, &info_size)) {
+    LOG(ERROR) << "can't read info of map we are about to reuse: "
+               << ::bpf_map__name(map);
+    return kError;
+  }
+  const auto wanted = ::bpf_map__max_entries(map);
+  if (wanted != info.max_entries) {
+    LOG(ERROR) << "refusing to reuse map " << ::bpf_map__name(map)
+               << ": loaded map has max_entries " << info.max_entries
+               << " but the incoming object was built for " << wanted
+               << ". the two programs disagree on capacity, and reusing the fd "
+                  "would hide that";
+    return kError;
+  }
+  return 0;
+}
+
 int BpfLoader::getMapFdByName(const std::string& name) {
   auto map = maps_.find(name);
   if (map == maps_.end()) {
@@ -198,6 +218,9 @@ int BpfLoader::reloadBpfObject(
     if (shared_map_iter != sharedMaps_.end()) {
       VLOG(2) << "shared map found w/ a name: " << shared_map_iter->first
               << " fd: " << shared_map_iter->second;
+      if (checkReusedMapSize(map, shared_map_iter->second)) {
+        return closeBpfObject(obj);
+      }
       if (::bpf_map__reuse_fd(map, shared_map_iter->second)) {
         LOG(ERROR) << "error while trying to set fd of shared map: "
                    << shared_map_iter->first;
@@ -212,6 +235,9 @@ int BpfLoader::reloadBpfObject(
       // shared maps we would make them such implicitly
       VLOG(2) << "map w/ a name: " << map_iter->first
               << " found. fd: " << map_iter->second << " Making it shared";
+      if (checkReusedMapSize(map, map_iter->second)) {
+        return closeBpfObject(obj);
+      }
       if (updateSharedMap(map_name, map_iter->second)) {
         LOG(ERROR) << "Error while trying to update shared maps";
         return closeBpfObject(obj);

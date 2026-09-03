@@ -21,6 +21,7 @@
 #include <unordered_map>
 
 extern "C" {
+#include <bpf/bpf.h>
 #include <bpf/libbpf.h>
 }
 
@@ -157,6 +158,17 @@ class BpfLoader {
    * helper function to close bpf object and return error.
    */
   int closeBpfObject(::bpf_object* obj);
+
+  /**
+   * helper function to check that a map we are about to reuse is the size the
+   * incoming object was built for. bpf_map__reuse_fd overwrites the incoming
+   * definition with the existing map's, so without this a program compiled for
+   * a different capacity would silently run against the old maps.
+   * @param map map in the object being (re)loaded
+   * @param fd fd of the already loaded map we would reuse
+   * @return 0 on match, 1 otherwise
+   */
+  int checkReusedMapSize(const ::bpf_map* map, int fd);
 
   const char* getProgNameFromBpfProg(const struct bpf_program* prog);
 

@@ -298,6 +298,38 @@ void KatranLb::initialSanityChecking(bool flowDebug, bool globalLru) {
           fmt::format("map not found, error: {}", folly::errnoStr(errno)));
     }
   }
+
+  // bpf writes the global counters at index MAX_VIPS + offset while userspace
+  // reads them at maxVips + offset, so a program built for a different vip
+  // capacity leaves forwarding healthy while every global stat reads a per-vip
+  // slot instead. Map sizes are the only way to observe what it was built for.
+  checkMapMaxEntries(
+      KatranLbMaps::ch_rings,
+      static_cast<int64_t>(config_.maxVips) * config_.chRingSize);
+  checkMapMaxEntries(
+      KatranLbMaps::stats, static_cast<int64_t>(config_.maxVips) * 2);
+}
+
+void KatranLb::checkMapMaxEntries(
+    const std::string& name,
+    int64_t expectedMaxEntries) const {
+  const int actualMaxEntries = bpfAdapter_->getBpfMapMaxSize(name);
+  if (actualMaxEntries < 0) {
+    throw std::invalid_argument(
+        fmt::format("can't read max_entries of map: {}", name));
+  }
+  if (actualMaxEntries != expectedMaxEntries) {
+    throw std::invalid_argument(
+        fmt::format(
+            "bpf program was built for a different vip capacity: map {} has "
+            "max_entries {} but the running config expects {} (maxVips {}, "
+            "chRingSize {})",
+            name,
+            actualMaxEntries,
+            expectedMaxEntries,
+            config_.maxVips,
+            config_.chRingSize));
+  }
 }
 
 int KatranLb::createLruMap(int size, int flags, int numaNode, int cpu) {

@@ -1208,6 +1208,16 @@ class KatranLb {
   void initialSanityChecking(bool flowDebug = false, bool globalLru = false);
 
   /**
+   * helper function to assert that a loaded map was built for the vip capacity
+   * this instance is configured for
+   * throws on mismatch
+   * @param name name of the bpf map
+   * @param expectedMaxEntries max_entries the running config implies
+   */
+  void checkMapMaxEntries(const std::string& name, int64_t expectedMaxEntries)
+      const;
+
+  /**
    * helper function to create/initialize LRUs.
    * we must init LRUs before we are going to load bpf program.
    * throws on failure
