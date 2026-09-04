@@ -452,4 +452,21 @@ v2 tracks misses for TCP non syns */
 #define DST_MISMATCH_IN_LRU 1
 #define DST_NOT_FOUND_IN_LRU 2
 
+/**
+ * why server-id based routing did not yield a real for a TCP packet. Reported
+ * out-of-band by tcp_hdr_opt_lookup so the caller can attribute the CH
+ * fallback, mirroring what the QUIC path records via cid_invalid_server_id and
+ * cid_unknown_real_dropped. Routing is unchanged: all of these fall through to
+ * consistent hash.
+ */
+#define TPR_SID_ERR_NONE 0
+// no TPR header option at all: the peer does not speak TPR
+#define TPR_SID_ERR_NO_OPT 1
+// option present but carrying server id 0: TPR-capable peer with no id to echo
+#define TPR_SID_ERR_ZERO 2
+// server id set but it maps to no real index
+#define TPR_SID_ERR_INVALID 3
+// real index found but no real behind it
+#define TPR_SID_ERR_UNKNOWN_REAL 4
+
 #endif // of __BALANCER_CONSTS_H

@@ -61,7 +61,8 @@ __attribute__((__always_inline__)) static inline void validate_tpr_server_id(
     bool server_id_1_found = (server_id_1 && *server_id_1 > 0);
     if (server_id_0_found || server_id_1_found) {
       __u32 server_id = 0;
-      tcp_hdr_opt_lookup_server_id_skb(skb, is_ipv6, &server_id);
+      __u32 sid_err = TPR_SID_ERR_NONE;
+      tcp_hdr_opt_lookup_server_id_skb(skb, is_ipv6, &server_id, &sid_err);
       if (server_id > 0) {
         data_stats->tpr_total += 1;
         if ((!server_id_0_found || (*server_id_0 != server_id)) &&

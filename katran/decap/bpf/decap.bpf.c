@@ -246,7 +246,8 @@ __attribute__((__always_inline__)) static inline void validate_tpr_server_id(
     __u32* server_id_host = bpf_map_lookup_elem(&tpr_server_id, &s_key);
     if (server_id_host && *server_id_host > 0) {
       __u32 server_id = 0;
-      tcp_hdr_opt_lookup_server_id(xdp, is_ipv6, &server_id);
+      __u32 sid_err = TPR_SID_ERR_NONE;
+      tcp_hdr_opt_lookup_server_id(xdp, is_ipv6, &server_id, &sid_err);
       if (server_id > 0) {
         data_stats->tpr_total += 1;
         if (*server_id_host != server_id) {

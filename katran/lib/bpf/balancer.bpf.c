@@ -984,6 +984,11 @@ process_packet(struct xdp_md* xdp, __u64 nh_off, bool is_ipv6) {
         }
       } else if (!qpr.is_initial) {
         // cannot get a server id from quic packet, fallback to ch
+        if (qpr.server_id == 0) {
+          // only a connection id that parsed to a literal 0; every other
+          // failure leaves server_id at FURTHER_PROCESSING (-1)
+          quic_packets_stats->cid_server_id_zero += 1;
+        }
         quic_packets_stats->ch_routed += 1;
       } else {
         quic_packets_stats->cid_initial += 1;
@@ -1019,8 +1024,19 @@ process_packet(struct xdp_md* xdp, __u64 nh_off, bool is_ipv6) {
         incr_server_id_routing_stats(
             vip_num, /* new conn */ true, /* mismatch in lru */ false);
       } else {
-        if (tcp_hdr_opt_lookup(xdp, is_ipv6, &dst, &pckt) ==
+        __u32 sid_err = TPR_SID_ERR_NONE;
+        __u32 sid_value = 0;
+        if (tcp_hdr_opt_lookup(
+                xdp, is_ipv6, &dst, &pckt, &sid_err, &sid_value) ==
             FURTHER_PROCESSING) {
+          if (sid_err == TPR_SID_ERR_ZERO) {
+            tpr_packets_stats->sid_zero += 1;
+          } else if (sid_err == TPR_SID_ERR_INVALID) {
+            tpr_packets_stats->sid_invalid += 1;
+            tpr_packets_stats->sid_invalid_sample = sid_value;
+          } else if (sid_err == TPR_SID_ERR_UNKNOWN_REAL) {
+            tpr_packets_stats->sid_unknown_real += 1;
+          }
           tpr_packets_stats->ch_routed += 1;
         } else {
           // update this routing decision in the lru_map as well

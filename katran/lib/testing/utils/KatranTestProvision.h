@@ -85,6 +85,7 @@ enum class KatranTestCounters : uint8_t {
   QUIC_CID_V2 = 9,
   QUIC_CID_DROPS_REAL_0 = 10,
   QUIC_CID_DROPS_NO_REAL = 11,
+  QUIC_CID_SERVER_ID_ZERO = 40,
   TCP_SERVER_ID_ROUNTING = 12,
   TCP_SERVER_ID_ROUTING_FALLBACK_CH = 13,
   TOTAL_FAILED_BPF_CALLS = 14,
@@ -131,6 +132,7 @@ struct KatranTestParam {
   uint64_t expectedQuicCidV2Counts() noexcept;
   uint64_t expectedQuicCidDropsReal0Counts() noexcept;
   uint64_t expectedQuicCidDropsNoRealCounts() noexcept;
+  uint64_t expectedQuicCidServerIdZeroCounts() noexcept;
   uint64_t expectedTcpServerIdRoutingCounts() noexcept;
   uint64_t expectedTcpServerIdRoutingFallbackCounts() noexcept;
   uint64_t expectedUdpStableRoutingWithCh() noexcept;

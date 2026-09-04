@@ -2122,6 +2122,7 @@ lb_quic_packets_stats KatranLb::getLbQuicPacketsStats() {
         sum_stat.dst_match_in_lru += stat.dst_match_in_lru;
         sum_stat.dst_mismatch_in_lru += stat.dst_mismatch_in_lru;
         sum_stat.dst_not_found_in_lru += stat.dst_not_found_in_lru;
+        sum_stat.cid_server_id_zero += stat.cid_server_id_zero;
       }
     } else {
       LOG(ERROR) << "Failed to read quic stats map";
@@ -2150,6 +2151,12 @@ lb_tpr_packets_stats KatranLb::getTcpServerIdRoutingStats() {
         sum_stat.dst_mismatch_in_lru += stat.dst_mismatch_in_lru;
         sum_stat.sid_routed += stat.sid_routed;
         sum_stat.tcp_syn += stat.tcp_syn;
+        sum_stat.sid_zero += stat.sid_zero;
+        sum_stat.sid_invalid += stat.sid_invalid;
+        sum_stat.sid_unknown_real += stat.sid_unknown_real;
+        if (stat.sid_invalid_sample) {
+          sum_stat.sid_invalid_sample = stat.sid_invalid_sample;
+        }
       }
     } else {
       LOG(ERROR) << "Failed to read tpr stats map";

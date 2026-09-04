@@ -506,6 +506,9 @@ uint64_t KatranTestParam::expectedTcpServerIdRoutingCounts() noexcept {
 uint64_t KatranTestParam::expectedTcpServerIdRoutingFallbackCounts() noexcept {
   return _lookup_counter(KatranTestCounters::TCP_SERVER_ID_ROUTING_FALLBACK_CH);
 }
+uint64_t KatranTestParam::expectedQuicCidServerIdZeroCounts() noexcept {
+  return _lookup_counter(KatranTestCounters::QUIC_CID_SERVER_ID_ZERO);
+}
 uint64_t KatranTestParam::expectedUdpStableRoutingWithCh() noexcept {
   return _lookup_counter(KatranTestCounters::STABLE_RT_CH_ROUTING);
 }

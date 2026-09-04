@@ -185,6 +185,8 @@ struct lb_quic_packets_stats {
   uint64_t dst_match_in_lru;
   uint64_t dst_mismatch_in_lru;
   uint64_t dst_not_found_in_lru;
+  // quic server id was 0 on a non-initial packet
+  uint64_t cid_server_id_zero;
 };
 
 // struct for tpr packets statistics counters
@@ -193,6 +195,14 @@ struct lb_tpr_packets_stats {
   uint64_t dst_mismatch_in_lru;
   uint64_t sid_routed;
   uint64_t tcp_syn;
+  // TPR option present but carrying server id 0
+  uint64_t sid_zero;
+  // server id set but mapping to no real index
+  uint64_t sid_invalid;
+  // last server id seen by the sid_invalid case
+  uint64_t sid_invalid_sample;
+  // real index found but no real behind it
+  uint64_t sid_unknown_real;
 };
 
 // struct for udp stable routing statistics counters

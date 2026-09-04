@@ -152,6 +152,9 @@ struct hdr_opt_state {
   __u32 server_id;
   __u8 byte_offset;
   __u8 hdr_bytes_remaining;
+  // set once the TPR option kind is seen, regardless of the id it carries, so
+  // callers can tell "option present with id 0" from "no option at all".
+  __u8 tpr_opt_found;
 };
 
 #if defined(TCP_SERVER_ID_ROUTING) || defined(DECAP_TPR_STATS)
@@ -201,6 +204,7 @@ __attribute__((__always_inline__)) int parse_hdr_opt_raw(
       return -1;
     }
 
+    state->tpr_opt_found = 1;
     state->server_id = *(__u32*)&tcp_opt[2];
     return 1;
   }
@@ -234,13 +238,14 @@ __attribute__((__always_inline__)) static inline int
 tcp_hdr_opt_lookup_server_id(
     const struct xdp_md* xdp,
     bool is_ipv6,
-    __u32* server_id) {
+    __u32* server_id,
+    __u32* sid_err) {
   const void* data = (void*)(long)xdp->data;
   const void* data_end = (void*)(long)xdp->data_end;
   struct tcphdr* tcp_hdr;
   __u8 tcp_hdr_opt_len = 0;
   __u64 tcp_offset = 0;
-  struct hdr_opt_state opt_state = {};
+  struct hdr_opt_state opt_state = {.tpr_opt_found = 0};
   int err = 0;
 
   tcp_offset = calc_offset(is_ipv6, false /* is_icmp */);
@@ -250,6 +255,7 @@ tcp_hdr_opt_lookup_server_id(
   }
   tcp_hdr_opt_len = (tcp_hdr->doff * 4) - sizeof(struct tcphdr);
   if (tcp_hdr_opt_len < TCP_HDR_OPT_LEN_TPR) {
+    *sid_err = TPR_SID_ERR_NO_OPT;
     return FURTHER_PROCESSING;
   }
 
@@ -262,6 +268,7 @@ tcp_hdr_opt_lookup_server_id(
     }
   }
   if (!opt_state.server_id) {
+    *sid_err = opt_state.tpr_opt_found ? TPR_SID_ERR_ZERO : TPR_SID_ERR_NO_OPT;
     return FURTHER_PROCESSING;
   }
   *server_id = opt_state.server_id;
@@ -271,13 +278,14 @@ __attribute__((__always_inline__)) static inline int
 tcp_hdr_opt_lookup_server_id_skb(
     const struct __sk_buff* skb,
     bool is_ipv6,
-    __u32* server_id) {
+    __u32* server_id,
+    __u32* sid_err) {
   const void* data = (void*)(long)skb->data;
   const void* data_end = (void*)(long)skb->data_end;
   struct tcphdr* tcp_hdr;
   __u8 tcp_hdr_opt_len = 0;
   __u64 tcp_offset = 0;
-  struct hdr_opt_state opt_state = {};
+  struct hdr_opt_state opt_state = {.tpr_opt_found = 0};
   int err = 0;
 
   tcp_offset = calc_offset(is_ipv6, false /* is_icmp */);
@@ -287,6 +295,7 @@ tcp_hdr_opt_lookup_server_id_skb(
   }
   tcp_hdr_opt_len = (tcp_hdr->doff * 4) - sizeof(struct tcphdr);
   if (tcp_hdr_opt_len < TCP_HDR_OPT_LEN_TPR) {
+    *sid_err = TPR_SID_ERR_NO_OPT;
     return FURTHER_PROCESSING;
   }
 
@@ -299,6 +308,7 @@ tcp_hdr_opt_lookup_server_id_skb(
     }
   }
   if (!opt_state.server_id) {
+    *sid_err = opt_state.tpr_opt_found ? TPR_SID_ERR_ZERO : TPR_SID_ERR_NO_OPT;
     return FURTHER_PROCESSING;
   }
   *server_id = opt_state.server_id;
@@ -311,16 +321,20 @@ __attribute__((__always_inline__)) static inline int tcp_hdr_opt_lookup(
     const struct xdp_md* xdp,
     bool is_ipv6,
     struct real_definition** real,
-    struct packet_description* pckt) {
+    struct packet_description* pckt,
+    __u32* sid_err,
+    __u32* sid_value) {
   __u32 server_id = 0;
   int err = 0;
-  if (tcp_hdr_opt_lookup_server_id(xdp, is_ipv6, &server_id) ==
-      FURTHER_PROCESSING) {
+  err = tcp_hdr_opt_lookup_server_id(xdp, is_ipv6, &server_id, sid_err);
+  if (err == FURTHER_PROCESSING) {
     return FURTHER_PROCESSING;
   }
+  *sid_value = server_id;
   __u32 key = server_id;
   __u32* real_pos = bpf_map_lookup_elem(&server_id_map, &key);
   if (!real_pos) {
+    *sid_err = TPR_SID_ERR_INVALID;
     return FURTHER_PROCESSING;
   }
   key = *real_pos;
@@ -328,11 +342,13 @@ __attribute__((__always_inline__)) static inline int tcp_hdr_opt_lookup(
     // Since server_id_map is a bpf_map_array all its members are 0-initialized
     // This can lead to a false match for non-existing key to real at index 0.
     // So, just skip key of value 0 to avoid misrouting of packets.
+    *sid_err = TPR_SID_ERR_INVALID;
     return FURTHER_PROCESSING;
   }
   pckt->real_index = key;
   *real = bpf_map_lookup_elem(&reals, &key);
   if (!(*real)) {
+    *sid_err = TPR_SID_ERR_UNKNOWN_REAL;
     return FURTHER_PROCESSING;
   }
   return 0;

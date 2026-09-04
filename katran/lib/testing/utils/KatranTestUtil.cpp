@@ -154,6 +154,7 @@ KatranTestParam createDefaultTestParam(TestMode testMode) {
               {KatranTestCounters::QUIC_CID_V2, 2},
               {KatranTestCounters::QUIC_CID_DROPS_REAL_0, 0},
               {KatranTestCounters::QUIC_CID_DROPS_NO_REAL, 2},
+              {KatranTestCounters::QUIC_CID_SERVER_ID_ZERO, 1},
               {KatranTestCounters::TOTAL_FAILED_BPF_CALLS, 0},
               {KatranTestCounters::TOTAL_ADDRESS_VALIDATION_FAILED, 0},
               // optional counters
@@ -546,6 +547,14 @@ bool testLbCounters(katran::KatranLb& lb, KatranTestParam& testParam) {
     LOG(ERROR) << "QUIC CID version counters v1 " << stats.v1 << " v2 "
                << stats.v2;
     LOG(ERROR) << "Counters for QUIC versions are wrong";
+    counters_ok = false;
+  }
+  if (quicStats.cid_server_id_zero !=
+      testParam.expectedQuicCidServerIdZeroCounts()) {
+    LOG(ERROR) << "QUIC cid_server_id_zero: " << quicStats.cid_server_id_zero
+               << ", expected: "
+               << testParam.expectedQuicCidServerIdZeroCounts();
+    LOG(ERROR) << "Counter for QUIC server id 0 is wrong";
     counters_ok = false;
   }
   if (quicStats.cid_invalid_server_id !=
