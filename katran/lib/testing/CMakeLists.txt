@@ -13,7 +13,6 @@ target_link_libraries(base64_helpers
     "glog::glog"
     "${GFLAGS}"
     "Folly::folly"
-    "${BOOST_SYSTEM}"
     "katranlb"
 )
 
@@ -33,7 +32,6 @@ target_link_libraries(pcap_parser
     pcapwriter
     "Folly::folly"
     "glog::glog"
-    "${BOOST_SYSTEM}"
 )
 
 add_library(bpftester STATIC
