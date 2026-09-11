@@ -32,6 +32,18 @@ struct decap_tpr_stats {
   __u64 tpr_total;
 };
 
+// Successor to struct decap_tpr_stats. A pinned map cannot be widened in
+// place: bpf_map__reuse_fd accepts the old, narrower map and the verifier then
+// rejects the program with -EACCES for writing past the end of the value, which
+// is fatal at load. New counters therefore go here, and tc_tpr_stats is left
+// frozen until it can be deleted.
+struct decap_tpr_stats_v2 {
+  __u64 tpr_misrouted;
+  __u64 tpr_total;
+  // TPR option present but carrying server id 0
+  __u64 tpr_sid_zero;
+};
+
 struct vip6_addr {
   __be32 vip6_addr[4];
 };
@@ -50,6 +62,8 @@ struct vip_decap_stats {
 };
 
 // map for tpr related counters
+// superseded by tc_tpr_stats_v2; no longer written. Kept so the existing pin
+// keeps resolving during the rollout, and removed once v2 is everywhere.
 struct {
   __uint(type, BPF_MAP_TYPE_PERCPU_ARRAY);
   __type(key, __u32);
@@ -57,6 +71,15 @@ struct {
   __uint(max_entries, DECAP_STATS_MAP_SIZE);
   __uint(map_flags, NO_FLAGS);
 } tc_tpr_stats SEC(".maps");
+
+// map for tpr related counters, v2
+struct {
+  __uint(type, BPF_MAP_TYPE_PERCPU_ARRAY);
+  __type(key, __u32);
+  __type(value, struct decap_tpr_stats_v2);
+  __uint(max_entries, DECAP_STATS_MAP_SIZE);
+  __uint(map_flags, NO_FLAGS);
+} tc_tpr_stats_v2 SEC(".maps");
 
 // map, which contains server_id info
 struct {

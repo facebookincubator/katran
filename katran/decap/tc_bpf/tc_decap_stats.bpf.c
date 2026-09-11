@@ -42,15 +42,28 @@ __attribute__((__always_inline__)) static inline void validate_tpr_server_id(
     void* data_end,
     bool is_ipv6,
     struct __sk_buff* skb,
-    struct decap_tpr_stats* data_stats) {
+    struct decap_tpr_stats_v2* data_stats) {
   struct packet_description pckt = {};
   if (!parse_tcp(data, data_end, is_ipv6, &pckt)) {
     return;
   }
   // only check for TCP non SYN packets
   if (!(pckt.flags & F_SYN_SET)) {
-    // lookup server id from tpr header option and compare against server_id on
-    // this host (if available)
+    // Parsed before the host-server-id gate below: inside it, tpr_sid_zero
+    // would read 0 exactly when this host's own server id is 0.
+    __u32 server_id = 0;
+    __u32 sid_err = TPR_SID_ERR_NONE;
+    tcp_hdr_opt_lookup_server_id_skb(skb, is_ipv6, &server_id, &sid_err);
+    // the option is present, so this is a TPR packet whether or not it carries
+    // a usable server id. sid_err is NONE when a server id was read, ZERO when
+    // the option carried 0, NO_OPT when there was no option at all.
+    if (sid_err != TPR_SID_ERR_NO_OPT) {
+      data_stats->tpr_total += 1;
+      if (sid_err == TPR_SID_ERR_ZERO) {
+        data_stats->tpr_sid_zero += 1;
+      }
+    }
+    // compare the server id against the server_id on this host (if available).
     // there might be two different server ids from packets to different
     // processes during hotswap, so we check both
     __u32 s_key_0 = 0;
@@ -60,11 +73,7 @@ __attribute__((__always_inline__)) static inline void validate_tpr_server_id(
     __u32* server_id_1 = bpf_map_lookup_elem(&tpr_server_ids, &s_key_1);
     bool server_id_1_found = (server_id_1 && *server_id_1 > 0);
     if (server_id_0_found || server_id_1_found) {
-      __u32 server_id = 0;
-      __u32 sid_err = TPR_SID_ERR_NONE;
-      tcp_hdr_opt_lookup_server_id_skb(skb, is_ipv6, &server_id, &sid_err);
       if (server_id > 0) {
-        data_stats->tpr_total += 1;
         if ((!server_id_0_found || (*server_id_0 != server_id)) &&
             (!server_id_1_found || (*server_id_1 != server_id))) {
           data_stats->tpr_misrouted += 1;
@@ -134,9 +143,9 @@ __attribute__((__always_inline__)) static inline int process_packet(
     void* data_end,
     bool is_ipv6,
     struct __sk_buff* skb) {
-  struct decap_tpr_stats* data_stats;
+  struct decap_tpr_stats_v2* data_stats;
   __u32 key = 0;
-  data_stats = bpf_map_lookup_elem(&tc_tpr_stats, &key);
+  data_stats = bpf_map_lookup_elem(&tc_tpr_stats_v2, &key);
   if (!data_stats) {
     return TC_ACT_UNSPEC;
   }
