@@ -136,7 +136,6 @@ void runTestsFromFixture(
     KatranTestParam& testParam,
     bool checkOptionalCounters) {
   prepareLbData(lb);
-  prepareVipUninitializedLbData(lb);
 
   tester.resetTestFixtures(testParam.testData);
   auto prog_fd = lb.getKatranProgFd();

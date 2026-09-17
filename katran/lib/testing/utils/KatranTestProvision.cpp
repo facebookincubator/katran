@@ -198,6 +198,15 @@ void prepareLbData(katran::KatranLb& lb, bool skipLru) {
   lb.addHealthcheckerDst(1, "10.0.0.1");
   lb.addHealthcheckerDst(2, "10.0.0.2");
   lb.addHealthcheckerDst(3, "fc00::1");
+
+  /* gue fixture expects xdp drop -- add 2 uninitialized vips */
+  vip.address = "10.200.1.99";
+  vip.port = kVipPort;
+  vip.proto = kTcp;
+  lb.addVip(vip);
+  vip.address = "fc00:1::11";
+  vip.proto = kUdp;
+  lb.addVip(vip);
 }
 
 void prepareOptionalLbData(katran::KatranLb& lb) {
@@ -426,18 +435,6 @@ void setDownHostForUdpFlowMigration(katran::KatranLb& lb) {
   vipStableRoutingUdpFlowMigration.proto = kUdp;
   lb.addDownRealToVipToDownRealsMap(vipStableRoutingUdpFlowMigration, 2);
   deleteReals(lb, vipStableRoutingUdpFlowMigration, {"10.0.0.2"});
-}
-
-void prepareVipUninitializedLbData(katran::KatranLb& lb) {
-  katran::VipKey vip;
-  vip.address = "10.200.1.99";
-  vip.port = kVipPort;
-  vip.proto = kTcp;
-  lb.addVip(vip);
-
-  vip.address = "fc00:1::11";
-  vip.proto = kUdp;
-  lb.addVip(vip);
 }
 
 const std::vector<::katran::lb_stats>
