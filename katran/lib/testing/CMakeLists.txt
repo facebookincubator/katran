@@ -91,13 +91,18 @@ target_link_libraries(katran_test_util
 )
 
 # katran_tester is a 'standalone' integration test
-add_executable(katran_tester framework/katran_tester.cpp)
+add_executable(katran_tester
+    framework/katran_tester.cpp
+    framework/KatranTesterCli.h
+    framework/KatranTesterCli.cpp
+)
 
 target_link_libraries(katran_tester
   katranlb
   bpftester
   katran_test_provision
   katran_test_util
+  CLI11::CLI11
   ${GFLAGS}
   ${GTEST}
 )

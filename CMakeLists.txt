@@ -30,6 +30,7 @@ message(STATUS "setting C++ standard to C++${CMAKE_CXX_STANDARD}")
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # Dependencies
+find_package(CLI11 CONFIG REQUIRED)
 find_package(fmt CONFIG REQUIRED)
 find_package(folly CONFIG REQUIRED)
 find_package(Glog REQUIRED)
