@@ -33,10 +33,12 @@
 #include "katran/lib/testing/fixtures/KatranUdpStableRtTestFixtures.h"
 #include "katran/lib/testing/fixtures/KatranXPopDecapTestFixtures.h"
 #include "katran/lib/testing/framework/BpfTester.h"
+#include "katran/lib/testing/framework/KatranTesterCli.h"
 #include "katran/lib/testing/utils/KatranTestProvision.h"
 #include "katran/lib/testing/utils/KatranTestUtil.h"
 
 using namespace katran::testing;
+using namespace katran::testing::cli;
 using KatranFeatureEnum = katran::KatranFeatureEnum;
 
 #ifndef MAX_VIPS
@@ -130,7 +132,8 @@ void testHcFromFixture(katran::KatranLb& lb, katran::BpfTester& tester) {
 void runTestsFromFixture(
     katran::KatranLb& lb,
     katran::BpfTester& tester,
-    KatranTestParam& testParam) {
+    KatranTestParam& testParam,
+    bool checkOptionalCounters) {
   prepareLbData(lb);
   prepareVipUninitializedLbData(lb);
 
@@ -141,7 +144,7 @@ void runTestsFromFixture(
   if (!testLbCounters(lb, testParam)) {
     LOG(ERROR) << "counters do not match";
   }
-  if (FLAGS_optional_counter_tests) {
+  if (checkOptionalCounters) {
     postTestOptionalLbCounters(lb, FLAGS_healthchecking_prog);
   }
   testSimulator(lb);
@@ -338,10 +341,9 @@ void printPerfResults(std::vector<katran::TestResult>& results) {
             << std::string(pps_width + 2, '-') << "+" << std::endl;
 }
 
-int main(int argc, char** argv) {
+int runLegacy(int argc, char** argv) {
+  // logging is already initialized by main(); only flag parsing is legacy
   gflags::ParseCommandLineFlags(&argc, &argv, true);
-  google::InitGoogleLogging(argv[0]);
-  FLAGS_logtostderr = 1;
   katran::TesterConfig config;
   auto testParam = getTestParam();
   config.inputFileName = FLAGS_pcap_input;
@@ -394,12 +396,12 @@ int main(int argc, char** argv) {
   }
   tester.setBpfProgFd(balancer_prog_fd);
   if (FLAGS_test_from_fixtures) {
-    runTestsFromFixture(*lb, tester, testParam);
+    runTestsFromFixture(*lb, tester, testParam, FLAGS_optional_counter_tests);
     if (FLAGS_install_features_mask > 0 || FLAGS_remove_features_mask > 0) {
       // install/remove features will reload prog if provided, therefore
       // reloading again is redundant
       testInstallAndRemoveFeatures(*lb);
-      runTestsFromFixture(*lb, tester, testParam);
+      runTestsFromFixture(*lb, tester, testParam, FLAGS_optional_counter_tests);
     } else if (!FLAGS_reloaded_balancer_prog.empty()) {
       auto res = lb->reloadBalancerProg(FLAGS_reloaded_balancer_prog);
       if (!res) {
@@ -407,7 +409,7 @@ int main(int argc, char** argv) {
         return 1;
       }
       listFeatures(*lb);
-      runTestsFromFixture(*lb, tester, testParam);
+      runTestsFromFixture(*lb, tester, testParam, FLAGS_optional_counter_tests);
     }
     return 0;
   }
@@ -421,4 +423,96 @@ int main(int argc, char** argv) {
     printPerfResults(results);
   }
   return 0;
+}
+
+std::unique_ptr<katran::KatranLb> setupKatranLb(
+    const std::string& balancerProgPath) {
+  katran::KatranConfig config{};
+  config.mainInterface = kMainInterface;
+  config.v4TunInterface = kV4TunInterface;
+  config.v6TunInterface = kV6TunInterface;
+  config.balancerProgPath = balancerProgPath;
+  config.defaultMac = kDefaultMac;
+  config.priority = kDefaultPriority;
+  config.rootMapPath = kNoExternalMap;
+  config.rootMapPos = kDefaultKatranPos;
+  config.katranSrcV4 = "10.0.13.37";
+  config.katranSrcV6 = "fc00:2307::1337";
+  config.localMac = kLocalMac;
+  config.maxVips = MAX_VIPS;
+  config.enableHc = false;
+
+  auto lb = std::make_unique<katran::KatranLb>(
+      config, std::make_unique<katran::BpfAdapter>(config.memlockUnlimited));
+  lb->loadBpfProgs();
+  listFeatures(*lb);
+  return lb;
+}
+
+int runTest(const TestCommand& command) {
+  auto testParam = createDefaultTestParam(TestMode::DEFAULT);
+  katran::TesterConfig config;
+  config.testData = testParam.testData;
+  katran::BpfTester tester(config);
+
+  auto lb = setupKatranLb(command.balancerProgPath);
+
+  if (command.checkCounters) {
+    preTestOptionalLbCounters(*lb, "");
+  }
+  // TODO(shah256): add support for testing selected positions only
+  // TODO(shah256): canonical mode does not parse gflags, but helpers still use
+  // FLAGS_* -- once we move away from legacy, add canonical parity
+  // TODO(shah256): return status from helpers instead of returning 0
+  // unconditionally
+  runTestsFromFixture(*lb, tester, testParam, command.checkCounters);
+  return 0;
+}
+
+int runBenchmark(const BenchmarkCommand& command) {
+  auto testParam = createDefaultTestParam(TestMode::DEFAULT);
+
+  katran::TesterConfig config;
+  config.testData = testParam.testData;
+  katran::BpfTester tester(config);
+  auto lb = setupKatranLb(command.balancerProgPath);
+  tester.setBpfProgFd(lb->getKatranProgFd());
+
+  prepareLbData(*lb, /*skipLru=*/true);
+  preparePerfTestingLbData(*lb);
+
+  std::vector<katran::TestResult> results;
+  if (command.positions.empty()) {
+    results = tester.testPerfFromFixture(command.repeat, -1);
+  } else {
+    for (const auto position : command.positions) {
+      auto fixtureResults =
+          tester.testPerfFromFixture(command.repeat, position);
+      results.insert(
+          results.end(), fixtureResults.begin(), fixtureResults.end());
+    }
+  }
+  printPerfResults(results);
+  return 0;
+}
+
+int main(int argc, char** argv) {
+  google::InitGoogleLogging(argv[0]);
+  FLAGS_logtostderr = 1;
+
+  if (!usesCanonicalSyntax(argc, argv)) {
+    return runLegacy(argc, argv);
+  }
+  auto parsed = parseKatranTesterCLI(argc, argv);
+  if (parsed.hasError()) {
+    /* help was printed (0) or the parse failed (non-zero) */
+    return parsed.error();
+  }
+  const auto& command = parsed.value();
+  if (const auto* test = std::get_if<TestCommand>(&command)) {
+    return runTest(*test);
+  } else if (const auto* benchmark = std::get_if<BenchmarkCommand>(&command)) {
+    return runBenchmark(*benchmark);
+  }
+  return 1;
 }
