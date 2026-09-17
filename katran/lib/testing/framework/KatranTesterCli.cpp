@@ -56,6 +56,14 @@ folly::Expected<TesterCommand, int> parseKatranTesterCLI(
       "Path to the balancer BPF program");
 
   /* benchmark command */
+  const std::map<std::string, Workload> workloadValues{
+      {"lru-disabled", Workload::kLruDisabled},
+      {"lru-hit", Workload::kLruHit},
+      {"lru-miss", Workload::kLruMiss},
+  };
+  benchmarkSubcommand
+      ->add_option("--workload", benchmark.workload, "Benchmark workload")
+      ->transform(CLI::CheckedTransformer(workloadValues, CLI::ignore_case));
   benchmarkSubcommand
       ->add_option(
           "--repeat", benchmark.repeat, "Number of benchmark repetitions")

@@ -440,12 +440,6 @@ void prepareVipUninitializedLbData(katran::KatranLb& lb) {
   lb.addVip(vip);
 }
 
-void preparePerfTestingLbData(katran::KatranLb& lb) {
-  for (auto& dst : kReals) {
-    lb.addInlineDecapDst(dst);
-  }
-}
-
 const std::vector<::katran::lb_stats>
 KatranTestParam::expectedRealStats() noexcept {
   auto it = kRealStats.find(mode);

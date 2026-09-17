@@ -978,6 +978,15 @@ class KatranLb {
     int deletedCount{0};
     std::string error;
   };
+
+  /**
+   * TESTING USE ONLY
+   *
+   * Delete all entries from local per-CPU and fallback LRU maps.
+   * Does not touch global_lru_
+   */
+  PurgeResponse clearLru();
+
   PurgeResponse purgeVipLru(const VipKey& dstVip);
 
   PurgeResponse purgeVipLruForReal(const VipKey& dstVip, uint32_t realPos);

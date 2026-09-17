@@ -416,7 +416,8 @@ void BpfTester::resetTestFixtures(const std::vector<PacketAttributes>& data) {
 
 std::vector<TestResult> BpfTester::testPerfFromFixture(
     uint32_t repeat,
-    const int position) {
+    const int position,
+    const std::function<void()>& beforeEachRun) {
   // for inputData format is <pckt_base64, test description>
   int first_index{0}, last_index{0};
   if (position < 0 || position >= config_.testData.size()) {
@@ -438,8 +439,8 @@ std::vector<TestResult> BpfTester::testPerfFromFixture(
     } else {
       input_packet = config_.testData[i].inputPacket;
     }
-    auto single_results =
-        runXdpProgPerf(input_packet, config_.testData[i].description, repeat);
+    auto single_results = runXdpProgPerf(
+        input_packet, config_.testData[i].description, repeat, beforeEachRun);
     results.insert(results.end(), single_results.begin(), single_results.end());
   }
   return results;
@@ -448,7 +449,8 @@ std::vector<TestResult> BpfTester::testPerfFromFixture(
 std::vector<TestResult> BpfTester::runXdpProgPerf(
     const std::string& input_packet,
     const std::string& description,
-    uint32_t repeat) {
+    uint32_t repeat,
+    const std::function<void()>& beforeEachRun) {
   std::vector<TestResult> results;
   results.reserve(repeat); // Pre-allocate capacity
 
@@ -464,6 +466,9 @@ std::vector<TestResult> BpfTester::runXdpProgPerf(
 
   uint32_t total_duration = 0;
   for (uint32_t run = 0; run < repeat; ++run) {
+    if (beforeEachRun) { // not part of the measurement
+      beforeEachRun();
+    }
     uint32_t duration{0};
     auto res = adapter_.testXdpProg(
         config_.bpfProgFd,

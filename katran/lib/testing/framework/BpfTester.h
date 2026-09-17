@@ -16,6 +16,7 @@
 
 #pragma once
 
+#include <functional>
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -156,13 +157,15 @@ class BpfTester {
   /**
    * @param int repeat      how many time should we repeat the test
    * @param int position    of the packet if fixtures vector.
+   * @param beforeEachRun   optional hook, invoked before every single run.
    * helper function to run perf test on specified packet from test fixtures
    * if position is negative - run perf tests on every packet in fixtures
    * @return std::vector<TestResult> results from the performance tests
    */
   std::vector<TestResult> testPerfFromFixture(
       uint32_t repeat,
-      const int position = -1);
+      const int position = -1,
+      const std::function<void()>& beforeEachRun = {});
 
   /**
    * @param IOBuf with packet data to write.
@@ -198,13 +201,15 @@ class BpfTester {
    * @param const std::string& input_packet base64 encoded input packet
    * @param const std::string& description test description for the results
    * @param uint32_t repeat how many times to repeat the test
+   * @param beforeEachRun optional hook, invoked before every single run
    * helper function to run performance tests in a loop with repeat=1 and return
    * results
    */
   std::vector<struct TestResult> runXdpProgPerf(
       const std::string& input_packet,
       const std::string& description,
-      uint32_t repeat);
+      uint32_t repeat,
+      const std::function<void()>& beforeEachRun = {});
 
   TesterConfig config_;
   PcapParser parser_;

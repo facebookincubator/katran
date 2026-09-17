@@ -15,6 +15,7 @@
  */
 
 #include <chrono>
+#include <functional>
 #include <iostream>
 #include <thread>
 
@@ -418,7 +419,13 @@ int runLegacy(int argc, char** argv) {
     tester.testPcktsFromPcap();
     return 0;
   } else if (FLAGS_perf_testing) {
-    preparePerfTestingLbData(*lb);
+    /* perf fixtures include encapsulated packets: provision the reals as decap
+     * destinations so that those packets are decapped instead of passed */
+    if (lb->hasFeature(KatranFeatureEnum::InlineDecap)) {
+      for (const auto& real : kReals) {
+        lb->addInlineDecapDst(real);
+      }
+    }
     auto results = tester.testPerfFromFixture(FLAGS_repeat, FLAGS_position);
     printPerfResults(results);
   }
@@ -457,9 +464,6 @@ int runTest(const TestCommand& command) {
 
   auto lb = setupKatranLb(command.balancerProgPath);
 
-  if (command.checkCounters) {
-    preTestOptionalLbCounters(*lb, "");
-  }
   // TODO(shah256): add support for testing selected positions only
   // TODO(shah256): canonical mode does not parse gflags, but helpers still use
   // FLAGS_* -- once we move away from legacy, add canonical parity
@@ -478,16 +482,26 @@ int runBenchmark(const BenchmarkCommand& command) {
   auto lb = setupKatranLb(command.balancerProgPath);
   tester.setBpfProgFd(lb->getKatranProgFd());
 
-  prepareLbData(*lb, /*skipLru=*/true);
-  preparePerfTestingLbData(*lb);
+  prepareLbData(*lb, /*skipLru=*/command.workload == Workload::kLruDisabled);
+
+  /* prewarm lru for all fixtures, if workload wants hit results only */
+  if (command.workload == Workload::kLruHit) {
+    tester.testPerfFromFixture(1);
+  }
+  /* lru-miss measures the ch lookup plus the lru insert, so every measured
+   * run has to start from an empty connection table */
+  std::function<void()> beforeEachRun;
+  if (command.workload == Workload::kLruMiss) {
+    beforeEachRun = [&lb] { lb->clearLru(); };
+  }
 
   std::vector<katran::TestResult> results;
   if (command.positions.empty()) {
-    results = tester.testPerfFromFixture(command.repeat, -1);
+    results = tester.testPerfFromFixture(command.repeat, -1, beforeEachRun);
   } else {
     for (const auto position : command.positions) {
       auto fixtureResults =
-          tester.testPerfFromFixture(command.repeat, position);
+          tester.testPerfFromFixture(command.repeat, position, beforeEachRun);
       results.insert(
           results.end(), fixtureResults.begin(), fixtureResults.end());
     }

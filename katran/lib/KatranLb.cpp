@@ -2925,6 +2925,39 @@ std::vector<std::string> KatranLb::deleteLru(
   return mapsWithDeletions;
 }
 
+KatranLb::PurgeResponse KatranLb::clearLru() {
+  PurgeResponse response;
+  std::vector<int> mapFds;
+  mapFds.reserve(forwardingCores_.size() + 1); // +1 fallback cache
+  /* add all maps to clear */
+  for (const auto core : forwardingCores_) {
+    mapFds.push_back(lruMapsFd_[core]);
+  }
+  mapFds.push_back(bpfAdapter_->getMapFdByName(KatranLbMaps::fallback_cache));
+  /* delete all elements */
+  for (const auto mapFd : mapFds) {
+    if (mapFd <= 0) {
+      continue;
+    }
+    flow_key key{};
+    // bound while loop in case map is being populated while clearing
+    // (unlikey but just to be safe)
+    int lookups = 0;
+    while (bpfAdapter_->bpfMapGetNextKey(mapFd, /*key=*/nullptr, &key) == 0 &&
+           lookups < kLruMaxLookups) {
+      if (bpfAdapter_->bpfMapDeleteElement(mapFd, &key) != 0) {
+        // bail out instead of spinning on a key we cannot delete
+        LOG(ERROR) << "Error while deleting from lru map: " << errno;
+        response.error = "delete error";
+        break;
+      }
+      ++response.deletedCount;
+      ++lookups;
+    }
+  }
+  return response;
+}
+
 KatranLb::PurgeResponse KatranLb::purgeVipLru(const VipKey& dstVip) {
   PurgeResponse response;
   // we only need dst values, setting src to dummy values

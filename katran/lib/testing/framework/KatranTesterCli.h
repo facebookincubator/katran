@@ -20,12 +20,16 @@
 #include <folly/Expected.h>
 
 namespace katran::testing::cli {
+/* enums */
+enum class Workload { kLruDisabled, kLruHit, kLruMiss };
+
 /* commands */
 struct TestCommand {
   bool checkCounters{false};
   std::string balancerProgPath{"./balancer.bpf.o"};
 };
 struct BenchmarkCommand {
+  Workload workload{Workload::kLruDisabled};
   uint32_t repeat{1000000};
   std::vector<int> positions{};
   std::string balancerProgPath{"./balancer.bpf.o"};

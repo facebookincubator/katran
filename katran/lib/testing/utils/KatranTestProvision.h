@@ -190,8 +190,6 @@ void prepareLbDataXpopDecap(katran::KatranLb& lb);
 
 void prepareVipUninitializedLbData(katran::KatranLb& lb);
 
-void preparePerfTestingLbData(katran::KatranLb& lb);
-
 void prepareUdpFlowMigrationTestData(katran::KatranLb& lb);
 
 void prepareLbDataEgressDecap(katran::KatranLb& lb);
