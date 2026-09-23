@@ -2,7 +2,7 @@
 
 #include "katran/lib/MonitoringStructs.h"
 
-#include <fmt/core.h>
+#include <fmt/format.h>
 #include <glog/logging.h>
 
 namespace katran {
