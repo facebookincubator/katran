@@ -2,7 +2,7 @@ project (katranserver-proj)
 set (CMAKE_CXX_STANDARD 17)
 
 # thrift cmake macro
-find_program(THRIFT1 thrift1)
+find_program(THRIFT_COMPILER thrift1)
 include (${CMAKE_PREFIX_PATH}/fbthrift/ThriftLibrary.cmake)
 set(THRIFT_PREFIX "katran/if")
 set(THRIFT_DIR ${CMAKE_BINARY_DIR}/thrift-out/${THRIFT_PREFIX})
