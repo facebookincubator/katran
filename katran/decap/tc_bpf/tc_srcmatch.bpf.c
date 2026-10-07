@@ -122,6 +122,9 @@ SEC("tc") int tc_srcmatch(struct __sk_buff* skb) {
   // Copy o_saddr to stack; bpf_skb_store_bytes can't read from packet memory
   struct in6_addr o_saddr = o_ip6hdr->saddr;
   struct in6_addr i_saddr = i_ip6hdr->saddr;
+  // With CHECKSUM_COMPLETE, BPF_F_RECOMPUTE_CSUM below adds the address change
+  // to skb->csum; BPF_F_PSEUDO_HDR removes the matching TCP check change, as
+  // the two cancel out in the packet.
 #pragma unroll
   for (int i = 0; i < 4; i++) {
     bpf_l4_csum_replace(
@@ -129,7 +132,7 @@ SEC("tc") int tc_srcmatch(struct __sk_buff* skb) {
         /*offset=*/tcp_csum_offset,
         /*from=*/i_saddr.in6_u.u6_addr32[i],
         /*to=*/o_saddr.in6_u.u6_addr32[i],
-        /*flags=*/4); // 4-byte replacement
+        /*flags=*/BPF_F_PSEUDO_HDR | 4); // 4-byte replacement
   }
 
   __u64 i_ip6hdr_src_offset = sizeof(struct ethhdr) + sizeof(struct ipv6hdr) +
