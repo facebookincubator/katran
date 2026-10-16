@@ -10,15 +10,15 @@ file(MAKE_DIRECTORY ${THRIFT_DIR})
 
 include_directories(${CMAKE_BINARY_DIR}/thrift-out)
 
-thrift_object(
-  "katran" #file_name
-  "KatranService" #services
-  "cpp2" #language
-  "" #options
-  "${CMAKE_SOURCE_DIR}/example" #file_path
-  "${THRIFT_DIR}" #output_path
-  "${THRIFT_PREFIX}" #include_prefix
+thrift_generate(
+  "${CMAKE_SOURCE_DIR}/example/katran.thrift"
+  LANGUAGE cpp2
+  SERVICES KatranService
+  OUT_SOURCES katran_thrift_sources
+  OUTPUT_DIRECTORY "${THRIFT_DIR}"
+  INCLUDE_PREFIX "${THRIFT_PREFIX}"
 )
+add_library(katran-cpp2-obj OBJECT ${katran_thrift_sources})
 
 find_library(THRIFT thrift)
 find_library(THRIFTCPP2 thriftcpp2)
