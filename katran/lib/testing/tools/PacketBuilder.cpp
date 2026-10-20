@@ -725,7 +725,7 @@ EthernetHeader::EthernetHeader(const std::string& src, const std::string& dst) {
 }
 
 void EthernetHeader::serialize(
-    size_t headerIndex,
+    size_t /* headerIndex */,
     const std::vector<std::shared_ptr<HeaderEntry>>& headerStack,
     std::vector<uint8_t>& packet) {
   const uint8_t* ethBytes = reinterpret_cast<const uint8_t*>(&eth_);
@@ -847,7 +847,7 @@ IPv4Header::IPv4Header(
 }
 
 void IPv4Header::serialize(
-    size_t headerIndex,
+    size_t /* headerIndex */,
     const std::vector<std::shared_ptr<HeaderEntry>>& headerStack,
     std::vector<uint8_t>& packet) {
   auto ip = ip_;
@@ -1037,7 +1037,7 @@ IPv6Header::IPv6Header(
 }
 
 void IPv6Header::serialize(
-    size_t headerIndex,
+    size_t /* headerIndex */,
     const std::vector<std::shared_ptr<HeaderEntry>>& headerStack,
     std::vector<uint8_t>& packet) {
   auto ip6 = ip6_;
@@ -2083,7 +2083,7 @@ PayloadHeader::PayloadHeader(const std::vector<uint8_t>& data) {
 }
 
 void PayloadHeader::serialize(
-    size_t headerIndex,
+    size_t /* headerIndex */,
     const std::vector<std::shared_ptr<HeaderEntry>>& headerStack,
     std::vector<uint8_t>& packet) {
   packet.insert(packet.end(), payload_.begin(), payload_.end());
@@ -2710,7 +2710,7 @@ void QUICHeader::appendData(const std::string& data) {
 }
 
 void QUICHeader::serialize(
-    size_t headerIndex,
+    size_t /* headerIndex */,
     const std::vector<std::shared_ptr<HeaderEntry>>& headerStack,
     std::vector<uint8_t>& packet) {
   std::vector<uint8_t> quicHeader;

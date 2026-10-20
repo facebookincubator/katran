@@ -61,7 +61,7 @@ class HeaderEntry {
       const std::vector<std::shared_ptr<HeaderEntry>>& headerStack,
       std::vector<uint8_t>& packet) = 0;
   virtual std::string generateScapyCommand() const = 0;
-  virtual void updateForNextHeader(Type nextHeaderType) {}
+  virtual void updateForNextHeader(Type /* nextHeaderType */) {}
 };
 
 /**
