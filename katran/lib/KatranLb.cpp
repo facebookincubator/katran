@@ -1080,10 +1080,13 @@ bool KatranLb::addVip(const VipKey& vip, const uint32_t flags) {
     vip_meta meta;
     meta.vip_num = vip_num;
     meta.flags = flags;
-    if (vip.cidrVipPrefixLen > 0) {
-      updateVipLpmMap(ModifyAction::ADD, vip, &meta);
-    } else {
-      updateVipMap(ModifyAction::ADD, vip, &meta);
+    const bool programmed = vip.cidrVipPrefixLen > 0
+        ? updateVipLpmMap(ModifyAction::ADD, vip, &meta)
+        : updateVipMap(ModifyAction::ADD, vip, &meta);
+    if (!programmed) {
+      vips_.erase(vip);
+      vipNums_.push_front(vip_num);
+      return false;
     }
   }
   return true;

@@ -547,4 +547,56 @@ TEST_F(KatranLbTest, delInlineAfterAddingEgress) {
   ASSERT_EQ(lb->getInlineDecapDst().size(), 0);
 }
 
+class KatranLbBpfFailureTest : public ::testing::Test {
+ protected:
+  KatranLbBpfFailureTest() {
+    KatranConfig katranConfig;
+    katranConfig.mainInterface = "eth0";
+    katranConfig.mainInterfaceIndex = 1;
+    katranConfig.defaultMac = {0x00, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E};
+    katranConfig.enableHc = false;
+    katranConfig.maxVips = 1;
+    katranConfig.memlockUnlimited = false;
+    katranConfig.testing = false;
+    // No BPF program is loaded, so every map fd lookup by name returns -1 and
+    // each map update fails, as when vip_lpm_map is missing from the program.
+    lb = std::make_unique<KatranLb>(
+        katranConfig,
+        std::make_unique<katran::BpfAdapter>(katranConfig.memlockUnlimited));
+
+    exactVip.address = "fc00::1";
+    exactVip.port = 443;
+    exactVip.proto = 6;
+    cidrVip.address = "fc00:1::1";
+    cidrVip.port = 22;
+    cidrVip.proto = 6;
+    cidrVip.cidrVipPrefixLen = 64;
+  }
+
+  std::unique_ptr<KatranLb> lb;
+  VipKey exactVip;
+  VipKey cidrVip;
+};
+
+TEST_F(KatranLbBpfFailureTest, addVipFailsWhenVipMapUpdateFails) {
+  ASSERT_FALSE(lb->addVip(exactVip));
+  ASSERT_EQ(lb->getAllVips().size(), 0);
+  ASSERT_EQ(lb->getKatranLbStats().bpfFailedCalls, 1);
+}
+
+TEST_F(KatranLbBpfFailureTest, addCidrVipFailsWhenVipLpmMapUpdateFails) {
+  ASSERT_FALSE(lb->addVip(cidrVip));
+  ASSERT_EQ(lb->getAllVips().size(), 0);
+  ASSERT_EQ(lb->getKatranLbStats().bpfFailedCalls, 1);
+}
+
+TEST_F(KatranLbBpfFailureTest, failedAddVipReleasesVipNumAndEntry) {
+  // With maxVips = 1, the second add reaches the BPF map only if the VIP number
+  // was given back, and the third only if the exactVip entry was also removed.
+  ASSERT_FALSE(lb->addVip(exactVip));
+  ASSERT_FALSE(lb->addVip(cidrVip));
+  ASSERT_FALSE(lb->addVip(exactVip));
+  ASSERT_EQ(lb->getKatranLbStats().bpfFailedCalls, 3);
+}
+
 } // namespace katran

@@ -237,7 +237,8 @@ class KatranLb {
    * @return true on success
    *
    * helper function to add new vip. it returns false if maximum number of
-   * vips has been reached.
+   * vips has been reached, or if the vip can't be programmed into the bpf map
+   * (in that case the vip is not added).
    * could throw if specified address can't be parsed to v4 or v6
    */
   bool addVip(const VipKey& vip, const uint32_t flags = 0);
@@ -307,7 +308,7 @@ class KatranLb {
   /**
    * @param NewReal& real to be added
    * @param VipKey& vip to which we want to add new real
-   * @return true on sucess
+   * @return true on success
    *
    * helper function which add's specified real to specified vip.
    * returns false if specified vip doesnt exists.
@@ -588,7 +589,7 @@ class KatranLb {
 
   /*
     @ return true if vip lru miss logging succeed else return false
-    helper fucntion to start logging of VipLruMissStats
+    helper function to start logging of VipLruMissStats
   */
   bool logVipLruMissStats(VipKey& vip);
 
@@ -1448,7 +1449,7 @@ class KatranLb {
   std::unordered_map<uint32_t, folly::IPAddress> quicMapping_;
   /**
    * for reverse real's lookup. get real by num.
-   * used when we are going to delete vip and coresponding reals.
+   * used when we are going to delete vip and corresponding reals.
    */
   folly::F14FastMap<uint32_t, folly::IPAddress> numToReals_;
 
