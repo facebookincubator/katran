@@ -31,7 +31,6 @@ XdpDecap::XdpDecap(const XdpDecapConfig& config) : config_(config) {
     if (!ifindex) {
       LOG(FATAL) << "Can not resolve to ifindex interface: "
                  << config_.interface;
-      return;
     }
   }
 }
@@ -69,20 +68,17 @@ void XdpDecap::loadXdpDecap() {
     LOG(FATAL) << "Was not able to load XdpDecap program from "
                << config_.progPath;
     // LOG(FATAL) would terminate. return for readability
-    return;
   }
   // sanity checking
   // check that program w/ expected name has been loaded
   if (bpfAdapter_.getProgFdByName("xdpdecap") < 0) {
     LOG(FATAL) << "Was not able to find xdp prog w/ name xdpdecap in "
                << config_.progPath;
-    return;
   }
 
   if (bpfAdapter_.getMapFdByName("decap_counters") < 0) {
     LOG(FATAL) << "Was not able to find bpf map w/ name stats in "
                << config_.progPath;
-    return;
   }
   isLoaded_ = true;
 }
@@ -91,26 +87,22 @@ void XdpDecap::attachXdpDecap() {
   if (!isLoaded_ || isAttached_) {
     LOG(FATAL) << "trying to attach non loaded or already attached "
                << "XdpDecap program";
-    return;
   }
   auto prog_fd = bpfAdapter_.getProgFdByName("xdpdecap");
   if (isStandalone_) {
     if (bpfAdapter_.attachXdpProg(prog_fd, config_.interface)) {
       LOG(FATAL) << "Was not able to attach XdpDecap to interface "
                  << config_.interface;
-      return;
     }
   } else {
     auto map_fd = bpfAdapter_.getPinnedBpfObject(config_.mapPath);
     if (map_fd < 0) {
       LOG(FATAL) << "Was not able to get a fd of pinned bpf map "
                  << config_.mapPath;
-      return;
     }
     if (bpfAdapter_.bpfUpdateMap(map_fd, &config_.progPos, &prog_fd)) {
       LOG(FATAL) << "Was not able to update pinned bpf map " << config_.mapPath
                  << " with elem on position " << config_.progPos;
-      return;
     }
   }
   isAttached_ = true;
@@ -154,7 +146,6 @@ void XdpDecap::setSeverId(int id) {
   if (bpfAdapter_.bpfUpdateMap(map_fd, &key, &value)) {
     LOG(FATAL) << "Was not able to update pinned bpf map " << config_.mapPath
                << " with elem on position " << config_.progPos;
-    return;
   }
 }
 
