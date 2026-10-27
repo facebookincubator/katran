@@ -67,7 +67,7 @@ void XdpDecap::loadXdpDecap() {
   if (res) {
     LOG(FATAL) << "Was not able to load XdpDecap program from "
                << config_.progPath;
-    // LOG(FATAL) would terminate. return for readability
+    // unreachable
   }
   // sanity checking
   // check that program w/ expected name has been loaded
