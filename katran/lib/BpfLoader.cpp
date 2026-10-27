@@ -151,7 +151,7 @@ int BpfLoader::setInnerMapPrototype(const std::string& name, int fd) {
 int BpfLoader::loadBpfFile(
     const std::string& path,
     const bpf_prog_type type,
-    bool use_names) {
+    bool /* use_names */) {
   auto obj = ::bpf_object__open(path.c_str());
   const auto err = ::libbpf_get_error(obj);
   if (err) {
@@ -179,7 +179,7 @@ int BpfLoader::loadBpfFromBuffer(
     const char* buf,
     int buf_size,
     const bpf_prog_type type,
-    bool use_names,
+    bool /* use_names */,
     const char* objName) {
   LIBBPF_OPTS(bpf_object_open_opts, opts, .object_name = objName);
   auto obj = ::bpf_object__open_mem(buf, buf_size, &opts);
