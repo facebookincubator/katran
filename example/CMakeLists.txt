@@ -2,23 +2,22 @@ project (katranserver-proj)
 set (CMAKE_CXX_STANDARD 17)
 
 # thrift cmake macro
-find_program(THRIFT_COMPILER thrift1)
-include (${CMAKE_PREFIX_PATH}/fbthrift/ThriftLibrary.cmake)
+find_package(FBThrift CONFIG REQUIRED)
 set(THRIFT_PREFIX "katran/if")
 set(THRIFT_DIR ${CMAKE_BINARY_DIR}/thrift-out/${THRIFT_PREFIX})
 file(MAKE_DIRECTORY ${THRIFT_DIR})
 
 include_directories(${CMAKE_BINARY_DIR}/thrift-out)
 
+add_library(katran-cpp2-obj OBJECT)
 thrift_generate(
+  katran-cpp2-obj
   "${CMAKE_SOURCE_DIR}/example/katran.thrift"
   LANGUAGE cpp2
   SERVICES KatranService
-  OUT_SOURCES katran_thrift_sources
   OUTPUT_DIRECTORY "${THRIFT_DIR}"
   INCLUDE_PREFIX "${THRIFT_PREFIX}"
 )
-add_library(katran-cpp2-obj OBJECT ${katran_thrift_sources})
 
 find_library(THRIFT thrift)
 find_library(THRIFTCPP2 thriftcpp2)
