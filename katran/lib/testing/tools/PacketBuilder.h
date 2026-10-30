@@ -51,7 +51,8 @@ class HeaderEntry {
     ICMP_HEADER,
     ICMPV6_HEADER,
     ARP_HEADER,
-    PAYLOAD
+    PAYLOAD,
+    IPV6_JUMBO_HBH
   };
 
   virtual ~HeaderEntry() = default;
@@ -143,9 +144,33 @@ class IPv6Header : public HeaderEntry {
   const struct ip6_hdr& getHeader() const {
     return ip6_;
   }
+  void setZeroPayloadLen() {
+    zeroPayloadLen_ = true;
+  }
 
  private:
   struct ip6_hdr ip6_;
+  bool zeroPayloadLen_ = false;
+};
+
+/**
+ * IPv6 Hop-by-Hop header carrying only the RFC 2675 Jumbo Payload option, as
+ * Linux BIG TCP inserts between IPv6 and TCP on kernels < 7.0.
+ */
+class IPv6JumboHbhHeader : public HeaderEntry {
+ public:
+  Type getType() const override {
+    return IPV6_JUMBO_HBH;
+  }
+  void serialize(
+      size_t headerIndex,
+      const std::vector<std::shared_ptr<HeaderEntry>>& headerStack,
+      std::vector<uint8_t>& packet) override;
+  std::string generateScapyCommand() const override;
+  void updateForNextHeader(Type nextHeaderType) override;
+
+ private:
+  uint8_t nextHeader_ = 0;
 };
 
 /**
@@ -674,6 +699,14 @@ class PacketBuilder {
       uint8_t trafficClass = 0,
       uint32_t flowLabel = 0,
       uint8_t nextHeader = 0);
+
+  // Jumbo Hop-by-Hop header (RFC 2675) as BIG TCP inserts on kernels < 7.0.
+  // The preceding IPv6 header gets payload_len 0.
+  PacketBuilder& IPv6JumboHbh();
+
+  // Sets payload_len of the preceding IPv6 header to 0, as BIG TCP does for
+  // packets over 64KB.
+  PacketBuilder& withZeroPayloadLen();
 
   PacketBuilder& UDP(uint16_t sport, uint16_t dport);
 

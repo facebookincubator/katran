@@ -649,3 +649,68 @@ TEST_F(PacketBuilderTest, TestCase25Input) {
   EXPECT_EQ(static_cast<uint8_t>(bytes[quicStart + 6]), 0x43);
   EXPECT_EQ(static_cast<uint8_t>(bytes[quicStart + 7]), 0xFF);
 }
+
+TEST_F(PacketBuilderTest, IPv6JumboHbh) {
+  auto plain = PacketBuilder::newPacket()
+                   .Eth("0x1", "0x2")
+                   .IPv6("b00c::1", "face::1")
+                   .TCP(2001, 80, 0, 0, 8192, TH_ACK)
+                   .payload("hello")
+                   .build()
+                   .binaryPacket;
+  auto jumbo = PacketBuilder::newPacket()
+                   .Eth("0x1", "0x2")
+                   .IPv6("b00c::1", "face::1")
+                   .IPv6JumboHbh()
+                   .TCP(2001, 80, 0, 0, 8192, TH_ACK)
+                   .payload("hello")
+                   .build()
+                   .binaryPacket;
+
+  // Same packet with payload_len 0, nexthdr Hop-by-Hop and the 8-byte HBH
+  // between IPv6 and TCP. TCP checksum is unchanged.
+  auto expected = plain;
+  const size_t ip6Off = sizeof(struct ethhdr);
+  const std::vector<uint8_t> hbh = {/*nexthdr=*/IPPROTO_TCP,
+                                    /*hdrlen=*/0,
+                                    /*tlv_type=*/IP6OPT_JUMBO,
+                                    /*tlv_len=*/4,
+                                    // big-endian: HBH 8 + TCP 20 + payload 5
+                                    /*jumbo_payload_len=*/0,
+                                    0,
+                                    0,
+                                    33};
+  expected.insert(
+      expected.begin() + ip6Off + sizeof(struct ip6_hdr),
+      hbh.begin(),
+      hbh.end());
+  auto* ip6 = reinterpret_cast<struct ip6_hdr*>(expected.data() + ip6Off);
+  ip6->ip6_plen = 0;
+  ip6->ip6_nxt = IPPROTO_HOPOPTS;
+
+  EXPECT_EQ(jumbo, expected);
+}
+
+TEST_F(PacketBuilderTest, IPv6ZeroPayloadLen) {
+  auto plain = PacketBuilder::newPacket()
+                   .Eth("0x1", "0x2")
+                   .IPv6("b00c::1", "face::1")
+                   .TCP(2001, 80, 0, 0, 8192, TH_ACK)
+                   .payload("hello")
+                   .build()
+                   .binaryPacket;
+  auto zeroLen = PacketBuilder::newPacket()
+                     .Eth("0x1", "0x2")
+                     .IPv6("b00c::1", "face::1")
+                     .withZeroPayloadLen()
+                     .TCP(2001, 80, 0, 0, 8192, TH_ACK)
+                     .payload("hello")
+                     .build()
+                     .binaryPacket;
+
+  auto expected = plain;
+  reinterpret_cast<struct ip6_hdr*>(expected.data() + sizeof(struct ethhdr))
+      ->ip6_plen = 0;
+
+  EXPECT_EQ(zeroLen, expected);
+}

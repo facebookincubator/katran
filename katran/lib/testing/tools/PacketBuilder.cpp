@@ -106,6 +106,25 @@ PacketBuilder& PacketBuilder::IPv6(
   return *this;
 }
 
+PacketBuilder& PacketBuilder::IPv6JumboHbh() {
+  if (headerStack_.empty() ||
+      headerStack_.back()->getType() != HeaderEntry::IPV6) {
+    throw std::logic_error("IPv6JumboHbh() must be called after IPv6()");
+  }
+  headerStack_.emplace_back(std::make_shared<IPv6JumboHbhHeader>());
+  return *this;
+}
+
+PacketBuilder& PacketBuilder::withZeroPayloadLen() {
+  if (headerStack_.empty() ||
+      headerStack_.back()->getType() != HeaderEntry::IPV6) {
+    throw std::logic_error("withZeroPayloadLen() must be called after IPv6()");
+  }
+  std::static_pointer_cast<IPv6Header>(headerStack_.back())
+      ->setZeroPayloadLen();
+  return *this;
+}
+
 PacketBuilder& PacketBuilder::UDP(uint16_t sport, uint16_t dport) {
   if (!isValidPort(sport)) {
     throw std::invalid_argument(
@@ -1037,14 +1056,16 @@ IPv6Header::IPv6Header(
 }
 
 void IPv6Header::serialize(
-    size_t /* headerIndex */,
+    size_t headerIndex,
     const std::vector<std::shared_ptr<HeaderEntry>>& headerStack,
     std::vector<uint8_t>& packet) {
   auto ip6 = ip6_;
 
   // Set payload length based on current packet size (which contains the
-  // payload)
-  ip6.ip6_plen = htons(packet.size());
+  // payload). Jumbo packets carry 0.
+  bool nextIsJumboHbh = headerIndex + 1 < headerStack.size() &&
+      headerStack[headerIndex + 1]->getType() == IPV6_JUMBO_HBH;
+  ip6.ip6_plen = (nextIsJumboHbh || zeroPayloadLen_) ? 0 : htons(packet.size());
 
   const uint8_t* ip6Bytes = reinterpret_cast<const uint8_t*>(&ip6);
   packet.insert(packet.begin(), ip6Bytes, ip6Bytes + sizeof(struct ip6_hdr));
@@ -1089,10 +1110,47 @@ void IPv6Header::updateForNextHeader(Type nextHeaderType) {
     case IPV4:
       ip6_.ip6_nxt = IPPROTO_IPIP; // IPv4-in-IPv6 tunneling
       break;
+    case IPV6_JUMBO_HBH:
+      ip6_.ip6_nxt = IPPROTO_HOPOPTS;
+      break;
     default:
       VLOG(2) << "Unknown next header type: "
               << static_cast<int>(nextHeaderType);
       break;
+  }
+}
+
+// IPv6JumboHbhHeader implementation
+void IPv6JumboHbhHeader::serialize(
+    size_t /* headerIndex */,
+    const std::vector<std::shared_ptr<HeaderEntry>>& /* headerStack */,
+    std::vector<uint8_t>& packet) {
+  constexpr size_t kHbhLen = 8;
+  // Length of everything after the IPv6 header, as the kernel writes it.
+  uint32_t jumboPayloadLen = htonl(packet.size() + kHbhLen);
+  const uint8_t* lenBytes = reinterpret_cast<const uint8_t*>(&jumboPayloadLen);
+  std::vector<uint8_t> hbh = {
+      nextHeader_,
+      /*hdrlen=*/0, // 8-byte header
+      IP6OPT_JUMBO,
+      /*tlv_len=*/4,
+      lenBytes[0],
+      lenBytes[1],
+      lenBytes[2],
+      lenBytes[3]};
+  packet.insert(packet.begin(), hbh.begin(), hbh.end());
+}
+
+std::string IPv6JumboHbhHeader::generateScapyCommand() const {
+  return "IPv6ExtHdrHopByHop(options=[Jumbo()])";
+}
+
+void IPv6JumboHbhHeader::updateForNextHeader(Type nextHeaderType) {
+  if (nextHeaderType == TCP_HEADER) {
+    nextHeader_ = IPPROTO_TCP;
+  } else {
+    VLOG(2) << "Unsupported header after jumbo HBH: "
+            << static_cast<int>(nextHeaderType);
   }
 }
 
