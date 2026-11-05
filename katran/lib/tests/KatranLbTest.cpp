@@ -111,11 +111,7 @@ class KatranLbTest : public ::testing::Test {
 TEST_F(KatranLbTest, testChangeMac) {
   std::vector<uint8_t> mac = {0x00, 0x0A, 0x0B, 0x0C, 0x0D, 0x0F};
   ASSERT_EQ(lb->changeMac(mac), true);
-  auto default_mac = lb->getMac();
-  ASSERT_EQ(default_mac.size(), 6);
-  for (int i = 0; i < 6; i++) {
-    default_mac[i] = mac[i];
-  }
+  ASSERT_EQ(lb->getMac(), mac);
 };
 
 TEST_F(KatranLbTest, testIfIndex) {
@@ -553,7 +549,7 @@ class KatranLbBpfFailureTest : public ::testing::Test {
     KatranConfig katranConfig;
     katranConfig.mainInterface = "eth0";
     katranConfig.mainInterfaceIndex = 1;
-    katranConfig.defaultMac = {0x00, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E};
+    katranConfig.defaultMac = defaultMac;
     katranConfig.enableHc = false;
     katranConfig.maxVips = 1;
     katranConfig.memlockUnlimited = false;
@@ -573,6 +569,7 @@ class KatranLbBpfFailureTest : public ::testing::Test {
     cidrVip.cidrVipPrefixLen = 64;
   }
 
+  const std::vector<uint8_t> defaultMac = {0x00, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E};
   std::unique_ptr<KatranLb> lb;
   VipKey exactVip;
   VipKey cidrVip;
@@ -597,6 +594,12 @@ TEST_F(KatranLbBpfFailureTest, failedAddVipReleasesVipNumAndEntry) {
   ASSERT_FALSE(lb->addVip(cidrVip));
   ASSERT_FALSE(lb->addVip(exactVip));
   ASSERT_EQ(lb->getKatranLbStats().bpfFailedCalls, 3);
+}
+
+TEST_F(KatranLbBpfFailureTest, failedChangeMacKeepsDefaultMac) {
+  ASSERT_FALSE(lb->changeMac({0x00, 0x0A, 0x0B, 0x0C, 0x0D, 0x0F}));
+  ASSERT_EQ(lb->getMac(), defaultMac);
+  ASSERT_EQ(lb->getKatranLbStats().bpfFailedCalls, 1);
 }
 
 } // namespace katran

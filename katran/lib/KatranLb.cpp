@@ -1000,31 +1000,34 @@ bool KatranLb::changeMac(const std::vector<uint8_t> newMac) {
   if (newMac.size() != kMacBytes) {
     return false;
   }
+  // getMac() returns ctlValues_, so cache the MAC only once ctl_array has it.
+  auto macValue = ctlValues_[kMacAddrPos];
   for (int i = 0; i < kMacBytes; i++) {
-    ctlValues_[kMacAddrPos].mac[i] = newMac[i];
+    macValue.mac[i] = newMac[i];
   }
   if (!config_.testing) {
     auto res = bpfAdapter_->bpfUpdateMap(
         bpfAdapter_->getMapFdByName(KatranLbMaps::ctl_array),
         &key,
-        &ctlValues_[kMacAddrPos].mac);
+        &macValue.mac);
     if (res != 0) {
       lbStats_.bpfFailedCalls++;
       LOG(ERROR) << "can't add new mac address";
       return false;
     }
+  }
+  ctlValues_[kMacAddrPos] = macValue;
 
-    if (features_.directHealthchecking) {
-      key = kHcDstMacPos;
-      auto res_2 = bpfAdapter_->bpfUpdateMap(
-          bpfAdapter_->getMapFdByName(KatranLbMaps::hc_pckt_macs),
-          &key,
-          &ctlValues_[kMacAddrPos].mac);
-      if (res_2 != 0) {
-        lbStats_.bpfFailedCalls++;
-        LOG(ERROR) << "can't add new mac address for direct healthchecks";
-        return false;
-      }
+  if (!config_.testing && features_.directHealthchecking) {
+    key = kHcDstMacPos;
+    auto res_2 = bpfAdapter_->bpfUpdateMap(
+        bpfAdapter_->getMapFdByName(KatranLbMaps::hc_pckt_macs),
+        &key,
+        &ctlValues_[kMacAddrPos].mac);
+    if (res_2 != 0) {
+      lbStats_.bpfFailedCalls++;
+      LOG(ERROR) << "can't add new mac address for direct healthchecks";
+      return false;
     }
   }
   return true;
