@@ -109,7 +109,7 @@ class TcpPktRouter {
 
   bool isInitialized_{false};
   uint32_t v6Id_{0};
-  uint32_t fallbackV6Id_{0}; // Server ID v2 fallback when >= 2<<16
+  uint32_t fallbackV6Id_{0}; // Server ID v2 fallback when >= 1<<16
   bool kdeEnabled_;
   uint8_t kdeZones_{0};
   std::optional<uint32_t> serverPort_;

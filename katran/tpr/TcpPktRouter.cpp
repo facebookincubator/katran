@@ -121,7 +121,7 @@ bool TcpPktRouter::setServerIdV6(uint32_t id) {
   }
 
   // Route ID to appropriate field based on server ID format
-  if (id >= (2 << 16)) {
+  if (id >= (1 << 16)) {
     // Server ID v2 format - set to fallback field
     if (fallbackV6Id_ == id) {
       LOG(WARNING) << "Server fallback id is already set to " << id;
