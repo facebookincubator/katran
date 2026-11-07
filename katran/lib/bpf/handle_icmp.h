@@ -119,7 +119,8 @@ __attribute__((__always_inline__)) static inline int send_icmp6_reply(
 }
 
 __attribute__((__always_inline__)) static inline int send_icmp4_too_big(
-    struct xdp_md* xdp) {
+    struct xdp_md* xdp,
+    __u32 mtu) {
   int headroom = (int)sizeof(struct iphdr) + (int)sizeof(struct icmphdr);
   if (XDP_ADJUST_HEAD_FUNC(xdp, 0 - headroom)) {
     return XDP_DROP;
@@ -144,7 +145,7 @@ __attribute__((__always_inline__)) static inline int send_icmp4_too_big(
   orig_iph = data + off;
   icmp_hdr->type = ICMP_DEST_UNREACH;
   icmp_hdr->code = ICMP_FRAG_NEEDED;
-  icmp_hdr->un.frag.mtu = bpf_htons(MAX_PCKT_SIZE - sizeof(struct ethhdr));
+  icmp_hdr->un.frag.mtu = bpf_htons(mtu);
   icmp_hdr->un.frag.__unused = 0;
   icmp_hdr->checksum = 0;
   ipv4_csum(icmp_hdr, ICMP_TOOBIG_PAYLOAD_SIZE, &csum);
@@ -167,7 +168,8 @@ __attribute__((__always_inline__)) static inline int send_icmp4_too_big(
 }
 
 __attribute__((__always_inline__)) static inline int send_icmp6_too_big(
-    struct xdp_md* xdp) {
+    struct xdp_md* xdp,
+    __u32 mtu) {
   int headroom = (int)sizeof(struct ipv6hdr) + (int)sizeof(struct icmp6hdr);
   if (XDP_ADJUST_HEAD_FUNC(xdp, 0 - headroom)) {
     return XDP_DROP;
@@ -200,15 +202,17 @@ __attribute__((__always_inline__)) static inline int send_icmp6_too_big(
   memcpy(ip6h->saddr.s6_addr32, orig_ip6h->daddr.s6_addr32, 16);
   icmp6_hdr->icmp6_type = ICMPV6_PKT_TOOBIG;
   icmp6_hdr->icmp6_code = 0;
-  icmp6_hdr->icmp6_mtu = bpf_htonl(MAX_PCKT_SIZE - sizeof(struct ethhdr));
+  icmp6_hdr->icmp6_mtu = bpf_htonl(mtu);
   icmp6_hdr->icmp6_cksum = 0;
   ipv6_csum(icmp6_hdr, ICMP6_TOOBIG_PAYLOAD_SIZE, &csum, ip6h);
   icmp6_hdr->icmp6_cksum = csum;
   return XDP_TX;
 }
 
+// truncates the packet in xdp, an ethernet frame carrying the packet which
+// did not fit, and turns it into a PTB to that packet's sender announcing mtu
 __attribute__((__always_inline__)) static inline int
-send_icmp_too_big(struct xdp_md* xdp, bool is_ipv6, int pckt_size) {
+send_icmp_too_big(struct xdp_md* xdp, bool is_ipv6, int pckt_size, __u32 mtu) {
   int offset = pckt_size;
   if (is_ipv6) {
     offset -= ICMP6_TOOBIG_SIZE;
@@ -219,9 +223,9 @@ send_icmp_too_big(struct xdp_md* xdp, bool is_ipv6, int pckt_size) {
     return XDP_DROP;
   }
   if (is_ipv6) {
-    return send_icmp6_too_big(xdp);
+    return send_icmp6_too_big(xdp, mtu);
   } else {
-    return send_icmp4_too_big(xdp);
+    return send_icmp4_too_big(xdp, mtu);
   }
 }
 

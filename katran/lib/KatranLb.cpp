@@ -2224,6 +2224,18 @@ lb_stats KatranLb::getEgressDecapStats() {
   return getLbStats(config_.maxVips + kEgressDecapOffset);
 }
 
+lb_stats KatranLb::getGuePtbRelayedStats() {
+  return getLbStats(config_.maxVips + kGuePtbRelayedOffset);
+}
+
+lb_stats KatranLb::getGuePtbRelayTruncatedStats() {
+  return getLbStats(config_.maxVips + kGuePtbRelayTruncatedOffset);
+}
+
+lb_stats KatranLb::getGuePtbRelayNotNeededStats() {
+  return getLbStats(config_.maxVips + kGuePtbRelayNotNeededOffset);
+}
+
 lb_stats KatranLb::getUdpFlowMigrationStats() {
   return getLbStats(config_.maxVips + kUdpFlowMigrationInvalidationOffset);
 }

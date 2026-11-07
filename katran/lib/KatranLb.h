@@ -75,6 +75,9 @@ constexpr uint32_t kXdpTxOffset = 17;
 constexpr uint32_t kXdpDropOffset = 18;
 constexpr uint32_t kXdpPassOffset = 19;
 constexpr uint32_t kEgressDecapOffset = 20;
+constexpr uint32_t kGuePtbRelayedOffset = 22;
+constexpr uint32_t kGuePtbRelayTruncatedOffset = 23;
+constexpr uint32_t kGuePtbRelayNotNeededOffset = 24;
 
 // Flag value for egress decap destinations (must match DECAP_EGRESS in BPF)
 constexpr uint32_t kDecapEgress = 0x2;
@@ -683,6 +686,29 @@ class KatranLb {
    * egress-decapped (GUE decap + XDP_TX)
    */
   lb_stats getEgressDecapStats();
+
+  /**
+   * The getGuePtbRelay* helpers return statistics of the relay of ICMP packet
+   * too big messages for GUE encapsulated packets to clients. They are only
+   * collected by flavors built with GUE_PTB_RELAY. In all of them v1 counts
+   * ICMPv4 and v2 ICMPv6 messages. Messages which are not relayed take the
+   * regular path.
+   *
+   * @return struct lb_stats w/ how many messages were relayed to clients
+   */
+  lb_stats getGuePtbRelayedStats();
+
+  /**
+   * @return struct lb_stats w/ how many messages quoted too little of the
+   * client's packet to be relayed
+   */
+  lb_stats getGuePtbRelayTruncatedStats();
+
+  /**
+   * @return struct lb_stats w/ how many messages were not relayed because the
+   * reported mtu would not shrink the client's packet
+   */
+  lb_stats getGuePtbRelayNotNeededStats();
 
   /**
    * @return struct lb_stats w/ statistics of total invalidated dst

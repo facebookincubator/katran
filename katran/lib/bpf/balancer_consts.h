@@ -325,6 +325,14 @@ v2 tracks misses for TCP non syns */
 // Tracks successful egress decap packets (XDP_TX after GUE decap)
 #define EGRESS_DECAP_CNTR 20
 #define LPM_VIP_CNTR 21 // packets matched via LPM prefix VIP lookup
+// GUE_PTB_RELAY counters. v1 counts ICMPv4 PTBs, v2 ICMPv6 PTBs. all but the
+// relayed ones take the regular path
+// PTBs translated and sent to the client
+#define GUE_PTB_RELAYED_CNTR 22
+// PTBs quoting too little of the client's packet to relay
+#define GUE_PTB_RELAY_TRUNCATED_CNTR 23
+// PTBs whose mtu would not shrink the client's packet
+#define GUE_PTB_RELAY_NOT_NEEDED_CNTR 24
 
 // indice for all stats maps defined above correspond to entries in the map
 // stats starting from the index MAX_VIPS. The max_entries of stats is
@@ -416,7 +424,32 @@ v2 tracks misses for TCP non syns */
  *
  * LOCAL_DELIVERY_OPTIMIZATION - allow to do optimization on local traffic,
  * where vip and real address are specified the same machine
+ *
+ * GUE_PTB_RELAY - translate ICMP "packet too big" sent by a hop between katran
+ * and a real for a GUE encapsulated packet into one sent to the client from
+ * the vip. requires GUE_ENCAP and ICMP_TOOBIG_GENERATION
  */
+#if defined(GUE_PTB_RELAY) && !defined(GUE_ENCAP)
+#error "GUE_PTB_RELAY requires GUE_ENCAP"
+#endif
+
+#if defined(GUE_PTB_RELAY) && !defined(ICMP_TOOBIG_GENERATION)
+#error "GUE_PTB_RELAY requires ICMP_TOOBIG_GENERATION"
+#endif
+
+// lowest mtu announced to a client, whatever the hop reported.
+// 1280 is IPv6's minimum link mtu (RFC 8200): hosts ignore anything lower
+#ifndef GUE_PTB_RELAY_MIN_MTU_V6
+#define GUE_PTB_RELAY_MIN_MTU_V6 1280
+#endif
+
+// 576 rather than IPv4's 68 byte minimum: every IPv4 host accepts 576 byte
+// datagrams (RFC 791), and a higher floor limits how far a spoofed PTB can push
+// a client down. linux clamps to its own net.ipv4.route.min_pmtu, 552, anyway
+#ifndef GUE_PTB_RELAY_MIN_MTU_V4
+#define GUE_PTB_RELAY_MIN_MTU_V4 576
+#endif
+
 #ifdef INLINE_DECAP_IPIP
 #ifndef INLINE_DECAP_GENERIC
 #define INLINE_DECAP_GENERIC

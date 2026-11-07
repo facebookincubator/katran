@@ -16,9 +16,13 @@
 
 #include "katran/lib/bpf/balancer_consts.h"
 #include "katran/lib/bpf/balancer_helpers.h"
+#include "katran/lib/bpf/balancer_lookups.h"
 #include "katran/lib/bpf/balancer_maps.h"
 #include "katran/lib/bpf/balancer_structs.h"
 #include "katran/lib/bpf/handle_icmp.h"
+#ifdef GUE_PTB_RELAY
+#include "katran/lib/bpf/handle_gue_ptb.h"
+#endif
 #include "katran/lib/bpf/pckt_encap.h"
 #include "katran/lib/bpf/pckt_parsing.h"
 
@@ -735,6 +739,15 @@ process_packet(struct xdp_md* xdp, __u64 nh_off, bool is_ipv6) {
   if (action >= 0) {
     return action;
   }
+#ifdef GUE_PTB_RELAY
+  // handle_gue_ptb is not inlined, so only ICMP pays for the call
+  if (protocol == (is_ipv6 ? IPPROTO_ICMPV6 : IPPROTO_ICMP)) {
+    action = handle_gue_ptb(xdp, th_off, is_ipv6);
+    if (action >= 0) {
+      return action;
+    }
+  }
+#endif // of GUE_PTB_RELAY
   action = handle_if_icmp(data, data_end, th_off, &pckt, protocol);
   if (action >= 0) {
     return action;
@@ -813,51 +826,9 @@ process_packet(struct xdp_md* xdp, __u64 nh_off, bool is_ipv6) {
     return XDP_PASS;
   }
 
-  if (is_ipv6) {
-    memcpy(vip.vipv6, pckt.flow.dstv6, 16);
-  } else {
-    vip.vip = pckt.flow.dst;
-  }
-
-  vip.port = pckt.flow.port16[1];
-  vip.proto = pckt.flow.proto;
-  vip_info = bpf_map_lookup_elem(&vip_map, &vip);
+  vip_info = lookup_vip(&vip, &pckt.flow, is_ipv6);
   if (!vip_info) {
-#ifdef CIDR_VIP
-    // Try LPM prefix-based VIP lookup with original port+proto (IPv6 only).
-    struct vip_lpm_key lpm_key = {};
-    if (is_ipv6) {
-      lpm_key.prefixlen = 160;
-      lpm_key.port = pckt.flow.port16[1];
-      lpm_key.proto = pckt.flow.proto;
-      lpm_key.pad = 0;
-      memcpy(lpm_key.addr, pckt.flow.dstv6, 16);
-      vip_info = bpf_map_lookup_elem(&vip_lpm_map, &lpm_key);
-    }
-#endif // CIDR_VIP
-    if (!vip_info) {
-      vip.port = 0;
-      vip_info = bpf_map_lookup_elem(&vip_map, &vip);
-      if (!vip_info) {
-#ifdef CIDR_VIP
-        // Try LPM with port=0 wildcard (IPv6 only).
-        if (is_ipv6) {
-          lpm_key.port = 0;
-          vip_info = bpf_map_lookup_elem(&vip_lpm_map, &lpm_key);
-        }
-#endif // CIDR_VIP
-        if (!vip_info) {
-          return XDP_PASS;
-        }
-      }
-    }
-
-    if (!(vip_info->flags & F_HASH_DPORT_ONLY) &&
-        !(vip_info->flags & F_HASH_SRC_DST_PORT)) {
-      // VIP, which doesnt care about dst port (all packets to this VIP w/ diff
-      // dst port but from the same src port/ip must go to the same real
-      pckt.flow.port16[1] = 0;
-    }
+    return XDP_PASS;
   }
 
   __u64 pkt_data_len = PCKT_DATA_LEN(xdp);
@@ -874,7 +845,8 @@ process_packet(struct xdp_md* xdp, __u64 nh_off, bool is_ipv6) {
     } else {
       data_stats->v1 += 1;
     }
-    return send_icmp_too_big(xdp, is_ipv6, pkt_data_len);
+    return send_icmp_too_big(
+        xdp, is_ipv6, pkt_data_len, MAX_PCKT_SIZE - sizeof(struct ethhdr));
 #else
     return XDP_DROP;
 #endif
