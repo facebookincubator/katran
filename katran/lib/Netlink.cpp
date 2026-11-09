@@ -153,7 +153,9 @@ NetlinkMessage NetlinkMessage::TC(
   tc->tcm_family = AF_UNSPEC;
   tc->tcm_ifindex = ifindex;
   tc->tcm_parent = direction;
-  tc->tcm_handle = TC_H_MAKE(0, handle);
+  // Not TC_H_MAKE(0, handle): that keeps only the low 16 bits, and callers
+  // pass 32-bit BPF prog ids as unique cls_bpf handles.
+  tc->tcm_handle = handle;
 
   if (cmd == RTM_NEWTFILTER && flags & NLM_F_CREATE) {
     protocol = htons(ETH_P_ALL);
