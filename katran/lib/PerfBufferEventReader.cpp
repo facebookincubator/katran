@@ -15,6 +15,9 @@
  */
 
 #include "katran/lib/PerfBufferEventReader.h"
+#include "katran/lib/PerfBufferSizing.h"
+
+#include <unistd.h>
 
 namespace {
 
@@ -34,10 +37,6 @@ static void handleLost(void* ctx, int cpu, __u64 lostCount) {
   perfBufferReader->handlePerfBufferLoss(cpu, lostCount);
 }
 
-bool isPowerOf2(uint64_t x) {
-  return (x & (x - 1)) == 0;
-}
-
 } // namespace
 
 namespace katran {
@@ -52,15 +51,16 @@ bool PerfBufferEventReader::open(
     size_t pageCount) {
   CHECK(evb != nullptr) << "Null event base";
 
-  // At least two pages for sanity, same value used as default by
-  // PerfEventReader
-  if (pageCount == 0 || !isPowerOf2(pageCount)) {
-    LOG(ERROR) << "pageCount must be greater than 0 and power of two";
+  const auto pageSize = sysconf(_SC_PAGESIZE);
+  const auto nativePageCount =
+      pageSize > 0 ? detail::getPerfBufferPageCount(pageCount, pageSize) : 0;
+  if (nativePageCount == 0) {
+    LOG(ERROR) << "Invalid perf buffer page count or native page size";
     return false;
   }
 
   pb_ = perf_buffer__new(
-      bpfPerfMap, pageCount, handleEvent, handleLost, this, nullptr);
+      bpfPerfMap, nativePageCount, handleEvent, handleLost, this, nullptr);
   auto maybeError = libbpf_get_error(pb_);
   if (maybeError != 0) {
     LOG(ERROR) << "perf_buffer__new() failed: " << maybeError;

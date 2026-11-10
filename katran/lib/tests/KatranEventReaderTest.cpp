@@ -18,10 +18,12 @@
 #include "katran/lib/BalancerStructs.h"
 #include "katran/lib/MonitoringStructs.h"
 #include "katran/lib/PcapMsgMeta.h"
+#include "katran/lib/PerfBufferSizing.h"
 
 #include <folly/MPMCQueue.h>
 #include <gtest/gtest.h>
 #include <cstring>
+#include <limits>
 #include <memory>
 #include <vector>
 
@@ -44,6 +46,24 @@ makeBuffer(uint32_t event, uint32_t pkt_size, uint32_t data_len) {
 }
 
 } // namespace
+
+TEST(KatranEventReaderTest, PerfBufferCapacityUses4KUnits) {
+  EXPECT_EQ(detail::getPerfBufferPageCount(32, 4096), 32);
+  EXPECT_EQ(detail::getPerfBufferPageCount(32, 16384), 8);
+  EXPECT_EQ(detail::getPerfBufferPageCount(32, 65536), 2);
+  EXPECT_EQ(detail::getPerfBufferPageCount(256, 65536), 16);
+  EXPECT_EQ(detail::getPerfBufferPageCount(2, 65536), 1);
+  EXPECT_EQ(detail::getPerfBufferPageCount(1, 16384), 1);
+}
+
+TEST(KatranEventReaderTest, InvalidPerfBufferSizingRejected) {
+  EXPECT_EQ(detail::getPerfBufferPageCount(0, 4096), 0);
+  EXPECT_EQ(detail::getPerfBufferPageCount(3, 4096), 0);
+  EXPECT_EQ(detail::getPerfBufferPageCount(32, 0), 0);
+  EXPECT_EQ(detail::getPerfBufferPageCount(32, 6144), 0);
+  const auto overflowingPages = std::numeric_limits<size_t>::max() / 2 + 1;
+  EXPECT_EQ(detail::getPerfBufferPageCount(overflowingPages, 65536), 0);
+}
 
 TEST(KatranEventReaderTest, TooShortBufferDropped) {
   auto queue = makeQueue();

@@ -36,8 +36,8 @@ class PerfBufferEventReader {
    * @param bpfPerfMap the fd of the bpf map, must of type
    * BPF_MAP_TYPE_PERF_ARRAY
    * @param evb event base to run this reader in
-   * @param pageCount number of pages used for each cpu perf map, must be a
-   * power of 2
+   * @param pageCount per-CPU data capacity in 4 KiB units, must be a power of
+   * 2. Rounded up to at least one native page.
    */
   bool open(int bpfPerfMap, folly::EventBase* evb, size_t pageCount);
 
