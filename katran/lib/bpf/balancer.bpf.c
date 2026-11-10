@@ -1061,7 +1061,12 @@ process_packet(struct xdp_md* xdp, __u64 nh_off, bool is_ipv6) {
           // trashing or because another katran is restarting and all the
           // sessions have been reshuffled
           REPORT_TCP_NONSYN_LRUMISS(xdp, data, pkt_data_len, false);
-          lru_stats->v2 += 1;
+          // get_packet_dst never inserts RSTs, so stray RSTs (e.g. from health
+          // checks) would count on every packet. A flow that lost its LRU
+          // entry still counts on its first non-RST packet.
+          if (!(pckt.flags & F_RST_SET)) {
+            lru_stats->v2 += 1;
+          }
         }
       }
       if (!get_packet_dst(&dst, &pckt, vip_info, is_ipv6, lru_map)) {

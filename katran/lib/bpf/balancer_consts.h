@@ -290,7 +290,7 @@ static __u64 (*bpf_xdp_get_buff_len)(struct xdp_md* xdp_md) = (void*)
 v2 tracks lru misses */
 #define LRU_CNTRS 0
 /* v1 tracks misses for TCP syns
-v2 tracks misses for TCP non syns */
+v2 tracks misses for TCP non syns, excluding RSTs */
 #define LRU_MISS_CNTR 1
 #define NEW_CONN_RATE_CNTR 2
 #define FALLBACK_LRU_CNTR 3

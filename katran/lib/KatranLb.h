@@ -586,7 +586,7 @@ class KatranLb {
    * @return struct lb_stats w/ statistic of the reasons for lru misses
    *
    * helper function which returns total amount of tcp lru misses because of
-   * the tcp syns (v1) or non-syns (v2)
+   * the tcp syns (v1) or non-syns other than RSTs (v2)
    */
   lb_stats getLruMissStats();
 
