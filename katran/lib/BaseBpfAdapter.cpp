@@ -39,7 +39,6 @@ extern "C" {
 #include <linux/netlink.h>
 #include <linux/pkt_sched.h>
 #include <linux/rtnetlink.h>
-#include <linux/tc_act/tc_gact.h>
 #include <net/if.h>
 #include <sys/ioctl.h>
 #include <sys/mman.h>

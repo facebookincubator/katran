@@ -25,6 +25,21 @@ extern "C" {
 #include <arpa/inet.h>
 #include <linux/if_ether.h>
 #include <linux/rtnetlink.h>
+#include <linux/stddef.h>
+// Some distro UAPI headers (e.g. CentOS Stream 10) use __struct_group() in
+// linux/pkt_cls.h but lack the upstream C++ fix for it, so it expands to a
+// tagged struct inside an anonymous union, which C++ rejects. Use the
+// upstream C++ expansion, which omits the tag.
+#undef __struct_group
+#define __struct_group(TAG, NAME, ATTRS, MEMBERS...) \
+  union {                                            \
+    struct {                                         \
+      MEMBERS                                        \
+    } ATTRS;                                         \
+    struct {                                         \
+      MEMBERS                                        \
+    } ATTRS NAME;                                    \
+  } ATTRS
 #include <linux/tc_act/tc_gact.h>
 }
 
