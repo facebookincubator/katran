@@ -78,6 +78,7 @@ constexpr uint32_t kEgressDecapOffset = 20;
 constexpr uint32_t kGuePtbRelayedOffset = 22;
 constexpr uint32_t kGuePtbRelayTruncatedOffset = 23;
 constexpr uint32_t kGuePtbRelayNotNeededOffset = 24;
+constexpr uint32_t kTcpRstLruMissOffset = 25;
 
 // Flag value for egress decap destinations (must match DECAP_EGRESS in BPF)
 constexpr uint32_t kDecapEgress = 0x2;
@@ -589,6 +590,13 @@ class KatranLb {
    * the tcp syns (v1) or non-syns other than RSTs (v2)
    */
   lb_stats getLruMissStats();
+
+  /**
+   * @return struct lb_stats w/ total amount of non-syn tcp RSTs that missed
+   * the lru (v1; v2 unused). they are not in getLruMissStats().v2 but are in
+   * getLruStats().v2
+   */
+  lb_stats getTcpRstLruMissStats();
 
   /*
     @ return true if vip lru miss logging succeed else return false

@@ -1062,9 +1062,17 @@ process_packet(struct xdp_md* xdp, __u64 nh_off, bool is_ipv6) {
           // sessions have been reshuffled
           REPORT_TCP_NONSYN_LRUMISS(xdp, data, pkt_data_len, false);
           // get_packet_dst never inserts RSTs, so stray RSTs (e.g. from health
-          // checks) would count on every packet. A flow that lost its LRU
-          // entry still counts on its first non-RST packet.
-          if (!(pckt.flags & F_RST_SET)) {
+          // checks) would count on every packet; they get their own counter.
+          // A flow that lost its LRU entry still counts on its first non-RST
+          // packet.
+          if (pckt.flags & F_RST_SET) {
+            __u32 rst_stats_key = MAX_VIPS + TCP_RST_LRU_MISS_CNTR;
+            struct lb_stats* rst_stats =
+                bpf_map_lookup_elem(&stats, &rst_stats_key);
+            if (rst_stats) {
+              rst_stats->v1 += 1;
+            }
+          } else {
             lru_stats->v2 += 1;
           }
         }

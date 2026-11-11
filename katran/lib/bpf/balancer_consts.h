@@ -333,6 +333,8 @@ v2 tracks misses for TCP non syns, excluding RSTs */
 #define GUE_PTB_RELAY_TRUNCATED_CNTR 23
 // PTBs whose mtu would not shrink the client's packet
 #define GUE_PTB_RELAY_NOT_NEEDED_CNTR 24
+// v1 tracks non-SYN TCP RST LRU misses, which LRU_MISS_CNTR does not count
+#define TCP_RST_LRU_MISS_CNTR 25
 
 // indice for all stats maps defined above correspond to entries in the map
 // stats starting from the index MAX_VIPS. The max_entries of stats is
