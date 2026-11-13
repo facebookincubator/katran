@@ -2081,8 +2081,8 @@ lb_stats KatranLb::getLruMissStats() {
   return getLbStats(config_.maxVips + kLruMissOffset);
 }
 
-lb_stats KatranLb::getTcpRstLruMissStats() {
-  return getLbStats(config_.maxVips + kTcpRstLruMissOffset);
+lb_stats KatranLb::getTcpRstLruStats() {
+  return getLbStats(config_.maxVips + kTcpRstLruOffset);
 }
 
 lb_stats KatranLb::getLruFallbackStats() {

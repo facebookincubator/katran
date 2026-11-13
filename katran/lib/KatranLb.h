@@ -78,7 +78,7 @@ constexpr uint32_t kEgressDecapOffset = 20;
 constexpr uint32_t kGuePtbRelayedOffset = 22;
 constexpr uint32_t kGuePtbRelayTruncatedOffset = 23;
 constexpr uint32_t kGuePtbRelayNotNeededOffset = 24;
-constexpr uint32_t kTcpRstLruMissOffset = 25;
+constexpr uint32_t kTcpRstLruOffset = 25;
 
 // Flag value for egress decap destinations (must match DECAP_EGRESS in BPF)
 constexpr uint32_t kDecapEgress = 0x2;
@@ -592,11 +592,15 @@ class KatranLb {
   lb_stats getLruMissStats();
 
   /**
-   * @return struct lb_stats w/ total amount of non-syn tcp RSTs that missed
-   * the lru (v1; v2 unused). they are not in getLruMissStats().v2 but are in
-   * getLruStats().v2
+   * @return struct lb_stats w/ total amount of non-syn tcp RSTs to vips.
+   * v1: no flow state was found; they are not in getLruMissStats().v2 but are
+   * in getLruStats().v2.
+   * v2: routed by flow state (lru, global lru or tcp server id), including
+   * RSTs to an lru bypass vip that tcp server id or the global lru routed.
+   * v1 + v2 is every non-syn tcp RST to a vip; icmp errors quoting a tcp RST
+   * count too
    */
-  lb_stats getTcpRstLruMissStats();
+  lb_stats getTcpRstLruStats();
 
   /*
     @ return true if vip lru miss logging succeed else return false

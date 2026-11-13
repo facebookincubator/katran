@@ -333,8 +333,13 @@ v2 tracks misses for TCP non syns, excluding RSTs */
 #define GUE_PTB_RELAY_TRUNCATED_CNTR 23
 // PTBs whose mtu would not shrink the client's packet
 #define GUE_PTB_RELAY_NOT_NEEDED_CNTR 24
-// v1 tracks non-SYN TCP RST LRU misses, which LRU_MISS_CNTR does not count
-#define TCP_RST_LRU_MISS_CNTR 25
+/* non-SYN TCP RSTs to vips.
+v1 tracks RSTs for which no flow state was found; LRU_MISS_CNTR does not count
+them.
+v2 tracks RSTs routed by flow state: lru, global lru or tcp server id. tcp
+server id routing and the global lru do not check F_LRU_BYPASS, so an RST to an
+lru bypass vip can count here too */
+#define TCP_RST_LRU_CNTR 25
 
 // indice for all stats maps defined above correspond to entries in the map
 // stats starting from the index MAX_VIPS. The max_entries of stats is

@@ -688,6 +688,20 @@ incr_server_id_routing_stats(__u32 vip_num, bool newConn, bool misMatchInLRU) {
   }
 }
 
+__attribute__((__always_inline__)) static inline void incr_tcp_rst_lru_stats(
+    bool routed_by_flow_state) {
+  __u32 stats_key = MAX_VIPS + TCP_RST_LRU_CNTR;
+  struct lb_stats* rst_stats = bpf_map_lookup_elem(&stats, &stats_key);
+  if (!rst_stats) {
+    return;
+  }
+  if (routed_by_flow_state) {
+    rst_stats->v2 += 1;
+  } else {
+    rst_stats->v1 += 1;
+  }
+}
+
 __attribute__((__always_inline__)) static inline int check_udp_flow_migration(
     struct real_definition** dst,
     struct packet_description* pckt,
@@ -1066,12 +1080,7 @@ process_packet(struct xdp_md* xdp, __u64 nh_off, bool is_ipv6) {
           // A flow that lost its LRU entry still counts on its first non-RST
           // packet.
           if (pckt.flags & F_RST_SET) {
-            __u32 rst_stats_key = MAX_VIPS + TCP_RST_LRU_MISS_CNTR;
-            struct lb_stats* rst_stats =
-                bpf_map_lookup_elem(&stats, &rst_stats_key);
-            if (rst_stats) {
-              rst_stats->v1 += 1;
-            }
+            incr_tcp_rst_lru_stats(/*routed_by_flow_state=*/false);
           } else {
             lru_stats->v2 += 1;
           }
@@ -1088,6 +1097,8 @@ process_packet(struct xdp_md* xdp, __u64 nh_off, bool is_ipv6) {
 
       // lru misses (either new connection or lru is full and starts to trash)
       data_stats->v2 += 1;
+    } else if (pckt.flags & F_RST_SET) {
+      incr_tcp_rst_lru_stats(/*routed_by_flow_state=*/true);
     }
   }
 
