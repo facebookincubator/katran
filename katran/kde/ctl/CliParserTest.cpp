@@ -1,5 +1,3 @@
-// (c) Meta Platforms, Inc. and affiliates. Confidential and proprietary.
-
 #include <optional>
 
 #include <folly/portability/GTest.h>

@@ -1,9 +1,6 @@
-// (c) Meta Platforms, Inc. and affiliates. Confidential and proprietary.
-
 #pragma once
 
 #include <fmt/core.h>
-#include <folly/io/async/AsyncSignalHandler.h>
 #include <folly/json/dynamic.h>
 #include <folly/json/json.h>
 #include <folly/logging/xlog.h>
