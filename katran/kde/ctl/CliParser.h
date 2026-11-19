@@ -7,8 +7,6 @@
 
 namespace katran_de::ctl {
 class CliParser {
-  // Rejects values folly cannot parse, so install can convert without
-  // re-checking. Callers that reach the API directly validate separately.
   static const CLI::Validator& ipAddress() {
     static const CLI::Validator validator{
         [](const std::string& value) {
@@ -20,11 +18,11 @@ class CliParser {
     return validator;
   }
 
-  static void vipModeFlags(CLI::App* cmd, std::shared_ptr<InstallArgs> args) {
+  static void vipModeFlags(CLI::App* cmd, InstallArgs& args) {
     auto vipsEnabled =
         cmd->add_option(
                "--vips-enabled",
-               args->vipsEnabled,
+               args.vipsEnabled,
                "Comma separated list of vips to enable kde opts injection in SYN-ACK. If empty, no vips enabled. Max 8 vips.")
             // expected(0, 1) so that an explicit empty list (--vips-enabled=)
             // is accepted: in vip mode it means "inject for no vips at all".
@@ -32,10 +30,90 @@ class CliParser {
     auto vipsDisabled =
         cmd->add_option(
                "--vips-disabled",
-               args->vipsDisabled,
+               args.vipsDisabled,
                "Comma separated list of vips to disable kde opts injection in SYN-ACK. If empty, no vips disabled. Max 8 vips.")
             ->expected(0, 1);
     vipsEnabled->excludes(vipsDisabled);
+  }
+
+  static void
+  parseFlags(CLI::App* cmd, InstallArgs& installArgs, DirectEncapMode mode) {
+    cmd->add_option(
+           "--cgroup",
+           installArgs.cgroup,
+           "Cgroup path to install BPF sockops prog. Default assumes execution in Tupperware task environment.")
+        ->default_val("");
+    cmd->add_option(
+           "--iface",
+           installArgs.iface,
+           "Network interface to install encap BPF prog on. Defaults to eth0.")
+        ->default_val("eth0");
+    cmd->add_option(
+           "--thrift-port",
+           installArgs.thriftPort,
+           "Port for Thrift server to listen on. Use 0 to disable. Defaults to 0.")
+        ->default_val(0);
+    cmd->add_flag(
+           "--pin-bss",
+           installArgs.pin = true,
+           "Pin BPF BSS maps to bpffs. Uses LIBBPF_BPF_TOKEN_PATH if set, "
+           "else /sys/fs/bpf. Note: requires bpffs mount, not regular directory.")
+        ->default_val(false);
+    cmd->add_flag(
+           "--kde-port",
+           installArgs.kdePort = true,
+           "Determines whether kdePort 9887 is used. Defaults to GUE port 9886.")
+        ->default_val(false);
+    cmd->add_flag(
+        "--quiet",
+        installArgs.quiet,
+        "Skip stats printing, by default prints stats every second.");
+    cmd->add_flag(
+        "--details",
+        installArgs.details,
+        "Print detailed stats, by default print high level stats only.");
+    cmd->add_flag(
+        "--otel",
+        installArgs.otel,
+        "Export KDE stats through OpenTelemetry instead of fb303. Requires OTEL_EXPORTER_OTLP_ENDPOINT.");
+    cmd->add_flag(
+        "--check-jk",
+        installArgs.checkJK,
+        "Check if JK is enabled before installing KDE. Defaults to false.");
+
+    if (mode == DirectEncapMode::SERVER) {
+      cmd->add_option(
+             "--direct-ip", installArgs.directIp, "server's ip address")
+          ->required()
+          ->check(ipAddress());
+      cmd->add_option(
+             "--zones",
+             installArgs.serverZones,
+             "Comma separated list of supported KDE zones. Defaults to origin.")
+          ->default_val("origin");
+      vipModeFlags(cmd, installArgs);
+    } else {
+      std::map<std::string, int> map{
+          {"none", KDE_ZONE_NONE},
+          {"origin", KDE_ZONE_ORIGIN},
+          {"edge", KDE_ZONE_EDGE},
+          {"rl_corp", KDE_ZONE_RL_CORP},
+          {"cloud_cw", KDE_ZONE_CLOUD_CW}};
+      cmd->add_option(
+             "--zone",
+             installArgs.clientZone,
+             "client's KDE zone. Defaults to origin.")
+          ->default_val(static_cast<int>(KDE_ZONE_ORIGIN))
+          ->transform(CLI::CheckedTransformer(std::move(map)));
+      cmd->add_flag(
+          "--host-mode",
+          installArgs.hostMode,
+          "Serve all containers on the host from one instance: --iface is the host NIC and connections are tracked by tuple. Defaults to false.");
+      cmd->add_flag(
+          "--nat-mode",
+          installArgs.natMode,
+          "Client expected to run behind a NAT. Server echoes observed port along with direct ip, client TC will then rewrite inner sport to match it");
+    }
   }
 
  public:
@@ -46,97 +124,25 @@ class CliParser {
       DirectEncapMode mode,
       void ping(const PingArgs&) = nullptr) {
     auto gflagV = std::make_shared<int>(0);
-    auto handleGlobal = [=]() {
+    auto app = std::make_unique<CLI::App>("Katran DirectEncap CLI");
+    app->require_subcommand(1, 1);
+    app->set_help_all_flag("--help-all", "Print all options");
+    app->fallthrough(); // unknown flags in subcommands try with parent
+    app->add_option("-v,--v", *gflagV, "Set glog vlog level");
+    app->parse_complete_callback([=]() {
       if (*gflagV > 0) {
         gflags::SetCommandLineOption("minloglevel", "0");
         gflags::SetCommandLineOption("v", std::to_string(*gflagV).c_str());
       }
-    };
+    });
 
-    auto app = std::make_unique<CLI::App>("Katran DirectEncap CLI");
-    app->require_subcommand(1, 1);
-    app->set_help_all_flag("--help-all", "Print all options");
-    app->add_option("-v,--v", *gflagV, "Set glog vlog level")->default_val(0);
-    app->parse_complete_callback([=]() { handleGlobal(); });
-
-    // TODO(shah256): only one client uses "install" subcommand. move it to "run
-    // --detach" and remove this.
     {
       auto installArgs = std::make_shared<InstallArgs>();
       CLI::App* installCmd = app->add_subcommand(
           "install", "Installs Katran DirectEncap BPF programs.");
-      installCmd
-          ->add_option(
-              "--cgroup",
-              installArgs->cgroup,
-              "Cgroup path to install BPF sockops prog. Default assumes execution in Tupperware task environment.")
-          ->default_val("");
-      installCmd
-          ->add_option(
-              "--iface",
-              installArgs->iface,
-              "Network interface to install encap BPF prog on. Defaults to eth0.")
-          ->default_val("eth0");
-      if (mode == DirectEncapMode::SERVER) {
-        installCmd
-            ->add_option(
-                "--direct-ip", installArgs->directIp, "server's ip address")
-            ->required()
-            ->check(ipAddress());
-        installCmd
-            ->add_option(
-                "--zones",
-                installArgs->serverZones,
-                "Comma separated list of supported KDE zones. Defaults to origin.")
-            ->default_val("origin");
-        vipModeFlags(installCmd, installArgs);
-      } else {
-        std::map<std::string, int> map{
-            {"none", KDE_ZONE_NONE},
-            {"origin", KDE_ZONE_ORIGIN},
-            {"edge", KDE_ZONE_EDGE},
-            {"rl_corp", KDE_ZONE_RL_CORP},
-            {"cloud_cw", KDE_ZONE_CLOUD_CW}};
-        installCmd
-            ->add_option(
-                "--zone",
-                installArgs->clientZone,
-                "client's KDE zone. Defaults to origin.")
-            ->default_val(static_cast<int>(KDE_ZONE_ORIGIN))
-            ->transform(CLI::CheckedTransformer(std::move(map)));
-        installCmd->add_flag(
-            "--check-jk",
-            installArgs->checkJK,
-            "Check if JK is enabled before installing KDE. Defaults to false.");
-        installCmd->add_flag(
-            "--host-mode",
-            installArgs->hostMode,
-            "Serve all containers on the host from one instance: --iface is the host NIC and connections are tracked by tuple. Defaults to false.");
-        installCmd->add_flag(
-            "--nat-mode",
-            installArgs->natMode,
-            "Client expected to run behind a NAT. Server echoes observed port along with direct ip, client TC will then rewrite inner sport to match it");
-      }
-      installCmd
-          ->add_flag(
-              "--pin-bss",
-              installArgs->pin = true,
-              "Pin BPF BSS maps to bpffs. Uses LIBBPF_BPF_TOKEN_PATH if set, "
-              "else /sys/fs/bpf. Note: requires bpffs mount, not regular directory.")
-          ->default_val(false);
-      installCmd
-          ->add_flag(
-              "--kde-port",
-              installArgs->kdePort = true,
-              "Determines whether kdePort 9887 is used. Defaults to GUE port 9886.")
-          ->default_val(false);
-      installCmd->add_option("-v,--v", *gflagV, "Set glog vlog level")
-          ->default_val(0);
-      installCmd->callback([=]() {
-        handleGlobal();
-        installArgs->detach = true;
-        install(*installArgs);
-      });
+      parseFlags(installCmd, *installArgs, mode);
+      installArgs->detach = true;
+      installCmd->callback([=]() { install(*installArgs); });
     }
 
     {
@@ -144,96 +150,9 @@ class CliParser {
       CLI::App* runCmd = app->add_subcommand(
           "run",
           "Side-car mode, installs Katran DirectEncap BPF programs and keep running until Ctrl+C'ed, printing stats optionally. Removes BPF progs on exit.");
-      runCmd
-          ->add_option(
-              "--cgroup",
-              runArgs->cgroup,
-              "Cgroup path to install BPF sockops prog. Default assumes execution in Tupperware task environment.")
-          ->default_val("");
-      runCmd
-          ->add_option(
-              "--iface",
-              runArgs->iface,
-              "Network interface to install encap BPF prog on. Defaults to eth0.")
-          ->default_val("eth0");
-      runCmd->add_flag(
-          "--check-jk",
-          runArgs->checkJK,
-          "Check if JK is enabled before installing KDE and continue checking to turn off. Defaults to false.");
-      if (mode == DirectEncapMode::SERVER) {
-        runCmd
-            ->add_option(
-                "--direct-ip", runArgs->directIp, "server's ip address")
-            ->required()
-            ->check(ipAddress());
-        runCmd
-            ->add_option(
-                "--zones",
-                runArgs->serverZones,
-                "Comma separated list of supported KDE zones. Defaults to origin.")
-            ->default_val("origin");
-        vipModeFlags(runCmd, runArgs);
-      } else {
-        std::map<std::string, int> map{
-            {"none", KDE_ZONE_NONE},
-            {"origin", KDE_ZONE_ORIGIN},
-            {"edge", KDE_ZONE_EDGE},
-            {"rl_corp", KDE_ZONE_RL_CORP},
-            {"cloud_cw", KDE_ZONE_CLOUD_CW}};
-        runCmd
-            ->add_option(
-                "--zone",
-                runArgs->clientZone,
-                "client's KDE zone. Defaults to origin.")
-            ->default_val(static_cast<int>(KDE_ZONE_ORIGIN))
-            ->transform(CLI::CheckedTransformer(std::move(map)));
-        runCmd
-            ->add_flag(
-                "--kde-port",
-                runArgs->kdePort = true,
-                "Determines whether kdePort 9887 is used. Defaults to GUE port 9886.")
-            ->default_val(false);
-        runCmd->add_flag(
-            "--host-mode",
-            runArgs->hostMode,
-            "Serve all containers on the host from one instance: --iface is the host NIC and connections are tracked by tuple. Defaults to false.");
-        runCmd->add_flag(
-            "--nat-mode",
-            runArgs->natMode,
-            "Client expected to run behind a NAT. Server echoes observed port along with direct ip, client TC will then rewrite inner sport to match it");
-      }
-      runCmd->add_flag(
-          "--quiet",
-          runArgs->quiet,
-          "Skip stats printing, by default prints stats every second.");
-      runCmd->add_flag(
-          "--otel",
-          runArgs->otel,
-          "Export KDE stats through OpenTelemetry instead of fb303. Requires OTEL_EXPORTER_OTLP_ENDPOINT.");
-      runCmd->add_flag(
-          "--details",
-          runArgs->details,
-          "Print detailed stats, by default print high level stats only.");
-      runCmd
-          ->add_option(
-              "--thrift-port",
-              runArgs->thriftPort,
-              "Port for Thrift server to listen on. Use 0 to disable. Defaults to 0.")
-          ->default_val(0);
-      runCmd->add_option("-v,--v", *gflagV, "Set glog vlog level")
-          ->default_val(0);
-      runCmd
-          ->add_flag(
-              "--pin-bss",
-              runArgs->pin = true,
-              "Pin BPF BSS maps to bpffs. Uses LIBBPF_BPF_TOKEN_PATH if set, "
-              "else /sys/fs/bpf. Note: requires bpffs mount, not regular directory.")
-          ->default_val(false);
-      runCmd->callback([=]() {
-        handleGlobal();
-        runArgs->detach = false;
-        install(*runArgs);
-      });
+      parseFlags(runCmd, *runArgs, mode);
+      runArgs->detach = false;
+      runCmd->callback([=]() { install(*runArgs); });
     }
 
     {
@@ -254,10 +173,7 @@ class CliParser {
           ->default_val("eth0");
       cleanCmd->add_option("-v,--v", *gflagV, "Set glog vlog level")
           ->default_val(0);
-      cleanCmd->callback([=]() {
-        handleGlobal();
-        clean(*cleanArgs);
-      });
+      cleanCmd->callback([=]() { clean(*cleanArgs); });
     }
 
     {
@@ -306,10 +222,7 @@ class CliParser {
           "Deprecated, kept only for back-compat: the version check is already off by default, so this is a no-op (and still forces it off). Use --version-check to opt in.");
       statsCmd->add_option("-v,--v", *gflagV, "Set glog vlog level")
           ->default_val(0);
-      statsCmd->callback([=]() {
-        handleGlobal();
-        stats(*statsArgs, /*statusCheck=*/false);
-      });
+      statsCmd->callback([=]() { stats(*statsArgs, /*statusCheck=*/false); });
     }
 
     {
@@ -340,7 +253,6 @@ class CliParser {
       statusCmd->add_option("-v,--v", *gflagV, "Set glog vlog level")
           ->default_val(0);
       statusCmd->callback([=]() {
-        handleGlobal();
         statusArgs->limit = 2; // check for errors for 2 seconds
         stats(*statusArgs, /*statusCheck=*/true);
       });
@@ -381,10 +293,7 @@ class CliParser {
           ->default_val("");
       pingCmd->add_option("-v,--v", *gflagV, "Set glog vlog level")
           ->default_val(0);
-      pingCmd->callback([=]() {
-        handleGlobal();
-        ping(*pingArgs);
-      });
+      pingCmd->callback([=]() { ping(*pingArgs); });
     }
 
     return app;

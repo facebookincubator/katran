@@ -133,10 +133,6 @@ void ping(const PingArgs& pingArgs) {
 }
 
 void install(const InstallArgs& installArgs) {
-  if (!installArgs.directIp.empty()) {
-    LOG(ERROR) << "Ip not used for client";
-    exit(1);
-  }
   folly::ScopedEventBaseThread evbThread;
   folly::CallbackAsyncSignalHandler signalHandler{
       evbThread.getEventBase(), [&](int) noexcept {
@@ -147,9 +143,7 @@ void install(const InstallArgs& installArgs) {
   signalHandler.registerSignalHandler(SIGTERM);
   signalHandler.registerSignalHandler(SIGINT);
 
-  // InstallArgs stays CLI-shaped and KdeInstallParams stays CLI-free, so the
-  // API keeps working for callers without a command line. The conversion below
-  // is the single translation point between them.
+  // translate cli params to api
   katran_de::KdeInstallParams params{
       .checkJK = installArgs.checkJK,
       .detach = installArgs.detach,
@@ -162,6 +156,7 @@ void install(const InstallArgs& installArgs) {
       .otelStats = installArgs.otel,
       .natMode = installArgs.natMode,
   };
+
   if (!katran_de::DirectEncapClientApi::installWithParams(params)) {
     LOG(ERROR) << "Failed to install Katran DirectEncap";
     exit(1);
