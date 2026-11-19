@@ -17,6 +17,7 @@
 #include "BaseBpfAdapter.h"
 #include "Netlink.h"
 
+#include <bpf/libbpf_version.h>
 #include <fmt/core.h>
 #include <folly/CppAttributes.h>
 #include <folly/FileUtil.h>
@@ -46,6 +47,13 @@ extern "C" {
 #include <sys/types.h>
 #include <unistd.h>
 }
+
+// `bpf_token_create`, `bpf_map_create_opts::token_fd` and `BPF_F_TOKEN_FD`
+// arrived in libbpf 1.4. The open source build can link the distro's libbpf,
+// and Ubuntu 24.04 still ships 1.3, where these do not compile.
+#define KATRAN_HAVE_BPF_TOKEN  \
+  (LIBBPF_MAJOR_VERSION > 1 || \
+   (LIBBPF_MAJOR_VERSION == 1 && LIBBPF_MINOR_VERSION >= 4))
 
 namespace {
 // netlink/tc magic constants (from iproute2/tc source code)
@@ -243,10 +251,12 @@ int BaseBpfAdapter::createNamedBpfMap(
       .map_flags = map_flags | (numa_node >= 0 ? BPF_F_NUMA_NODE : 0),
       .numa_node = (__u32)numa_node);
 
+#if KATRAN_HAVE_BPF_TOKEN
   if (bpfTokenFd_ >= 0) {
     opts.token_fd = bpfTokenFd_;
     opts.map_flags |= BPF_F_TOKEN_FD;
   }
+#endif
 
   return bpf_map_create(
       static_cast<enum bpf_map_type>(type),
@@ -931,6 +941,12 @@ bool BaseBpfAdapter::isBatchOpsEnabled() const {
 }
 
 int BaseBpfAdapter::setBpfTokenFromFilePath(const char* path) {
+#if !KATRAN_HAVE_BPF_TOKEN
+  LOG(ERROR) << "BPF tokens need libbpf 1.4 or newer, built against "
+             << LIBBPF_MAJOR_VERSION << "." << LIBBPF_MINOR_VERSION
+             << "; ignoring token path: " << path;
+  return -1;
+#else
   LOG(INFO) << "bpf token path: " << path;
   auto bpfFsFd = getDirFd(path);
   if (bpfFsFd < 0) {
@@ -948,6 +964,7 @@ int BaseBpfAdapter::setBpfTokenFromFilePath(const char* path) {
   bpfTokenFd_ = tokenFd;
   LOG(INFO) << "Successfully created BPF token with fd: " << tokenFd;
   return 0;
+#endif
 }
 
 int64_t BaseBpfAdapter::bpfTokenFd_ = -1;
