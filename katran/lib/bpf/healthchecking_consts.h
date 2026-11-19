@@ -53,6 +53,10 @@
 #define HC_SRC_MAC_POS 0
 #define HC_DST_MAC_POS 1
 
-#define HC_MAX_DST 100
+// Max entries in each route table: hc_dst_reals_map and hc_src_reals_map.
+// A DSR encap process adds one source route per VIP:port it serves.
+#ifndef HC_MAX_DST
+#define HC_MAX_DST 4096
+#endif
 
 #endif // of __HEALTHCHECKING_CONSTS_H
