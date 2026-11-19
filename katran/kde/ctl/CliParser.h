@@ -1,11 +1,66 @@
 #pragma once
 
+#include <cstdint>
+#include <optional>
+#include <string>
+
 #include <CLI/CLI.hpp>
 #include <folly/IPAddress.h>
-#include "katran/kde/ctl/Commands.h"
+#include "katran/facebook/direct_encap/api/DirectEncapApiBase.h"
 #include "katran/kde/ctl/Utils.h"
 
 namespace katran_de::ctl {
+
+struct InstallArgs {
+  std::string cgroup;
+  std::string iface;
+  std::string directIp;
+  int clientZone{KDE_ZONE_NONE};
+  std::string serverZones;
+  bool detach{false};
+  bool quiet{false};
+  bool details{false};
+  int thriftPort{0};
+  bool checkJK{false};
+  bool pin{false};
+  bool kdePort{false};
+  bool hostMode{false};
+  bool otel{false};
+  bool natMode{false};
+  // vip mode flags
+  std::optional<std::string> vipsEnabled;
+  std::optional<std::string> vipsDisabled;
+};
+
+struct CleanArgs {
+  std::string cgroup;
+  std::string iface;
+};
+
+struct PingArgs {
+  std::string ipAddress;
+  uint16_t port{0};
+  int count{0};
+  std::string cgroupPath;
+  int threadCount{0};
+};
+
+// single translation point from client CLI args to API params
+inline katran_de::KdeInstallParams toClientParams(const InstallArgs& args) {
+  return {
+      .checkJK = args.checkJK,
+      .detach = args.detach,
+      .cgroupPath = args.cgroup,
+      .iface = args.iface,
+      .clientZone = static_cast<kde_zone>(args.clientZone),
+      .pin = args.pin,
+      .kdePort = args.kdePort,
+      .hostMode = args.hostMode,
+      .otelStats = args.otel,
+      .natMode = args.natMode,
+  };
+}
+
 class CliParser {
   static const CLI::Validator& ipAddress() {
     static const CLI::Validator validator{
@@ -178,6 +233,7 @@ class CliParser {
 
     {
       auto statsArgs = std::make_shared<StatsArgs>();
+      statsArgs->mode = mode;
       CLI::App* statsCmd = app->add_subcommand(
           "stats", "Prints stats from already installed KDE BPF programs.");
       statsCmd
@@ -227,6 +283,7 @@ class CliParser {
 
     {
       auto statusArgs = std::make_shared<StatsArgs>();
+      statusArgs->mode = mode;
       CLI::App* statusCmd = app->add_subcommand(
           "status",
           "Checks if KDE BPF programs are installed successfully and runs with no errors (at the moment of check). Exit code 0 means success, 1 means failure.");
@@ -266,7 +323,8 @@ class CliParser {
       pingCmd
           ->add_option(
               "ip", pingArgs->ipAddress, "Destination IP address to ping")
-          ->required();
+          ->required()
+          ->check(ipAddress());
       pingCmd
           ->add_option(
               "-p,--port",

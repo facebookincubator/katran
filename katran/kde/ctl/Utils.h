@@ -4,7 +4,9 @@
 #include <folly/json/dynamic.h>
 #include <folly/json/json.h>
 #include <folly/logging/xlog.h>
+#include <unistd.h>
 #include <iostream>
+#include <optional>
 #include <string>
 #include "katran/facebook/cpr/kde/BaseDirectEncap.h"
 #include "katran/facebook/cpr/kde/KdeBpfUtil.h"
@@ -241,5 +243,118 @@ class StatsPrinter {
   std::optional<kde_tc_stats> tc_ = std::nullopt; // used only in client mode.
   DirectEncapMode mode_;
 };
+
+// Reads stats of a KDE that another process installed, by finding its BPF
+// maps through the cgroup (sockops) and, for clients, the interface (TC).
+struct StatsArgs {
+  std::string cgroup;
+  std::string iface;
+  DirectEncapMode mode{DirectEncapMode::CLIENT};
+  // number of samples to print, 0 prints forever; ignored with json
+  int limit{0};
+  bool details{false};
+  // The version check is off by default and opt-in via --version-check:
+  // KDE_PROG_VERSION is never bumped so it guards nothing in practice, and its
+  // cgroup lookup used to fail spuriously. --skip-version-check is deprecated,
+  // kept only for back-compat; it is a no-op (and still forces the check off).
+  bool versionCheck{false};
+  bool skipVersionCheck{false};
+  bool json{false};
+  // with json: 0 prints raw counters once, N prints the delta over N seconds
+  int jsonDeltaSec{0};
+};
+
+// Prints stats of the installed KDE. With statusCheck, also reports whether it
+// saw errors. Returns the process exit code: 0 on success, 1 if KDE is not
+// installed, its version mismatches, or (with statusCheck) it has errors.
+inline int reportStats(const StatsArgs& args, bool statusCheck) {
+  const bool client = args.mode == DirectEncapMode::CLIENT;
+  if (args.skipVersionCheck) {
+    XLOG(WARN)
+        << "--skip-version-check is deprecated and a no-op; the version check is "
+           "off by default. Remove it; use --version-check to opt in.";
+  }
+  auto soMap = katran_tpr::KdeBpfUtil::findSockOpsBssMap(args.cgroup);
+  if (soMap.hasError()) {
+    XLOG(ERR) << "Failed to find Katran DirectEncap sockops map: "
+              << soMap.error().what();
+    return 1;
+  }
+  std::optional<katran_tpr::TcBssMap> tcMap;
+  if (client) {
+    auto maybeTcMap = katran_tpr::KdeBpfUtil::findTcBssMap(args.iface);
+    if (maybeTcMap.hasError()) {
+      XLOG(ERR) << "Failed to find Katran DirectEncap TC map: "
+                << maybeTcMap.error().what();
+      return 1;
+    }
+    tcMap = std::move(*maybeTcMap);
+  }
+
+  if (args.versionCheck && !args.skipVersionCheck) {
+    auto currentVer = katran_tpr::KdeBpfUtil::getCurrentKdeProgVersion();
+    auto soVer = katran_tpr::KdeBpfUtil::findSockOpsVersion(args.cgroup);
+    if (soVer.hasError()) {
+      XLOG(ERR) << "Failed to find Katran DirectEncap sockops version: "
+                << soVer.error().what();
+      return 1;
+    }
+    if (*soVer != currentVer) {
+      XLOG(ERR)
+          << "Katran DirectEncap bpf progs version mismatch, katran_de_ctl= "
+          << currentVer << ", installed so= " << *soVer;
+      return 1;
+    }
+    if (client) {
+      auto tcVer = katran_tpr::KdeBpfUtil::findTcVersion(args.iface);
+      if (tcVer.hasError()) {
+        XLOG(ERR) << "Failed to find Katran DirectEncap TC version: "
+                  << tcVer.error().what();
+        return 1;
+      }
+      if (*tcVer != currentVer) {
+        XLOG(ERR)
+            << "Katran DirectEncap bpf progs version mismatch, katran_de_ctl= "
+            << currentVer << ", installed tc= " << *tcVer;
+        return 1;
+      }
+    }
+    XLOG(INFO) << "Katran DirectEncap bpf progs version matched: "
+               << KDE_PROG_VERSION;
+  }
+
+  StatsPrinter printer(args.details, args.json, args.jsonDeltaSec, args.mode);
+  for (int count = 0;; count++) {
+    auto so = katran_tpr::KdeBpfUtil::aggregateSoStats(*soMap->map_);
+    if (tcMap) {
+      printer.printNewStats(
+          so, katran_tpr::KdeBpfUtil::aggregateTcStats(*tcMap->map_));
+    } else {
+      printer.printNewStats(so);
+    }
+    if (args.json) {
+      // raw counters need one sample, deltas need two jsonDeltaSec apart
+      if (args.jsonDeltaSec == 0 || count > 0) {
+        break;
+      }
+      sleep(args.jsonDeltaSec);
+    } else {
+      if (args.limit > 0 && count >= args.limit) {
+        break;
+      }
+      sleep(1);
+    }
+  }
+
+  if (!statusCheck) {
+    return 0;
+  }
+  if (printer.totalErrors() > 0) {
+    XLOG(ERR) << "Katran DirectEncap is installed but has errors";
+    return 1;
+  }
+  XLOG(INFO) << "Katran DirectEncap is installed and running with no errors";
+  return 0;
+}
 
 } // namespace katran_de::ctl
