@@ -5,8 +5,8 @@ add_executable(xdpdecap_tester
 )
 
 target_link_libraries(xdpdecap_tester
-    "${GFLAGS}"
-    "${PTHREAD}"
+    ${LIBGFLAGS_LIBRARY}
+    Threads::Threads
     bpftester
     decap
 )

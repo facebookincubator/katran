@@ -1,10 +1,3 @@
-cmake_minimum_required (VERSION 3.9)
-set(KATRAN_INCLUDE_DIR "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../../>")
-
-find_package(Glog REQUIRED)
-find_package(folly CONFIG REQUIRED)
-find_package(Threads)
-
 add_library(decap STATIC
     XdpDecap.cpp
     XdpDecap.h
@@ -19,7 +12,7 @@ target_link_libraries(decap
 
 target_include_directories(
   decap PUBLIC
-  ${GFLAGS_INCLUDE_DIR}
+  ${LIBGFLAGS_INCLUDE_DIR}
   ${KATRAN_INCLUDE_DIR}
 )
 

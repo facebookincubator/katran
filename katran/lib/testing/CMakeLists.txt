@@ -2,8 +2,6 @@ if(NOT BUILD_TESTS)
   return()
 endif()
 
-include(KatranTest)
-
 add_library(base64_helpers STATIC
     utils/Base64Helpers.h
     utils/Base64Helpers.cpp
@@ -11,14 +9,13 @@ add_library(base64_helpers STATIC
 
 target_link_libraries(base64_helpers
     "glog::glog"
-    "${GFLAGS}"
+    ${LIBGFLAGS_LIBRARY}
     "Folly::folly"
     "katranlb"
 )
 
 target_include_directories(
   base64_helpers PUBLIC
-  "${GTEST_INCLUDE_DIR}"
   "${KATRAN_INCLUDE_DIR}"
 )
 
@@ -61,13 +58,6 @@ katran_add_test(TARGET base64helpers-tests
   DEPENDS
   base64_helpers
   katranlb
-  ${GTEST}
-  "glog::glog"
-  ${GFLAGS}
-  "Folly::folly"
-  ${LIBUNWIND}
-  INCLUDES
-  base64_helpers
 )
 
 add_library(katran_test_provision STATIC
@@ -103,13 +93,10 @@ target_link_libraries(katran_tester
   katran_test_provision
   katran_test_util
   CLI11::CLI11
-  ${GFLAGS}
-  ${GTEST}
+  ${LIBGFLAGS_LIBRARY}
 )
 
 target_include_directories(katran_tester PRIVATE
   ${BPF_INCLUDE_DIRS}
-  ${GTEST_INCLUDE_DIR}
-  ${FOLLY_INCLUDE_DIR}
   ${KATRAN_INCLUDE_DIR}
 )

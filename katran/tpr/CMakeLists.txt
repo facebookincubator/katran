@@ -1,16 +1,8 @@
-cmake_minimum_required (VERSION 3.9)
-set(KATRAN_TPR_INCLUDE_DIR "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../../>")
-
-find_package(Glog REQUIRED)
-find_package(folly CONFIG REQUIRED)
-find_package(Threads)
-
 add_subdirectory(bpf_util)
 
-set(LIBBPF_INCLUDE_DIRS "${LIB_BPF_PREFIX}/include")
-set(LIBBPF_LIBRARIES "${LIB_BPF_PREFIX}/lib")
-set(BPFOBJECT_VMLINUX_H "bpf/vmlinux/vmlinux.h")
-set(BPFOBJECT_BPFTOOL_EXE "${CMAKE_INSTALL_PREFIX}/bin/bpftool")
+set(LIBBPF_INCLUDE_DIRS "${BPF_INCLUDEDIR}")
+set(LIBBPF_LIBRARIES "${BPF_LINK_LIBRARIES}")
+set(BPFOBJECT_VMLINUX_H "${CMAKE_CURRENT_SOURCE_DIR}/bpf/vmlinux.h")
 set(BPFOBJECT_EXTRA_DEFINES "-DKATRAN_CMAKE_BUILD")
 find_package(BpfObject REQUIRED)
 
@@ -35,6 +27,14 @@ target_link_libraries(katran_tpr
 
 target_include_directories(
   katran_tpr PUBLIC
-  ${GFLAGS_INCLUDE_DIR}
-  ${KATRAN_TPR_INCLUDE_DIR}
+  ${LIBGFLAGS_INCLUDE_DIR}
+  ${KATRAN_INCLUDE_DIR}
 )
+
+# TcpPktRouter.h includes the skeleton as tpr.skel.h.
+add_custom_command(
+  OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/tpr.skel.h"
+  COMMAND "${CMAKE_COMMAND}" -E copy tpr_bpf.skel.h tpr.skel.h
+  DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/tpr_bpf.skel.h"
+)
+target_sources(katran_tpr PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/tpr.skel.h")

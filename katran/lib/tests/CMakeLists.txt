@@ -1,16 +1,8 @@
-# find libraries
-find_library(CHHELPERS chhelpers)
-find_path(CHHELPERS_INCLUDE_DIR chhelpers)
-include(KatranTest)
-
 katran_add_test(TARGET iphelpers-tests
   SOURCES
   IpHelpersTest.cpp
   DEPENDS
   iphelpers
-  ${GTEST}
-  ${PTHREAD}
-  "Folly::folly"
 )
 
 katran_add_test(TARGET chhelpers-tests
@@ -18,8 +10,6 @@ katran_add_test(TARGET chhelpers-tests
   CHHelpersTest.cpp
   DEPENDS
   katranlb
-  ${GTEST}
-  ${PTHREAD}
 )
 
 katran_add_test(TARGET libkatran-tests
@@ -27,9 +17,6 @@ katran_add_test(TARGET libkatran-tests
   KatranLbTest.cpp
   DEPENDS
   katranlb
-  ${GTEST}
-  ${PTHREAD}
-  "Folly::folly"
 )
 
 katran_add_test(TARGET vip-tests
@@ -37,9 +24,6 @@ katran_add_test(TARGET vip-tests
   VipTest.cpp
   DEPENDS
   katranlb
-  ${GTEST}
-  ${PTHREAD}
-  "Folly::folly"
 )
 
 katran_add_test(TARGET eventpipe-callback-test
@@ -47,10 +31,6 @@ katran_add_test(TARGET eventpipe-callback-test
   EventPipeCallbackTest.cpp
   DEPENDS
   katranlb
-  ${GTEST}
-  ${GMOCK}
-  ${PTHREAD}
-  "Folly::folly"
 )
 
 katran_add_test(TARGET monitoring-service-core-test
@@ -58,9 +38,6 @@ katran_add_test(TARGET monitoring-service-core-test
   MonitoringServiceCoreTest.cpp
   DEPENDS
   katranlb
-  ${GTEST}
-  ${PTHREAD}
-  "Folly::folly"
 )
 
 katran_add_test(TARGET pcap-writer-test
@@ -68,8 +45,4 @@ katran_add_test(TARGET pcap-writer-test
   PcapWriterTest.cpp
   DEPENDS
   katranlb
-  ${GMOCK}
-  ${GTEST}
-  ${PTHREAD}
-  "Folly::folly"
 )

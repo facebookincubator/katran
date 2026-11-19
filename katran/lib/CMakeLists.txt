@@ -1,28 +1,3 @@
-find_library(LIBELF libelf.a elf)
-# To support build for katran with user-supplied libbpf path
-set(LIB_BPF_PREFIX "" CACHE STRING "USER Supplied Prefix for libppf path")
-if ( LIB_BPF_PREFIX )
-  set(ENV{PKG_CONFIG_PATH} "$ENV{PKG_CONFIG_PATH}:${LIB_BPF_PREFIX}/lib/pkgconfig")
-endif()
-
-# Look for libbpf.  It is important to use its pkg-config file as that is
-# responsible for locating its libelf dependency.
-find_package(PkgConfig REQUIRED)
-pkg_check_modules(BPF REQUIRED libbpf)
-add_library(Bpf INTERFACE IMPORTED)
-set_property(TARGET Bpf PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${BPF_INCLUDEDIR})
-if ( LIB_BPF_PREFIX )
-  set(BPF_LINK_LIBRARIES "${LIB_BPF_PREFIX}/lib/libbpf.a")
-endif()
-set_property(TARGET Bpf PROPERTY INTERFACE_LINK_LIBRARIES ${BPF_LINK_LIBRARIES})
-set_property(TARGET Bpf PROPERTY INTERFACE_LINK_OPTIONS ${BPF_STATIC_LDFLAGS})
-set_property(TARGET Bpf PROPERTY INTERFACE_COMPILE_OPTIONS ${BPF_STATIC_CFLAGS_OTHER})
-
-find_library(LIBMNL_LIBRARY mnl)
-find_path(LIBMNL_INCLUDE_DIR libmnl)
-find_library(LIBZ_LIBRARY z)
-find_library(LIBZ z)
-
 add_library(murmur3 STATIC
     MurmurHash3.h
     MurmurHash3.cpp
@@ -54,12 +29,11 @@ add_library(iphelpers STATIC
 target_link_libraries(iphelpers
     Folly::folly
     "glog::glog"
-    "${GFLAGS}"
+    ${LIBGFLAGS_LIBRARY}
 )
 
 target_include_directories(
   iphelpers PUBLIC
-  ${FOLLY_INCLUDE_DIR}
   ${KATRAN_INCLUDE_DIR}
 )
 
@@ -80,22 +54,20 @@ add_library(bpfadapter STATIC
 target_link_libraries(bpfadapter
   PUBLIC
     ${BPF_LINK_LIBRARIES}
-    ${LIBELF}
-    ${ZSTD_LIBRARIES}
+    ${LIBELF_LINK_LIBRARIES}
+    ${ZLIB_LIBRARIES}
+    ${ZSTD_LINK_LIBRARIES}
+    ${LIBMNL_LINK_LIBRARIES}
     glog::glog
-    ${PTHREAD}
-    ${LIBZ}
+    Threads::Threads
     Folly::folly
-    ${LIBMNL_LIBRARY}
 )
 
 target_include_directories(
   bpfadapter PUBLIC
   ${BPF_INCLUDE_DIRS}
-  ${FOLLY_INCLUDE_DIR}
   ${KATRAN_INCLUDE_DIR}
-  ${LIBMNL_INCLUDE_DIR}
-  ${ZSTD_INCLUDE_DIRS}
+  ${LIBMNL_INCLUDE_DIRS}
 )
 
 add_library(pcapwriter STATIC
@@ -122,8 +94,8 @@ add_library(pcapwriter STATIC
 set(PCAPWRITER_DEPS
     "-Wl,--start-group"
     glog::glog
-    ${PTHREAD}
-    ${LIBZ}
+    Threads::Threads
+    ${ZLIB_LIBRARIES}
     Folly::folly
     "-Wl,--end-group"
 )
@@ -148,7 +120,6 @@ target_link_libraries(katransimulator
 
 target_include_directories(
   pcapwriter PUBLIC
-  ${FOLLY_INCLUDE_DIR}
   ${KATRAN_INCLUDE_DIR}
 )
 
@@ -178,15 +149,14 @@ target_link_libraries(katranlb
     iphelpers
     pcapwriter
     katransimulator
-    ${GFLAGS}
-    ${PTHREAD}
+    ${LIBGFLAGS_LIBRARY}
+    Threads::Threads
     "-Wl,--end-group"
 )
 
 target_include_directories(
   katranlb PUBLIC
   ${BPF_INCLUDE_DIRS}
-  ${FOLLY_INCLUDE_DIR}
   ${KATRAN_INCLUDE_DIR}
 )
 
@@ -202,43 +172,34 @@ target_link_libraries(mac_helpers
 
 target_include_directories(
   mac_helpers PUBLIC
-  ${FOLLY_INCLUDE_DIR}
   ${KATRAN_INCLUDE_DIR}
 )
 
- add_executable(xdproot xdproot.cpp)
+add_executable(xdproot xdproot.cpp)
 
- add_dependencies(
-   xdproot
-   bpfadapter
- )
-
- target_link_libraries(xdproot
+target_link_libraries(xdproot
   PUBLIC
     bpfadapter
-    ${BPF_LINK_LIBRARIES}
-    ${LIBELF}
-    ${GFLAGS_LIBRARIES}
+    ${LIBGFLAGS_LIBRARY}
 )
 
- target_include_directories(
+target_include_directories(
   xdproot PUBLIC
-  ${GFLAGS_INCLUDE_DIR}
+  ${LIBGFLAGS_INCLUDE_DIR}
   ${KATRAN_INCLUDE_DIR}
-  ${BPF_INCLUDE_DIRS}
 )
 
 add_executable(maglev_integration_test maglev_integration_test.cpp)
 
 target_link_libraries(maglev_integration_test
     chhelpers
-    ${GFLAGS_LIBRARIES}
-    "${PTHREAD}"
+    ${LIBGFLAGS_LIBRARY}
+    Threads::Threads
 )
 
 target_include_directories(
   maglev_integration_test PUBLIC
-  ${GFLAGS_INCLUDE_DIR}
+  ${LIBGFLAGS_INCLUDE_DIR}
   ${KATRAN_INCLUDE_DIR}
 )
 
