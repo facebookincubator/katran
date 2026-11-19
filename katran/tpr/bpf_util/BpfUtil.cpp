@@ -7,7 +7,6 @@
 #include <folly/ScopeGuard.h>
 #include <folly/portability/SysResource.h>
 #include <folly/portability/Unistd.h>
-#include <katran/facebook/Flags.h>
 
 #include <errno.h>
 #include <glog/logging.h>
@@ -37,7 +36,7 @@ SystemMaybe<folly::Unit> init() noexcept {
   VLOG(1) << "Enabled libbpf strict mode";
   libbpf_set_strict_mode(LIBBPF_STRICT_ALL);
 
-  return FLAGS_set_rlimit_memlock ? setRLimit() : noSystemError();
+  return noSystemError();
 }
 
 SystemMaybe<folly::Unit> setRLimit() noexcept {
