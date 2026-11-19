@@ -10,8 +10,8 @@
 #include <thrift/lib/cpp2/util/ScopedServerThread.h>
 
 #include "katran/facebook/cpr/kde/ClientDirectEncap.h"
-#include "katran/facebook/direct_encap/api/DirectEncapClientApi.h"
 #include "katran/facebook/direct_encap/katran_de_ctl/KdePinger.h"
+#include "katran/kde/api/DirectEncapClientApi.h"
 #include "katran/kde/ctl/CliParser.h"
 #include "katran/kde/ctl/KatranDeThrift.h"
 #include "katran/kde/ctl/Utils.h"
@@ -32,8 +32,18 @@ void install(const InstallArgs& installArgs) {
   signalHandler.registerSignalHandler(SIGTERM);
   signalHandler.registerSignalHandler(SIGINT);
 
-  if (!katran_de::DirectEncapClientApi::installWithParams(
-          toClientParams(installArgs))) {
+  katran_de::KdeInstallParams apiArgs{
+      .detach = installArgs.detach,
+      .cgroupPath = installArgs.cgroup,
+      .iface = installArgs.iface,
+      .clientZone = static_cast<kde_zone>(installArgs.clientZone),
+      .pin = installArgs.pin,
+      .kdePort = installArgs.kdePort,
+      .hostMode = installArgs.hostMode,
+      .otelStats = installArgs.otel,
+      .natMode = installArgs.natMode,
+  };
+  if (!katran_de::DirectEncapClientApi::installWithParams(apiArgs)) {
     LOG(ERROR) << "Failed to install Katran DirectEncap";
     exit(1);
   }

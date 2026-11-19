@@ -6,7 +6,6 @@
 
 #include <CLI/CLI.hpp>
 #include <folly/IPAddress.h>
-#include "katran/facebook/direct_encap/api/DirectEncapApiBase.h"
 #include "katran/kde/ctl/Utils.h"
 
 namespace katran_de::ctl {
@@ -44,22 +43,6 @@ struct PingArgs {
   std::string cgroupPath;
   int threadCount{0};
 };
-
-// single translation point from client CLI args to API params
-inline katran_de::KdeInstallParams toClientParams(const InstallArgs& args) {
-  return {
-      .checkJK = args.checkJK,
-      .detach = args.detach,
-      .cgroupPath = args.cgroup,
-      .iface = args.iface,
-      .clientZone = static_cast<kde_zone>(args.clientZone),
-      .pin = args.pin,
-      .kdePort = args.kdePort,
-      .hostMode = args.hostMode,
-      .otelStats = args.otel,
-      .natMode = args.natMode,
-  };
-}
 
 class CliParser {
   static const CLI::Validator& ipAddress() {
