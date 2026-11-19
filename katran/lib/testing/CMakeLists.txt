@@ -100,3 +100,10 @@ target_include_directories(katran_tester PRIVATE
   ${BPF_INCLUDE_DIRS}
   ${KATRAN_INCLUDE_DIR}
 )
+
+katran_add_test(TARGET PacketBuilderTest
+  SOURCES
+  tools/PacketBuilderTest.cpp
+  DEPENDS
+  bpftester
+)
