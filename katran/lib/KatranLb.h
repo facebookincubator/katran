@@ -1233,6 +1233,18 @@ class KatranLb {
   vip_definition vipKeyToVipDefinition(const VipKey& vipKey);
 
   /**
+   * returns the fd of the vip's inner map in vip_to_down_reals_map, creating
+   * and installing the inner map on first use. -1 on failure
+   */
+  int getOrCreateDownRealsInnerMapFd(const VipKey& vip);
+
+  /**
+   * whether vip_to_down_reals_map has an inner map for the vip. Checks the
+   * vipToDownRealsInnerMapFds_ invariant on cache misses
+   */
+  bool downRealsInnerMapInstalled(const VipKey& vip);
+
+  /**
    * helper function to decrease real's ref count and delete it from
    * internal dicts if rec count became zero
    */
@@ -1499,6 +1511,18 @@ class KatranLb {
    * Maps an HcKey to its id
    */
   std::unordered_map<VipKey, uint32_t, VipKeyHasher> hckeys_;
+
+  /**
+   * fds of the vip_to_down_reals_map inner maps, by vip. Invariant: every
+   * inner map in vip_to_down_reals_map was installed by this instance and is
+   * here. The outer map is created when this instance loads the balancer prog
+   * and is never pinned, and reloadBalancerProg either reuses it by name or
+   * fails, so no other process or earlier load can leave entries in it. The
+   * cache-miss paths DCHECK this. Reopening inner maps by id instead
+   * (BPF_MAP_GET_FD_BY_ID) needs CAP_SYS_ADMIN in the initial user namespace,
+   * which a userns + BPF token process lacks.
+   */
+  std::unordered_map<VipKey, int, VipKeyHasher> vipToDownRealsInnerMapFds_;
 
   /**
    * map of src address to dst mapping. used for source based routing.
