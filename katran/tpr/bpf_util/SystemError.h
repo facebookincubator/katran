@@ -6,7 +6,6 @@
 
 #include <folly/Conv.h>
 #include <folly/Expected.h>
-#include <folly/testing/TestUtil.h>
 
 namespace katran_tpr {
 
@@ -87,47 +86,4 @@ template <typename... Msg>
 // may consider a version of this macro that extracts the value,
 // but i prefer to not throw from macros
 #define EXPECT_SYS_OK(expr) __EXPECT_SYSOK_IMPL(__UNIQ_ID(sysret), expr)
-
-#define __SYS_ERROR_CATEGORY_TO_STR(sysErrorCategory) \
-  folly::to<std::string>(                             \
-      "Error: ",                                      \
-      sysErrorCategory.value(),                       \
-      " (msg: ",                                      \
-      sysErrorCategory.message(),                     \
-      ")")
-
-#define __EXPLAIN_ERROR_CODE(errorCodeInt)                            \
-  ([&]() {                                                            \
-    const auto sysErrorCategory =                                     \
-        std::system_category().default_error_condition(errorCodeInt); \
-    return __SYS_ERROR_CATEGORY_TO_STR(sysErrorCategory);             \
-  }())
-
-#define __EXPECT_SYS_ERROR_IMPL(name, expr, errorCode, errorMsgRegex)         \
-  ([&]() {                                                                    \
-    auto name = (expr);                                                       \
-    if (name.hasError()) {                                                    \
-      EXPECT_EQ(errorCode, name.error().code().value())                       \
-          << "EXPECT_SYS_ERROR: Expected " << __EXPLAIN_ERROR_CODE(errorCode) \
-          << ". Got "                                                         \
-          << __SYS_ERROR_CATEGORY_TO_STR(                                     \
-                 name.error().code().default_error_condition());              \
-      EXPECT_PCRE_MATCH(errorMsgRegex, name.error().what())                   \
-          << "EXPECT_SYS_ERROR: Error message mismatch";                      \
-    } else {                                                                  \
-      ADD_FAILURE() << "EXPECT_SYS_ERROR: Expected a SystemError";            \
-    }                                                                         \
-    return name;                                                              \
-  }())
-
-// Example usage:
-//   auto value = EXPECT_SYS_ERROR(
-//    some_call_returning_sysmaybe(...),
-//    EINVAL,
-//    ".*Some expected error message.*");
-// Checks that an error is returned from the call with the provided
-// error code and with an error message that conforms to the provided regex
-// The return value is forwarded up after the checks.
-#define EXPECT_SYS_ERROR(expr, errorCode, errorMsgRegex) \
-  __EXPECT_SYS_ERROR_IMPL(__UNIQ_ID(sysret), expr, errorCode, errorMsgRegex)
 } // namespace katran_tpr
