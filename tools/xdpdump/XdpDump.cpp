@@ -24,6 +24,7 @@
 #include <bcc/libbpf.h>
 #include <bcc/table_storage.h>
 #include <fmt/core.h>
+#include <folly/String.h>
 #include <folly/io/async/EventBaseManager.h>
 #include <glog/logging.h>
 

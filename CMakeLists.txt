@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.24)
+cmake_minimum_required(VERSION 3.22...3.24)
 
 project(katran LANGUAGES C CXX)
 

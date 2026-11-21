@@ -1,5 +1,4 @@
 project (katranserver-proj)
-set (CMAKE_CXX_STANDARD 17)
 
 # thrift cmake macro
 find_package(FBThrift CONFIG REQUIRED)
