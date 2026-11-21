@@ -28,6 +28,8 @@ COLOR_RED="\033[0;31m"
 COLOR_GREEN="\033[0;32m"
 COLOR_OFF="\033[0m"
 
+echo -e "${COLOR_RED}[ WARNING ] build_katran.sh is deprecated, see README.md for the CMake build ${COLOR_OFF}"
+
 usage() {
 cat 1>&2 <<EOF
 
@@ -615,6 +617,23 @@ build_katran() {
     -DCMAKE_CXX_STANDARD=17 \
     -DBUILD_TESTS=On"
 
+    # build_bpf_modules_opensource.sh builds the BPF programs, below.
+    CMAKE_FLAGS="$CMAKE_FLAGS -DKATRAN_BUILD_BPF=OFF"
+
+    # CMake no longer reads the CMAKE_BUILD_* environment variables.
+    if [ -n "$CMAKE_BUILD_EXAMPLE_THRIFT" ]; then
+        CMAKE_FLAGS="$CMAKE_FLAGS -DKATRAN_BUILD_EXAMPLE_THRIFT=ON"
+    fi
+    if [ -n "$CMAKE_BUILD_EXAMPLE_GRPC" ]; then
+        CMAKE_FLAGS="$CMAKE_FLAGS -DKATRAN_BUILD_EXAMPLE_GRPC=ON"
+    fi
+    if [ -n "$CMAKE_BUILD_TOOLS" ]; then
+        CMAKE_FLAGS="$CMAKE_FLAGS -DKATRAN_BUILD_TOOLS=ON"
+    fi
+    if [ -n "$CMAKE_BUILD_KATRAN_TPR" ]; then
+        CMAKE_FLAGS="$CMAKE_FLAGS -DKATRAN_BUILD_TPR=ON"
+    fi
+
     # Append verbose flag if VERBOSE is set to 1
     if [ "$VERBOSE" -eq 1 ]; then
         CMAKE_FLAGS="$CMAKE_FLAGS -DCMAKE_VERBOSE_MAKEFILE:BOOL=ON"
@@ -629,14 +648,16 @@ build_katran() {
         -s "${ROOT_DIR}"                          \
         -b "${BUILD_DIR}"                         \
         2>/dev/null
+    # The scripts in the root dir look for the BPF programs where CMake puts them.
+    ln -sfn ../deps/bpfprog/bpf "${KATRAN_BUILD_DIR}/bpf"
 }
 
 test_katran() {
     pushd .
     cd "$BUILD_DIR"/build/katran/lib/tests/
-    ctest -v ./*
+    ctest -V
     cd ../testing/
-    ctest -v ./*
+    ctest -V
     popd
 }
 

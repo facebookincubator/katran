@@ -3,7 +3,6 @@ project(katran_grpc)
 set (CMAKE_CXX_STANDARD 17)
 
 find_library(PROTOBUF libprotobuf.a protobuf)
-set(GRPC_BUILD_PATH "${CMAKE_PREFIX_PATH}/grpc/_build")
 
 find_library(LIBIBERTY libiberty.a iberty)
 find_library(DL dl)
@@ -33,7 +32,7 @@ add_custom_command(
     COMMAND ${PROTOBUF_PROTOC_EXECUTABLE}
     ARGS "--proto_path=${PROTO_PATH}"
          "--grpc_out=${GENERATED_PROTOBUF_PATH}"
-         "--plugin=protoc-gen-grpc=${GRPC_BUILD_PATH}/grpc_cpp_plugin"
+         "--plugin=protoc-gen-grpc=$<TARGET_FILE:gRPC::grpc_cpp_plugin>"
          "${KATRAN_PROTO}"
     COMMENT "generating grpc files"
     )

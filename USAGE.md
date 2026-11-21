@@ -317,4 +317,4 @@ which is loaded into the kernel. Most of the BPF configuration must
 be in sync w/ the same params in userspace (e.g. max reals, max vips,
 consistent hash ring size). bpf related configurations are defined and described
 in `lib/bpf/balancer_consts.h`. You can change them by providing `-D` flag during
-BPF compilation time (e.g. by adding it in lib/Makefile-bpf)
+BPF compilation time (e.g. by adding it in lib/bpf/CMakeLists.txt)

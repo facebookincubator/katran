@@ -34,26 +34,39 @@ Please refer to [`Examples`](EXAMPLE.md) for more detailed information.
 
 ## Installation
 
-Current distribution tested: Ubuntu 20.04
+katran builds with plain CMake. You need a Linux kernel 5.6 or newer, CMake 3.24
+or newer, a C++20 compiler, clang for the BPF programs, and the development
+packages for libbpf, libelf, libmnl, zlib, zstd and gflags:
 
-Requirements:
-  - Recent linux kernel (5.6+)
-  - Recent version of clang compiler (6.0+)
-      For ubuntu if unsure run `sudo apt install build-essential`
+    # Ubuntu 24.04
+    sudo apt-get install clang cmake libbpf-dev libelf-dev libmnl-dev zlib1g-dev libzstd-dev libgflags-dev
+    # CentOS Stream 9 and Fedora
+    sudo dnf install clang cmake libbpf-devel elfutils-libelf-devel libmnl-devel zlib-devel libzstd-devel gflags-devel
 
-### build_katran.sh
+Then:
 
-To build and install katran library and thrift/gRPC examples - you need to run `build_katran.sh` script.
+    cmake -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_TESTS=ON
+    cmake --build build -j "$(nproc)"
+    ctest --test-dir build
 
-It should take care of all the required dependencies.
-If you need to build it for other Linux distributions, you need to make sure that you have installed:
-    - [`folly`](https://github.com/facebook/folly)
-    - recent version of clang compiler (6.0+)
-    - glog/gtest/gflags/elf libraries
+If [`folly`](https://github.com/facebook/folly) is not installed, the build
+fetches and builds it at the revision katran is tested with, along with
+whatever folly needs and does not find. googletest and CLI11, which only the
+tests use, are handled the same way.
 
-Additionally, if you want to build examples, [`fbthrift`](https://github.com/facebook/fbthrift) and [`gRPC`](https://github.com/grpc/grpc) must be installed, as well!
+The BPF programs end up in `build/bpf/`. The tests that run them need root:
+`sudo ctest --test-dir build -L bpf`.
+
+The thrift and gRPC examples need an installed [`fbthrift`](https://github.com/facebook/fbthrift)
+or [`gRPC`](https://github.com/grpc/grpc). Turn them on with
+`-DKATRAN_BUILD_EXAMPLE_THRIFT=ON` or `-DKATRAN_BUILD_EXAMPLE_GRPC=ON`.
 
 While we run Meta's CI on CentOS, we do our best to support OSS build on recent Ubuntu versions. If you have any issues with build or need older Ubuntu versions - open github issue or better send us PR :)
+
+### build_katran.sh (deprecated)
+
+`build_katran.sh` and `build_bpf_modules_opensource.sh` still work, but are
+deprecated in favor of the CMake build above and will be removed.
 
 ## Motivation behind layer 4 load balancing
 

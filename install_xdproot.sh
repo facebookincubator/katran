@@ -28,18 +28,19 @@ if [ -z "$out" ]; then
     sudo mount -t bpf bpffs /sys/fs/bpf/
 fi
 
-# By default this script assumes to be invoked from the root dir.
+# By default this script assumes to be invoked from the root dir, with the
+# CMake build in build/, or the deprecated build_katran.sh's in _build/build.
+# build/ also ships fbcode_builder, so look for a CMake cache, not the directory.
 if [ -z "${KATRAN_BUILD_DIR}" ]
 then
-    KATRAN_BUILD_DIR=$(pwd)/_build/build
-fi
-
-if [ -z "${DEPS_DIR}" ]
-then
-    DEPS_DIR=$(pwd)/_build/deps
+    KATRAN_BUILD_DIR=$(pwd)/build
+    if [ ! -f "${KATRAN_BUILD_DIR}/CMakeCache.txt" ] && [ -f "$(pwd)/_build/build/CMakeCache.txt" ]
+    then
+        KATRAN_BUILD_DIR=$(pwd)/_build/build
+    fi
 fi
 
 if [ ! -f "/sys/fs/bpf/jmp_${KATRAN_INTERFACE}" ]; then
     echo "Assuming ${KATRAN_INTERFACE} exists. please change script to actual interface if it does not"
-    sudo sh -c "${KATRAN_BUILD_DIR}/katran/lib/xdproot -bpfprog ${DEPS_DIR}/bpfprog/bpf/xdp_root.o -bpfpath=/sys/fs/bpf/jmp_${KATRAN_INTERFACE} -intf=${KATRAN_INTERFACE}"
+    sudo sh -c "${KATRAN_BUILD_DIR}/katran/lib/xdproot -bpfprog ${KATRAN_BUILD_DIR}/bpf/xdp_root.o -bpfpath=/sys/fs/bpf/jmp_${KATRAN_INTERFACE} -intf=${KATRAN_INTERFACE}"
 fi

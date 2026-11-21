@@ -23,16 +23,17 @@ then
     KATRAN_INTERFACE=enp0s3
 fi
 
-# By default this script assumes to be invoked from the root dir.
+# By default this script assumes to be invoked from the root dir, with the
+# CMake build in build/, or the deprecated build_katran.sh's in _build/build.
+# build/ also ships fbcode_builder, so look for a CMake cache, not the directory.
 if [ -z "${KATRAN_BUILD_DIR}" ]
 then
-    KATRAN_BUILD_DIR=$(pwd)/_build/build
+    KATRAN_BUILD_DIR=$(pwd)/build
+    if [ ! -f "${KATRAN_BUILD_DIR}/CMakeCache.txt" ] && [ -f "$(pwd)/_build/build/CMakeCache.txt" ]
+    then
+        KATRAN_BUILD_DIR=$(pwd)/_build/build
+    fi
 fi
 
-if [ -z "${DEPS_DIR}" ]
-then
-    DEPS_DIR=$(pwd)/_build/deps
-fi
-
-./install_xdproot.sh -b "${KATRAN_BUILD_DIR}" -d "${DEPS_DIR}"
-sudo sh -c "${KATRAN_BUILD_DIR}/example/simple_katran_server -balancer_prog=${DEPS_DIR}/bpfprog/bpf/balancer.bpf.o -intf=${KATRAN_INTERFACE} -hc_forwarding=false -map_path=/sys/fs/bpf/jmp_${KATRAN_INTERFACE} -prog_pos=2"
+KATRAN_BUILD_DIR="${KATRAN_BUILD_DIR}" KATRAN_INTERFACE="${KATRAN_INTERFACE}" ./install_xdproot.sh
+sudo sh -c "${KATRAN_BUILD_DIR}/example/simple_katran_server -balancer_prog=${KATRAN_BUILD_DIR}/bpf/balancer.bpf.o -intf=${KATRAN_INTERFACE} -hc_forwarding=false -map_path=/sys/fs/bpf/jmp_${KATRAN_INTERFACE} -prog_pos=2"

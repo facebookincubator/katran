@@ -17,15 +17,16 @@
 
 set -xeo pipefail
 
-# By default this script assumes to be invoked from the root dir.
+# By default this script assumes to be invoked from the root dir, with the
+# CMake build in build/, or the deprecated build_katran.sh's in _build/build.
+# build/ also ships fbcode_builder, so look for a CMake cache, not the directory.
 if [ -z "${KATRAN_BUILD_DIR}" ]
 then
-    KATRAN_BUILD_DIR=$(pwd)/_build/build
+    KATRAN_BUILD_DIR=$(pwd)/build
+    if [ ! -f "${KATRAN_BUILD_DIR}/CMakeCache.txt" ] && [ -f "$(pwd)/_build/build/CMakeCache.txt" ]
+    then
+        KATRAN_BUILD_DIR=$(pwd)/_build/build
+    fi
 fi
 
-if [ -z "${DEPS_DIR}" ]
-then
-    DEPS_DIR=$(pwd)/_build/deps
-fi
-
-sudo sh -c "${KATRAN_BUILD_DIR}/katran/lib/testing/katran_tester -balancer_prog ${DEPS_DIR}/bpfprog/bpf/balancer.bpf.o -test_from_fixtures=true $1"
+sudo sh -c "${KATRAN_BUILD_DIR}/katran/lib/testing/katran_tester -balancer_prog ${KATRAN_BUILD_DIR}/bpf/balancer.bpf.o -test_from_fixtures=true $1"
