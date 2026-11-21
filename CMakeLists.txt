@@ -26,6 +26,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 option(BUILD_TESTS "Build katran's tests" OFF)
+option(KATRAN_BUILD_BPF "Build katran's BPF programs, which needs clang" ON)
 option(KATRAN_BUILD_TPR "Build the TCP packet router, which needs bpftool" OFF)
 option(KATRAN_BUILD_EXAMPLE_THRIFT
   "Build the thrift example server, which needs an installed fbthrift" OFF)
@@ -76,6 +77,10 @@ if(BUILD_TESTS)
     fb_fetch_from_manifest(CLI11 CLI11)
   endif()
   include(KatranTest)
+endif()
+
+if(KATRAN_BUILD_BPF)
+  include(KatranBpf)
 endif()
 
 if(katran_build_local_deps)

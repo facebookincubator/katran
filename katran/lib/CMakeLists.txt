@@ -262,6 +262,10 @@ install(
   DESTINATION lib
 )
 
+if (KATRAN_BUILD_BPF)
+  add_subdirectory(bpf)
+endif()
+
 if (BUILD_TESTS)
   add_subdirectory(testing)
   add_subdirectory(tests)

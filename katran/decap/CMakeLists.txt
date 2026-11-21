@@ -21,6 +21,10 @@ install(TARGETS decap
   DESTINATION decap
 )
 
+if (KATRAN_BUILD_BPF)
+  add_subdirectory(bpf)
+endif()
+
 if (BUILD_TESTS)
   add_subdirectory(testing)
 endif()

@@ -107,3 +107,12 @@ katran_add_test(TARGET PacketBuilderTest
   DEPENDS
   bpftester
 )
+
+if(KATRAN_BUILD_BPF)
+  katran_add_bpf_test(katran-tester-ipip
+    $<TARGET_FILE:katran_tester> -test_from_fixtures
+    -balancer_prog ${KATRAN_BPF_DIR}/balancer_test.bpf.o)
+  katran_add_bpf_test(katran-tester-gue
+    $<TARGET_FILE:katran_tester> -test_from_fixtures -gue
+    -balancer_prog ${KATRAN_BPF_DIR}/balancer_test_gue.bpf.o)
+endif()
