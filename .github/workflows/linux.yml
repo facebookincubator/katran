@@ -1,0 +1,64 @@
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+#
+# This source code is licensed under the license found in the
+# LICENSE file in the root directory of this source tree.
+
+name: cmake
+
+on:
+  push:
+    branches:
+    - main
+  pull_request:
+    branches:
+    - main
+
+permissions:
+  contents: read  #  to fetch code (actions/checkout)
+  actions: read  #  to query GitHub Actions cache usage
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    env:
+      SCCACHE_GHA_ENABLED: "on"
+    steps:
+
+    - uses: actions/checkout@v6
+
+    - name: Set up sccache
+      uses: mozilla-actions/sccache-action@v0.0.10
+      with:
+        version: "v0.14.0"
+
+    # The build fetches folly, and whatever folly needs, when they are missing.
+    - name: Install dependencies
+      run: >
+        sudo apt-get update &&
+        sudo apt-get install -y clang libbpf-dev libelf-dev libmnl-dev
+        zlib1g-dev libzstd-dev libgflags-dev
+
+    - name: Configure
+      run: >
+        cmake -B build
+        -DCMAKE_BUILD_TYPE=RelWithDebInfo
+        -DBUILD_TESTS=ON
+        -DCMAKE_C_COMPILER_LAUNCHER=sccache
+        -DCMAKE_CXX_COMPILER_LAUNCHER=sccache
+
+    # A bare -j starts every ready compile at once, which on a cold cache
+    # exhausts the runner's memory.
+    - name: Build
+      run: cmake --build build -j "$(nproc)"
+
+    - name: Test
+      run: ctest --test-dir build --output-on-failure --no-tests=error
+
+    # These run the BPF programs in the kernel's test runner, which needs root.
+    - name: Test the BPF programs
+      run: sudo ctest --test-dir build -L bpf --output-on-failure --no-tests=error
+
+    - name: Show sccache stats
+      if: always()
+      run: sccache --show-stats
