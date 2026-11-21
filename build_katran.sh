@@ -640,7 +640,7 @@ build_katran() {
     fi
 
     # Run CMake with the constructed flags
-    cmake $CMAKE_FLAGS ../..
+    cmake $CMAKE_FLAGS "$ROOT_DIR"
 
     make -j "$NCPUS"
     popd
