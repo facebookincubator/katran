@@ -1,158 +1,45 @@
 project (katranserver-proj)
 
-# thrift cmake macro
+# Defines thrift_generate() and the thrift:: targets of an installed fbthrift.
 find_package(FBThrift CONFIG REQUIRED)
-set(THRIFT_PREFIX "katran/if")
-set(THRIFT_DIR ${CMAKE_BINARY_DIR}/thrift-out/${THRIFT_PREFIX})
-file(MAKE_DIRECTORY ${THRIFT_DIR})
-
-include_directories(${CMAKE_BINARY_DIR}/thrift-out)
+pkg_check_modules(RE2 REQUIRED IMPORTED_TARGET re2)
 
 add_library(katran-cpp2-obj OBJECT)
 thrift_generate(
   katran-cpp2-obj
-  "${CMAKE_SOURCE_DIR}/example/katran.thrift"
+  katran.thrift
   LANGUAGE cpp2
   SERVICES KatranService
-  OUTPUT_DIRECTORY "${THRIFT_DIR}"
-  INCLUDE_PREFIX "${THRIFT_PREFIX}"
+  OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/thrift-out/katran/if"
+  INCLUDE_PREFIX "katran/if"
 )
-
-find_library(THRIFT thrift)
-find_library(THRIFTCPP2 thriftcpp2)
-find_library(THRIFTPROTOCOL thriftprotocol)
-find_library(CRYPTO crypto)
-find_library(EVENT libevent.a event)
-find_library(EVENT_CORE libevent_core.a event_core)
-find_library(DL dl)
-find_library(SSL ssl)
-find_library(LIBIBERTY libiberty.a iberty)
-find_library(LIBWANGLE libwangle.a wangle)
-find_library(LIBTHRIFT_CORE libthrift-core.a thrift-core)
-find_library(LIBTHRIFTFROZEN2 libthriftfrozen2.a thriftfrozen2)
-find_library(LIBCONCURRENCY libconcurrency.a concurrency)
-find_library(LIBTRANSPORT libtransport.a transport)
-find_library(LIBASYNC libasync.a async)
-find_library(LIBPROTOCOL libprotocol.a protocol)
-find_library(LIBGSS gssapi_krb5)
-find_library(LIBLZ4 liblz4.so lz4)
-find_library(LIBSNAPPY libsnappy.a snappy)
-find_library(LIBZSTD libzstd.a zstd)
-find_library(LIBBOOST_CONTEXT libboost_context.a boost_context)
-find_library(LIBRE2 libre2.a re2)
-find_library(LIBSODIUM libsodium.a libsodium)
-find_library(LIBFIZZ libfizz.a libfizz)
+target_include_directories(katran-cpp2-obj PUBLIC "${CMAKE_BINARY_DIR}/thrift-out")
+target_link_libraries(katran-cpp2-obj PUBLIC thrift::rpc)
 
 add_library(simple_service_handler
-    KatranSimpleServiceHandler.cpp
-    KatranSimpleServiceHandler.h
-    $<TARGET_OBJECTS:katran-cpp2-obj>
+  KatranSimpleServiceHandler.cpp
+  KatranSimpleServiceHandler.h
 )
-target_link_libraries(simple_service_handler
-    katranlb
-    "Folly::folly"
-    "${THRIFTCPP2}"
-)
+target_link_libraries(simple_service_handler PUBLIC katran-cpp2-obj katranlb)
 
 add_library(simple_signal_handler
-    KatranSimpleServiceSignalHandler.cpp
-    KatranSimpleServiceSignalHandler.h
+  KatranSimpleServiceSignalHandler.cpp
+  KatranSimpleServiceSignalHandler.h
 )
-target_link_libraries(simple_signal_handler
-    "Folly::folly"
-    "${DL}"
-    "${EVENT}"
-)
+target_link_libraries(simple_signal_handler PUBLIC thrift::rpc)
 
 add_executable(simple_katran_server KatranSimpleServer.cpp)
 target_link_libraries(simple_katran_server
-    "-Wl,--start-group"
-    "Folly::folly"
-    "${THRIFT}"
-    "${THRIFTCPP2}"
-    "${THRIFTPROTOCOL}"
-    "${LIBTHRIFT_CORE}"
-    "${LIBTHRIFTFROZEN2}"
-    "${LIBPROTOCOL}"
-    "${LIBTRANSPORT}"
-    "${LIBCONCURRENCY}"
-    "${LIBASYNC}"
-    "${LIBWANGLE}"
-    "${LIBSODIUM}"
-    "${LIBFIZZ}"
-    "${LIBGSS}"
-    "${LIBLZ4}"
-    "${LIBSNAPPY}"
-    "${LIBBOOST_CONTEXT}"
-    "${DL}"
-    "${EVENT_CORE}"
-    "libevent::libevent"
-    "${CRYPTO}"
-    "${SSL}"
-    "${LIBIBERTY}"
-    "${LIBDC}"
-    "${GFLAGS}"
-    "glog::glog"
-    "${PTHREAD}"
-    "${LIBZSTD}"
-    mac_helpers
-    simple_service_handler
-    simple_signal_handler
-    "-Wl,--end-group"
+  mac_helpers
+  simple_service_handler
+  simple_signal_handler
 )
 
 add_library(katran_client_lib
-        client/KatranSimpleClient.cpp
-        client/KatranSimpleClient.h
-        $<TARGET_OBJECTS:katran-cpp2-obj>
+  client/KatranSimpleClient.cpp
+  client/KatranSimpleClient.h
 )
-
-target_link_libraries(katran_client_lib
-    katranlb
-    "-Wl,--start-group"
-    "Folly::folly"
-    "${LIBASYNC}"
-    "${THRIFT}"
-    "${THRIFTCPP2}"
-    "${THRIFTPROTOCOL}"
-    "${LIBTHRIFT_CORE}"
-    "${LIBTHRIFTFROZEN2}"
-    "${LIBPROTOCOL}"
-    "${LIBTRANSPORT}"
-    "glog::glog"
-    "${LIBRE2}"
-    "-Wl,--end-group"
-)
+target_link_libraries(katran_client_lib PUBLIC katran-cpp2-obj PkgConfig::RE2)
 
 add_executable(simple_katran_client client/Main.cpp)
-target_link_libraries(simple_katran_client
-    "-Wl,--start-group"
-    "Folly::folly"
-    "${LIBCONCURRENCY}"
-    "${LIBASYNC}"
-    "${THRIFT}"
-    "${THRIFTCPP2}"
-    "${THRIFTPROTOCOL}"
-    "${LIBTHRIFT_CORE}"
-    "${LIBTHRIFTFROZEN2}"
-    "${LIBPROTOCOL}"
-    "${LIBTRANSPORT}"
-    "${LIBWANGLE}"
-    "${LIBGSS}"
-    "${LIBLZ4}"
-    "${LIBSNAPPY}"
-    "${LIBBOOST_CONTEXT}"
-    "${DL}"
-    "${EVENT_CORE}"
-    "${EVENT}"
-    "${CRYPTO}"
-    "${SSL}"
-    "${LIBIBERTY}"
-    "${LIBDC}"
-    "${GFLAGS}"
-    "glog::glog"
-    "${PTHREAD}"
-    "${LIBZSTD}"
-    katran_client_lib
-    "-Wl,--end-group"
-)
+target_link_libraries(simple_katran_client katran_client_lib)
