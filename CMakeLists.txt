@@ -2,11 +2,11 @@ cmake_minimum_required(VERSION 3.22...3.24)
 
 project(katran LANGUAGES C CXX)
 
-# The GitHub export ships fbcode_builder in build/, like getdeps; folly and
-# fbthrift ship it in tool/.
-set(KATRAN_FBCODE_BUILDER_DIR "${CMAKE_CURRENT_SOURCE_DIR}/build/fbcode_builder")
+# The GitHub export puts fbcode_builder in tool/, as folly's does; older
+# exports and other source layouts use build/.
+set(KATRAN_FBCODE_BUILDER_DIR "${CMAKE_CURRENT_SOURCE_DIR}/tool/fbcode_builder")
 if(NOT EXISTS "${KATRAN_FBCODE_BUILDER_DIR}/CMake/FBFetchFromManifest.cmake")
-  set(KATRAN_FBCODE_BUILDER_DIR "${CMAKE_CURRENT_SOURCE_DIR}/tool/fbcode_builder")
+  set(KATRAN_FBCODE_BUILDER_DIR "${CMAKE_CURRENT_SOURCE_DIR}/build/fbcode_builder")
 endif()
 list(PREPEND CMAKE_MODULE_PATH
   "${CMAKE_CURRENT_SOURCE_DIR}/cmake"
