@@ -30,7 +30,6 @@ fi
 
 # By default this script assumes to be invoked from the root dir, with the
 # CMake build in build/, or the deprecated build_katran.sh's in _build/build.
-# build/ also ships fbcode_builder, so look for a CMake cache, not the directory.
 if [ -z "${KATRAN_BUILD_DIR}" ]
 then
     KATRAN_BUILD_DIR=$(pwd)/build
