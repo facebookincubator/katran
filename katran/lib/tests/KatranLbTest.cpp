@@ -602,4 +602,40 @@ TEST_F(KatranLbBpfFailureTest, failedChangeMacKeepsDefaultMac) {
   ASSERT_EQ(lb->getKatranLbStats().bpfFailedCalls, 1);
 }
 
+// Stats are filled as BPF is_under_flood() writes them: v1 is the number of
+// new connections in the current second, v2 is when that second started.
+constexpr int64_t kNowNs = 5 * static_cast<int64_t>(kOneSecNanos);
+
+TEST(KatranLbFloodTest, underFloodWhenRecentRateExceedsThreshold) {
+  lb_stats stats[1];
+  stats[0].v1 = kMaxConnectionCount + 1;
+  stats[0].v2 = kNowNs;
+  ASSERT_TRUE(KatranLb::isUnderFloodFromConnRateStats(stats, 1, kNowNs));
+}
+
+TEST(KatranLbFloodTest, notUnderFloodWhenRecentRateAtThreshold) {
+  lb_stats stats[1];
+  stats[0].v1 = kMaxConnectionCount;
+  stats[0].v2 = kNowNs;
+  ASSERT_FALSE(KatranLb::isUnderFloodFromConnRateStats(stats, 1, kNowNs));
+}
+
+TEST(KatranLbFloodTest, notUnderFloodWhenHighRateIsStale) {
+  lb_stats stats[1];
+  stats[0].v1 = kMaxConnectionCount + 1;
+  stats[0].v2 = kNowNs - 2 * static_cast<int64_t>(kOneSecNanos);
+  ASSERT_FALSE(KatranLb::isUnderFloodFromConnRateStats(stats, 1, kNowNs));
+}
+
+TEST(KatranLbFloodTest, underFloodWhenAnyCpuExceedsThreshold) {
+  lb_stats stats[3];
+  stats[0].v1 = 10;
+  stats[0].v2 = kNowNs;
+  stats[1].v1 = kMaxConnectionCount + 1;
+  stats[1].v2 = kNowNs;
+  stats[2].v1 = 20;
+  stats[2].v2 = kNowNs;
+  ASSERT_TRUE(KatranLb::isUnderFloodFromConnRateStats(stats, 3, kNowNs));
+}
+
 } // namespace katran

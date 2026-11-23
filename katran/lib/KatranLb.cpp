@@ -2271,10 +2271,18 @@ bool KatranLb::isUnderFlood() {
   }
 
   int64_t current_time = BpfAdapter::getKtimeNs();
-  for (int i = 0; i < nr_cpus; i++) {
-    // v1 contains the last update time, v2 contains the connection count
-    int64_t last_update_time = stats[i].v1;
-    uint64_t conn_count = stats[i].v2;
+  return isUnderFloodFromConnRateStats(stats, nr_cpus, current_time);
+}
+
+bool KatranLb::isUnderFloodFromConnRateStats(
+    const lb_stats* stats,
+    unsigned int nr_cpus,
+    int64_t current_time) {
+  for (unsigned int i = 0; i < nr_cpus; i++) {
+    // v1 contains the number of new connections in the current second,
+    // v2 contains when that second started
+    const uint64_t conn_count = stats[i].v1;
+    const int64_t last_update_time = stats[i].v2;
 
     // If we have a recent update (within the last second) we check if
     // connection rate exceeds the threshold
