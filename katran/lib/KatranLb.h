@@ -739,6 +739,23 @@ class KatranLb {
   bool isUnderFlood();
 
   /**
+   * @param stats per-cpu connection rate stats, as written by the BPF
+   * is_under_flood(): v1 is the number of new connections in the current
+   * second, v2 is when that second started
+   * @param nr_cpus number of entries in stats
+   * @param current_time current time in nanoseconds
+   * @return bool true if any cpu's connection rate exceeds the threshold
+   * within the last second
+   *
+   * helper function which interprets the connection rate stats for
+   * isUnderFlood()
+   */
+  static bool isUnderFloodFromConnRateStats(
+      const lb_stats* stats,
+      unsigned int nr_cpus,
+      int64_t current_time);
+
+  /**
    * @return struct lb_stats w/ src global lru statistics
    *
    * helper function which returns how many times we failed to get a global lru
