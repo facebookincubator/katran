@@ -44,7 +44,7 @@ class Base64Helpers {
    *
    * helper function to decode base64 encoded string
    */
-  static std::string base64Decode(std::string encoded);
+  static std::string base64Decode(const std::string& encoded);
 };
 
 } // namespace katran
