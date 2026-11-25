@@ -21,6 +21,12 @@
 #define KDE_MAX_VIPS_FILTER 8
 #define KDE_MAX_ZONES 8
 
+#ifdef __cplusplus
+#define KDE_STATIC_ASSERT static_assert
+#else
+#define KDE_STATIC_ASSERT _Static_assert
+#endif
+
 typedef __u8 kde_zone;
 #define KDE_ZONE_NONE 0x00
 #define KDE_ZONE_1 (1 << 0)
@@ -107,7 +113,7 @@ struct __attribute__((aligned(64))) kde_stats {
   __u64 server_retrans_synack;
   __u64 server_directip_blackhole;
 };
-_Static_assert(
+KDE_STATIC_ASSERT(
     sizeof(struct kde_stats) % 64 == 0,
     "kde_stats must be a multiple of 64B to avoid false sharing");
 
@@ -135,7 +141,7 @@ struct kde_clt_tcp_opt {
   __u8 zone;
   __u8 nat_support; // only uses one bit, can be overloaded with flags
 } __attribute__((packed));
-_Static_assert(
+KDE_STATIC_ASSERT(
     sizeof(struct kde_clt_tcp_opt) == KDE_CLT_TCP_HDR_NAT_OPT_LEN,
     "opt size mismatch");
 
@@ -149,7 +155,7 @@ struct kde_srv_tcp_opt {
   __be32 v6addr[4];
   __be16 client_port; // optionally written for clients behind NAT
 } __attribute__((packed));
-_Static_assert(
+KDE_STATIC_ASSERT(
     sizeof(struct kde_srv_tcp_opt) == KDE_SRV_TCP_HDR_NAT_OPT_LEN,
     "server tcp opt size mismatch");
 

@@ -1,7 +1,11 @@
 #pragma once
 
 #include <bpf/bpf_helpers.h>
+#ifdef KATRAN_CMAKE_BUILD
+#include "vmlinux.h"
+#else
 #include <bpf/vmlinux/vmlinux.h>
+#endif
 #include <katran/kde/bpf/kde_types.h>
 #include <linux/errno.h>
 

@@ -1,6 +1,10 @@
 #pragma once
 
+#ifdef KATRAN_CMAKE_BUILD
+#include "vmlinux.h"
+#else
 #include <bpf/vmlinux/vmlinux.h>
+#endif
 
 #include <bpf/bpf_endian.h>
 #include <bpf/bpf_helpers.h>
@@ -8,8 +12,6 @@
 #include <katran/kde/bpf/kde_constants.h>
 #include <katran/kde/bpf/kde_types.h>
 #include <katran/kde/bpf/kde_utils.h>
-
-#include <string.h>
 
 // from uapi/linux/in6.h
 #define IPPROTO_HOPOPTS 0
@@ -241,7 +243,7 @@ static inline int direct_encap(
   }
 
   union kde_ip_address src_addr = {};
-  memcpy(src_addr.v6addr, &hdr->saddr, 16);
+  __builtin_memcpy(src_addr.v6addr, &hdr->saddr, 16);
 
   if (ei->nat_sport && hdr->nexthdr == IPPROTO_TCP) {
     struct tcphdr* tcphdr = (void*)(hdr + 1);

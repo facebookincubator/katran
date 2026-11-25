@@ -61,36 +61,51 @@ jobs:
     - name: Fetch zlib
       if: ${{ steps.paths.outputs.zlib_SOURCE }}
       run: python3 tool/fbcode_builder/getdeps.py --allow-system-packages fetch --no-tests zlib
-    - name: Fetch zstd
-      if: ${{ steps.paths.outputs.zstd_SOURCE }}
-      run: python3 tool/fbcode_builder/getdeps.py --allow-system-packages fetch --no-tests zstd
-    - name: Fetch fmt
-      if: ${{ steps.paths.outputs.fmt_SOURCE }}
-      run: python3 tool/fbcode_builder/getdeps.py --allow-system-packages fetch --no-tests fmt
-    - name: Fetch boost
-      if: ${{ steps.paths.outputs.boost_SOURCE }}
-      run: python3 tool/fbcode_builder/getdeps.py --allow-system-packages fetch --no-tests boost
-    - name: Fetch fast_float
-      if: ${{ steps.paths.outputs.fast_float_SOURCE }}
-      run: python3 tool/fbcode_builder/getdeps.py --allow-system-packages fetch --no-tests fast_float
     - name: Fetch gflags
       if: ${{ steps.paths.outputs.gflags_SOURCE }}
       run: python3 tool/fbcode_builder/getdeps.py --allow-system-packages fetch --no-tests gflags
     - name: Fetch glog
       if: ${{ steps.paths.outputs.glog_SOURCE }}
       run: python3 tool/fbcode_builder/getdeps.py --allow-system-packages fetch --no-tests glog
+    - name: Fetch fmt
+      if: ${{ steps.paths.outputs.fmt_SOURCE }}
+      run: python3 tool/fbcode_builder/getdeps.py --allow-system-packages fetch --no-tests fmt
+    - name: Fetch googletest
+      if: ${{ steps.paths.outputs.googletest_SOURCE }}
+      run: python3 tool/fbcode_builder/getdeps.py --allow-system-packages fetch --no-tests googletest
+    - name: Fetch xxhash
+      if: ${{ steps.paths.outputs.xxhash_SOURCE }}
+      run: python3 tool/fbcode_builder/getdeps.py --allow-system-packages fetch --no-tests xxhash
+    - name: Fetch zstd
+      if: ${{ steps.paths.outputs.zstd_SOURCE }}
+      run: python3 tool/fbcode_builder/getdeps.py --allow-system-packages fetch --no-tests zstd
+    - name: Fetch boost
+      if: ${{ steps.paths.outputs.boost_SOURCE }}
+      run: python3 tool/fbcode_builder/getdeps.py --allow-system-packages fetch --no-tests boost
+    - name: Fetch fast_float
+      if: ${{ steps.paths.outputs.fast_float_SOURCE }}
+      run: python3 tool/fbcode_builder/getdeps.py --allow-system-packages fetch --no-tests fast_float
+    - name: Fetch libatomic
+      if: ${{ steps.paths.outputs.libatomic_SOURCE }}
+      run: python3 tool/fbcode_builder/getdeps.py --allow-system-packages fetch --no-tests libatomic
     - name: Fetch libdwarf
       if: ${{ steps.paths.outputs.libdwarf_SOURCE }}
       run: python3 tool/fbcode_builder/getdeps.py --allow-system-packages fetch --no-tests libdwarf
     - name: Fetch libevent
       if: ${{ steps.paths.outputs.libevent_SOURCE }}
       run: python3 tool/fbcode_builder/getdeps.py --allow-system-packages fetch --no-tests libevent
+    - name: Fetch lz4
+      if: ${{ steps.paths.outputs.lz4_SOURCE }}
+      run: python3 tool/fbcode_builder/getdeps.py --allow-system-packages fetch --no-tests lz4
     - name: Fetch openssl
       if: ${{ steps.paths.outputs.openssl_SOURCE }}
       run: python3 tool/fbcode_builder/getdeps.py --allow-system-packages fetch --no-tests openssl
-    - name: Fetch googletest
-      if: ${{ steps.paths.outputs.googletest_SOURCE }}
-      run: python3 tool/fbcode_builder/getdeps.py --allow-system-packages fetch --no-tests googletest
+    - name: Fetch nlohmann-json
+      if: ${{ steps.paths.outputs.nlohmann-json_SOURCE }}
+      run: python3 tool/fbcode_builder/getdeps.py --allow-system-packages fetch --no-tests nlohmann-json
+    - name: Fetch protobuf
+      if: ${{ steps.paths.outputs.protobuf_SOURCE }}
+      run: python3 tool/fbcode_builder/getdeps.py --allow-system-packages fetch --no-tests protobuf
     - name: Fetch liboqs
       if: ${{ steps.paths.outputs.liboqs_SOURCE }}
       run: python3 tool/fbcode_builder/getdeps.py --allow-system-packages fetch --no-tests liboqs
@@ -106,6 +121,21 @@ jobs:
     - name: Fetch libmnl
       if: ${{ steps.paths.outputs.libmnl_SOURCE }}
       run: python3 tool/fbcode_builder/getdeps.py --allow-system-packages fetch --no-tests libmnl
+    - name: Fetch nghttp2
+      if: ${{ steps.paths.outputs.nghttp2_SOURCE }}
+      run: python3 tool/fbcode_builder/getdeps.py --allow-system-packages fetch --no-tests nghttp2
+    - name: Fetch libcurl
+      if: ${{ steps.paths.outputs.libcurl_SOURCE }}
+      run: python3 tool/fbcode_builder/getdeps.py --allow-system-packages fetch --no-tests libcurl
+    - name: Fetch opentelemetry-cpp
+      if: ${{ steps.paths.outputs.opentelemetry-cpp_SOURCE }}
+      run: python3 tool/fbcode_builder/getdeps.py --allow-system-packages fetch --no-tests opentelemetry-cpp
+    - name: Fetch libelf
+      if: ${{ steps.paths.outputs.libelf_SOURCE }}
+      run: python3 tool/fbcode_builder/getdeps.py --allow-system-packages fetch --no-tests libelf
+    - name: Fetch bpftool
+      if: ${{ steps.paths.outputs.bpftool_SOURCE }}
+      run: python3 tool/fbcode_builder/getdeps.py --allow-system-packages fetch --no-tests bpftool
     - name: Fetch libiberty
       if: ${{ steps.paths.outputs.libiberty_SOURCE }}
       run: python3 tool/fbcode_builder/getdeps.py --allow-system-packages fetch --no-tests libiberty
@@ -121,12 +151,21 @@ jobs:
     - name: Fetch fizz
       if: ${{ steps.paths.outputs.fizz_SOURCE }}
       run: python3 tool/fbcode_builder/getdeps.py --allow-system-packages fetch --no-tests fizz
-    - name: Fetch libelf
-      if: ${{ steps.paths.outputs.libelf_SOURCE }}
-      run: python3 tool/fbcode_builder/getdeps.py --allow-system-packages fetch --no-tests libelf
+    - name: Fetch mvfst
+      if: ${{ steps.paths.outputs.mvfst_SOURCE }}
+      run: python3 tool/fbcode_builder/getdeps.py --allow-system-packages fetch --no-tests mvfst
+    - name: Fetch wangle
+      if: ${{ steps.paths.outputs.wangle_SOURCE }}
+      run: python3 tool/fbcode_builder/getdeps.py --allow-system-packages fetch --no-tests wangle
+    - name: Fetch fbthrift
+      if: ${{ steps.paths.outputs.fbthrift_SOURCE }}
+      run: python3 tool/fbcode_builder/getdeps.py --allow-system-packages fetch --no-tests fbthrift
     - name: Fetch libbpf
       if: ${{ steps.paths.outputs.libbpf_SOURCE }}
       run: python3 tool/fbcode_builder/getdeps.py --allow-system-packages fetch --no-tests libbpf
+    - name: Fetch fb303
+      if: ${{ steps.paths.outputs.fb303_SOURCE }}
+      run: python3 tool/fbcode_builder/getdeps.py --allow-system-packages fetch --no-tests fb303
 
     - name: Build katran
       run: python3 tool/fbcode_builder/getdeps.py --allow-system-packages build --build-type RelWithDebInfo --src-dir=. katran --project-install-prefix katran:/usr/local

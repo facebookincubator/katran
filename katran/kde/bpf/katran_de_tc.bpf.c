@@ -1,7 +1,11 @@
 // Packet and __sk_buff layouts are fixed; CO-RE relocations on __sk_buff
 // fields break the verifier's constant-offset ctx access check.
 #define BPF_NO_PRESERVE_ACCESS_INDEX
+#ifdef KATRAN_CMAKE_BUILD
+#include "vmlinux.h"
+#else
 #include <bpf/vmlinux/vmlinux.h>
+#endif
 
 #include <bpf/bpf_helpers.h>
 
@@ -58,8 +62,8 @@ int katran_de_tc(struct __sk_buff* skb) {
       return TC_ACT_UNSPEC;
     }
     struct tuple key = {};
-    memcpy(key.local_ip6, &ip6->saddr, 16);
-    memcpy(key.remote_ip6, &ip6->daddr, 16);
+    __builtin_memcpy(key.local_ip6, &ip6->saddr, 16);
+    __builtin_memcpy(key.remote_ip6, &ip6->daddr, 16);
     key.local_port = tcp->source;
     key.remote_port = tcp->dest;
     ei = bpf_map_lookup_elem(&katran_de_tuple_store, &key);

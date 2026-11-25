@@ -22,6 +22,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 option(BUILD_TESTS "Build katran's tests" OFF)
 option(KATRAN_BUILD_BPF "Build katran's BPF programs, which needs clang" ON)
 option(KATRAN_BUILD_TPR "Build the TCP packet router, which needs bpftool" OFF)
+option(KATRAN_BUILD_KDE "Build Katran DirectEncap, which needs bpftool, fb303, fbthrift, and opentelemetry-cpp" OFF)
 option(KATRAN_BUILD_EXAMPLE_THRIFT
   "Build the thrift example server, which needs an installed fbthrift" OFF)
 option(KATRAN_BUILD_EXAMPLE_GRPC
@@ -62,14 +63,17 @@ pkg_check_modules(LIBELF REQUIRED libelf)
 pkg_check_modules(LIBMNL REQUIRED libmnl)
 pkg_check_modules(ZSTD REQUIRED libzstd)
 
-if(BUILD_TESTS)
-  enable_testing()
-  fb_find_or_fetch_gmock()
+if(BUILD_TESTS OR KATRAN_BUILD_KDE)
   # fb_find_or_fetch() would look for a manifest named cli11.
   find_package(CLI11 CONFIG QUIET)
   if(NOT CLI11_FOUND)
     fb_fetch_from_manifest(CLI11 CLI11)
   endif()
+endif()
+
+if(BUILD_TESTS)
+  enable_testing()
+  fb_find_or_fetch_gmock()
   include(KatranTest)
 endif()
 
