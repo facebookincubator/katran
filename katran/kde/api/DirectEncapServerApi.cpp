@@ -86,7 +86,8 @@ bool DirectEncapServerApi::initImpl(const KdeInstallParams& params) {
   auto server = std::make_unique<katran_tpr::ServerDirectEncap>(
       params.iface,
       params.directIp,
-      params.serverZones,
+      katran_tpr::parseZones(params.serverZones, params.zone_map),
+      params.zone_map,
       params.rlimitMemLock,
       params.vipsEnabled,
       params.vipsDisabled);

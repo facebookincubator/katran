@@ -14,7 +14,7 @@ struct InstallArgs {
   std::string cgroup;
   std::string iface;
   std::string directIp;
-  int clientZone{KDE_ZONE_NONE};
+  std::string clientZone;
   std::string serverZones;
   bool detach{false};
   bool quiet{false};
@@ -125,24 +125,12 @@ class CliParser {
           ->required()
           ->check(ipAddress());
       cmd->add_option(
-             "--zones",
-             installArgs.serverZones,
-             "Comma separated list of supported KDE zones. Defaults to origin.")
-          ->default_val("origin");
+          "--zones",
+          installArgs.serverZones,
+          "Comma separated list of supported KDE zones. Defaults to origin.");
       vipModeFlags(cmd, installArgs);
     } else {
-      std::map<std::string, int> map{
-          {"none", KDE_ZONE_NONE},
-          {"origin", KDE_ZONE_ORIGIN},
-          {"edge", KDE_ZONE_EDGE},
-          {"rl_corp", KDE_ZONE_RL_CORP},
-          {"cloud_cw", KDE_ZONE_CLOUD_CW}};
-      cmd->add_option(
-             "--zone",
-             installArgs.clientZone,
-             "client's KDE zone. Defaults to origin.")
-          ->default_val(static_cast<int>(KDE_ZONE_ORIGIN))
-          ->transform(CLI::CheckedTransformer(std::move(map)));
+      cmd->add_option("--zone", installArgs.clientZone, "client's KDE zone.");
       cmd->add_flag(
           "--host-mode",
           installArgs.hostMode,

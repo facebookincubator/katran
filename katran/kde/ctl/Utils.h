@@ -11,6 +11,7 @@
 #include "katran/facebook/cpr/kde/BaseDirectEncap.h"
 #include "katran/facebook/cpr/kde/KdeBpfUtil.h"
 #include "katran/kde/bpf/kde_types.h"
+#include "katran/kde/consts.h"
 
 namespace katran_de::ctl {
 
@@ -18,14 +19,16 @@ using katran_tpr::DirectEncapMode;
 
 class StatsPrinter {
  public:
-  explicit StatsPrinter(
+  StatsPrinter(
       bool details,
       bool json,
       int jsonDeltaSec,
+      decltype(oss_kde_zones)& zones,
       DirectEncapMode mode = DirectEncapMode::CLIENT)
       : details_(details),
         json_(json),
         jsonDeltaSec_(jsonDeltaSec),
+        zones_(zones),
         mode_(mode) {
     if (jsonDeltaSec_ == 0) {
       suffix_ = ".raw";
@@ -109,20 +112,16 @@ class StatsPrinter {
       logStr += fmt::format(
           "synack_map_update={} ", so.server_error_synack_map_update);
       logStr += fmt::format("\n  zones: v1={} ", so.server_rx_zone_v1);
-      logStr += fmt::format(
-          "accepted u/o/e/r/c={}/{}/{}/{}/{} ",
-          so.server_rx_zone_unknown_acc,
-          so.server_rx_zone[0].acc,
-          so.server_rx_zone[1].acc,
-          so.server_rx_zone[2].acc,
-          so.server_rx_zone[3].acc);
-      logStr += fmt::format(
-          "rejected u/o/e/r/c={}/{}/{}/{}/{} ",
-          so.server_rx_zone_unknown_rej,
-          so.server_rx_zone[0].rej,
-          so.server_rx_zone[1].rej,
-          so.server_rx_zone[2].rej,
-          so.server_rx_zone[3].rej);
+      std::string names = "unknown";
+      std::string acc = fmt::format("{}", so.server_rx_zone_unknown_acc);
+      std::string rej = fmt::format("{}", so.server_rx_zone_unknown_rej);
+      for (size_t i = 0; i < std::size(zones_); i++) {
+        names += fmt::format("/{}", zones_[i].zone_name);
+        acc += fmt::format("/{}", so.server_rx_zone[i].acc);
+        rej += fmt::format("/{}", so.server_rx_zone[i].rej);
+      }
+      logStr += fmt::format("accepted {}={} ", names, acc);
+      logStr += fmt::format("rejected {}={} ", names, rej);
     }
     XLOG(INFO) << "Stats per sec: " << logStr;
   }
@@ -147,26 +146,16 @@ class StatsPrinter {
         "katran_de.server.directip.blackhole" + suffix_,
         so.server_directip_blackhole)(
         "katran_de.server.server.rx_zone.v1" + suffix_, so.server_rx_zone_v1)(
-        "katran_de.server.server.rx_zone.origin.acc" + suffix_,
-        so.server_rx_zone[0].acc)(
-        "katran_de.server.server.rx_zone.edge.acc" + suffix_,
-        so.server_rx_zone[1].acc)(
-        "katran_de.server.server.rx_zone.rl_corp.acc" + suffix_,
-        so.server_rx_zone[2].acc)(
-        "katran_de.server.server.rx_zone.cloud_cw.acc" + suffix_,
-        so.server_rx_zone[3].acc)(
         "katran_de.server.server.rx_zone.unknown.acc" + suffix_,
         so.server_rx_zone_unknown_acc)(
-        "katran_de.server.server.rx_zone.origin.rej" + suffix_,
-        so.server_rx_zone[0].rej)(
-        "katran_de.server.server.rx_zone.edge.rej" + suffix_,
-        so.server_rx_zone[1].rej)(
-        "katran_de.server.server.rx_zone.rl_corp.rej" + suffix_,
-        so.server_rx_zone[2].rej)(
-        "katran_de.server.server.rx_zone.cloud_cw.rej" + suffix_,
-        so.server_rx_zone[3].rej)(
         "katran_de.server.server.rx_zone.unknown.rej" + suffix_,
         so.server_rx_zone_unknown_rej)("timestamp", timestamp());
+    for (size_t i = 0; i < std::size(zones_); i++) {
+      std::string prefix = fmt::format(
+          "katran_de.server.server.rx_zone.{}", zones_[i].zone_name);
+      jsonObject[prefix + ".acc" + suffix_] = so.server_rx_zone[i].acc;
+      jsonObject[prefix + ".rej" + suffix_] = so.server_rx_zone[i].rej;
+    }
     std::cout << folly::toJson(jsonObject) << std::endl;
   }
 
@@ -241,6 +230,7 @@ class StatsPrinter {
   std::string suffix_;
   std::optional<kde_stats> so_ = std::nullopt;
   std::optional<kde_tc_stats> tc_ = std::nullopt; // used only in client mode.
+  decltype(oss_kde_zones)& zones_;
   DirectEncapMode mode_;
 };
 
@@ -267,7 +257,10 @@ struct StatsArgs {
 // Prints stats of the installed KDE. With statusCheck, also reports whether it
 // saw errors. Returns the process exit code: 0 on success, 1 if KDE is not
 // installed, its version mismatches, or (with statusCheck) it has errors.
-inline int reportStats(const StatsArgs& args, bool statusCheck) {
+inline int reportStats(
+    const StatsArgs& args,
+    bool statusCheck,
+    decltype(oss_kde_zones)& zones) {
   const bool client = args.mode == DirectEncapMode::CLIENT;
   if (args.skipVersionCheck) {
     XLOG(WARN)
@@ -323,7 +316,8 @@ inline int reportStats(const StatsArgs& args, bool statusCheck) {
                << KDE_PROG_VERSION;
   }
 
-  StatsPrinter printer(args.details, args.json, args.jsonDeltaSec, args.mode);
+  StatsPrinter printer(
+      args.details, args.json, args.jsonDeltaSec, zones, args.mode);
   for (int count = 0;; count++) {
     auto so = katran_tpr::KdeBpfUtil::aggregateSoStats(*soMap->map_);
     if (tcMap) {

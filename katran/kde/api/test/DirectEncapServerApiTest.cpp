@@ -31,46 +31,34 @@ TEST(KdeServerApiRolloutTest, enabledAttemptsInstall) {
   EXPECT_FALSE(facebook::fb303::fbData->hasCounter("katran_de.server.running"));
 }
 
-/* Zone parsing used to be reached through the gflags; both CLIs and the API
- * call the parser directly now, so test it directly too. */
-TEST(ServerKdeZonesTest, default_zone) {
-  EXPECT_EQ(
-      katran_tpr::ServerDirectEncap::parseServerZonesList("origin"),
-      KDE_ZONE_ORIGIN);
+TEST(KdeZonesTest, emptyIsZone1) {
+  EXPECT_EQ(katran_tpr::parseZones("", oss_kde_zones), KDE_ZONE_1);
 }
 
-TEST(ServerKdeZonesTest, zone_all) {
-  EXPECT_EQ(
-      katran_tpr::ServerDirectEncap::parseServerZonesList("all"), KDE_ZONE_ALL);
+TEST(KdeZonesTest, noneAndAll) {
+  EXPECT_EQ(katran_tpr::parseZones("none", oss_kde_zones), KDE_ZONE_NONE);
+  EXPECT_EQ(katran_tpr::parseZones("all", oss_kde_zones), KDE_ZONE_ALL);
 }
 
-TEST(ServerKdeZonesTest, zone_edge_origin) {
+TEST(KdeZonesTest, list) {
   EXPECT_EQ(
-      katran_tpr::ServerDirectEncap::parseServerZonesList("origin,edge"),
-      KDE_ZONE_ORIGIN | KDE_ZONE_EDGE);
+      katran_tpr::parseZones("zone_1,zone_4", oss_kde_zones),
+      KDE_ZONE_1 | KDE_ZONE_4);
 }
 
-TEST(ServerKdeZonesTest, zone_cloud_cw) {
-  EXPECT_EQ(
-      katran_tpr::ServerDirectEncap::parseServerZonesList("cloud_cw"),
-      KDE_ZONE_CLOUD_CW);
-}
-
-TEST(ServerKdeZonesTest, zone_cloud_cw_with_origin) {
-  EXPECT_EQ(
-      katran_tpr::ServerDirectEncap::parseServerZonesList("origin,cloud_cw"),
-      KDE_ZONE_ORIGIN | KDE_ZONE_CLOUD_CW);
-}
-
-TEST(ServerKdeZonesTest, invalidZone) {
+TEST(KdeZonesTest, invalid) {
   ::testing::FLAGS_gtest_death_test_style =
       "threadsafe"; // otherwise expect death fork fails
   EXPECT_DEATH(
-      {
-        katran_tpr::ServerDirectEncap::parseServerZonesList(
-            "origin,invalid_zone,edge");
-      },
-      "Invalid kde zone");
+      katran_tpr::parseZones("none,zone_1", oss_kde_zones), "Invalid KDE zone");
+  EXPECT_DEATH(
+      katran_tpr::parseZones("zone_1,all", oss_kde_zones), "Invalid KDE zone");
+  EXPECT_DEATH(
+      katran_tpr::parseZones("zone_1,bogus", oss_kde_zones),
+      "Invalid KDE zone");
+  // names come from the table, so Meta names are unknown to the OSS table
+  EXPECT_DEATH(
+      katran_tpr::parseZones("origin", oss_kde_zones), "Invalid KDE zone");
 }
 
 } // namespace katran_de

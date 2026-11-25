@@ -36,7 +36,7 @@ void install(const InstallArgs& installArgs) {
       .detach = installArgs.detach,
       .cgroupPath = installArgs.cgroup,
       .iface = installArgs.iface,
-      .clientZone = static_cast<kde_zone>(installArgs.clientZone),
+      .clientZone = installArgs.clientZone,
       .pin = installArgs.pin,
       .kdePort = installArgs.kdePort,
       .hostMode = installArgs.hostMode,
@@ -61,7 +61,10 @@ void install(const InstallArgs& installArgs) {
   LOG(INFO)
       << "Katran DirectEncap client is running... <Ctrl+C> to exit with cleanup";
   StatsPrinter printer(
-      /*details=*/installArgs.details, /*json=*/false, /*jsonDeltaSec=*/0);
+      /*details=*/installArgs.details,
+      /*json=*/false,
+      /*jsonDeltaSec=*/0,
+      oss_kde_zones);
   while (true) {
     if (!installArgs.quiet) {
       auto stats = katran_de::DirectEncapClientApi::stats();
@@ -79,7 +82,7 @@ void clean(const CleanArgs& cleanArgs) {
 }
 
 void stats(const StatsArgs& statsArgs, bool statusCheck) {
-  exit(reportStats(statsArgs, statusCheck));
+  exit(reportStats(statsArgs, statusCheck, oss_kde_zones));
 }
 
 void ping(const PingArgs& pingArgs) {

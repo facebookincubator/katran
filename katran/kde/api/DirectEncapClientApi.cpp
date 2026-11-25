@@ -92,10 +92,17 @@ bool DirectEncapClientApi::initImpl(const KdeInstallParams& params) {
     guePort = katran_tpr::GuePort::KDE;
   }
 
+  // a client is in exactly one zone
+  if (params.clientZone.find(',') != std::string::npos ||
+      params.clientZone == "all") {
+    XLOG(FATAL) << "Invalid KDE client zone: " << params.clientZone;
+  }
+
   // Create the underlying client object.
   auto client = std::make_unique<ClientDirectEncap>(
       params.iface,
-      params.clientZone,
+      katran_tpr::parseZones(params.clientZone, params.zone_map),
+      params.zone_map,
       VipEnablementMode::ALL_ENABLED,
       /*set_limits=*/params.rlimitMemLock,
       /*configPath=*/"",

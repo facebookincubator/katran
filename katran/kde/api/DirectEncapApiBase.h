@@ -26,6 +26,7 @@
 
 #include "katran/facebook/cpr/kde/KdeStatsOtel.h"
 #include "katran/facebook/cpr/kde/KdeStatsPoller.h"
+#include "katran/kde/consts.h"
 
 namespace katran_de {
 
@@ -38,8 +39,8 @@ struct KdeInstallParams {
   std::string cgroupPath;
   std::string iface;
   folly::IPAddress directIp;
-  kde_zone clientZone{KDE_ZONE_NONE};
-  kde_zone serverZones{KDE_ZONE_NONE};
+  std::string clientZone;
+  std::string serverZones;
   bool pin{false};
   bool kdePort{false};
   bool hostMode{false};
@@ -48,6 +49,7 @@ struct KdeInstallParams {
   // vip mode items
   std::optional<std::string> vipsEnabled;
   std::optional<std::string> vipsDisabled;
+  decltype(oss_kde_zones)& zone_map{oss_kde_zones};
 };
 
 class DirectEncapApiBase {
