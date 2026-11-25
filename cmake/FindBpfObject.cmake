@@ -137,7 +137,7 @@ execute_process(
   RESULT_VARIABLE CLANG_SYSTEM_INCLUDES_result
   OUTPUT_STRIP_TRAILING_WHITESPACE)
 if(${CLANG_SYSTEM_INCLUDES_result} EQUAL 0)
-  string(REPLACE "\n" " " CLANG_SYSTEM_INCLUDES ${CLANG_SYSTEM_INCLUDES_output})
+  separate_arguments(CLANG_SYSTEM_INCLUDES UNIX_COMMAND "${CLANG_SYSTEM_INCLUDES_output}")
   message(STATUS "BPF system include flags: ${CLANG_SYSTEM_INCLUDES}")
 else()
   message(FATAL_ERROR "Failed to determine BPF system includes: ${CLANG_SYSTEM_INCLUDES_error}")
