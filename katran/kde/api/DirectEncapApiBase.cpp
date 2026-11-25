@@ -15,7 +15,6 @@
  */
 
 #include "katran/kde/api/DirectEncapApiBase.h"
-#include <cstdlib>
 
 namespace katran_de {
 
@@ -38,6 +37,9 @@ bool DirectEncapApiBase::installWithParamsImpl(const KdeInstallParams& params) {
     LOG(ERROR) << "DirectEncap is already initialized";
     return false;
   }
+  if (!params.detach && params.otelStats && !params.otelStats->validate()) {
+    return false;
+  }
   if (!initImpl(params)) {
     return false;
   }
@@ -50,12 +52,7 @@ bool DirectEncapApiBase::installWithParamsImpl(const KdeInstallParams& params) {
 
   CHECK(evbThread_.getEventBase());
   if (params.otelStats) {
-    const auto* otelEndpoint = std::getenv("OTEL_EXPORTER_OTLP_ENDPOINT");
-    if (otelEndpoint == nullptr || *otelEndpoint == '\0') {
-      LOG(ERROR) << "--otel requires OTEL_EXPORTER_OTLP_ENDPOINT to be set";
-      return false;
-    }
-    katran_tpr::KdeStatsOtel::initGlobal(otelEndpoint);
+    katran_tpr::KdeStatsOtel::initGlobal(*params.otelStats);
     kdeStatsOtel_ = std::make_unique<katran_tpr::KdeStatsOtel>(
         getImpl(), evbThread_.getEventBase());
     auto res = kdeStatsOtel_->runStatsPoller();

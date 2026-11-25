@@ -113,7 +113,7 @@ class CliParser {
     cmd->add_flag(
         "--otel",
         installArgs.otel,
-        "Export KDE stats through OpenTelemetry instead of fb303. Requires OTEL_EXPORTER_OTLP_ENDPOINT.");
+        "Export KDE stats through OpenTelemetry instead of fb303. Configure the collector with OTLP environment variables.");
     cmd->add_flag(
         "--check-jk",
         installArgs.checkJK,

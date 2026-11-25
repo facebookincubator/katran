@@ -17,8 +17,8 @@
 #pragma once
 
 #include <folly/Singleton.h>
-#include "katran/facebook/cpr/kde/ClientDirectEncap.h"
 #include "katran/kde/api/DirectEncapApiBase.h"
+#include "katran/kde/core/ClientDirectEncap.h"
 
 namespace katran_de {
 

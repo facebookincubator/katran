@@ -22,11 +22,12 @@
 #include <functional>
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <string>
 
-#include "katran/facebook/cpr/kde/KdeStatsOtel.h"
-#include "katran/facebook/cpr/kde/KdeStatsPoller.h"
 #include "katran/kde/consts.h"
+#include "katran/kde/core/KdeStatsOtel.h"
+#include "katran/kde/core/KdeStatsPoller.h"
 
 namespace katran_de {
 
@@ -44,7 +45,7 @@ struct KdeInstallParams {
   bool pin{false};
   bool kdePort{false};
   bool hostMode{false};
-  bool otelStats{false};
+  std::optional<katran_tpr::KdeOtelOptions> otelStats;
   bool natMode{false};
   // vip mode items
   std::optional<std::string> vipsEnabled;

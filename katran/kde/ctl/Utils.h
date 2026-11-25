@@ -8,10 +8,10 @@
 #include <iostream>
 #include <optional>
 #include <string>
-#include "katran/facebook/cpr/kde/BaseDirectEncap.h"
-#include "katran/facebook/cpr/kde/KdeBpfUtil.h"
 #include "katran/kde/bpf/kde_types.h"
 #include "katran/kde/consts.h"
+#include "katran/kde/core/BaseDirectEncap.h"
+#include "katran/kde/core/KdeBpfUtil.h"
 
 namespace katran_de::ctl {
 

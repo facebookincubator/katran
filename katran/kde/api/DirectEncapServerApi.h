@@ -19,8 +19,8 @@
 #include <folly/Singleton.h>
 #include <folly/logging/xlog.h>
 
-#include "katran/facebook/cpr/kde/ServerDirectEncap.h"
 #include "katran/kde/api/DirectEncapApiBase.h"
+#include "katran/kde/core/ServerDirectEncap.h"
 
 namespace katran_de {
 

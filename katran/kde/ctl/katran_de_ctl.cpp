@@ -9,9 +9,10 @@
 #include <glog/logging.h>
 #include <thrift/lib/cpp2/util/ScopedServerThread.h>
 
-#include "katran/facebook/cpr/kde/ClientDirectEncap.h"
 #include "katran/facebook/direct_encap/katran_de_ctl/KdePinger.h"
 #include "katran/kde/api/DirectEncapClientApi.h"
+#include "katran/kde/core/ClientDirectEncap.h"
+#include "katran/kde/core/KdeStatsOtel.h"
 #include "katran/kde/ctl/CliParser.h"
 #include "katran/kde/ctl/KatranDeThrift.h"
 #include "katran/kde/ctl/Utils.h"
@@ -40,9 +41,11 @@ void install(const InstallArgs& installArgs) {
       .pin = installArgs.pin,
       .kdePort = installArgs.kdePort,
       .hostMode = installArgs.hostMode,
-      .otelStats = installArgs.otel,
       .natMode = installArgs.natMode,
   };
+  if (installArgs.otel && !installArgs.detach) {
+    apiArgs.otelStats = katran_tpr::KdeOtelOptions{};
+  }
   if (!katran_de::DirectEncapClientApi::installWithParams(apiArgs)) {
     LOG(ERROR) << "Failed to install Katran DirectEncap";
     exit(1);
