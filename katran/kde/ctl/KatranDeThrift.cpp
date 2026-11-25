@@ -1,5 +1,3 @@
-// (c) Meta Platforms, Inc. and affiliates. Confidential and proprietary.
-
 #include "katran/kde/ctl/KatranDeThrift.h"
 
 #include <stdexcept>

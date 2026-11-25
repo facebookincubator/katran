@@ -2,6 +2,7 @@
 
 #include <linux/types.h>
 #include <unistd.h>
+#include <string>
 #include <system_error>
 
 #include <folly/Expected.h>
@@ -34,21 +35,19 @@ class SkeletonMap {
     return *this;
   }
   ~SkeletonMap() {
-    close(progFd_);
-    close(mapFd_);
+    if (mapFd_ >= 0) {
+      close(mapFd_);
+    }
     if (map_) {
       unmapSkeletonMap(map_);
     }
   }
   void moveObj(SkeletonMap&& other) {
-    progFd_ = other.progFd_;
     mapFd_ = other.mapFd_;
     map_ = other.map_;
-    other.progFd_ = -1;
     other.mapFd_ = -1;
     other.map_ = nullptr;
   }
-  int progFd_{-1};
   int mapFd_{-1};
   const T* map_{nullptr};
 };
@@ -58,14 +57,11 @@ using SockOpsBssMap = SkeletonMap<katran_de_so_bpf::katran_de_so_bpf__bss>;
 
 class KdeBpfUtil {
  public:
-  static folly::Expected<SockOpsBssMap, std::system_error> findSockOpsBssMap(
-      const std::string& cgroupPath);
+  static folly::Expected<SockOpsBssMap, std::system_error> findSockOpsBssMap();
 
-  static folly::Expected<TcBssMap, std::system_error> findTcBssMap(
-      const std::string& iface);
+  static folly::Expected<TcBssMap, std::system_error> findTcBssMap();
 
-  static folly::Expected<int, std::system_error> findSkStoreMapFd(
-      const std::string& cgroupPath);
+  static folly::Expected<int, std::system_error> findSkStoreMapFd();
 
   static kde_stats aggregateSoStats(
       const katran_de_so_bpf::katran_de_so_bpf__bss& bss);
@@ -79,10 +75,8 @@ class KdeBpfUtil {
 
   static uint64_t sumServerErrors(const kde_stats& stats);
 
-  static folly::Expected<uint32_t, std::system_error> findSockOpsVersion(
-      const std::string& cgroupPath);
-  static folly::Expected<uint32_t, std::system_error> findTcVersion(
-      const std::string& iface);
+  static folly::Expected<uint32_t, std::system_error> findSockOpsVersion();
+  static folly::Expected<uint32_t, std::system_error> findTcVersion();
   static uint32_t getCurrentKdeProgVersion() {
     return KDE_PROG_VERSION;
   }
@@ -90,12 +84,11 @@ class KdeBpfUtil {
   static std::string getPinPath(const std::string& item);
 
  private:
-  static constexpr auto kBpfMetadataKdeVersion = "bpf_metadata_kde_version";
-
-  static folly::Expected<int, std::system_error> findSockOpsProgFd(
-      const std::string& cgroupPath);
-  static folly::Expected<int, std::system_error> findTcProgFd(
-      const std::string& iface);
+  template <class RoData>
+  static folly::Expected<uint32_t, std::system_error> readProgVersion(
+      const std::string& progName);
+  static folly::Expected<int, std::system_error> openPinnedObj(
+      const std::string& item);
   static folly::Expected<int, std::system_error> findMapFdFromProgFd(
       int progFd,
       const std::string& mapName);

@@ -1,9 +1,13 @@
 #pragma once
 
-#include <folly/executors/FunctionScheduler.h>
+#include <atomic>
+#include <optional>
+#include <string>
+#include <vector>
+
+#include <fb303/ThreadCachedServiceData.h>
 #include <folly/io/async/AsyncTimeout.h>
 #include <folly/io/async/EventBase.h>
-#include <proxygen/lib/stats/BaseStats.h>
 
 #include "katran/kde/core/BaseDirectEncap.h"
 
@@ -36,40 +40,40 @@ class KdeStatsPoller : public folly::AsyncTimeout {
   std::optional<kde_stats> prevSoStats_{std::nullopt};
   std::optional<kde_tc_stats> prevTcStats_{std::nullopt};
 
-  proxygen::BaseStats::TLTimeseries clientEncapPackets_;
-  proxygen::BaseStats::TLTimeseries clientEncapBytes_;
-  proxygen::BaseStats::TLTimeseries clientEncapBytesPayload_;
-  proxygen::BaseStats::TLTimeseries clientConnsEncapped_;
-  proxygen::BaseStats::TLTimeseries clientOptSent_;
-  proxygen::BaseStats::TLTimeseries clientOptReceived_;
-  proxygen::BaseStats::TLTimeseries clientRetransDetected_;
-  proxygen::BaseStats::TLTimeseries clientSOErrors_;
-  proxygen::BaseStats::TLTimeseries clientSOErrorNatMissing_;
-  proxygen::BaseStats::TLTimeseries clientErrorTupleStore_;
-  proxygen::BaseStats::TLTimeseries clientTCErrors_;
-  proxygen::BaseStats::TLTimeseries clientTCErrorNatReplace_;
+  facebook::fb303::MinuteOnlyTimeseriesWrapper clientEncapPackets_;
+  facebook::fb303::MinuteOnlyTimeseriesWrapper clientEncapBytes_;
+  facebook::fb303::MinuteOnlyTimeseriesWrapper clientEncapBytesPayload_;
+  facebook::fb303::MinuteOnlyTimeseriesWrapper clientConnsEncapped_;
+  facebook::fb303::MinuteOnlyTimeseriesWrapper clientOptSent_;
+  facebook::fb303::MinuteOnlyTimeseriesWrapper clientOptReceived_;
+  facebook::fb303::MinuteOnlyTimeseriesWrapper clientRetransDetected_;
+  facebook::fb303::MinuteOnlyTimeseriesWrapper clientSOErrors_;
+  facebook::fb303::MinuteOnlyTimeseriesWrapper clientSOErrorNatMissing_;
+  facebook::fb303::MinuteOnlyTimeseriesWrapper clientErrorTupleStore_;
+  facebook::fb303::MinuteOnlyTimeseriesWrapper clientTCErrors_;
+  facebook::fb303::MinuteOnlyTimeseriesWrapper clientTCErrorNatReplace_;
 
-  proxygen::BaseStats::TLTimeseries serverOptSent_;
-  proxygen::BaseStats::TLTimeseries serverNatOptSent_;
-  proxygen::BaseStats::TLTimeseries serverRetransSynack_;
-  proxygen::BaseStats::TLTimeseries serverDirectIpBlackhole_;
-  proxygen::BaseStats::TLTimeseries serverErrors_;
-  proxygen::BaseStats::TLTimeseries serverErrorSysCalls_;
-  proxygen::BaseStats::TLTimeseries serverErrorWriteOpt_;
-  proxygen::BaseStats::TLTimeseries serverErrorSetso_;
-  proxygen::BaseStats::TLTimeseries serverErrorSetcb_;
-  proxygen::BaseStats::TLTimeseries serverErrorUnsetCb_;
-  proxygen::BaseStats::TLTimeseries serverErrorLoadHdr_;
-  proxygen::BaseStats::TLTimeseries serverErrorReserve_;
-  proxygen::BaseStats::TLTimeseries serverErrorNoSavedSyn_;
-  proxygen::BaseStats::TLTimeseries serverErrorSynackMapUpdate_;
+  facebook::fb303::MinuteOnlyTimeseriesWrapper serverOptSent_;
+  facebook::fb303::MinuteOnlyTimeseriesWrapper serverNatOptSent_;
+  facebook::fb303::MinuteOnlyTimeseriesWrapper serverRetransSynack_;
+  facebook::fb303::MinuteOnlyTimeseriesWrapper serverDirectIpBlackhole_;
+  facebook::fb303::MinuteOnlyTimeseriesWrapper serverErrors_;
+  facebook::fb303::MinuteOnlyTimeseriesWrapper serverErrorSysCalls_;
+  facebook::fb303::MinuteOnlyTimeseriesWrapper serverErrorWriteOpt_;
+  facebook::fb303::MinuteOnlyTimeseriesWrapper serverErrorSetso_;
+  facebook::fb303::MinuteOnlyTimeseriesWrapper serverErrorSetcb_;
+  facebook::fb303::MinuteOnlyTimeseriesWrapper serverErrorUnsetCb_;
+  facebook::fb303::MinuteOnlyTimeseriesWrapper serverErrorLoadHdr_;
+  facebook::fb303::MinuteOnlyTimeseriesWrapper serverErrorReserve_;
+  facebook::fb303::MinuteOnlyTimeseriesWrapper serverErrorNoSavedSyn_;
+  facebook::fb303::MinuteOnlyTimeseriesWrapper serverErrorSynackMapUpdate_;
 
   // TODO(shah256): add vip filter counters for server
-  std::vector<proxygen::BaseStats::TLTimeseries> serverRxZonesAcc_;
-  std::vector<proxygen::BaseStats::TLTimeseries> serverRxZonesRej_;
-  proxygen::BaseStats::TLTimeseries serverRxZoneV1_;
-  proxygen::BaseStats::TLTimeseries serverRxZoneUnknownAcc_;
-  proxygen::BaseStats::TLTimeseries serverRxZoneUnknownRej_;
+  std::vector<facebook::fb303::MinuteOnlyTimeseriesWrapper> serverRxZonesAcc_;
+  std::vector<facebook::fb303::MinuteOnlyTimeseriesWrapper> serverRxZonesRej_;
+  facebook::fb303::MinuteOnlyTimeseriesWrapper serverRxZoneV1_;
+  facebook::fb303::MinuteOnlyTimeseriesWrapper serverRxZoneUnknownAcc_;
+  facebook::fb303::MinuteOnlyTimeseriesWrapper serverRxZoneUnknownRej_;
 };
 
 } // namespace katran_tpr

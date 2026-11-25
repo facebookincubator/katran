@@ -267,7 +267,7 @@ inline int reportStats(
         << "--skip-version-check is deprecated and a no-op; the version check is "
            "off by default. Remove it; use --version-check to opt in.";
   }
-  auto soMap = katran_tpr::KdeBpfUtil::findSockOpsBssMap(args.cgroup);
+  auto soMap = katran_tpr::KdeBpfUtil::findSockOpsBssMap();
   if (soMap.hasError()) {
     XLOG(ERR) << "Failed to find Katran DirectEncap sockops map: "
               << soMap.error().what();
@@ -275,7 +275,7 @@ inline int reportStats(
   }
   std::optional<katran_tpr::TcBssMap> tcMap;
   if (client) {
-    auto maybeTcMap = katran_tpr::KdeBpfUtil::findTcBssMap(args.iface);
+    auto maybeTcMap = katran_tpr::KdeBpfUtil::findTcBssMap();
     if (maybeTcMap.hasError()) {
       XLOG(ERR) << "Failed to find Katran DirectEncap TC map: "
                 << maybeTcMap.error().what();
@@ -286,7 +286,7 @@ inline int reportStats(
 
   if (args.versionCheck && !args.skipVersionCheck) {
     auto currentVer = katran_tpr::KdeBpfUtil::getCurrentKdeProgVersion();
-    auto soVer = katran_tpr::KdeBpfUtil::findSockOpsVersion(args.cgroup);
+    auto soVer = katran_tpr::KdeBpfUtil::findSockOpsVersion();
     if (soVer.hasError()) {
       XLOG(ERR) << "Failed to find Katran DirectEncap sockops version: "
                 << soVer.error().what();
@@ -299,7 +299,7 @@ inline int reportStats(
       return 1;
     }
     if (client) {
-      auto tcVer = katran_tpr::KdeBpfUtil::findTcVersion(args.iface);
+      auto tcVer = katran_tpr::KdeBpfUtil::findTcVersion();
       if (tcVer.hasError()) {
         XLOG(ERR) << "Failed to find Katran DirectEncap TC version: "
                   << tcVer.error().what();

@@ -1,139 +1,38 @@
 #include <katran/kde/core/KdeBpfUtil.h>
 
 #include <bpf/bpf.h>
-#include <bpf/btf.h>
+#include <fmt/format.h>
 #include <glog/logging.h>
-#include <net/if.h>
 #include <sys/mman.h>
+#include <cstring>
 #include <filesystem>
 #include <system_error>
+#include <vector>
 
+#include <folly/ScopeGuard.h>
 #include <folly/String.h>
-
 #include <folly/portability/Filesystem.h>
 
 #include <katran/kde/consts.h>
 #include <katran/lib/BpfAdapter.h>
-#include "tupperware/agent/system/RtNetlink.h"
-#include "tupperware/agent/system/bpf/Bpf.h"
-#include "tupperware/agent/system/bpf/BpfMetadataBuilder.h"
-#include "tupperware/agent/system/bpf/BpfProgram.h"
-
-namespace facebook::tupperware {
-
-template <>
-std::string
-system::BpfMetadataBuilder<kde_bpf_version>::getMetadataMapName() noexcept {
-  return "bpf_metadata_kde_bpf_version";
-}
-
-template <>
-bool system::BpfMetadataBuilder<kde_bpf_version>::isValidMember(
-    const std::string& name) noexcept {
-  return name == "version" || name == "hash";
-}
-
-template <>
-SystemMaybe<folly::Unit>
-system::BpfMetadataBuilder<kde_bpf_version>::parseMember(
-    kde_bpf_version& meta,
-    const std::string& name,
-    char* addr,
-    uint32_t size) noexcept {
-  if (size > 0 && name == "version") {
-    meta.version = static_cast<uint32_t>(*addr);
-    return noSystemError();
-  } else if (size >= 20 && name == "hash") {
-    std::memcpy(meta.hash, addr, 20);
-    return noSystemError();
-  }
-  return SYSTEM_ERROR(
-      EINVAL, "Invalid kde_bpf_version field ", name, " in Bpf Metadata ");
-}
-} // namespace facebook::tupperware
 
 namespace katran_tpr {
 
-folly::Expected<int, std::system_error> KdeBpfUtil::findSockOpsProgFd(
-    const std::string& cgroupPath) {
-  facebook::tupperware::system::Path path(cgroupPath);
-  const std::map<std::string, bpf_prog_type> programFilter = {
-      {KdeSockOpsProgName, BPF_PROG_TYPE_SOCK_OPS}};
-  auto progs = facebook::tupperware::system::Bpf::getFilteredCgroupBpfPrograms(
-      path, programFilter);
-  if (progs.hasError()) {
-    LOG(ERROR) << "Failed to get katran_de sock_ops prog from cgroup "
-               << cgroupPath << " error " << progs.error().what();
-    return folly::makeUnexpected(progs.error());
-  }
-  int fd = -1;
-  uint32_t id = 0;
-  for (const auto& prog : progs.value()) {
-    if (prog.id() && *prog.id() > id) {
-      id = *prog.id();
-      fd = prog.fd();
-    }
-  }
-  if (fd == -1) {
-    std::string errMsg =
-        "Failed to find katran_de sock_ops prog from cgroup " + cgroupPath;
-    LOG(ERROR) << errMsg;
-    return folly::makeUnexpected(
-        std::system_error(errno, std::generic_category(), errMsg));
-  } else {
-    VLOG(2) << "Found katran_de sock_ops prog id " << id << ", fd " << fd;
-    return dup(fd);
-  }
-}
-
-folly::Expected<int, std::system_error> KdeBpfUtil::findTcProgFd(
-    const std::string& iface) {
-  int ifIndex = if_nametoindex(iface.c_str());
-  if (!ifIndex) {
-    std::string errMsg = "Can't resolve ifindex for interface " + iface;
-    LOG(ERROR) << errMsg;
-    return folly::makeUnexpected(
-        std::system_error(errno, std::generic_category(), errMsg));
-  }
-  auto maybePrograms = facebook::tupperware::system::RtNetlink::getTcBpfFilters(
-      ifIndex,
-      facebook::tupperware::system::RtNetlink::TcFilterDirection::EGRESS);
-  if (maybePrograms.hasError()) {
-    LOG(ERROR) << "Failed to get TC prog from interface " << iface << " error "
-               << maybePrograms.error().what();
-    return folly::makeUnexpected(maybePrograms.error());
-  }
-  uint32_t id = 0;
-  for (const auto& program : *maybePrograms) {
-    if (!program.bpfName.has_value()) {
-      continue;
-    }
-    if (program.bpfName && program.bpfName.value() == KdeTcProgName) {
-      if (program.bpfId > id) {
-        id = program.bpfId;
-      }
-    }
-  }
-  if (id == 0) {
-    std::string errMsg =
-        "Failed to find katran_de tc prog from interface " + iface;
-    LOG(ERROR) << errMsg;
-    return folly::makeUnexpected(
-        std::system_error(errno, std::generic_category(), errMsg));
-  }
-  int fd = bpf_prog_get_fd_by_id(id);
+folly::Expected<int, std::system_error> KdeBpfUtil::openPinnedObj(
+    const std::string& item) {
+  std::string pinnedPath = getPinPath(item);
+  int fd = bpf_obj_get(pinnedPath.c_str());
   if (fd < 0) {
+    int err = errno;
     std::string errMsg = fmt::format(
-        "Failed to get BPF fd of bpf prog id: {}, errno: {}",
-        id,
-        folly::errnoStr(errno));
+        "Failed to open pinned BPF object {}: {}",
+        pinnedPath,
+        folly::errnoStr(err));
     LOG(ERROR) << errMsg;
     return folly::makeUnexpected(
-        std::system_error(errno, std::generic_category(), errMsg));
-  } else {
-    VLOG(2) << "Found katran_de TC prog id " << id << ", fd " << fd;
-    return fd;
+        std::system_error(err, std::generic_category(), errMsg));
   }
+  return fd;
 }
 
 folly::Expected<int, std::system_error> KdeBpfUtil::findMapFdFromProgFd(
@@ -243,30 +142,14 @@ folly::Expected<folly::Unit, std::system_error> unmapSkeletonMap(const T* map) {
   return folly::Unit();
 }
 
-folly::Expected<SockOpsBssMap, std::system_error> KdeBpfUtil::findSockOpsBssMap(
-    const std::string& cgroupPath) {
-  SockOpsBssMap map;
-  std::string pinnedPath = getPinPath(KdeSoBssName);
-  int mapFd = bpf_obj_get(pinnedPath.c_str());
-  if (mapFd < 0) {
-    if (errno != ENOENT) {
-      VLOG(3) << "SO BSS pinned data found. Can't open it, errno: " << errno;
-    } else {
-      VLOG(3)
-          << "SO BSS pinned data not found. Falling back to findSockOpsProgFd";
-    }
-    auto maybeProgFd = findSockOpsProgFd(cgroupPath);
-    if (maybeProgFd.hasError()) {
-      return folly::makeUnexpected(maybeProgFd.error());
-    }
-    map.progFd_ = maybeProgFd.value();
-    auto maybeMapFd = findMapFdFromProgFd(map.progFd_, "katran_d.bss");
-    if (maybeMapFd.hasError()) {
-      return folly::makeUnexpected(maybeMapFd.error());
-    }
-    mapFd = maybeMapFd.value();
+folly::Expected<SockOpsBssMap, std::system_error>
+KdeBpfUtil::findSockOpsBssMap() {
+  auto maybeFd = openPinnedObj(KdeSoBssName);
+  if (maybeFd.hasError()) {
+    return folly::makeUnexpected(maybeFd.error());
   }
-  map.mapFd_ = mapFd;
+  SockOpsBssMap map;
+  map.mapFd_ = *maybeFd;
   auto maybeMap = skeletonMapFromFd<SockOpsBssMap::MapType>(map.mapFd_);
   if (maybeMap.hasError()) {
     return folly::makeUnexpected(maybeMap.error());
@@ -275,47 +158,25 @@ folly::Expected<SockOpsBssMap, std::system_error> KdeBpfUtil::findSockOpsBssMap(
   return std::move(map);
 }
 
-folly::Expected<int, std::system_error> KdeBpfUtil::findSkStoreMapFd(
-    const std::string& cgroupPath) {
-  auto progFdExp = findSockOpsProgFd(cgroupPath);
+folly::Expected<int, std::system_error> KdeBpfUtil::findSkStoreMapFd() {
+  auto progFdExp = openPinnedObj(KdeSockOpsProgName);
   if (progFdExp.hasError()) {
     return folly::makeUnexpected(progFdExp.error());
   }
   int progFd = progFdExp.value();
-
-  auto mapFdExp = findMapFdFromProgFd(progFd, "katran_de_sk_st");
-  close(progFd);
-
-  if (mapFdExp.hasError()) {
-    return folly::makeUnexpected(mapFdExp.error());
-  }
-
-  return mapFdExp.value();
+  SCOPE_EXIT {
+    close(progFd);
+  };
+  return findMapFdFromProgFd(progFd, "katran_de_sk_st");
 }
 
-folly::Expected<TcBssMap, std::system_error> KdeBpfUtil::findTcBssMap(
-    const std::string& iface) {
-  TcBssMap map;
-  std::string pinnedPath = getPinPath(KdeTcBssName);
-  int mapFd = bpf_obj_get(pinnedPath.c_str());
-  if (mapFd < 0) {
-    if (errno != ENOENT) {
-      VLOG(3) << "TC BSS pinned data found. Can't open it, errno: " << errno;
-    } else {
-      VLOG(3) << "TC BSS pinned data not found. Falling back to findTcProgFd";
-    }
-    auto maybeProgFd = findTcProgFd(iface);
-    if (maybeProgFd.hasError()) {
-      return folly::makeUnexpected(maybeProgFd.error());
-    }
-    map.progFd_ = maybeProgFd.value();
-    auto maybeMapFd = findMapFdFromProgFd(map.progFd_, "katran_d.bss");
-    if (maybeMapFd.hasError()) {
-      return folly::makeUnexpected(maybeMapFd.error());
-    }
-    mapFd = maybeMapFd.value();
+folly::Expected<TcBssMap, std::system_error> KdeBpfUtil::findTcBssMap() {
+  auto maybeFd = openPinnedObj(KdeTcBssName);
+  if (maybeFd.hasError()) {
+    return folly::makeUnexpected(maybeFd.error());
   }
-  map.mapFd_ = mapFd;
+  TcBssMap map;
+  map.mapFd_ = *maybeFd;
   auto maybeMap = skeletonMapFromFd<TcBssMap::MapType>(map.mapFd_);
   if (maybeMap.hasError()) {
     return folly::makeUnexpected(maybeMap.error());
@@ -475,56 +336,49 @@ uint64_t KdeBpfUtil::sumServerErrors(const kde_stats& stats) {
       stats.server_error_synack_map_update;
 }
 
-folly::Expected<uint32_t, std::system_error> KdeBpfUtil::findSockOpsVersion(
-    const std::string& cgroupPath) {
-  auto maybeProgFd = findSockOpsProgFd(cgroupPath);
+template <class RoData>
+folly::Expected<uint32_t, std::system_error> KdeBpfUtil::readProgVersion(
+    const std::string& progName) {
+  auto maybeProgFd = openPinnedObj(progName);
   if (maybeProgFd.hasError()) {
     return folly::makeUnexpected(maybeProgFd.error());
   }
-  facebook::tupperware::system::BpfProgram prog(maybeProgFd.value());
-  auto maybeMeta = facebook::tupperware::system::BpfMetadataBuilder<
-      kde_bpf_version>::makeFromProgram(prog);
-  if (maybeMeta.hasError()) {
-    LOG(ERROR) << "Failed to create metadata builder: "
-               << maybeMeta.error().what();
-    return folly::makeUnexpected(maybeMeta.error());
+  int progFd = *maybeProgFd;
+  SCOPE_EXIT {
+    ::close(progFd);
+  };
+
+  auto maybeRodataFd = findMapFdFromProgFd(progFd, "katran_d.rodata");
+  if (maybeRodataFd.hasError()) {
+    return folly::makeUnexpected(maybeRodataFd.error());
   }
-  return maybeMeta->version;
+  int rodataFd = *maybeRodataFd;
+  SCOPE_EXIT {
+    ::close(rodataFd);
+  };
+
+  auto maybeMap = skeletonMapFromFd<RoData>(rodataFd);
+  if (maybeMap.hasError()) {
+    return folly::makeUnexpected(maybeMap.error());
+  }
+  uint32_t version = (*maybeMap)->bpf_metadata_kde_bpf_version.version;
+  unmapSkeletonMap(*maybeMap);
+  return version;
 }
 
-folly::Expected<uint32_t, std::system_error> KdeBpfUtil::findTcVersion(
-    const std::string& iface) {
-  auto maybeProgFd = findTcProgFd(iface);
-  if (maybeProgFd.hasError()) {
-    return folly::makeUnexpected(maybeProgFd.error());
-  }
-  facebook::tupperware::system::BpfProgram prog(maybeProgFd.value());
-  auto maybeMeta = facebook::tupperware::system::BpfMetadataBuilder<
-      kde_bpf_version>::makeFromProgram(prog);
-  if (maybeMeta.hasError()) {
-    LOG(ERROR) << "Failed to create metadata builder: "
-               << maybeMeta.error().what();
-    return folly::makeUnexpected(maybeMeta.error());
-  }
-  return maybeMeta->version;
+folly::Expected<uint32_t, std::system_error> KdeBpfUtil::findSockOpsVersion() {
+  return readProgVersion<katran_de_so_bpf::katran_de_so_bpf__rodata>(
+      KdeSockOpsProgName);
 }
 
-/*
- * BPF pinning path selection:
- *
- * IMPORTANT: bpf_obj_pin() requires a bpffs mount point.
- * Verify with: mount | grep bpf
- *
- * TW environment: LIBBPF_BPF_TOKEN_PATH set to /run/tw/bpf (if userns)
- * (https://internalfb.com/code/fbsource/fbcode/tupperware/agent/runtime/BpfFs.h?lines=16)
- * Devserver: No bpffs at /run/tw/bpf, falls back to /sys/fs/bpf
- *
- * with django using native containers (no userns, no bpftoken)
- * with LIBBPF_BPF_TOKEN_PATH is set, libbpf will try to use it; eventually
- * being unable to  to attach the prog.
- * without LIBBPF_BPF_TOKEN_PATH it will try to pin to /sys/fs/bpf which is not
- * a bpffs in tw
- */
+folly::Expected<uint32_t, std::system_error> KdeBpfUtil::findTcVersion() {
+  return readProgVersion<katran_de_tc_bpf::katran_de_tc_bpf__rodata>(
+      KdeTcProgName);
+}
+
+// bpf_obj_pin() requires a bpffs mount point. Prefer KATRAN_DE_PIN_PATH, then
+// LIBBPF_BPF_TOKEN_PATH (when bpffs/token mount is exposed there), falling back
+// to /sys/fs/bpf/.
 std::string KdeBpfUtil::getPinPath(const std::string& item) {
   const char* tokenPath = std::getenv("LIBBPF_BPF_TOKEN_PATH");
   const char* pinPath = std::getenv("KATRAN_DE_PIN_PATH");
@@ -532,7 +386,7 @@ std::string KdeBpfUtil::getPinPath(const std::string& item) {
   if (pinPath && *pinPath) {
     b = pinPath;
   } else if (tokenPath && *tokenPath) {
-    b = tokenPath; // In TW , this points to the bpffs mount directory.
+    b = tokenPath;
   }
   return (std::filesystem::path(b) / item).string();
 }

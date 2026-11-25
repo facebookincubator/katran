@@ -21,7 +21,7 @@ struct InstallArgs {
   bool details{false};
   int thriftPort{0};
   bool checkJK{false};
-  bool pin{false};
+  bool pin{true};
   bool kdePort{false};
   bool hostMode{false};
   bool otel{false};
@@ -79,8 +79,8 @@ class CliParser {
     cmd->add_option(
            "--cgroup",
            installArgs.cgroup,
-           "Cgroup path to install BPF sockops prog. Default assumes execution in Tupperware task environment.")
-        ->default_val("");
+           "Cgroup path to install BPF sockops prog.")
+        ->required();
     cmd->add_option(
            "--iface",
            installArgs.iface,
@@ -94,9 +94,9 @@ class CliParser {
     cmd->add_flag(
            "--pin-bss",
            installArgs.pin = true,
-           "Pin BPF BSS maps to bpffs. Uses LIBBPF_BPF_TOKEN_PATH if set, "
-           "else /sys/fs/bpf. Note: requires bpffs mount, not regular directory.")
-        ->default_val(false);
+           "Pin BPF programs and BSS maps to bpffs. Uses KATRAN_DE_PIN_PATH or "
+           "LIBBPF_BPF_TOKEN_PATH if set, else /sys/fs/bpf.")
+        ->default_val(true);
     cmd->add_flag(
            "--kde-port",
            installArgs.kdePort = true,
@@ -189,8 +189,8 @@ class CliParser {
           ->add_option(
               "--cgroup",
               cleanArgs->cgroup,
-              "Cgroup path where BPF sockops prog was installed. Default assumes execution in Tupperware task environment.")
-          ->default_val("");
+              "Cgroup path where BPF sockops prog was installed.")
+          ->required();
       cleanCmd
           ->add_option(
               "--iface",

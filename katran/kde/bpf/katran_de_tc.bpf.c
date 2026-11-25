@@ -46,7 +46,7 @@ int katran_de_tc(struct __sk_buff* skb) {
     void* data = (void*)(long)skb->data;
     void* data_end = (void*)(long)skb->data_end;
     struct ethhdr* eth = (void*)data;
-    if (eth + 1 > data_end || eth->h_proto != BE_ETH_P_IPV6) {
+    if (eth + 1 > data_end || eth->h_proto != bpf_htons(ETH_P_IPV6)) {
       return TC_ACT_UNSPEC;
     }
     struct ipv6hdr* ip6 = (void*)(eth + 1);

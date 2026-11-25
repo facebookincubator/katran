@@ -24,7 +24,7 @@ TEST(CliParserTest, DirectIpIsParsed) {
   testInstallArgs.reset();
   auto app = CliParser::genCliApp(
       installArgs, ignoreClean, ignoreStats, DirectEncapMode::SERVER);
-  app->parse("run --direct-ip=c0de::1");
+  app->parse("run --cgroup=/sys/fs/cgroup --direct-ip=c0de::1");
   ASSERT_TRUE(testInstallArgs.has_value());
   EXPECT_EQ(testInstallArgs->directIp, "c0de::1");
 }
@@ -33,7 +33,7 @@ TEST(CliParserTest, DirectIpIsRequiredForServer) {
   testInstallArgs.reset();
   auto app = CliParser::genCliApp(
       installArgs, ignoreClean, ignoreStats, DirectEncapMode::SERVER);
-  EXPECT_THROW(app->parse("install"), CLI::ParseError);
+  EXPECT_THROW(app->parse("install --cgroup=/sys/fs/cgroup"), CLI::ParseError);
   EXPECT_FALSE(testInstallArgs.has_value());
 }
 
@@ -41,7 +41,9 @@ TEST(CliParserTest, DirectIpRejectsMalformedAddress) {
   testInstallArgs.reset();
   auto app = CliParser::genCliApp(
       installArgs, ignoreClean, ignoreStats, DirectEncapMode::SERVER);
-  EXPECT_THROW(app->parse("run --direct-ip=not-an-ip"), CLI::ParseError);
+  EXPECT_THROW(
+      app->parse("run --cgroup=/sys/fs/cgroup --direct-ip=not-an-ip"),
+      CLI::ParseError);
   EXPECT_FALSE(testInstallArgs.has_value());
 }
 
@@ -53,8 +55,58 @@ TEST(CliParserTest, ClientHasNoDirectIp) {
       ignoreStats,
       DirectEncapMode::CLIENT,
       ignorePing);
-  EXPECT_THROW(app->parse("run --direct-ip=c0de::1"), CLI::ParseError);
+  EXPECT_THROW(
+      app->parse("run --cgroup=/sys/fs/cgroup --direct-ip=c0de::1"),
+      CLI::ParseError);
   EXPECT_FALSE(testInstallArgs.has_value());
+}
+
+TEST(CliParserTest, CgroupIsRequiredForInstallRunAndClean) {
+  testInstallArgs.reset();
+  auto app = CliParser::genCliApp(
+      installArgs,
+      ignoreClean,
+      ignoreStats,
+      DirectEncapMode::CLIENT,
+      ignorePing);
+  EXPECT_THROW(app->parse("install"), CLI::ParseError);
+  EXPECT_THROW(app->parse("run"), CLI::ParseError);
+  EXPECT_THROW(app->parse("clean"), CLI::ParseError);
+}
+
+TEST(CliParserTest, PinBssDefaultsToTrueAndCanBeDisabled) {
+  testInstallArgs.reset();
+  auto app = CliParser::genCliApp(
+      installArgs,
+      ignoreClean,
+      ignoreStats,
+      DirectEncapMode::CLIENT,
+      ignorePing);
+  app->parse("install --cgroup=/sys/fs/cgroup");
+  ASSERT_TRUE(testInstallArgs.has_value());
+  EXPECT_TRUE(testInstallArgs->pin);
+
+  testInstallArgs.reset();
+  app = CliParser::genCliApp(
+      installArgs,
+      ignoreClean,
+      ignoreStats,
+      DirectEncapMode::CLIENT,
+      ignorePing);
+  app->parse("run --cgroup=/sys/fs/cgroup");
+  ASSERT_TRUE(testInstallArgs.has_value());
+  EXPECT_TRUE(testInstallArgs->pin);
+
+  testInstallArgs.reset();
+  app = CliParser::genCliApp(
+      installArgs,
+      ignoreClean,
+      ignoreStats,
+      DirectEncapMode::CLIENT,
+      ignorePing);
+  app->parse("run --cgroup=/sys/fs/cgroup --pin-bss=0");
+  ASSERT_TRUE(testInstallArgs.has_value());
+  EXPECT_FALSE(testInstallArgs->pin);
 }
 
 /* vip filter tests */
@@ -62,7 +114,7 @@ TEST(CliParserTest, NoVipFilter) {
   testInstallArgs.reset();
   auto app = CliParser::genCliApp(
       installArgs, ignoreClean, ignoreStats, DirectEncapMode::SERVER);
-  app->parse("run --direct-ip=c0de::1");
+  app->parse("run --cgroup=/sys/fs/cgroup --direct-ip=c0de::1");
   ASSERT_TRUE(testInstallArgs.has_value());
   EXPECT_FALSE(testInstallArgs->vipsEnabled.has_value());
   EXPECT_FALSE(testInstallArgs->vipsDisabled.has_value());
@@ -72,7 +124,7 @@ TEST(CliParserTest, VipFilterWithEmptyString) {
   testInstallArgs.reset();
   auto app = CliParser::genCliApp(
       installArgs, ignoreClean, ignoreStats, DirectEncapMode::SERVER);
-  app->parse("run --direct-ip=c0de::1 --vips-enabled=");
+  app->parse("run --cgroup=/sys/fs/cgroup --direct-ip=c0de::1 --vips-enabled=");
   ASSERT_TRUE(testInstallArgs.has_value());
   ASSERT_TRUE(testInstallArgs->vipsEnabled.has_value());
   EXPECT_EQ(testInstallArgs->vipsEnabled, "");
@@ -81,7 +133,8 @@ TEST(CliParserTest, VipFilterWithEmptyString) {
   testInstallArgs.reset();
   app = CliParser::genCliApp(
       installArgs, ignoreClean, ignoreStats, DirectEncapMode::SERVER);
-  app->parse("run --direct-ip=c0de::1 --vips-disabled=");
+  app->parse(
+      "run --cgroup=/sys/fs/cgroup --direct-ip=c0de::1 --vips-disabled=");
   ASSERT_TRUE(testInstallArgs.has_value());
   EXPECT_FALSE(testInstallArgs->vipsEnabled.has_value());
   ASSERT_TRUE(testInstallArgs->vipsDisabled.has_value());
@@ -94,7 +147,7 @@ TEST(CliParserTest, VipFilterBothEnabled) {
       installArgs, ignoreClean, ignoreStats, DirectEncapMode::SERVER);
   EXPECT_THROW(
       app->parse(
-          "run --direct-ip=c0de::1 --vips-enabled=c0de::1 "
+          "run --cgroup=/sys/fs/cgroup --direct-ip=c0de::1 --vips-enabled=c0de::1 "
           "--vips-disabled=c0de::2"),
       CLI::ParseError);
   EXPECT_FALSE(testInstallArgs.has_value());

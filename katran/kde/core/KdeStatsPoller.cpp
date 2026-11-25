@@ -3,7 +3,6 @@
 #include <katran/kde/core/ClientDirectEncap.h>
 #include <katran/kde/core/KdeBpfUtil.h>
 #include <katran/kde/core/ServerDirectEncap.h>
-#include "common/stats/Stats.h"
 #include "fb303/ServiceData.h"
 #include "fb303/ThreadCachedServiceData.h"
 

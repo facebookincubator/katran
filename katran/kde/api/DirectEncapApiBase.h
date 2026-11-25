@@ -42,7 +42,7 @@ struct KdeInstallParams {
   folly::IPAddress directIp;
   std::string clientZone;
   std::string serverZones;
-  bool pin{false};
+  bool pin{true};
   bool kdePort{false};
   bool hostMode{false};
   std::optional<katran_tpr::KdeOtelOptions> otelStats;

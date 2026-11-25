@@ -9,12 +9,12 @@
 #include <glog/logging.h>
 #include <thrift/lib/cpp2/util/ScopedServerThread.h>
 
-#include "katran/facebook/direct_encap/katran_de_ctl/KdePinger.h"
 #include "katran/kde/api/DirectEncapClientApi.h"
 #include "katran/kde/core/ClientDirectEncap.h"
 #include "katran/kde/core/KdeStatsOtel.h"
 #include "katran/kde/ctl/CliParser.h"
 #include "katran/kde/ctl/KatranDeThrift.h"
+#include "katran/kde/ctl/KdePinger.h"
 #include "katran/kde/ctl/Utils.h"
 
 using namespace katran_de::ctl;
@@ -89,7 +89,7 @@ void stats(const StatsArgs& statsArgs, bool statusCheck) {
 }
 
 void ping(const PingArgs& pingArgs) {
-  KdePinger pinger(pingArgs.cgroupPath, pingArgs.threadCount);
+  KdePinger pinger(pingArgs.threadCount);
   pinger.ping(
       folly::IPAddress(pingArgs.ipAddress), pingArgs.port, pingArgs.count);
 }

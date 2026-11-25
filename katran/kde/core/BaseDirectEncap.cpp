@@ -6,14 +6,10 @@
 #include <string>
 #include "fb303/ServiceData.h"
 
+#include <folly/ScopeGuard.h>
 #include <folly/String.h>
 #include <katran/kde/consts.h>
 #include "katran/kde/core/KdeBpfUtil.h"
-#include "ti/tools/networkinghelper/NetlinkNetworkingHelper.h"
-#include "tupperware/agent/system/Cgroup2.h"
-#include "tupperware/agent/system/bpf/Bpf.h"
-
-using NetlinkNetworkingHelper = ::ti::networkinghelper::NetlinkNetworkingHelper;
 
 namespace katran_tpr {
 
@@ -63,14 +59,10 @@ void BaseDirectEncap::setLogConfig(
 
 folly::Expected<folly::Unit, std::system_error> BaseDirectEncap::loadSockOps() {
   if (cgroupPath_.empty()) {
-    auto maybePath = facebook::tupperware::system::cgroup2::ro::getCgroupPath();
-    if (maybePath.hasError()) {
-      // TODO: replace LOG(ERROR) & makeUnexpected with helper
-      // in all such places in this class
-      LOG(ERROR) << "Failed to get cgroup path: " << maybePath.error().what();
-      return folly::makeUnexpected(maybePath.error());
-    }
-    cgroupPath_ = "/cgroup2" + maybePath->str();
+    LOG(ERROR) << "Cgroup path must be set";
+    return folly::makeUnexpected(
+        std::system_error(
+            EINVAL, std::generic_category(), "Cgroup path must be set"));
   }
 
   cgroupFd_ = ::open(cgroupPath_.c_str(), O_DIRECTORY, O_RDONLY);
@@ -278,51 +270,54 @@ folly::Expected<folly::Unit, std::system_error> BaseDirectEncap::clean(
 
 folly::Expected<folly::Unit, std::system_error> BaseDirectEncap::cleanSockOps(
     const std::string& cgroupPath) {
-  facebook::tupperware::system::Path path(cgroupPath);
+  if (cgroupPath.empty()) {
+    LOG(ERROR) << "Cgroup path must be set";
+    return folly::makeUnexpected(
+        std::system_error(
+            EINVAL, std::generic_category(), "Cgroup path must be set"));
+  }
 
   std::string pPath = KdeBpfUtil::getPinPath(KdeSockOpsProgName);
   int pFd = bpf_obj_get(pPath.c_str());
-  if (pFd >= 0) {
-    VLOG(1) << "Using prog=" << pPath << " cgroupPath=" << cgroupPath;
-    auto res = facebook::tupperware::system::Bpf::detachCgroupBpfProgramByFd(
-        pFd, path, BPF_CGROUP_SOCK_OPS);
+  if (pFd < 0) {
+    int err = errno;
+    if (err == ENOENT) {
+      LOG(WARNING) << "No pinned sockops prog found at " << pPath
+                   << ", skipping sockops detach";
+      return folly::Unit();
+    }
+    LOG(ERROR) << "Failed to open pinned sockops prog at " << pPath << ": "
+               << folly::errnoStr(err);
+    return folly::makeUnexpected(
+        std::system_error(
+            err, std::generic_category(), "Failed to open pinned sockops"));
+  }
+  SCOPE_EXIT {
     ::close(pFd);
-    if (res.hasError()) {
-      LOG(ERROR) << "Failed to detach pinned sockops: " << res.error().what();
-      return folly::makeUnexpected(res.error());
-    }
-    LOG(INFO) << "Detached sockops prog via pinned path";
-    return folly::Unit();
-  }
+  };
 
-  // surprisingly, we never clean in prod, the only way to clean WITHOUT pinned
-  // fd ref is to restart the container
-  LOG(WARNING)
-      << "No pinned sockops prog found, this is likely to fail with EPERM even if the prog is still attached. This will soon be deprecated";
-  const std::map<std::string, bpf_prog_type> programFilter = {
-      {KdeSockOpsProgName, BPF_PROG_TYPE_SOCK_OPS}};
-  auto progs = facebook::tupperware::system::Bpf::getFilteredCgroupBpfPrograms(
-      path, programFilter);
-  if (progs.hasError()) {
-    LOG(ERROR) << "Failed to get katran_de sock_ops prog from cgroup "
-               << cgroupPath;
-    return folly::makeUnexpected(progs.error());
+  int cgroupFd = ::open(cgroupPath.c_str(), O_DIRECTORY | O_RDONLY);
+  if (cgroupFd < 0) {
+    int err = errno;
+    LOG(ERROR) << "Failed to open cgroup " << cgroupPath;
+    return folly::makeUnexpected(
+        std::system_error(
+            err, std::generic_category(), "Failed to open cgroup"));
   }
-  folly::Expected<folly::Unit, std::system_error> result = folly::Unit();
-  for (const auto& prog : progs.value()) {
-    auto maybeDettach =
-        facebook::tupperware::system::Bpf::detachCgroupBpfProgramByFd(
-            prog.fd(), path, prog.attachType());
-    if (maybeDettach.hasError()) {
-      LOG(ERROR) << "Failed to detach program " << prog.name().value()
-                 << " from cgroup " << cgroupPath;
-      result = folly::makeUnexpected(maybeDettach.error());
-    } else {
-      LOG(INFO) << "Detached program katran_de_so id " << prog.id().value()
-                << " from cgroup " << cgroupPath;
-    }
+  SCOPE_EXIT {
+    ::close(cgroupFd);
+  };
+
+  VLOG(1) << "Using prog=" << pPath << " cgroupPath=" << cgroupPath;
+  if (bpf_prog_detach2(pFd, cgroupFd, BPF_CGROUP_SOCK_OPS) != 0) {
+    int err = errno;
+    LOG(ERROR) << "Failed to detach pinned sockops: " << folly::errnoStr(err);
+    return folly::makeUnexpected(
+        std::system_error(
+            err, std::generic_category(), "Failed to detach pinned sockops"));
   }
-  return result;
+  LOG(INFO) << "Detached sockops prog via pinned path";
+  return folly::Unit();
 }
 
 folly::Expected<folly::Unit, std::system_error> BaseDirectEncap::cleanTC(
@@ -330,48 +325,54 @@ folly::Expected<folly::Unit, std::system_error> BaseDirectEncap::cleanTC(
     uint32_t handle) {
   int ifIndex = if_nametoindex(iface.c_str());
   if (!ifIndex) {
+    int err = errno;
     std::string errMsg = "Can't resolve ifindex for interface " + iface;
     LOG(ERROR) << errMsg;
     return folly::makeUnexpected(
-        std::system_error(errno, std::generic_category(), errMsg));
+        std::system_error(err, std::generic_category(), errMsg));
   }
-  auto maybePrograms = facebook::tupperware::system::RtNetlink::getTcBpfFilters(
-      ifIndex,
-      facebook::tupperware::system::RtNetlink::TcFilterDirection::EGRESS);
-  if (maybePrograms.hasError()) {
-    LOG(ERROR) << "Failed to get TC prog from interface " << iface << " error "
-               << maybePrograms.error().what();
-    return folly::makeUnexpected(maybePrograms.error());
+
+  // Host mode attaches via tcx link; rmPinned() unlinks and detaches it.
+  if (::access(KdeBpfUtil::getPinPath(KdeTcLinkName).c_str(), F_OK) == 0) {
+    return folly::Unit();
   }
-  int progCount = 0;
+
+  std::string pPath = KdeBpfUtil::getPinPath(KdeTcProgName);
+  int pFd = bpf_obj_get(pPath.c_str());
+  if (pFd < 0) {
+    int err = errno;
+    if (err == ENOENT) {
+      LOG(WARNING) << "No pinned TC prog found at " << pPath
+                   << ", skipping TC detach";
+      return folly::Unit();
+    }
+    LOG(ERROR) << "Failed to open pinned TC prog at " << pPath << ": "
+               << folly::errnoStr(err);
+    return folly::makeUnexpected(
+        std::system_error(
+            err, std::generic_category(), "Failed to open pinned TC prog"));
+  }
+  SCOPE_EXIT {
+    ::close(pFd);
+  };
+
   katran::BpfAdapter adapter(/*set_limits=*/false);
-  for (const auto& program : *maybePrograms) {
-    if (!program.bpfName.has_value()) {
-      continue;
-    }
-    if (program.bpfName.value() == KdeTcProgName) {
-      progCount++;
-    }
+  int ret = adapter.deleteTcBpfFilter(
+      pFd,
+      ifIndex,
+      KdeTcProgName,
+      KdeTcFilterPriority,
+      katran::TC_EGRESS,
+      handle);
+  if (ret < 0) {
+    int err = errno;
+    std::string errMsg =
+        "Failed to delete katran_de_tc from interface " + iface;
+    LOG(ERROR) << errMsg;
+    return folly::makeUnexpected(
+        std::system_error(err, std::generic_category(), errMsg));
   }
-  if (progCount > 0) {
-    int ret = adapter.deleteTcBpfFilter(
-        0,
-        ifIndex,
-        KdeTcProgName,
-        KdeTcFilterPriority,
-        katran::TC_EGRESS,
-        handle);
-    if (ret < 0) {
-      std::string errMsg =
-          "Failed to delete katran_de_tc from interface " + iface;
-      LOG(ERROR) << errMsg;
-      return folly::makeUnexpected(
-          std::system_error(errno, std::generic_category(), errMsg));
-    } else {
-      LOG(INFO) << "Deleted katran_de_tc from interface " << iface
-                << " prog count was " << progCount;
-    }
-  }
+  LOG(INFO) << "Deleted katran_de_tc from interface " << iface;
   return folly::Unit();
 }
 

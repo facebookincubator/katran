@@ -12,6 +12,7 @@
 #define TCPHDR_ACK 0x10
 #define TCPHDR_SYNACK (TCPHDR_SYN | TCPHDR_ACK)
 #define AF_INET6 10
+#define ETH_P_IPV6 0x86DD
 
 #define CG_OK 1
 #define CG_ERR 0

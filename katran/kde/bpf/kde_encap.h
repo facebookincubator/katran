@@ -29,8 +29,6 @@ struct kde_hop_jumbo_hdr {
 
 #define V6DADDR (1 << 0)
 
-#include "common/bpf/bpf_net_helpers.h"
-
 #define GUE_DPORT 9886
 #define GUE_DPORT_KDE 9887
 #define IS_VALID_GUE_DPORT(port) \
@@ -148,7 +146,7 @@ __attribute__((__always_inline__)) static inline bool encap_gue(
     return false;
   }
   struct ethhdr* ethh = data;
-  ethh->h_proto = BE_ETH_P_IPV6;
+  ethh->h_proto = bpf_htons(ETH_P_IPV6);
 
   __u32 pkt_len = skb->len - sizeof(struct ethhdr) - sizeof(struct ipv6hdr);
   __u16 hdr_len = pkt_len > 0xFFFF ? 0 : pkt_len; // 0 if bigger than 16 bits
@@ -190,7 +188,7 @@ __attribute__((__always_inline__)) static inline bool remove_jumbo_hbh(
   struct ethhdr* eth = data;
   struct ipv6hdr* ip6 = (void*)(eth + 1);
   struct kde_hop_jumbo_hdr* hbh = (void*)(ip6 + 1);
-  if ((void*)(hbh + 1) > data_end || eth->h_proto != BE_ETH_P_IPV6 ||
+  if ((void*)(hbh + 1) > data_end || eth->h_proto != bpf_htons(ETH_P_IPV6) ||
       ip6->payload_len != 0 || ip6->nexthdr != IPPROTO_HOPOPTS ||
       hbh->nexthdr != IPPROTO_TCP || hbh->hdrlen != 0 ||
       hbh->tlv_type != IPV6_TLV_JUMBO) {
@@ -231,7 +229,7 @@ static inline int direct_encap(
   }
 
   struct ethhdr* ethh = data;
-  if (ethh->h_proto != BE_ETH_P_IPV6) {
+  if (ethh->h_proto != bpf_htons(ETH_P_IPV6)) {
     // TODO: support IPv4
     return TC_ACT_UNSPEC;
   }
