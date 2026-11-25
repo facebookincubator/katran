@@ -17,6 +17,18 @@
 #define KDE_CLT_TCP_HDR_NAT_OPT_LEN 4
 #define KDE_SRV_TCP_HDR_NAT_OPT_LEN 20
 
+#define KDE_LOG_PORT_ANY 0
+#define KDE_MAX_VIPS_FILTER 8
+#define KDE_MAX_ZONES 8
+
+typedef __u8 kde_zone;
+#define KDE_ZONE_NONE 0x00
+#define KDE_ZONE_1 (1 << 0)
+#define KDE_ZONE_2 (1 << 1)
+#define KDE_ZONE_3 (1 << 2)
+#define KDE_ZONE_4 (1 << 3)
+#define KDE_ZONE_ALL 0xFF
+
 enum kde_mode {
   DIRECT_ENCAP_MODE_CLIENT = 0,
   DIRECT_ENCAP_MODE_SERVER = 1,
@@ -26,21 +38,6 @@ enum kde_gue_port : __u16 {
   KDE_GUE_PORT_DEFAULT = 9886,
   KDE_GUE_PORT_KDE = 9887,
 };
-
-enum kde_zone : __u8 {
-  KDE_ZONE_NONE = 0,
-  KDE_ZONE_1 = 1 << 0,
-  KDE_ZONE_2 = 1 << 1,
-  KDE_ZONE_3 = 1 << 2,
-  KDE_ZONE_4 = 1 << 3,
-  KDE_ZONE_ALL = 0xFF,
-};
-#ifdef __cplusplus
-inline enum kde_zone operator|(enum kde_zone a, enum kde_zone b) {
-  return static_cast<enum kde_zone>(
-      static_cast<__u8>(a) | static_cast<__u8>(b));
-}
-#endif
 
 /* exclusive modes */
 enum vip_filter : __u8 {
@@ -70,7 +67,12 @@ struct encap_sk_info {
   __u32 encapped;
 };
 
-struct kde_stats {
+struct kde_zone_stat {
+  __u64 acc;
+  __u64 rej;
+};
+
+struct __attribute__((aligned(64))) kde_stats {
   // common
   __u64 error_sys_calls;
   // client
@@ -101,17 +103,13 @@ struct kde_stats {
   __u64 server_rx_zone_v1;
   __u64 server_rx_zone_unknown_acc;
   __u64 server_rx_zone_unknown_rej;
-  __u64 server_rx_zone_1_acc;
-  __u64 server_rx_zone_1_rej;
-  __u64 server_rx_zone_2_acc;
-  __u64 server_rx_zone_2_rej;
-  __u64 server_rx_zone_3_acc;
-  __u64 server_rx_zone_3_rej;
-  __u64 server_rx_zone_4_acc;
-  __u64 server_rx_zone_4_rej;
+  struct kde_zone_stat server_rx_zone[KDE_MAX_ZONES];
   __u64 server_retrans_synack;
   __u64 server_directip_blackhole;
 };
+_Static_assert(
+    sizeof(struct kde_stats) % 64 == 0,
+    "kde_stats must be a multiple of 64B to avoid false sharing");
 
 struct kde_tc_stats {
   __u64 error_sys_calls;
@@ -201,6 +199,3 @@ struct kde_log_config {
   // Log filter match connection by local port, 0 matches any ports.
   __u32 local_port;
 };
-
-#define KDE_LOG_PORT_ANY 0
-#define KDE_MAX_VIPS_FILTER 8

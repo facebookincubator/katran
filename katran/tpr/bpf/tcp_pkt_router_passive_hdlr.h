@@ -15,7 +15,9 @@
 #include "tcp_pkt_router_maps.h"
 #include "tcp_pkt_router_structs.h"
 
-const volatile __u8 KDE_ZONE_ALL = 0xFF;
+#ifndef KDE_ZONE_ALL
+#define KDE_ZONE_ALL 0xFF
+#endif
 
 static inline bool should_ignore_due_to_kde(struct bpf_sock_ops* skops) {
   __u32 sinfo_key = SERVER_INFO_INDEX;

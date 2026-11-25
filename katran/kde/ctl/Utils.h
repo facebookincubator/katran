@@ -112,17 +112,17 @@ class StatsPrinter {
       logStr += fmt::format(
           "accepted u/o/e/r/c={}/{}/{}/{}/{} ",
           so.server_rx_zone_unknown_acc,
-          so.server_rx_zone_1_acc,
-          so.server_rx_zone_2_acc,
-          so.server_rx_zone_3_acc,
-          so.server_rx_zone_4_acc);
+          so.server_rx_zone[0].acc,
+          so.server_rx_zone[1].acc,
+          so.server_rx_zone[2].acc,
+          so.server_rx_zone[3].acc);
       logStr += fmt::format(
           "rejected u/o/e/r/c={}/{}/{}/{}/{} ",
           so.server_rx_zone_unknown_rej,
-          so.server_rx_zone_1_rej,
-          so.server_rx_zone_2_rej,
-          so.server_rx_zone_3_rej,
-          so.server_rx_zone_4_rej);
+          so.server_rx_zone[0].rej,
+          so.server_rx_zone[1].rej,
+          so.server_rx_zone[2].rej,
+          so.server_rx_zone[3].rej);
     }
     XLOG(INFO) << "Stats per sec: " << logStr;
   }
@@ -148,23 +148,23 @@ class StatsPrinter {
         so.server_directip_blackhole)(
         "katran_de.server.server.rx_zone.v1" + suffix_, so.server_rx_zone_v1)(
         "katran_de.server.server.rx_zone.origin.acc" + suffix_,
-        so.server_rx_zone_1_acc)(
+        so.server_rx_zone[0].acc)(
         "katran_de.server.server.rx_zone.edge.acc" + suffix_,
-        so.server_rx_zone_2_acc)(
+        so.server_rx_zone[1].acc)(
         "katran_de.server.server.rx_zone.rl_corp.acc" + suffix_,
-        so.server_rx_zone_3_acc)(
+        so.server_rx_zone[2].acc)(
         "katran_de.server.server.rx_zone.cloud_cw.acc" + suffix_,
-        so.server_rx_zone_4_acc)(
+        so.server_rx_zone[3].acc)(
         "katran_de.server.server.rx_zone.unknown.acc" + suffix_,
         so.server_rx_zone_unknown_acc)(
         "katran_de.server.server.rx_zone.origin.rej" + suffix_,
-        so.server_rx_zone_1_rej)(
+        so.server_rx_zone[0].rej)(
         "katran_de.server.server.rx_zone.edge.rej" + suffix_,
-        so.server_rx_zone_2_rej)(
+        so.server_rx_zone[1].rej)(
         "katran_de.server.server.rx_zone.rl_corp.rej" + suffix_,
-        so.server_rx_zone_3_rej)(
+        so.server_rx_zone[2].rej)(
         "katran_de.server.server.rx_zone.cloud_cw.rej" + suffix_,
-        so.server_rx_zone_4_rej)(
+        so.server_rx_zone[3].rej)(
         "katran_de.server.server.rx_zone.unknown.rej" + suffix_,
         so.server_rx_zone_unknown_rej)("timestamp", timestamp());
     std::cout << folly::toJson(jsonObject) << std::endl;

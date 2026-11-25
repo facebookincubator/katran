@@ -9,6 +9,8 @@
 extern const volatile union kde_ip_address g_direct_ip;
 extern struct kde_stats g_stats[MAX_CPUS];
 const volatile __u8 g_kde_server_zones = KDE_ZONE_ALL;
+/* zones with a name in userspace; set before load, at most KDE_MAX_ZONES */
+const volatile __u8 g_kde_num_zones = KDE_MAX_ZONES;
 const volatile __u8 g_vip_filter_mode = KDE_VIP_FILTER_NONE;
 const volatile __u8 g_vips_enabled_cnt = 0;
 const volatile __u8 g_vips_disabled_cnt = 0;
@@ -115,36 +117,22 @@ static inline bool has_syn_with_kde_opt(
     return zone_match;
   }
 
-  if ((kde_opt.zone & KDE_ZONE_1) == KDE_ZONE_1) {
-    if (zone_match) {
-      KDE_STAT_INC(server_rx_zone_1_acc);
-    } else {
-      KDE_STAT_INC(server_rx_zone_1_rej);
+  for (int i = 0; i < KDE_MAX_ZONES && i < g_kde_num_zones; i++) {
+    if (kde_opt.zone == (1 << i)) {
+      if (zone_match) {
+        KDE_STAT_INC(server_rx_zone[i].acc);
+      } else {
+        KDE_STAT_INC(server_rx_zone[i].rej);
+      }
+      return zone_match;
     }
-  } else if ((kde_opt.zone & KDE_ZONE_2) == KDE_ZONE_2) {
-    if (zone_match) {
-      KDE_STAT_INC(server_rx_zone_2_acc);
-    } else {
-      KDE_STAT_INC(server_rx_zone_2_rej);
-    }
-  } else if ((kde_opt.zone & KDE_ZONE_3) == KDE_ZONE_3) {
-    if (zone_match) {
-      KDE_STAT_INC(server_rx_zone_3_acc);
-    } else {
-      KDE_STAT_INC(server_rx_zone_3_rej);
-    }
-  } else if ((kde_opt.zone & KDE_ZONE_4) == KDE_ZONE_4) {
-    if (zone_match) {
-      KDE_STAT_INC(server_rx_zone_4_acc);
-    } else {
-      KDE_STAT_INC(server_rx_zone_4_rej);
-    }
+  }
+  /* no zone, more than one zone bit, or a zone without a name lands in
+   * unknown */
+  if (zone_match) {
+    KDE_STAT_INC(server_rx_zone_unknown_acc);
   } else {
-    if (zone_match) {
-      KDE_STAT_INC(server_rx_zone_unknown_acc);
-    } else {
-      KDE_STAT_INC(server_rx_zone_unknown_rej);
-    }
+    KDE_STAT_INC(server_rx_zone_unknown_rej);
   }
   return zone_match;
 }
