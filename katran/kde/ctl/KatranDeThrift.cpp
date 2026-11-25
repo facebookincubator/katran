@@ -5,7 +5,6 @@
 #include <stdexcept>
 
 #include <fb303/ThreadCachedServiceData.h>
-#include <thrift/lib/cpp2/server/ThriftServer.h>
 
 namespace katran_de::ctl {
 
@@ -26,19 +25,26 @@ bool startCounterExport(
     int port,
     apache::thrift::util::ScopedServerThread& thriftThread) {
   return startCounterExport(
-      port, thriftThread, std::make_shared<KatranDeServiceHandler>());
+      port,
+      thriftThread,
+      std::make_shared<KatranDeServiceHandler>(),
+      /*configureServer=*/{});
 }
 
 bool startCounterExport(
     int port,
     apache::thrift::util::ScopedServerThread& thriftThread,
-    std::shared_ptr<KatranDeServiceHandler> handler) {
+    std::shared_ptr<KatranDeServiceHandler> handler,
+    const std::function<void(apache::thrift::ThriftServer&)>& configureServer) {
   if (port <= 0) {
     return true;
   }
   auto thriftServer = std::make_shared<apache::thrift::ThriftServer>();
   thriftServer->setInterface(std::move(handler));
   thriftServer->setPort(port);
+  if (configureServer) {
+    configureServer(*thriftServer);
+  }
   // By default, Thrift server will create thread per core. We only serve
   // stats and status, thus 2 threads should be enough.
   thriftServer->setNumIOWorkerThreads(2);

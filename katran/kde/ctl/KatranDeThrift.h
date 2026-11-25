@@ -2,10 +2,12 @@
 
 #pragma once
 
+#include <functional>
 #include <memory>
 #include <string>
 
 #include <fb303/BaseService.h>
+#include <thrift/lib/cpp2/server/ThriftServer.h>
 #include <thrift/lib/cpp2/util/ScopedServerThread.h>
 
 namespace katran_de::ctl {
@@ -15,7 +17,7 @@ class KatranDeServiceHandler : public facebook::fb303::BaseService {
   KatranDeServiceHandler();
   facebook::fb303::cpp2::fb303_status getStatus() override;
 
-  // Throws: this port is plaintext and unauthenticated.
+  // Throws: the port has no ACL, so any client could rewrite options.
   [[noreturn]] void setOption(
       std::unique_ptr<std::string> key,
       std::unique_ptr<std::string> value) override;
@@ -33,10 +35,12 @@ bool startCounterExport(
     apache::thrift::util::ScopedServerThread& thread);
 
 // Same, but serves `handler`, a KatranDeServiceHandler that also implements a
-// service extending fb303 BaseService.
+// service extending fb303 BaseService. `configureServer`, if set, runs before
+// the server starts, e.g. to set up TLS.
 bool startCounterExport(
     int port,
     apache::thrift::util::ScopedServerThread& thread,
-    std::shared_ptr<KatranDeServiceHandler> handler);
+    std::shared_ptr<KatranDeServiceHandler> handler,
+    const std::function<void(apache::thrift::ThriftServer&)>& configureServer);
 
 } // namespace katran_de::ctl
