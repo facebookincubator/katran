@@ -191,7 +191,8 @@ __attribute__((__always_inline__)) int parse_hdr_opt_raw(
   }
 
   hdr_len = tcp_opt[1];
-  if (hdr_len > state->hdr_bytes_remaining) {
+  // a length below 2 is malformed and would never advance the parser
+  if (hdr_len < 2 || hdr_len > state->hdr_bytes_remaining) {
     return -1;
   }
 
@@ -253,6 +254,11 @@ tcp_hdr_opt_lookup_server_id(
   if (tcp_hdr + 1 > data_end) {
     return FURTHER_PROCESSING;
   }
+  if (tcp_hdr->doff * 4 < sizeof(struct tcphdr)) {
+    // malformed header length; would underflow tcp_hdr_opt_len below
+    *sid_err = TPR_SID_ERR_NO_OPT;
+    return FURTHER_PROCESSING;
+  }
   tcp_hdr_opt_len = (tcp_hdr->doff * 4) - sizeof(struct tcphdr);
   if (tcp_hdr_opt_len < TCP_HDR_OPT_LEN_TPR) {
     *sid_err = TPR_SID_ERR_NO_OPT;
@@ -291,6 +297,11 @@ tcp_hdr_opt_lookup_server_id_skb(
   tcp_offset = calc_offset(is_ipv6, false /* is_icmp */);
   tcp_hdr = (struct tcphdr*)(data + tcp_offset);
   if (tcp_hdr + 1 > data_end) {
+    return FURTHER_PROCESSING;
+  }
+  if (tcp_hdr->doff * 4 < sizeof(struct tcphdr)) {
+    // malformed header length; would underflow tcp_hdr_opt_len below
+    *sid_err = TPR_SID_ERR_NO_OPT;
     return FURTHER_PROCESSING;
   }
   tcp_hdr_opt_len = (tcp_hdr->doff * 4) - sizeof(struct tcphdr);
@@ -425,8 +436,15 @@ parse_quic(
     result.server_id = (connId[1] << 16) | (connId[2] << 8) | (connId[3]);
     return result;
   } else if (connIdVersion == QUIC_CONNID_VERSION_V3) {
-    result.server_id =
-        (connId[1] << 24) | (connId[2] << 16) | (connId[3] << 8) | (connId[4]);
+    // do the math in unsigned: shifting a promoted (signed) int by 24 is
+    // undefined behavior when connId[1] >= 0x80.
+    __u32 sid = ((__u32)connId[1] << 24) | ((__u32)connId[2] << 16) |
+        ((__u32)connId[3] << 8) | (__u32)connId[4];
+    // server_id is a signed int and callers treat <= 0 as "no server id". Ids
+    // that do not fit stay FURTHER_PROCESSING (fall back to CH).
+    if (sid <= 0x7FFFFFFF) {
+      result.server_id = sid;
+    }
   }
   return result;
 }

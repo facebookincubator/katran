@@ -705,6 +705,52 @@ const std::vector<katran::PacketAttributes> testFixtures = {
              .cidVersion(QUICHeader::CID_V2)
              .data("@")
              .done()},
+    // 37
+    {.description =
+         "QUIC: short header w/ connection id. CIDv3. server id is 1024 mapped to fc00::1.",
+     .expectedReturnValue = "XDP_TX",
+     .inputPacketBuilder =
+         PacketBuilder::newPacket()
+             .Eth("0x1", "0x2")
+             .IPv4("192.168.1.42", "10.200.1.5")
+             .UDP(31337, 443)
+             .QUICShortHeader()
+             .destConnId({0xC0, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0x00})
+             .data("@")
+             .done(),
+     .expectedOutputPacketBuilder =
+         PacketBuilder::newPacket()
+             .Eth("02:00:00:00:00:00", "00:00:de:ad:be:af")
+             .IPv6("100::bac1:12a", "fc00::1") // Outer IPv6 encapsulation
+             .IPv4("192.168.1.42", "10.200.1.5") // Inner IPv4
+             .UDP(31337, 443)
+             .QUICShortHeader()
+             .destConnId({0xC0, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0x00})
+             .data("@")
+             .done()},
+    // 38
+    {.description =
+         "QUIC: short header w/ connection id. CIDv3. server id has the top bit set, fall back to CH.",
+     .expectedReturnValue = "XDP_TX",
+     .inputPacketBuilder =
+         PacketBuilder::newPacket()
+             .Eth("0x1", "0x2")
+             .IPv4("192.168.1.42", "10.200.1.5")
+             .UDP(31337, 443)
+             .QUICShortHeader()
+             .destConnId({0xC0, 0x90, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00})
+             .data("@")
+             .done(),
+     .expectedOutputPacketBuilder =
+         PacketBuilder::newPacket()
+             .Eth("02:00:00:00:00:00", "00:00:de:ad:be:af")
+             .IPv6("100::bac1:12a", "fc00::1") // Outer IPv6 encapsulation
+             .IPv4("192.168.1.42", "10.200.1.5") // Inner IPv4
+             .UDP(31337, 443)
+             .QUICShortHeader()
+             .destConnId({0xC0, 0x90, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00})
+             .data("@")
+             .done()},
 };
 
 } // namespace testing
