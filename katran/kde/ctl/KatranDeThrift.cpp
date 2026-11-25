@@ -1,6 +1,9 @@
 // (c) Meta Platforms, Inc. and affiliates. Confidential and proprietary.
 
 #include "katran/kde/ctl/KatranDeThrift.h"
+
+#include <stdexcept>
+
 #include <fb303/ThreadCachedServiceData.h>
 #include <thrift/lib/cpp2/server/ThriftServer.h>
 
@@ -11,6 +14,12 @@ KatranDeServiceHandler::KatranDeServiceHandler()
 
 facebook::fb303::cpp2::fb303_status KatranDeServiceHandler::getStatus() {
   return facebook::fb303::cpp2::fb303_status::ALIVE;
+}
+
+void KatranDeServiceHandler::setOption(
+    std::unique_ptr<std::string> /* key */,
+    std::unique_ptr<std::string> /* value */) {
+  throw std::runtime_error("setOption is disabled on katran_de");
 }
 
 bool startCounterExport(

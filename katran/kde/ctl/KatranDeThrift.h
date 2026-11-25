@@ -3,6 +3,7 @@
 #pragma once
 
 #include <memory>
+#include <string>
 
 #include <fb303/BaseService.h>
 #include <thrift/lib/cpp2/util/ScopedServerThread.h>
@@ -13,6 +14,11 @@ class KatranDeServiceHandler : public facebook::fb303::BaseService {
  public:
   KatranDeServiceHandler();
   facebook::fb303::cpp2::fb303_status getStatus() override;
+
+  // Throws: this port is plaintext and unauthenticated.
+  [[noreturn]] void setOption(
+      std::unique_ptr<std::string> key,
+      std::unique_ptr<std::string> value) override;
 };
 
 // Makes katran_de.* fb303 counters readable over thrift: serves them on
