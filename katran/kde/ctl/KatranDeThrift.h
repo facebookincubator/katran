@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include <memory>
+
 #include <fb303/BaseService.h>
 #include <thrift/lib/cpp2/util/ScopedServerThread.h>
 
@@ -23,5 +25,12 @@ class KatranDeServiceHandler : public facebook::fb303::BaseService {
 bool startCounterExport(
     int port,
     apache::thrift::util::ScopedServerThread& thread);
+
+// Same, but serves `handler`, a KatranDeServiceHandler that also implements a
+// service extending fb303 BaseService.
+bool startCounterExport(
+    int port,
+    apache::thrift::util::ScopedServerThread& thread,
+    std::shared_ptr<KatranDeServiceHandler> handler);
 
 } // namespace katran_de::ctl

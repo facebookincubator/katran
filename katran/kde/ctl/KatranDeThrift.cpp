@@ -16,11 +16,19 @@ facebook::fb303::cpp2::fb303_status KatranDeServiceHandler::getStatus() {
 bool startCounterExport(
     int port,
     apache::thrift::util::ScopedServerThread& thriftThread) {
+  return startCounterExport(
+      port, thriftThread, std::make_shared<KatranDeServiceHandler>());
+}
+
+bool startCounterExport(
+    int port,
+    apache::thrift::util::ScopedServerThread& thriftThread,
+    std::shared_ptr<KatranDeServiceHandler> handler) {
   if (port <= 0) {
     return true;
   }
   auto thriftServer = std::make_shared<apache::thrift::ThriftServer>();
-  thriftServer->setInterface(std::make_shared<KatranDeServiceHandler>());
+  thriftServer->setInterface(std::move(handler));
   thriftServer->setPort(port);
   // By default, Thrift server will create thread per core. We only serve
   // stats and status, thus 2 threads should be enough.
