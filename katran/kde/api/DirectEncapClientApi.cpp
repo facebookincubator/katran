@@ -103,10 +103,7 @@ bool DirectEncapClientApi::initImpl(const KdeInstallParams& params) {
       params.iface,
       katran_tpr::parseZones(params.clientZone, params.zone_map),
       params.zone_map,
-      VipEnablementMode::ALL_ENABLED,
       /*set_limits=*/params.rlimitMemLock,
-      /*configPath=*/"",
-      /*cluster=*/"",
       /*GuePort=*/guePort,
       /*hostMode=*/params.hostMode,
       /*natMode=*/params.natMode);

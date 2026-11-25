@@ -9,8 +9,6 @@
 
 extern struct kde_stats g_stats[MAX_CPUS];
 
-const volatile bool g_enable_for_all_vips = false;
-
 const volatile __u8 g_kde_client_zone = 0;
 
 const volatile __u16 g_kde_encap_port = KDE_GUE_PORT_DEFAULT;
@@ -26,33 +24,6 @@ const volatile __u8 g_kde_client_host_mode = 0;
  * connection. With NAT mode, client asks server to echo observered port on
  * SYN-ACK. KDE will then rewrite inner on all encapped packets to match NAT */
 const volatile bool g_kde_client_nat_mode = false;
-
-// TODO: remove this helper if it is unused.
-static inline bool is_kde_enabled_on_vip(struct bpf_sock_ops* skops) {
-  if (g_enable_for_all_vips) {
-    return true;
-  }
-
-  if (skops->family != AF_INET6) {
-    // We may change this later on if we decide to enable it for ipv4
-    return false;
-  }
-
-  struct kde_vip vip = {};
-
-  vip.dstv6[0] = skops->remote_ip6[0];
-  vip.dstv6[1] = skops->remote_ip6[1];
-  vip.dstv6[2] = skops->remote_ip6[2];
-  vip.dstv6[3] = skops->remote_ip6[3];
-
-  vip.dst_port = skops->remote_port;
-
-  if (!bpf_map_lookup_elem(&kde_vip_map, &vip)) {
-    return false;
-  }
-
-  return true;
-}
 
 static inline int clt_handle_tcp_listen(
     struct bpf_sock_ops* skops,
@@ -77,10 +48,6 @@ static inline int clt_handle_hdr_opt_len(
     KDE_SO_LOG_DEBUG(skops, "hdr_opt_len non-SYN packet");
     return CG_OK;
   }
-  if (!is_kde_enabled_on_vip(skops)) {
-    KDE_SO_LOG_DEBUG(skops, "hdr_opt_len KDE not enabled on vip");
-    return CG_OK;
-  }
   int reserve_opt_len = KDE_CLT_TCP_HDR_OPT_LEN;
   if (g_kde_client_nat_mode) {
     reserve_opt_len = KDE_CLT_TCP_HDR_NAT_OPT_LEN;
@@ -102,10 +69,6 @@ static inline int clt_handle_hdr_opt_len(
 static inline int ctl_write_hdr_opt(struct bpf_sock_ops* skops, __u32 cpu_num) {
   if ((skops->skb_tcp_flags & TCPHDR_SYN) != TCPHDR_SYN) {
     KDE_SO_LOG_DEBUG(skops, "write_hdr_opt non-SYN packet");
-    return CG_OK;
-  }
-  if (!is_kde_enabled_on_vip(skops)) {
-    KDE_SO_LOG_DEBUG(skops, "write_hdr_opt KDE not enabled on vip");
     return CG_OK;
   }
 

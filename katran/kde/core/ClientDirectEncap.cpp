@@ -6,7 +6,6 @@
 #include <system_error>
 
 #include <katran/kde/consts.h>
-#include <katran/lib/IpHelpers.h>
 #include "fb303/ServiceData.h"
 #include "katran/kde/core/KdeBpfUtil.h"
 
@@ -16,10 +15,7 @@ ClientDirectEncap::ClientDirectEncap(
     const std::string& iface,
     kde_zone clientZone,
     decltype(oss_kde_zones)& zoneMap,
-    VipEnablementMode vipEnablementMode,
     bool set_limits,
-    const std::string& configPath,
-    const std::string& cluster,
     GuePort encapPort,
     bool hostMode,
     bool natMode)
@@ -29,23 +25,6 @@ ClientDirectEncap::ClientDirectEncap(
       encapPort_(encapPort),
       hostMode_(hostMode),
       natMode_(natMode) {
-  switch (vipEnablementMode) {
-    case VipEnablementMode::ALL_ENABLED:
-      enableForAllVips_ = true;
-      break;
-    case VipEnablementMode::CONFIG_GATED:
-      CHECK(!configPath.empty())
-          << "VipEnablementMode was set to CONFIG_GATED, but no config provided";
-      CHECK(!cluster.empty())
-          << "VipEnablementMode was set to CONFIG_GATED, but cluster not specified";
-      kdeConfigPoller_ =
-          std::make_unique<KdeConfigPoller>(this, configPath, cluster);
-      break;
-    case VipEnablementMode::MANUAL:
-      break;
-    default:
-      LOG(FATAL) << "Invalid VipEnablementMode provided";
-  }
   VLOG(1) << "kde client zone is " << clientZoneStr() << " value "
           << clientZone;
 }
@@ -63,19 +42,7 @@ folly::Expected<folly::Unit, std::system_error> ClientDirectEncap::init() {
   if (!res) {
     return res;
   }
-  res = loadTc();
-  if (!res) {
-    return res;
-  }
-
-  if (kdeConfigPoller_) {
-    auto runConfigPollerResult = kdeConfigPoller_->runConfigPoller();
-    if (runConfigPollerResult.hasError()) {
-      return folly::makeUnexpected(runConfigPollerResult.error());
-    }
-  }
-
-  return folly::Unit();
+  return loadTc();
 }
 
 void ClientDirectEncap::detach() {
@@ -84,10 +51,6 @@ void ClientDirectEncap::detach() {
 }
 
 void ClientDirectEncap::shutdown() {
-  if (kdeConfigPoller_) {
-    kdeConfigPoller_->shutdown();
-  }
-
   if (soProgFd_) {
     if (bpf_prog_detach2(soProgFd_, cgroupFd_, BPF_CGROUP_SOCK_OPS)) {
       LOG(ERROR) << "Failed detach katan_de sock_ops prog";
@@ -117,73 +80,10 @@ void ClientDirectEncap::shutdown() {
   }
 }
 
-void ClientDirectEncap::onVipAdded(
-    const ti::shiv::kde_vips_rollout::KdeVip& kdeVip) {
-  if (folly::copy(kdeVip.protocol().value()) !=
-      ti::shiv::kde_vips_rollout::KdeProtocol::TCP) {
-    // Right now, we only deal with TCP vips for KDE
-    return;
-  }
-
-  // If we extend support to ipv4, we would have to change this.
-  auto vip_addr = katran::IpHelpers::parseAddrToBe(kdeVip.address().value());
-  kde_vip vip = {};
-  std::memcpy(vip.dstv6, vip_addr.v6daddr, 16);
-
-  uint32_t port = folly::copy(kdeVip.port().value());
-  vip.dst_port = folly::Endian::big(port);
-
-  // The value that the vip is mapped to is not relevant. It's just the
-  // existence of the vip as a key in the map that determines whether or
-  // not kde is enabled.
-  uint8_t dummyValue = 1;
-
-  auto res = adapter_.bpfUpdateMap(
-      bpf_map__fd(soSkel_->maps.kde_vip_map), &vip, &dummyValue);
-
-  if (res != 0) {
-    // TODO: Increment an ODS counter
-    LOG(ERROR) << "Failed to enable KDE for vip with addr = "
-               << kdeVip.address().value() << "and port "
-               << folly::copy(kdeVip.port().value())
-               << " due to a failure to add to the  BPF map. Error is "
-               << folly::errnoStr(errno);
-  }
-}
-
-void ClientDirectEncap::onVipDeleted(
-    const ti::shiv::kde_vips_rollout::KdeVip& kdeVip) {
-  if (folly::copy(kdeVip.protocol().value()) !=
-      ti::shiv::kde_vips_rollout::KdeProtocol::TCP) {
-    // Right now, we only deal with TCP vips for KDE
-    return;
-  }
-
-  // If we extend support to ipv4, we would have to change this.
-  auto vip_addr = katran::IpHelpers::parseAddrToBe(kdeVip.address().value());
-  kde_vip vip = {};
-  std::memcpy(vip.dstv6, vip_addr.v6daddr, 16);
-
-  uint32_t port = folly::copy(kdeVip.port().value());
-  vip.dst_port = folly::Endian::big(port);
-
-  auto res = adapter_.bpfMapDeleteElement(
-      bpf_map__fd(soSkel_->maps.kde_vip_map), &vip);
-
-  if (res != 0) {
-    // TODO: Increment an ODS counter
-    LOG(ERROR) << "Failed to disable KDE for vip with addr = "
-               << kdeVip.address().value() << ", port=" << port
-               << " due to a failure to add to the  BPF map. Error is "
-               << folly::errnoStr(errno);
-  }
-}
-
 folly::Expected<folly::Unit, std::system_error>
 ClientDirectEncap::setSockopsVars() {
   soSkel_->rodata->g_direct_encap_mode =
       static_cast<int>(DirectEncapMode::CLIENT);
-  soSkel_->rodata->g_enable_for_all_vips = enableForAllVips_;
   soSkel_->rodata->g_kde_client_zone = clientZone_;
   soSkel_->rodata->g_kde_encap_port = static_cast<uint16_t>(encapPort_);
   soSkel_->rodata->g_kde_client_host_mode = hostMode_;

@@ -126,14 +126,6 @@ struct kde_tc_stats {
   __u64 nat_replace_fail;
 };
 
-struct kde_vip {
-  union {
-    __u32 dst;
-    __u32 dstv6[4];
-  };
-  __u32 dst_port;
-};
-
 /// Struct for TCP option sent by client in SYN packet.
 // Indicates server that client supports direct encap and which zone client
 // is located in.
