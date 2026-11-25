@@ -1940,7 +1940,7 @@ uint64_t KatranLb::getPacketsProcessedForHcKey(const VipKey& hcKey) {
 
   uint32_t hcKeyId = hc_key_iter->second;
 
-  unsigned int nr_cpus = BpfAdapter::getPossibleCpus();
+  const auto nr_cpus = BpfAdapter::getPossibleCpus();
   if (nr_cpus < 0) {
     LOG(ERROR) << "Error while getting number of possible cpus";
     return 0;
@@ -1995,7 +1995,7 @@ bool KatranLb::logVipLruMissStats(VipKey& vip) {
     LOG(ERROR) << "Unable to get fd for lru_miss_stats";
     return false;
   }
-  unsigned int nr_cpus = BpfAdapter::getPossibleCpus();
+  const auto nr_cpus = BpfAdapter::getPossibleCpus();
   if (nr_cpus < 0) {
     LOG(ERROR) << "Error while getting number of possible cpus";
     return false;
@@ -2034,7 +2034,7 @@ std::unordered_map<std::string, int32_t> KatranLb::getVipLruMissStats(
   auto reals_ids = vip_iter->second.getReals();
 
   std::unordered_map<std::string, int32_t> stats;
-  unsigned int nr_cpus = libbpf_num_possible_cpus();
+  const auto nr_cpus = libbpf_num_possible_cpus();
   if (nr_cpus < 0) {
     LOG(ERROR) << "Error while getting number of possible cpus";
     return stats;
@@ -2097,7 +2097,7 @@ lb_stats KatranLb::getIcmpTooBigStats() {
 }
 
 lb_quic_packets_stats KatranLb::getLbQuicPacketsStats() {
-  unsigned int nr_cpus = BpfAdapter::getPossibleCpus();
+  const auto nr_cpus = BpfAdapter::getPossibleCpus();
   if (nr_cpus < 0) {
     LOG(ERROR) << "Error while getting number of possible cpus";
     return lb_quic_packets_stats{};
@@ -2146,7 +2146,7 @@ lb_quic_packets_stats KatranLb::getLbQuicPacketsStats() {
 }
 
 lb_tpr_packets_stats KatranLb::getTcpServerIdRoutingStats() {
-  unsigned int nr_cpus = BpfAdapter::getPossibleCpus();
+  const auto nr_cpus = BpfAdapter::getPossibleCpus();
   if (nr_cpus < 0) {
     LOG(ERROR) << "Error while getting number of possible cpus";
     return lb_tpr_packets_stats{};
@@ -2180,7 +2180,7 @@ lb_tpr_packets_stats KatranLb::getTcpServerIdRoutingStats() {
 }
 
 lb_stable_rt_packets_stats KatranLb::getUdpStableRoutingStats() {
-  unsigned int nr_cpus = BpfAdapter::getPossibleCpus();
+  const auto nr_cpus = BpfAdapter::getPossibleCpus();
   if (nr_cpus < 0) {
     LOG(ERROR) << "Error while getting number of possible cpus";
     return lb_stable_rt_packets_stats{};
@@ -2254,7 +2254,7 @@ bool KatranLb::isUnderFlood() {
 
   uint32_t conn_rate_key = config_.maxVips + kNewConnRateOffset;
 
-  unsigned int nr_cpus = BpfAdapter::getPossibleCpus();
+  const auto nr_cpus = BpfAdapter::getPossibleCpus();
   if (nr_cpus < 0) {
     LOG(ERROR) << "Error while getting number of possible cpus";
     return false;
@@ -2322,7 +2322,7 @@ lb_stats KatranLb::getRealStats(uint32_t index) {
 }
 
 lb_stats KatranLb::getLbStats(uint32_t position, const std::string& map) {
-  unsigned int nr_cpus = BpfAdapter::getPossibleCpus();
+  const auto nr_cpus = BpfAdapter::getPossibleCpus();
   if (nr_cpus < 0) {
     LOG(ERROR) << "Error while getting number of possible cpus";
     return lb_stats();
@@ -2350,7 +2350,7 @@ std::vector<int64_t> KatranLb::getPerCorePacketsStats() {
   if (config_.testing) {
     return {};
   }
-  unsigned int nr_cpus = BpfAdapter::getPossibleCpus();
+  const auto nr_cpus = BpfAdapter::getPossibleCpus();
   if (nr_cpus < 0) {
     LOG(ERROR) << "Error while getting number of possible cpus";
     return {};
@@ -2388,7 +2388,7 @@ vip_definition KatranLb::vipKeyToVipDefinition(const VipKey& vipKey) {
 }
 
 HealthCheckProgStats KatranLb::getStatsForHealthCheckProgram() {
-  unsigned int nr_cpus = BpfAdapter::getPossibleCpus();
+  const auto nr_cpus = BpfAdapter::getPossibleCpus();
   if (nr_cpus < 0) {
     LOG(ERROR) << "Error while getting number of possible cpus";
     return HealthCheckProgStats();
