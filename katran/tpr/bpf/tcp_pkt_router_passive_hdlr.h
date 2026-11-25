@@ -10,14 +10,11 @@
 
 #include <bpf/bpf_helpers.h>
 
+#include <katran/kde/bpf/kde_types.h>
 #include "tcp_pkt_router_common.h"
 #include "tcp_pkt_router_consts.h"
 #include "tcp_pkt_router_maps.h"
 #include "tcp_pkt_router_structs.h"
-
-#ifndef KDE_ZONE_ALL
-#define KDE_ZONE_ALL 0xFF
-#endif
 
 static inline bool should_ignore_due_to_kde(struct bpf_sock_ops* skops) {
   __u32 sinfo_key = SERVER_INFO_INDEX;
