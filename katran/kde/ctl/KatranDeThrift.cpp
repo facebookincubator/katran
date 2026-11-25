@@ -23,21 +23,14 @@ void KatranDeServiceHandler::setOption(
 
 bool startCounterExport(
     int port,
-    apache::thrift::util::ScopedServerThread& thriftThread) {
-  return startCounterExport(
-      port,
-      thriftThread,
-      std::make_shared<KatranDeServiceHandler>(),
-      /*configureServer=*/{});
-}
-
-bool startCounterExport(
-    int port,
     apache::thrift::util::ScopedServerThread& thriftThread,
     std::shared_ptr<KatranDeServiceHandler> handler,
     const std::function<void(apache::thrift::ThriftServer&)>& configureServer) {
   if (port <= 0) {
     return true;
+  }
+  if (!handler) {
+    handler = std::make_shared<KatranDeServiceHandler>();
   }
   auto thriftServer = std::make_shared<apache::thrift::ThriftServer>();
   thriftServer->setInterface(std::move(handler));

@@ -30,17 +30,14 @@ class KatranDeServiceHandler : public facebook::fb303::BaseService {
 //
 // No-op if port <= 0. Returns false if the server could not start, leaving the
 // caller to decide how to clean up.
-bool startCounterExport(
-    int port,
-    apache::thrift::util::ScopedServerThread& thread);
-
-// Same, but serves `handler`, a KatranDeServiceHandler that also implements a
-// service extending fb303 BaseService. `configureServer`, if set, runs before
-// the server starts, e.g. to set up TLS.
+//
+// A null `handler` serves a plain KatranDeServiceHandler. `configureServer`, if
+// set, runs before the server starts, e.g. to set up TLS.
 bool startCounterExport(
     int port,
     apache::thrift::util::ScopedServerThread& thread,
-    std::shared_ptr<KatranDeServiceHandler> handler,
-    const std::function<void(apache::thrift::ThriftServer&)>& configureServer);
+    std::shared_ptr<KatranDeServiceHandler> handler = nullptr,
+    const std::function<void(apache::thrift::ThriftServer&)>& configureServer =
+        {});
 
 } // namespace katran_de::ctl
