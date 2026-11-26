@@ -62,7 +62,6 @@ target_link_libraries(katran_kde_core PUBLIC
   opentelemetry-cpp::api
   opentelemetry-cpp::sdk
   opentelemetry-cpp::otlp_http_metric_exporter
-  ${BPF_LINK_LIBRARIES}
 )
 
 add_library(katran_kde_api STATIC
