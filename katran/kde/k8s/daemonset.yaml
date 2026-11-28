@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: katran-kde
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: katran-kde
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: katran-kde
+    spec:
+      automountServiceAccountToken: false
+      hostNetwork: true
+      nodeSelector:
+        katran.io/kde: "enabled"
+      containers:
+        - name: kde
+          # Pin by digest in production.
+          image: ghcr.io/facebookincubator/katran-kde:latest
+          securityContext:
+            privileged: true
+          env:
+            - name: WORKLOAD_CGROUP
+              value: /host-cgroup/kubepods.slice
+            - name: NODE_IFACE
+              value: eth0
+            - name: KATRAN_DE_PIN_PATH
+              value: /sys/fs/bpf/katran-kde/node
+          command: ["/bin/sh", "-ec"]
+          args:
+            - |
+              mkdir -p "$KATRAN_DE_PIN_PATH"
+              exec katran_de_ctl run --quiet --host-mode --nat-mode \
+                --cgroup="$WORKLOAD_CGROUP" --iface="$NODE_IFACE" --zone=zone_1
+          startupProbe:
+            exec:
+              command: ["katran_de_ctl", "status"]
+            timeoutSeconds: 5
+            periodSeconds: 5
+            failureThreshold: 12
+          readinessProbe:
+            exec:
+              command: ["katran_de_ctl", "status"]
+            timeoutSeconds: 5
+            periodSeconds: 10
+          volumeMounts:
+            - name: cgroups
+              mountPath: /host-cgroup
+              readOnly: true
+            - name: bpffs
+              mountPath: /sys/fs/bpf
+      volumes:
+        - name: cgroups
+          hostPath:
+            path: /sys/fs/cgroup
+            type: Directory
+        - name: bpffs
+          hostPath:
+            path: /sys/fs/bpf
+            type: Directory

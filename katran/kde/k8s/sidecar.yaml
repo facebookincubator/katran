@@ -1,0 +1,60 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: katran-kde-sidecar
+spec:
+  automountServiceAccountToken: false
+  nodeSelector:
+    katran.io/kde: "enabled"
+  initContainers:
+    - name: kde
+      # Pin by digest in production.
+      image: ghcr.io/facebookincubator/katran-kde:latest
+      restartPolicy: Always
+      securityContext:
+        privileged: true
+      env:
+        - name: POD_UID
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.uid
+        - name: KATRAN_DE_PIN_PATH
+          value: /sys/fs/bpf/katran-kde/$(POD_UID)
+      command: ["/bin/sh", "-ec"]
+      args:
+        - |
+          pod_id=$(printf '%s' "$POD_UID" | tr '-' '_')
+          cgroup=$(find /host-cgroup/kubepods.slice -maxdepth 2 -type d \
+            -name "*pod${pod_id}.slice" -print -quit)
+          if [ -z "$cgroup" ]; then
+            echo 'KDE requires a pod cgroup under /host-cgroup/kubepods.slice' >&2
+            exit 1
+          fi
+          mkdir -p "$KATRAN_DE_PIN_PATH"
+          exec katran_de_ctl run --quiet --nat-mode --cgroup="$cgroup" --iface=eth0 --zone=zone_1
+      startupProbe:
+        exec:
+          command: ["katran_de_ctl", "status"]
+        timeoutSeconds: 5
+        periodSeconds: 5
+        failureThreshold: 12
+      volumeMounts:
+        - name: cgroups
+          mountPath: /host-cgroup
+          readOnly: true
+        - name: bpffs
+          mountPath: /sys/fs/bpf
+  containers:
+    # Replace with your proxy or application container.
+    - name: workload
+      image: ghcr.io/facebookincubator/katran-kde:latest
+      command: ["sleep", "infinity"]
+  volumes:
+    - name: cgroups
+      hostPath:
+        path: /sys/fs/cgroup
+        type: Directory
+    - name: bpffs
+      hostPath:
+        path: /sys/fs/bpf
+        type: Directory

@@ -41,7 +41,7 @@ CI publishes a client image from `main` to GitHub Container Registry (`ghcr.io/f
 docker run --rm ghcr.io/facebookincubator/katran-kde:latest --help
 ```
 
-The image runs `katran_de_ctl` directly. Pass `run`, `status`, or `clean` and their flags at deployment time; with no arguments it prints help and does not attach BPF.
+The image runs `katran_de_ctl` directly. Pass `run`, `status`, or `clean` and their flags at deployment time; with no arguments it prints help and does not attach BPF. See [Kubernetes](#kubernetes) for deployment manifests.
 
 To build the image yourself, the [Dockerfile](Dockerfile) packages the Ubuntu 24.04 CI artifact without rebuilding KDE or its dependencies. Download `katran.zip` from a successful [Linux CI run](https://github.com/facebookincubator/katran/actions/workflows/getdeps_linux.yml) matching the target node architecture, then from the root of the GitHub checkout:
 
@@ -109,9 +109,28 @@ For a single machine-readable snapshot, use `stats --json --json-delta-sec=0`. `
 
 ## Kubernetes
 
-Use an existing CNI such as Cilium. For a node-wide client, run the [container image](#container-image) with `run --host-mode`, a cgroup covering the intended workloads, the node's egress interface, and a node-local pin directory. Host mode uses TCX (Linux 6.6 or newer). A DaemonSet is the Kubernetes controller that runs one pod per selected node. It needs access to the node's network namespace, cgroups, and bpffs, with permission to attach BPF. This repository does not yet ship a DaemonSet manifest or Helm chart.
+[`k8s/`](k8s/) ships two manifests backed by the [published image](#container-image); pin the image by digest in production. Both select nodes labeled `katran.io/kde=enabled`, assume systemd cgroups under `/sys/fs/cgroup/kubepods.slice`, mount bpffs, and enable `--nat-mode` for networks that can [remap client source ports](#nat) (omit it if your path preserves ports).
 
-In per-workload mode, TC finds KDE state in the socket's BPF storage. At host egress, forwarded packets may have no socket attached, so host mode looks up the packet's IPv6/TCP tuple instead. SockOps and TC share the same tuple map **within one KDE instance**. Choose an egress hook where the tuple is still recognizable, and verify the accelerated path respects your network policy.
+Set `KATRAN_DE_PIN_PATH` to a directory unique to that KDE instance. Use one deployment mode for a workload, not both.
+
+### Sidecar ([`k8s/sidecar.yaml`](k8s/sidecar.yaml))
+
+Runs KDE as a native sidecar (`restartPolicy: Always`, Kubernetes 1.29+) in the pod's network namespace. Target the pod's cgroup slice or the proxy container's cgroup, not the sidecar's own container cgroup, and attach to the pod's egress interface (`eth0` here). Its `startupProbe` runs `katran_de_ctl status` so the workload container starts after BPF is attached:
+
+```sh
+katran_de_ctl run --quiet --nat-mode --cgroup="$POD_CGROUP" --iface=eth0 --zone=zone_1
+```
+
+### DaemonSet ([`k8s/daemonset.yaml`](k8s/daemonset.yaml))
+
+Runs KDE in the host network namespace on each selected node. Set `WORKLOAD_CGROUP` to the host cgroup covering the intended workloads and `NODE_IFACE` to the node's egress interface. Host mode requires TCX (Linux 6.6 or newer):
+
+```sh
+katran_de_ctl run --quiet --host-mode --nat-mode \
+  --cgroup="$WORKLOAD_CGROUP" --iface="$NODE_IFACE" --zone=zone_1
+```
+
+The sidecar reads KDE state from socket storage. At host egress the packet may have no socket attached, so the DaemonSet looks up its IPv6/TCP tuple instead. Choose an egress hook where the tuple is still recognizable, and verify the accelerated path respects your network policy.
 
 ## NAT
 
@@ -153,5 +172,6 @@ To check the attachments themselves, use `sudo bpftool cgroup show "$CGROUP"` fo
 | [`core/`](core/) | Load, attach, pin, and clean up BPF programs; collect stats. |
 | [`api/`](api/) | C++ client and backend lifecycle APIs. |
 | [`ctl/`](ctl/) | Client CLI, cross-process stats, and status. |
+| [`k8s/`](k8s/) | Kubernetes DaemonSet and sidecar manifests. |
 
 To run KDE's open-source unit tests, configure with `-DBUILD_TESTS=ON`, build, and run `ctest --test-dir build -R 'kde_(api|cli_parser)_test' --output-on-failure`.
