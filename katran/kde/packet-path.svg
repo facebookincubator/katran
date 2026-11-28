@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 294" width="760" height="294" role="img" aria-labelledby="title desc">
+  <title id="title">Katran DirectEncap packet paths</title>
+  <desc id="desc">The load balancer picks a backend for the TCP SYN. The backend advertises its direct IPv6 address in the SYN-ACK. The client then sends encapsulated TCP to that address, keeping the service IP as the inner destination.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 Z" fill="#475569"/>
+    </marker>
+    <marker id="direct" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 Z" fill="#047857"/>
+    </marker>
+  </defs>
+  <g font-family="system-ui, sans-serif" fill="#162337">
+    <rect x="1" y="1" width="758" height="140" rx="16" fill="#f8fafc" stroke="#cbd5e1" stroke-width="2"/>
+    <text x="27" y="35" font-size="19" font-weight="700">1. Negotiate through the load balancer</text>
+    <g fill="none" stroke="#475569" stroke-width="3" marker-end="url(#arrow)">
+      <path d="M 160 78 H 293"/>
+      <path d="M 467 78 H 600"/>
+    </g>
+    <g fill="#ffffff" stroke="#cbd5e1" stroke-width="2">
+      <rect x="26" y="57" width="126" height="42" rx="8"/>
+      <rect x="302" y="57" width="156" height="42" rx="8"/>
+      <rect x="608" y="57" width="126" height="42" rx="8"/>
+    </g>
+    <g text-anchor="middle" font-size="16" font-weight="600">
+      <text x="89" y="84">Client</text>
+      <text x="226" y="71" font-size="13" fill="#475569">TCP SYN</text>
+      <text x="380" y="84">Load balancer</text>
+      <text x="671" y="84">Backend</text>
+    </g>
+    <text x="27" y="124" font-size="15" fill="#475569">The backend advertises its direct IPv6 address in the SYN-ACK.</text>
+
+    <rect x="1" y="153" width="758" height="140" rx="16" fill="#ecfdf5" stroke="#6ee7b7" stroke-width="2"/>
+    <text x="27" y="187" font-size="19" font-weight="700">2. Send subsequent client packets directly</text>
+    <path d="M 160 230 H 600" fill="none" stroke="#047857" stroke-width="4" marker-end="url(#direct)"/>
+    <g fill="#ffffff" stroke="#6ee7b7" stroke-width="2">
+      <rect x="26" y="209" width="126" height="42" rx="8"/>
+      <rect x="608" y="209" width="126" height="42" rx="8"/>
+    </g>
+    <g text-anchor="middle" font-size="16" font-weight="600">
+      <text x="89" y="236">Client</text>
+      <text x="380" y="221" font-size="14" fill="#065f46">TCP inside IPv6 / UDP (GUE)</text>
+      <text x="671" y="236">Backend</text>
+    </g>
+    <text x="27" y="276" font-size="15" fill="#475569">Outer destination: backend IP. Inner destination: service VIP.</text>
+  </g>
+</svg>

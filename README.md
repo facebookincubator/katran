@@ -26,6 +26,7 @@ See the detailed features' description below :
 2. [`USAGE`](USAGE.md) - the detailed description of how katran's library can be used, configured or changed.
 3. [`DEVELOPING`](DEVELOPING.md) - description of how developing process looks like: how to build and test katran.
 4. [`EXAMPLE`](EXAMPLE.md) - output of how to run provided examples (thrift and [`gRPC services`](https://grpc.io/docs/), which leverage katran library)
+5. [Katran DirectEncap (KDE)](katran/kde/README.md) - send TCP traffic directly to the backend after connection setup.
 
 ## Examples of usage
 
