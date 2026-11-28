@@ -1,0 +1,99 @@
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+#
+# This source code is licensed under the license found in the
+# LICENSE file in the root directory of this source tree.
+
+name: kde-image
+
+on:
+  workflow_run:
+    workflows: [linux]
+    branches: [main]
+    types: [completed]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kde-image-main
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push' &&
+       github.event.workflow_run.head_repository.full_name == github.repository)
+    runs-on: ubuntu-24.04
+    permissions:
+      actions: read
+      contents: read
+      packages: write
+    steps:
+      - name: Resolve Linux CI run
+        id: ci
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          EVENT_NAME: ${{ github.event_name }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          set -euo pipefail
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            read -r RUN_ID HEAD_SHA < <(
+              gh run list --repo "$GITHUB_REPOSITORY" \
+                --workflow getdeps_linux.yml --branch main --event push \
+                --status success --limit 1 \
+                --json databaseId,headSha \
+                --jq '.[0] | "\(.databaseId) \(.headSha)"'
+            )
+          fi
+          test -n "$RUN_ID" && test "$RUN_ID" != "null"
+          printf 'run_id=%s\nsha=%s\nshort_sha=%.7s\n' \
+            "$RUN_ID" "$HEAD_SHA" "$HEAD_SHA" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ steps.ci.outputs.sha }}
+
+      - name: Download Linux artifact
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RUN_ID: ${{ steps.ci.outputs.run_id }}
+        run: |
+          set -euo pipefail
+          for attempt in 1 2 3; do
+            rm -rf _artifacts
+            if gh run download "$RUN_ID" --repo "$GITHUB_REPOSITORY" \
+                 --name katran --dir _artifacts; then
+              break
+            fi
+            test "$attempt" -lt 3 && sleep 5
+          done
+          test -f _artifacts/linux/bin/katran_de_ctl
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push image
+        env:
+          IMAGE: ghcr.io/${{ github.repository_owner }}/katran-kde
+          HEAD_SHA: ${{ steps.ci.outputs.sha }}
+          SHORT_SHA: ${{ steps.ci.outputs.short_sha }}
+        run: |
+          set -euo pipefail
+          IMAGE=$(printf '%s' "$IMAGE" | tr '[:upper:]' '[:lower:]')
+          docker build -f katran/kde/Dockerfile \
+            -t "${IMAGE}:sha-${SHORT_SHA}" \
+            _artifacts/linux
+          docker push "${IMAGE}:sha-${SHORT_SHA}"
+          if [ "$(git ls-remote origin refs/heads/main | cut -f1)" = "$HEAD_SHA" ]; then
+            docker tag "${IMAGE}:sha-${SHORT_SHA}" "${IMAGE}:latest"
+            docker push "${IMAGE}:latest"
+          fi

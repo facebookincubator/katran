@@ -6,7 +6,7 @@ KDE takes established IPv6 TCP traffic off the load balancer. The load balancer 
 
 ![Two packet paths: the SYN goes from client through the load balancer to the backend; after negotiation, encapsulated client packets go straight to the backend.](packet-path.svg)
 
-[Build](#build) · [Client quickstart](#client-quickstart) · [Backend setup](#backend-setup) · [Verify](#verify) · [Kubernetes](#kubernetes) · [NAT](#nat) · [Upgrades](#upgrades-and-cleanup) · [Troubleshooting](#troubleshooting)
+[Build](#build) · [Container image](#container-image) · [Client quickstart](#client-quickstart) · [Backend setup](#backend-setup) · [Verify](#verify) · [Kubernetes](#kubernetes) · [NAT](#nat) · [Upgrades](#upgrades-and-cleanup) · [Troubleshooting](#troubleshooting)
 
 ## How it works
 
@@ -31,6 +31,34 @@ To build with the dependency versions selected by Katran's CI, use `getdeps` fro
 
 ```sh
 python3 tool/fbcode_builder/getdeps.py --allow-system-packages build --src-dir=. katran
+```
+
+## Container image
+
+CI publishes a client image from `main` to GitHub Container Registry (`ghcr.io/facebookincubator/katran-kde:latest` and `ghcr.io/facebookincubator/katran-kde:sha-<commit>`):
+
+```sh
+docker run --rm ghcr.io/facebookincubator/katran-kde:latest --help
+```
+
+The image runs `katran_de_ctl` directly. Pass `run`, `status`, or `clean` and their flags at deployment time; with no arguments it prints help and does not attach BPF.
+
+To build the image yourself, the [Dockerfile](Dockerfile) packages the Ubuntu 24.04 CI artifact without rebuilding KDE or its dependencies. Download `katran.zip` from a successful [Linux CI run](https://github.com/facebookincubator/katran/actions/workflows/getdeps_linux.yml) matching the target node architecture, then from the root of the GitHub checkout:
+
+```sh
+unzip katran.zip -d _artifacts
+docker build -f katran/kde/Dockerfile -t katran-kde:local _artifacts/linux
+docker run --rm katran-kde:local --help
+```
+
+The build context is the directory containing `bin/katran_de_ctl`, not the source checkout. To produce `_artifacts/linux` locally on Ubuntu 24.04 after installing the `getdeps` system dependencies (including `patchelf`), run the CI build and packaging commands:
+
+```sh
+python3 tool/fbcode_builder/getdeps.py --allow-system-packages build \
+  --build-type RelWithDebInfo --src-dir=. katran --project-install-prefix katran:/usr/local
+python3 tool/fbcode_builder/getdeps.py --allow-system-packages fixup-dyn-deps \
+  --strip --src-dir=. katran _artifacts/linux \
+  --project-install-prefix katran:/usr/local --final-install-prefix /usr/local
 ```
 
 ## Client quickstart
@@ -81,7 +109,7 @@ For a single machine-readable snapshot, use `stats --json --json-delta-sec=0`. `
 
 ## Kubernetes
 
-Use an existing CNI such as Cilium. For a node-wide client, run `katran_de_ctl run --host-mode` with a cgroup covering the intended workloads, the node's egress interface, and a node-local pin directory. Host mode uses TCX (Linux 6.6 or newer). A DaemonSet is the Kubernetes controller that runs one pod per selected node. It needs access to the node's network namespace, cgroups, and bpffs, with permission to attach BPF. This repository does not yet ship a Kubernetes image or Helm chart.
+Use an existing CNI such as Cilium. For a node-wide client, run the [container image](#container-image) with `run --host-mode`, a cgroup covering the intended workloads, the node's egress interface, and a node-local pin directory. Host mode uses TCX (Linux 6.6 or newer). A DaemonSet is the Kubernetes controller that runs one pod per selected node. It needs access to the node's network namespace, cgroups, and bpffs, with permission to attach BPF. This repository does not yet ship a DaemonSet manifest or Helm chart.
 
 In per-workload mode, TC finds KDE state in the socket's BPF storage. At host egress, forwarded packets may have no socket attached, so host mode looks up the packet's IPv6/TCP tuple instead. SockOps and TC share the same tuple map **within one KDE instance**. Choose an egress hook where the tuple is still recognizable, and verify the accelerated path respects your network policy.
 
